@@ -1,0 +1,26 @@
+﻿[project]
+name = "inspection-demand-system"
+version = "3.0.0"
+description = "飞机定检需求单管理系统，工卡匹配与需求单自动生成工具"
+requires-python = ">=3.10"
+dependencies = [
+    "flask>=3.1.0",
+    "openpyxl>=3.1.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=5.0.0",
+    "ruff>=0.5.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-v --cov=reqman --cov-report=term-missing"
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"

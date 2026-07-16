@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% import "macros/list_macros.html" as list %}
+{% block title %}工卡组管理 - 定检需求单管理{% endblock %}
+{% block content %}
+
+<style>
+@keyframes blink-red {
+    0% { border-color: #dc3545; box-shadow: 0 0 6px rgba(220,53,69,0.4); }
+    50% { border-color: #dc3545; box-shadow: 0 0 12px rgba(220,53,69,0.7); }
+    100% { border-color: #dc3545; box-shadow: 0 0 6px rgba(220,53,69,0.4); }
+}
+tr.blink-warn {
+    animation: blink-red 2s ease-in-out 3;
+    border-left: 4px solid #dc3545 !important;
+    background-color: #fff8f8;
+}
+tr.blink-warn td:first-child {
+    padding-left: calc(0.5rem - 4px);
+}
+tr.blink-warn:hover {
+    background-color: #fff0f0;
+}
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">工卡组管理</h5>
+    <a href="/card/sets/new" class="btn btn-primary btn-sm">+ 新增工卡组</a>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" id="setTable">
+                <thead>
+                    {{ list.filter_row([('搜索名称...','fName'),('搜索专业...','fCat'),('','_'),('','_'),('','_'),('','_')]) }}
+                    <tr>
+                        <th class="sortable" data-col="0" onclick="AppFilter.sort(document.getElementById('setTable'),0)">名称 <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
+                        <th>专业</th>
+                        <th class="text-center">工卡数</th>
+                        <th class="text-center">工具数</th>
+                        <th class="text-center">航材数</th>
+                        <th style="width:120px" class="text-center">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% if set_data %}
+                {% for s in set_data %}
+                    {% set blink = (not s.tools or s.tools|length == 0) and not s.tools_confirmed
+                                   or (not s.materials or s.materials|length == 0) and not s.materials_confirmed %}
+                    <tr onclick="showSetDetail({{ s.id }})" style="cursor:pointer" class="{{ 'blink-warn' if blink }}">
+                        <td><strong>{{ s.name }}</strong></td>
+                        <td>{{ s.category or '-' }}</td>
+                        <td class="text-center">{{ card_counts.get(s.id, 0) }}</td>
+                        <td class="text-center">{{ s.tools|length }}</td>
+                        <td class="text-center">{{ s.materials|length }}</td>
+                        <td class="text-center" onclick="event.stopPropagation()">
+                            <a href="/card/sets/{{ s.id }}/edit" class="btn btn-outline-primary btn-sm py-0">编辑</a>
+                            <form method="POST" action="/card/sets/{{ s.id }}/delete" style="display:inline" onsubmit="return confirm('确认删除？关联工卡将解除绑定。')">
+                                <button type="submit" class="btn btn-outline-danger btn-sm py-0">删除</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                {% else %}
+                    {{ list.empty_state('暂无工卡组，点击右上角新增', '/card/sets/new', '新增工卡组', colspan=6) }}
+                {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="setDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title">工卡组详情</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="setDetailContent"><p class="text-muted">点击行加载...</p></div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">关闭</button>
+        </div>
+    </div></div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+var setData = [{% for s in set_data %}{{ s|tojson }}{% if not loop.last %},{% endif %}{% endfor %}];
+
+function showSetDetail(id) {
+    var d = setData.find(function(s) { return s.id === id; });
+    if (!d) return;
+    var h = '<div class="row g-3 mb-3">'
+        + '<div class="col-md-6"><label class="form-label small">名称</label><div><strong>' + (d.name || '') + '</strong></div></div>'
+        + '<div class="col-md-6"><label class="form-label small">说明</label><div>' + (d.description || '-') + '</div></div>'
+        + '</div>';
+
+    // 组内工卡
+    if (d.cards && d.cards.length) {
+        h += '<label class="form-label small fw-bold">组内工卡</label>'
+           + '<table class="table table-bordered table-sm mb-3"><thead><tr><th>工卡号</th><th>工卡名称</th></tr></thead><tbody>';
+        d.cards.forEach(function(c) {
+            h += '<tr><td><code>' + (c.task_code || '') + '</code></td><td>' + (c.task_name || '') + '</td></tr>';
+        });
+        h += '</tbody></table>';
+    }
+
+    // 工具清单
+    if (d.tools && d.tools.length) {
+        h += '<label class="form-label small fw-bold">共用工具清单</label>'
+           + '<table class="table table-bordered table-sm mb-3"><thead><tr><th>设备名称</th><th>件号</th><th>数量</th><th>备注</th><th>使用类型</th></tr></thead><tbody>';
+        d.tools.forEach(function(t) {
+            h += '<tr><td>' + (t.device_name || '') + '</td><td>' + (t.part_number || '') + '</td><td>' + (t.quantity || '') + '</td><td>' + (t.remark || '') + '</td><td>' + (t.usage_type || '') + '</td></tr>';
+        });
+        h += '</tbody></table>';
+    } else {
+        h += '<p class="text-muted small mb-3">共用工具清单：无</p>';
+    }
+
+    // 航材清单
+    if (d.materials && d.materials.length) {
+        h += '<label class="form-label small fw-bold">共用航材清单</label>'
+           + '<table class="table table-bordered table-sm mb-0"><thead><tr><th>航材名称</th><th>件号</th><th>数量</th><th>备注</th><th>使用类型</th></tr></thead><tbody>';
+        d.materials.forEach(function(m) {
+            h += '<tr><td>' + (m.material_name || '') + '</td><td>' + (m.part_number || '') + '</td><td>' + (m.quantity || '') + '</td><td>' + (m.remark || '') + '</td><td>' + (m.usage_type || '') + '</td></tr>';
+        });
+        h += '</tbody></table>';
+    } else {
+        h += '<p class="text-muted small mb-0">共用航材清单：无</p>';
+    }
+
+    document.getElementById('setDetailContent').innerHTML = h;
+    new bootstrap.Modal(document.getElementById('setDetailModal')).show();
+}
+
+['fName:0','fCat:1'].forEach(function(p) {
+    var id = p.split(':')[0], col = p.split(':')[1];
+    var el = document.getElementById(id);
+    if (el) el.setAttribute('data-col', col);
+});
+</script>
+{% endblock %}

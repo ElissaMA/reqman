@@ -1,0 +1,23 @@
+﻿__pycache__/
+*.pyc
+*.pyo
+*.log
+*.tmp
+.opxltmp/
+*.bak
+output/*.xlsx
+.env
+*.egg-info/
+.venv/
+venv/
+env/
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+*.temp
+# 排除业务数据，保留 reqman_db.json
+data/*.json
+!data/reqman_db.json

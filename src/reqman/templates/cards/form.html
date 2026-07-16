@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% import "macros/tables.html" as tables %}
+{% block title %}{{ "编辑工卡" if edit_mode else "新增工卡" }} - 定检需求单管理{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">{{ "编辑工卡" if edit_mode else "新增工卡" }}</h5>
+    <a href="/card/list" class="btn btn-outline-secondary btn-sm">&larr; 返回</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST" id="cardForm">
+            <!-- 基本信息 -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <label class="form-label small">工卡号 <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control form-control-sm" name="task_code"
+                           value="{{ item.task_code if item else prefill_code if prefill_code else "" }}" required>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label small">工卡描述</label>
+                    <input type="text" class="form-control form-control-sm" name="task_name"
+                           value="{{ item.task_name if item else prefill_name if prefill_name else "" }}">
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label small">专业</label>
+                    <select class="form-select form-select-sm" name="category">
+                        {% for c in categories %}
+                        <option value="{{ c }}" {{ "selected" if item and item.category == c }}>{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">类型</label>
+                    <select class="form-select form-select-sm" name="task_type">
+                        <option value="">请选择类型</option>
+                        {% for t in task_types %}
+                        {% if t %}
+                        <option value="{{ t }}" {{ "selected" if item and item.task_type == t }}>{{ t }}</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- 工具清单 -->
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <label class="form-label fw-bold mb-0">&#x1F527; 工具清单</label>
+                    <button type="button" class="btn btn-outline-success btn-sm"
+                            onclick="addRow('tool')">+ 新增工具</button>
+                </div>
+                {{ tables.tool_table(tools, usage_types, editable=true, show_delete=true) }}
+            </div>
+            <div class="mb-2">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="confirmNoTools" name="confirm_no_tools" value="1"
+                           {{ "checked" if item and item.tools_confirmed else "" }}>
+                    <label class="form-check-label small text-muted" for="confirmNoTools">
+                        确认无工具
+                    </label>
+                </div>
+            </div>
+
+            <!-- 航材清单 -->
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <label class="form-label fw-bold mb-0">&#x1F4E6; 航材清单</label>
+                    <button type="button" class="btn btn-outline-success btn-sm"
+                            onclick="addRow('mat')">+ 新增航材</button>
+                </div>
+                {{ tables.material_table(materials, usage_types, editable=true, show_delete=true) }}
+            </div>
+            <div class="mb-2">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="confirmNoMats" name="confirm_no_mats" value="1"
+                           {{ "checked" if item and item.materials_confirmed else "" }}>
+                    <label class="form-check-label small text-muted" for="confirmNoMats">
+                        确认无航材
+                    </label>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <a href="/card/list" class="btn btn-outline-secondary btn-sm">取消</a>
+                <button type="submit" class="btn btn-primary btn-sm px-4">
+                    {{ "保存修改" if edit_mode else "保存" }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+var confirmNoTools = document.getElementById("confirmNoTools");
+var confirmNoMats = document.getElementById("confirmNoMats");
+
+confirmNoTools.addEventListener("change", function() {
+    if (this.checked) {
+        if (!confirm("确认该卡无需工具？已填内容将被清空。")) {
+            this.checked = false;
+            return;
+        }
+        var tbody = document.querySelector("#toolTable tbody");
+        if (tbody) tbody.innerHTML = "";
+    }
+});
+
+confirmNoMats.addEventListener("change", function() {
+    if (this.checked) {
+        if (!confirm("确认该卡无需航材？已填内容将被清空。")) {
+            this.checked = false;
+            return;
+        }
+        var tbody = document.querySelector("#matTable tbody");
+        if (tbody) tbody.innerHTML = "";
+    }
+});
+
+function watchTable(tableId, checkbox) {
+    var table = document.getElementById(tableId);
+    if (!table) return;
+    table.addEventListener("input", function() {
+        var tbody = table.querySelector("tbody");
+        if (tbody) {
+            var hasVal = false;
+            tbody.querySelectorAll("input[type=text]").forEach(function(inp) {
+                if (inp.value.trim()) hasVal = true;
+            });
+            if (hasVal) checkbox.checked = false;
+        }
+    });
+    var observer = new MutationObserver(function() {
+        var tbody = table.querySelector("tbody");
+        if (!tbody || tbody.children.length === 0) return;
+        var hasVal = false;
+        tbody.querySelectorAll("input[type=text]").forEach(function(inp) {
+            if (inp.value.trim()) hasVal = true;
+        });
+        if (hasVal) checkbox.checked = false;
+    });
+    observer.observe(table, { childList: true, subtree: true });
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    watchTable("toolTable", confirmNoTools);
+    watchTable("matTable", confirmNoMats);
+});
+
+var usageTypes = {{ usage_types|tojson }};
+
+function addRow(type) {
+    if (type == "tool") confirmNoTools.checked = false;
+    else confirmNoMats.checked = false;
+
+    var table = document.getElementById(type == "tool" ? "toolTable" : "matTable");
+    var tbody = table.querySelector("tbody");
+    var tr = document.createElement("tr");
+    if (type == "tool") {
+        tr.innerHTML = '<td><input type="text" class="form-control form-control-sm" name="tool_name[]" placeholder="设备名称"></td>' +
+            '<td><input type="text" class="form-control form-control-sm" name="tool_pn[]"></td>' +
+            '<td><input type="text" class="form-control form-control-sm" name="tool_qty[]" value="1"></td>' +
+            '<td><input type="text" class="form-control form-control-sm" name="tool_remark[]"></td>' +
+            '<td><select class="form-select form-select-sm" name="tool_type[]">' + usageTypes.map(function(u){return '<option value="'+u+'">'+u+'</option>';}).join('') + '</select></td>' +
+            '<td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest(\'tr\').remove()">&times;</button></td>';
+    } else {
+        tr.innerHTML = '<td><input type="text" class="form-control form-control-sm" name="mat_name[]" placeholder="航材名称"></td>' +
+            '<td><input type="text" class="form-control form-control-sm" name="mat_pn[]"></td>' +
+            '<td><input type="text" class="form-control form-control-sm" name="mat_qty[]" value="1"></td>' +
+            '<td><input type="text" class="form-control form-control-sm" name="mat_remark[]"></td>' +
+            '<td><select class="form-select form-select-sm" name="mat_type[]">' + usageTypes.map(function(u){return '<option value="'+u+'">'+u+'</option>';}).join('') + '</select></td>' +
+            '<td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest(\'tr\').remove()">&times;</button></td>';
+    }
+    tbody.appendChild(tr);
+}
+
+document.getElementById("cardForm").addEventListener("submit", function(e) {
+    var toolHasContent = false, matHasContent = false;
+    var toolTbody = document.querySelector("#toolTable tbody");
+    var matTbody = document.querySelector("#matTable tbody");
+    if (toolTbody) {
+        toolTbody.querySelectorAll("input[type=text]").forEach(function(inp) {
+            if (inp.value.trim()) toolHasContent = true;
+        });
+    }
+    if (matTbody) {
+        matTbody.querySelectorAll("input[type=text]").forEach(function(inp) {
+            if (inp.value.trim()) matHasContent = true;
+        });
+    }
+    if (!toolHasContent && !confirmNoTools.checked) {
+        e.preventDefault();
+        alert("请添加工具或确认无工具");
+        return false;
+    }
+    if (!matHasContent && !confirmNoMats.checked) {
+        e.preventDefault();
+        alert("请添加航材或确认无航材");
+        return false;
+    }
+});
+</script>
+{% endblock %}

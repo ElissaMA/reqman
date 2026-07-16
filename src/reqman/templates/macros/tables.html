@@ -1,0 +1,166 @@
+{# 可复用的工具/航材表格组件 #}
+
+{% macro tool_table(tools, usage_types, editable=true, show_delete=true) %}
+<div class="table-responsive">
+    <table class="table table-bordered table-sm mb-0" id="toolTable">
+        <thead>
+            <tr>
+                <th style="width:25%">设备名称</th>
+                <th style="width:15%">件号</th>
+                <th style="width:8%">数量</th>
+                <th style="width:22%">备注</th>
+                <th style="width:15%">使用类型</th>
+                {% if editable and show_delete %}<th style="width:5%">操作</th>{% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% if tools %}
+            {% for t in tools %}
+            {{ tool_row(t.device_name, t.part_number, t.quantity, t.remark, t.usage_type, usage_types, editable, show_delete, loop.index0) }}
+            {% endfor %}
+            {% else %}
+            {% if editable %}
+            {{ tool_row("", "", "1", "", "必须使用", usage_types, editable, show_delete, 0) }}
+            {% else %}
+            <tr><td colspan="6" class="text-muted text-center py-2">无</td></tr>
+            {% endif %}
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endmacro %}
+
+
+{% macro tool_row(device_name, part_number, quantity, remark, usage_type, usage_types, editable=true, show_delete=true, index=0) %}
+<tr>
+    <td>
+        {% if editable %}
+        <input type="text" class="form-control form-control-sm" name="tool_name[]"
+               value="{{ device_name }}" placeholder="设备名称">
+        {% else %}
+        {{ device_name }}
+        {% endif %}
+    </td>
+    <td>
+        {% if editable %}
+        <input type="text" class="form-control form-control-sm" name="tool_pn[]" value="{{ part_number }}">
+        {% else %}
+        {{ part_number }}
+        {% endif %}
+    </td>
+    <td>
+        {% if editable %}
+        <input type="text" class="form-control form-control-sm" name="tool_qty[]" value="{{ quantity }}">
+        {% else %}
+        {{ quantity }}
+        {% endif %}
+    </td>
+    <td>
+        {% if editable %}
+        <input type="text" class="form-control form-control-sm" name="tool_remark[]" value="{{ remark }}">
+        {% else %}
+        {{ remark }}
+        {% endif %}
+    </td>
+    <td>
+        {% if editable %}
+        <select class="form-select form-select-sm" name="tool_type[]">
+            {% for ut in usage_types %}
+            <option value="{{ ut }}" {{ 'selected' if usage_type == ut else '' }}>{{ ut }}</option>
+            {% endfor %}
+        </select>
+        {% else %}
+        {{ usage_type }}
+        {% endif %}
+    </td>
+    {% if editable and show_delete %}
+    <td class="text-center">
+        <button type="button" class="btn btn-outline-danger btn-sm"
+                onclick="this.closest('tr').remove()">&times;</button>
+    </td>
+    {% endif %}
+</tr>
+{% endmacro %}
+
+
+{% macro material_table(materials, usage_types, editable=true, show_delete=true) %}
+<div class="table-responsive">
+    <table class="table table-bordered table-sm mb-0" id="matTable">
+        <thead>
+            <tr>
+                <th style="width:25%">航材名称</th>
+                <th style="width:15%">件号</th>
+                <th style="width:8%">数量</th>
+                <th style="width:22%">备注</th>
+                <th style="width:15%">使用类型</th>
+                {% if editable and show_delete %}<th style="width:5%">操作</th>{% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% if materials %}
+            {% for m in materials %}
+            {{ material_row(m.material_name, m.part_number, m.quantity, m.remark, m.usage_type, usage_types, editable, show_delete) }}
+            {% endfor %}
+            {% else %}
+            {% if editable %}
+            {{ material_row("", "", "1", "", "必须使用", usage_types, editable, show_delete) }}
+            {% else %}
+            <tr><td colspan="6" class="text-muted text-center py-2">无</td></tr>
+            {% endif %}
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endmacro %}
+
+
+{% macro material_row(material_name, part_number, quantity, remark, usage_type, usage_types, editable=true, show_delete=true) %}
+<tr>
+    <td>
+        {% if editable %}
+        <input type="text" class="form-control form-control-sm" name="mat_name[]"
+               value="{{ material_name }}" placeholder="航材名称">
+        {% else %}
+        {{ material_name }}
+        {% endif %}
+    </td>
+    <td>
+        {% if editable %}
+        <input type="text" class="form-control form-control-sm" name="mat_pn[]" value="{{ part_number }}">
+        {% else %}
+        {{ part_number }}
+        {% endif %}
+    </td>
+    <td>
+        {% if editable %}
+        <input type="text" class="form-control form-control-sm" name="mat_qty[]" value="{{ quantity }}">
+        {% else %}
+        {{ quantity }}
+        {% endif %}
+    </td>
+    <td>
+        {% if editable %}
+        <input type="text" class="form-control form-control-sm" name="mat_remark[]" value="{{ remark }}">
+        {% else %}
+        {{ remark }}
+        {% endif %}
+    </td>
+    <td>
+        {% if editable %}
+        <select class="form-select form-select-sm" name="mat_type[]">
+            {% for ut in usage_types %}
+            <option value="{{ ut }}" {{ 'selected' if usage_type == ut else '' }}>{{ ut }}</option>
+            {% endfor %}
+        </select>
+        {% else %}
+        {{ usage_type }}
+        {% endif %}
+    </td>
+    {% if editable and show_delete %}
+    <td class="text-center">
+        <button type="button" class="btn btn-outline-danger btn-sm"
+                onclick="this.closest('tr').remove()">&times;</button>
+    </td>
+    {% endif %}
+</tr>
+{% endmacro %}

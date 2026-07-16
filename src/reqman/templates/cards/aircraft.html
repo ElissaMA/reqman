@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% import "macros/list_macros.html" as list %}
+{% block title %}飞机信息 - 定检需求单管理{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">飞机信息</h5>
+    <button class="btn btn-primary btn-sm" onclick="showModal()">+ 新增飞机</button>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" id="acTable">
+                <thead>
+                    {{ list.filter_row([('搜索飞机号...','fReg'),('搜索机型...','fModel'),('搜索发动机...','fEngine'),('','_'),('','_'),('搜索APU...','fAPU'),('','_')]) }}
+                    <tr>
+                        <th style="width:12%" class="sortable" data-col="0" onclick="AppFilter.sort(document.getElementById('acTable'),0)">飞机号 <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
+                        <th style="width:18%" class="sortable" data-col="1" onclick="AppFilter.sort(document.getElementById('acTable'),1)">机型 <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
+                        <th style="width:18%" class="sortable" data-col="2" onclick="AppFilter.sort(document.getElementById('acTable'),2)">发动机 <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
+                        <th style="width:12%" class="sortable" data-col="3" onclick="AppFilter.sort(document.getElementById('acTable'),3)">FSN <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
+                        <th style="width:12%" class="sortable" data-col="4" onclick="AppFilter.sort(document.getElementById('acTable'),4)">MSN <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
+                        <th style="width:18%" class="sortable" data-col="5" onclick="AppFilter.sort(document.getElementById('acTable'),5)">APU <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
+                        <th style="width:120px" class="text-center">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% if aircraft_list %}
+                {% for ac in aircraft_list %}
+                    <tr>
+                        <td><strong>{{ ac.reg }}</strong></td>
+                        <td>{{ ac.model or '-' }}</td>
+                        <td>{{ ac.engine or '-' }}</td>
+                        <td>{{ ac.fsn or '-' }}</td>
+                        <td>{{ ac.msn or '-' }}</td>
+                        <td>{{ ac.apu or '-' }}</td>
+                        <td>
+                            <button class="btn btn-outline-primary btn-sm py-0" onclick="showEdit('{{ ac.id }}','{{ ac.reg }}','{{ ac.model }}','{{ ac.engine }}','{{ ac.fsn }}','{{ ac.msn }}','{{ ac.apu }}')">编辑</button>
+                            <form method="POST" action="/card/aircraft/{{ ac.id }}/delete" style="display:inline" onsubmit="return confirm('确认删除？')">
+                                <button class="btn btn-outline-danger btn-sm py-0">删除</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                {% else %}
+                    {{ list.empty_state('暂无飞机信息，点击右上角新增', '/card/aircraft', '新增飞机', colspan=7) }}
+                {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="acModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <form method="POST" action="/card/aircraft/new" id="acForm">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">新增飞机</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" name="id" id="f_id">
+                <div class="mb-2"><label class="form-label small">飞机号</label><input class="form-control form-control-sm" name="reg" id="f_reg" required></div>
+                <div class="mb-2"><label class="form-label small">机型</label><input class="form-control form-control-sm" name="model" id="f_model"></div>
+                <div class="mb-2"><label class="form-label small">发动机</label><input class="form-control form-control-sm" name="engine" id="f_engine"></div>
+                <div class="mb-2"><label class="form-label small">机队序列号(FSN)</label><input class="form-control form-control-sm" name="fsn" id="f_fsn"></div>
+                <div class="mb-2"><label class="form-label small">制造商序列号(MSN)</label><input class="form-control form-control-sm" name="msn" id="f_msn"></div>
+                <div class="mb-2"><label class="form-label small">APU型号</label><input class="form-control form-control-sm" name="apu" id="f_apu"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                <button type="submit" class="btn btn-primary btn-sm px-4">保存</button>
+            </div>
+        </form>
+    </div></div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showModal() {
+    document.getElementById('acForm').action = '/card/aircraft/new';
+    ['reg','model','engine','fsn','msn','apu'].forEach(function(k) { document.getElementById('f_'+k).value = ''; });
+    document.getElementById('f_reg').readOnly = false;
+    document.getElementById('f_model').readOnly = false;
+    document.getElementById('modalTitle').textContent = '新增飞机';
+    new bootstrap.Modal(document.getElementById('acModal')).show();
+}
+function showEdit(id, reg, model, engine, fsn, msn, apu) {
+    document.getElementById('acForm').action = '/card/aircraft/' + id + '/edit';
+    document.getElementById('f_id').value = id;
+    document.getElementById('f_reg').value = reg; document.getElementById('f_reg').readOnly = true;
+    document.getElementById('f_model').value = model; document.getElementById('f_engine').value = engine;
+    document.getElementById('f_fsn').value = fsn; document.getElementById('f_msn').value = msn;
+    document.getElementById('f_apu').value = apu;
+    document.getElementById('modalTitle').textContent = '编辑飞机';
+    new bootstrap.Modal(document.getElementById('acModal')).show();
+}
+// 筛选输入绑定列索引
+['fReg:0','fModel:1','fEngine:2','fAPU:5'].forEach(function(p) {
+    var id = p.split(':')[0], col = p.split(':')[1];
+    var el = document.getElementById(id);
+    if (el) el.setAttribute('data-col', col);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% import "macros/list_macros.html" as list %}
+{% block title %}工作包 - 定检需求单管理{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">上传工作清单</h5>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="POST" enctype="multipart/form-data" id="uploadForm">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="upload-zone" id="zoneRoutine"
+                         onclick="document.getElementById('routineFile').click()">
+                        <div class="icon">📋</div>
+                        <h6 class="mt-2">点击此处上传例行清单</h6>
+                        <p class="text-muted small mb-0">支持 .xlsx 格式</p>
+                        <input type="file" id="routineFile" name="routine_file"
+                               accept=".xlsx" style="display:none"
+                               onchange="fileSelected(this,'zoneRoutine')">
+                        <div class="file-name small text-success mt-2" style="display:none"></div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="upload-zone" id="zoneOther"
+                         onclick="document.getElementById('otherFile').click()">
+                        <div class="icon">📋</div>
+                        <h6 class="mt-2">点击此处上传其他清单</h6>
+                        <p class="text-muted small mb-0">支持 .xlsx 格式</p>
+                        <input type="file" id="otherFile" name="other_file"
+                               accept=".xlsx" style="display:none"
+                               onchange="fileSelected(this,'zoneOther')">
+                        <div class="file-name small text-success mt-2" style="display:none"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-primary btn-sm px-4">上传</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if work_packages %}
+<div class="card">
+    <div class="card-header">📝 工作包</div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" id="wpTable">
+                <thead>
+                    {{ list.filter_row([('搜索机号...','wpReg'),('搜索日期...','wpDate'),('','_'),('','_'),('','_'),('','_')]) }}
+                    <tr>
+                        <th data-col="0">机号</th>
+                        <th data-col="1">日期</th>
+                        <th>内容</th>
+                        <th>工卡数</th>
+                        <th>生成时间</th>
+                        <th style="width:120px" class="text-center">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for wp in work_packages %}
+                <tr onclick="window.location='/generate?package_id={{ wp.package_id }}'" style="cursor:pointer">
+                    <td>{{ wp.aircraft_info.reg if wp.aircraft_info else wp.reg }}</td>
+                    <td>{{ wp.date }}</td>
+                    <td>{{ wp.aircraft_info.description if wp.aircraft_info else wp.description }}</td>
+                    <td>{{ wp.routine_count }}+{{ wp.other_count }}</td>
+                    <td onclick="event.stopPropagation()">
+                        {{ wp.generated_at or '—' }}
+                    </td>
+                    <td onclick="event.stopPropagation()">
+                        <form method="POST" action="/packages/{{ wp.package_id }}/rematch" style="display:inline">
+                            <button type="submit" class="btn btn-outline-secondary btn-sm py-0"
+                                    onclick="return confirm('重新匹配将使用当前数据库刷新匹配状态，确认？')">🔄 重新匹配</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="card text-center py-5">
+    <div class="card-body text-muted">
+        <div class="empty-state-icon">📋</div>
+        <p class="mt-2 mb-0">暂无工作包，请上传工作清单</p>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function fileSelected(input, zoneId) {
+    var zone = document.getElementById(zoneId);
+    var fileName = input.files[0] ? input.files[0].name : '';
+    if (fileName) {
+        zone.classList.add('has-file');
+        zone.querySelector('.file-name').textContent = '✅ ' + fileName;
+        zone.querySelector('.file-name').style.display = 'block';
+    }
+}
+['wpReg:0','wpDate:1'].forEach(function(p) {
+    var id = p.split(':')[0], col = p.split(':')[1];
+    var el = document.getElementById(id);
+    if (el) el.setAttribute('data-col', col);
+});
+</script>
+{% endblock %}
