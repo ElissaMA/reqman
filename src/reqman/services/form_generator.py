@@ -16,6 +16,38 @@ from ..config import TEMPLATE_FILE, GENERATED_DIR
 logger = logging.getLogger(__name__)
 
 
+
+
+def _discover_formula_map(ws, min_row=15, max_col=9):
+    """扫描模板数据区，建立 (row, col) -> formula 的映射。"""
+    formula_map = {}
+    for row in range(min_row, ws.max_row + 1):
+        for col in range(1, max_col + 1):
+            cell = ws.cell(row, col)
+            if cell.value and str(cell.value).startswith('='):
+                formula_map[(row, col)] = cell.value
+    return formula_map
+
+
+def _save_formulas(ws, formula_map, max_row=None):
+    """从工作表保存公式到映射（反向操作：读取当前 ws 中的公式覆盖映射）。"""
+    if max_row is None:
+        max_row = ws.max_row
+    for row in range(1, max_row + 1):
+        for col in range(1, 10):
+            cell = ws.cell(row, col)
+            if cell.value and str(cell.value).startswith('='):
+                formula_map[(row, col)] = cell.value
+
+
+def _restore_formulas(ws, formula_map, max_row=None):
+    """将保存的公式写回工作表中对应单元格。"""
+    if max_row is None:
+        max_row = ws.max_row
+    for (row, col), formula in formula_map.items():
+        if row <= max_row:
+            ws.cell(row, col).value = formula
+
 THIN = Side(style="thin")
 MEDIUM = Side(style="medium")
 FULL_THIN = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
@@ -62,7 +94,8 @@ def write_placeholder(ws, row, cat, text="（暂无）"):
 
 
 def _write_category_block_min_rows(ws, start_row, items, min_rows,
-                                   name_key, task_key):
+                                   name_key, task_key,
+                                   merge_h_col=True, formula_cols=None):
     """Write data rows grouped by category, padded to min_rows.
     
     - Items with usage_type "检查有问题领用" get remark annotation.
@@ -87,7 +120,10 @@ def _write_category_block_min_rows(ws, start_row, items, min_rows,
             row += 1
             while row - cat_start < min_rows:
                 for bc in range(2, COLS + 1):
-                    set_border(ws, row, bc)
+                    if formula_cols and bc in formula_cols:
+                        set_border(ws, row, bc)
+                    else:
+                        set_cell(ws, row, bc, font=DATA_14, alignment=DATA_ALIGN_CENTER)
                 ws.row_dimensions[row].height = ROW_HEIGHT_DATA
                 row += 1
         else:
@@ -102,22 +138,31 @@ def _write_category_block_min_rows(ws, start_row, items, min_rows,
                 set_cell(ws, row, 4, item.get(task_key, ""), font=DATA_14, alignment=DATA_ALIGN_CENTER)
                 set_cell(ws, row, 5, item.get("quantity", "1"), font=DATA_14, alignment=DATA_ALIGN_CENTER)
                 set_cell(ws, row, 6, remark, font=DATA_14, alignment=DATA_ALIGN_CENTER)
+                # 跳过公式列（如 I 列的 MCC 调配反馈），仅补边框
                 for bc in range(7, COLS + 1):
-                    set_border(ws, row, bc)
+                    if formula_cols and bc in formula_cols:
+                        # 公式列：保留公式，只补边框
+                        set_border(ws, row, bc)
+                    else:
+                        set_cell(ws, row, bc, font=DATA_14, alignment=DATA_ALIGN_CENTER)
                 ws.row_dimensions[row].height = ROW_HEIGHT_DATA
                 row += 1
             
             while row - cat_start < min_rows:
                 for bc in range(2, COLS + 1):
-                    set_border(ws, row, bc)
+                    if formula_cols and bc in formula_cols:
+                        set_border(ws, row, bc)
+                    else:
+                        set_cell(ws, row, bc, font=DATA_14, alignment=DATA_ALIGN_CENTER)
                 ws.row_dimensions[row].height = ROW_HEIGHT_DATA
                 row += 1
         
         if row - cat_start > 1:
             ws.merge_cells(start_row=cat_start, start_column=1,
                           end_row=row - 1, end_column=1)
-            ws.merge_cells(start_row=cat_start, start_column=8,
-                          end_row=row - 1, end_column=8)
+            if merge_h_col:
+                ws.merge_cells(start_row=cat_start, start_column=8,
+                              end_row=row - 1, end_column=8)
     return row
 
 
@@ -139,9 +184,14 @@ def generate_form(form_data, parsed_data, output_filename=None):
     wb = openpyxl.load_workbook(output_path)
     ws = wb["需求单"]
     try:
+        # 发现模板中的公式
+        formula_map = _discover_formula_map(ws)
+        # 公式所在的列（用于写数据时跳过）
+        formula_cols = set(col for (_, col) in formula_map.keys())
+        
         _fill_header(ws, form_data)
         _fill_conditions(ws, form_data.get("conditions", []))
-        _clear_data_area(ws)
+        _clear_data_area(ws, formula_map)
         matched_tools = parsed_data.get("matched_tools", [])
         matched_materials = parsed_data.get("matched_materials", [])
         spare_auto = parsed_data.get("spare_auto", [])
@@ -149,11 +199,11 @@ def generate_form(form_data, parsed_data, output_filename=None):
         sub_cards = parsed_data.get("sub_cards", [])
         spare_manual = form_data.get("spare_items", [])
         row = 15
-        row = _write_tool_section(ws, row, matched_tools)
+        row = _write_tool_section(ws, row, matched_tools, formula_cols=formula_cols)
         row = _write_new_work_row(ws, row, new_cards, sub_cards)
-        row = _write_material_section(ws, row, matched_materials)
-        last_row = _write_spare_section(ws, row, spare_auto, spare_manual)
-        _clear_rows_below(ws, last_row)
+        row = _write_material_section(ws, row, matched_materials, formula_cols=formula_cols)
+        last_row = _write_spare_section(ws, row, spare_auto, spare_manual, formula_cols=formula_cols)
+        _clear_rows_below(ws, last_row, formula_map)
     finally:
         wb.save(output_path)
         wb.close()
@@ -196,43 +246,69 @@ def _fill_conditions(ws, conditions):
         ws.cell(row=row, column=7, value=cond.get("responsible", ""))
 
 
-def _clear_data_area(ws):
+def _clear_data_area(ws, formula_map=None):
+    """清除第15行起的数据区，但保留公式列。"""
+    if formula_map is None:
+        formula_map = {}
+    # 发现模板中已有公式
+    _save_formulas(ws, formula_map)
     for mr in list(ws.merged_cells.ranges):
         if mr.min_row >= 15:
             ws.unmerge_cells(str(mr))
     for row in ws.iter_rows(min_row=15, max_row=ws.max_row, max_col=COLS):
         for cell in row:
-            try:
-                cell.value = None
-            except AttributeError:
-                pass
-            cell.border = NO_BORDER
-            cell.font = Font()
-            cell.alignment = Alignment()
+            key = (cell.row, cell.column)
+            if key in formula_map:
+                # 保留公式，仅重置样式
+                cell.border = NO_BORDER
+                cell.font = Font()
+                cell.alignment = Alignment()
+            else:
+                try:
+                    cell.value = None
+                except AttributeError:
+                    pass
+                cell.border = NO_BORDER
+                cell.font = Font()
+                cell.alignment = Alignment()
+    _restore_formulas(ws, formula_map)
 
 
-def _clear_rows_below(ws, start_row):
+def _clear_rows_below(ws, start_row, formula_map=None):
+    """清除 start_row 起的数据，保留公式。"""
+    if formula_map is None:
+        formula_map = {}
+    _save_formulas(ws, formula_map)
     for mr in list(ws.merged_cells.ranges):
         if mr.min_row >= start_row:
             ws.unmerge_cells(str(mr))
     for row in ws.iter_rows(min_row=start_row, max_row=ws.max_row, max_col=COLS):
         for cell in row:
-            try:
-                cell.value = None
-            except AttributeError:
-                pass
-            cell.border = NO_BORDER
-            cell.font = Font()
-            cell.alignment = Alignment()
-            cell.fill = PatternFill()
+            key = (cell.row, cell.column)
+            if key in formula_map:
+                cell.border = NO_BORDER
+                cell.font = Font()
+                cell.alignment = Alignment()
+                cell.fill = PatternFill()
+            else:
+                try:
+                    cell.value = None
+                except AttributeError:
+                    pass
+                cell.border = NO_BORDER
+                cell.font = Font()
+                cell.alignment = Alignment()
+                cell.fill = PatternFill()
+    _restore_formulas(ws, formula_map)
 
 
-def _write_tool_section(ws, start_row, tools):
+def _write_tool_section(ws, start_row, tools, formula_cols=None):
     """All tools go here (both must-use and check-use). Min 3 rows per category.
     Tools with usage_type "检查有问题领用" get remark annotation.
     Calls the shared category block helper."""
     return _write_category_block_min_rows(ws, start_row, tools, 3,
-        name_key="device_name", task_key="task_name")
+        name_key="device_name", task_key="task_name",
+        formula_cols=formula_cols)
 
 
 def _write_new_work_row(ws, start_row, new_cards, sub_cards=None):
@@ -258,7 +334,7 @@ def _write_new_work_row(ws, start_row, new_cards, sub_cards=None):
     return row + 1
 
 
-def _write_material_section(ws, start_row, materials):
+def _write_material_section(ws, start_row, materials, formula_cols=None):
     """"必须使用" materials only. Min 3 rows per category."""
     # Header row
     headers = ["定检专业\n（航材）", "航材名称",
@@ -275,10 +351,11 @@ def _write_material_section(ws, start_row, materials):
     ws.row_dimensions[start_row].height = 47
     # Data rows via helper
     return _write_category_block_min_rows(ws, start_row + 1, materials, 3,
-        name_key="material_name", task_key="task_name")
+        name_key="material_name", task_key="task_name",
+        formula_cols=formula_cols)
 
 
-def _write_spare_section(ws, start_row, spare_auto, spare_manual):
+def _write_spare_section(ws, start_row, spare_auto, spare_manual, formula_cols=None):
     """"检查有问题领用" materials go here. Min 1 row per category."""
     # Section title
     cell = ws.cell(row=start_row, column=1,
@@ -309,7 +386,8 @@ def _write_spare_section(ws, start_row, spare_auto, spare_manual):
         cell.font = BOLD_16
         cell.alignment = WRAP_CENTER
         cell.border = FULL_THIN
-    # Data rows via helper (min 1 row per category)
+    # Data rows via helper: merge_h_col=False（备用区不再合并调配数量列）
     data_start = hr + 1
     return _write_category_block_min_rows(ws, data_start, spare_auto, 1,
-        name_key="material_name", task_key="task_name")
+        name_key="material_name", task_key="task_name",
+        merge_h_col=False, formula_cols=formula_cols)

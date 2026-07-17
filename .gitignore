@@ -21,3 +21,4 @@ Thumbs.db
 # 排除业务数据，保留 reqman_db.json
 data/*.json
 !data/reqman_db.json
+~$*
