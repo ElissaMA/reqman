@@ -1,3 +1,25 @@
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
 # ===== AI工具配置 =====
 
 # ----- Claude (Anthropic) -----
@@ -25,3 +47,21 @@ codex_config.json
 .project_memory/
 agent_temp/
 agent_tmp_*
+
+# ===== 项目特定 =====
+*.bak
+*.log
+*.tmp
+data/*.json
+!data/reqman_db.json
+output/
+.env
+.venv/
+venv/
+env/
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
