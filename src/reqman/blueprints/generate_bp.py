@@ -23,7 +23,6 @@ def _ensure_package_matched(pkg_data):
     if pkg_data.get("is_matched"):
         return pkg_data
 
-    from .Request_list_packages import match_work_package_items
     store = _get_store()
     svc = current_app.extensions['card_service']
 
@@ -185,7 +184,7 @@ def _handle_generate_post(pkg_data: dict, package_id: str):
     filename = generate_form(form_data, parsed_data)
 
     return send_file(
-        os.path.join(GENERATED_DIR, filename),
+        str(GENERATED_DIR / filename),
         as_attachment=True,
         download_name=filename,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

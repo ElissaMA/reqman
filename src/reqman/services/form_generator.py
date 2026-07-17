@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 
 
 from __future__ import annotations
@@ -46,7 +46,10 @@ def _restore_formulas(ws, formula_map, max_row=None):
         max_row = ws.max_row
     for (row, col), formula in formula_map.items():
         if row <= max_row:
-            ws.cell(row, col).value = formula
+            try:
+                ws.cell(row, col).value = formula
+            except AttributeError:
+                pass  # MergedCell
 
 THIN = Side(style="thin")
 MEDIUM = Side(style="medium")
