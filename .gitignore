@@ -1,24 +1,27 @@
-﻿__pycache__/
-*.pyc
-*.pyo
-*.log
-*.tmp
-.opxltmp/
-*.bak
-output/*.xlsx
-.env
-*.egg-info/
-.venv/
-venv/
-env/
-.vscode/
-.idea/
-*.swp
-*.swo
-.DS_Store
-Thumbs.db
-*.temp
-# 排除业务数据，保留 reqman_db.json
-data/*.json
-!data/reqman_db.json
-~$*
+# ===== AI工具配置 =====
+
+# ----- Claude (Anthropic) -----
+# Claude桌面版、Claude Code、Claude插件的配置和缓存
+.claude/
+.claude.json
+claude_config.json
+
+# ----- OpenCode -----
+# opencode AI编码代理的项目配置和技能缓存
+.opencode/
+.opencode/skills/
+.opencode/commands/
+.opencode/agents/
+
+# ----- Codex (OpenAI) -----
+# OpenAI Codex CLI和Codex桌面版的配置
+.codex/
+codex_config.json
+.codex-history
+
+# ----- AI代理通用 -----
+# 各种AI代理工具的通用工作目录和临时文件
+.agents/
+.project_memory/
+agent_temp/
+agent_tmp_*
