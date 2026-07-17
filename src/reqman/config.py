@@ -18,7 +18,6 @@ class Config:
     BASE_DIR: Path = Path(__file__).resolve().parents[2]
     DB_FILE: Path = BASE_DIR / os.getenv("DB_FILE", "data/reqman_db.json")
     TEMPLATE_FILE: Path = BASE_DIR / os.getenv("TEMPLATE_FILE", "assets/demand_template.xlsx")
-    GENERATED_DIR: Path = BASE_DIR / os.getenv("GENERATED_DIR", "output")
 
     CATEGORIES: list[str] = os.getenv(
         "CATEGORIES", "发动机,机体,电子,特检,支援"
@@ -46,7 +45,6 @@ class Config:
     MAX_CONTENT_LENGTH: int = 16 * 1024 * 1024
 
     def __call__(self) -> None:
-        self.GENERATED_DIR.mkdir(parents=True, exist_ok=True)
         self.DB_FILE.parent.mkdir(parents=True, exist_ok=True)
 
 
@@ -56,7 +54,6 @@ _cfg = Config()
 BASE_DIR: Path = _cfg.BASE_DIR
 DB_FILE: Path = _cfg.DB_FILE
 TEMPLATE_FILE: Path = _cfg.TEMPLATE_FILE
-GENERATED_DIR: Path = _cfg.GENERATED_DIR
 CATEGORIES: list[str] = _cfg.CATEGORIES
 TASK_TYPES: list[str] = _cfg.TASK_TYPES
 USAGE_TYPES: list[str] = _cfg.USAGE_TYPES

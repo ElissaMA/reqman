@@ -1,6 +1,5 @@
 """生成需求单蓝图 — 预览 + 下载 Excel"""
 
-import os
 import logging
 from datetime import datetime
 from flask import (Blueprint, render_template, request, redirect,
@@ -8,7 +7,7 @@ from flask import (Blueprint, render_template, request, redirect,
 
 from ..services.form_generator import generate_form
 from ..services.work_package_matcher import match_work_package_items
-from ..config import CONDITIONS, GENERATED_DIR, CATEGORIES
+from ..config import CONDITIONS, CATEGORIES
 
 generate_bp = Blueprint("generate", __name__)
 
@@ -23,6 +22,7 @@ def _ensure_package_matched(pkg_data):
     if pkg_data.get("is_matched"):
         return pkg_data
 
+    from .Request_list_packages import match_work_package_items
     store = _get_store()
     svc = current_app.extensions['card_service']
 
@@ -180,11 +180,11 @@ def _handle_generate_post(pkg_data: dict, package_id: str):
         "new_cards": new_cards,
     }
 
-    # 生成 Excel
-    filename = generate_form(form_data, parsed_data)
+    # 生成 Excel（返回 BytesIO，不落盘）
+    buffer, filename = generate_form(form_data, parsed_data)
 
     return send_file(
-        str(GENERATED_DIR / filename),
+        buffer,
         as_attachment=True,
         download_name=filename,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

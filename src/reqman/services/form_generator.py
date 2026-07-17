@@ -1,17 +1,17 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 
 
 from __future__ import annotations
 
+import io
 import os
-import shutil
 import logging
 from datetime import datetime
 
 import openpyxl
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 
-from ..config import TEMPLATE_FILE, GENERATED_DIR
+from ..config import TEMPLATE_FILE
 
 logger = logging.getLogger(__name__)
 
@@ -46,10 +46,7 @@ def _restore_formulas(ws, formula_map, max_row=None):
         max_row = ws.max_row
     for (row, col), formula in formula_map.items():
         if row <= max_row:
-            try:
-                ws.cell(row, col).value = formula
-            except AttributeError:
-                pass  # MergedCell
+            ws.cell(row, col).value = formula
 
 THIN = Side(style="thin")
 MEDIUM = Side(style="medium")
@@ -171,6 +168,7 @@ def _write_category_block_min_rows(ws, start_row, items, min_rows,
 
 
 def generate_form(form_data, parsed_data, output_filename=None):
+    """生成需求单 Excel，返回 (BytesIO, filename) 元组 — 不落盘。"""
     if not output_filename:
         reg = form_data.get("reg", "XXXX")
         # Strip B- prefix if present
@@ -179,19 +177,18 @@ def generate_form(form_data, parsed_data, output_filename=None):
         date_str = form_data.get("date", datetime.now().strftime("%Y.%m.%d"))
         desc = form_data.get("description", "")
         output_filename = f"定检需求单（B-{reg} {desc}）{date_str}.xlsx"
-    output_path = os.path.join(GENERATED_DIR, output_filename)
-    os.makedirs(GENERATED_DIR, exist_ok=True)
+
     if not os.path.exists(TEMPLATE_FILE):
         raise FileNotFoundError(f"模板文件不存在：{TEMPLATE_FILE}")
-    shutil.copy2(TEMPLATE_FILE, output_path)
-    wb = openpyxl.load_workbook(output_path)
+
+    wb = openpyxl.load_workbook(TEMPLATE_FILE)
     ws = wb["需求单"]
     try:
         # 发现模板中的公式
         formula_map = _discover_formula_map(ws)
         # 公式所在的列（用于写数据时跳过）
         formula_cols = set(col for (_, col) in formula_map.keys())
-        
+
         _fill_header(ws, form_data)
         _fill_conditions(ws, form_data.get("conditions", []))
         _clear_data_area(ws, formula_map)
@@ -208,9 +205,12 @@ def generate_form(form_data, parsed_data, output_filename=None):
         last_row = _write_spare_section(ws, row, spare_auto, spare_manual, formula_cols=formula_cols)
         _clear_rows_below(ws, last_row, formula_map)
     finally:
-        wb.save(output_path)
+        buffer = io.BytesIO()
+        wb.save(buffer)
         wb.close()
-    return output_filename
+        buffer.seek(0)
+
+    return buffer, output_filename
 
 def _fill_header(ws, form_data):
     date_str = form_data.get("date", datetime.now().strftime("%Y.%m.%d"))
