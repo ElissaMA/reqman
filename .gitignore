@@ -48,6 +48,14 @@ codex_config.json
 agent_temp/
 agent_tmp_*
 
+# ----- AionRS (其他AI工具) -----
+.aionrs/
+
+# ===== 测试相关 =====
+.pytest_cache/
+htmlcov/
+.coverage
+
 # ===== 项目特定 =====
 *.bak
 *.log
