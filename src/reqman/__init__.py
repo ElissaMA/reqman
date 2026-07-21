@@ -1,6 +1,7 @@
 """定检需求单管理系统 V3 — Flask 应用工厂"""
 
 import logging
+import time
 from pathlib import Path
 from flask import Flask, render_template
 
@@ -12,6 +13,32 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+
+# ---------- 请求日志中间件 ----------
+class RequestLogMiddleware:
+    """记录每次请求的方法、路径、状态码和耗时"""
+
+    def __init__(self, app):
+        self.app = app
+
+    def __call__(self, environ, start_response):
+        method = environ.get("REQUEST_METHOD", "")
+        path = environ.get("PATH_INFO", "")
+
+        # 跳过静态资源
+        if path.startswith("/static/"):
+            return self.app(environ, start_response)
+
+        start = time.time()
+
+        def _start_response(status, headers, *args):
+            elapsed = time.time() - start
+            status_code = status.split()[0] if status else "?"
+            logger.info("[%.3fs] %s %s -> %s", elapsed, method, path, status_code)
+            return start_response(status, headers, *args)
+
+        return self.app(environ, _start_response)
 
 
 def create_app():
@@ -46,23 +73,12 @@ def create_app():
         from flask import redirect
         return redirect("/card/list")
 
-    # 错误处理
-    @app.errorhandler(400)
-    def bad_request(e):
-        return render_template("error.html", code=400, message="请求参数无效"), 400
+    # 统一错误处理（支持 JSON 和 HTML 两种模式）
+    from .utils.error_handlers import register_error_handlers
+    register_error_handlers(app)
 
-    @app.errorhandler(404)
-    def not_found(e):
-        return render_template("error.html", code=404, message="页面不存在"), 404
-
-    @app.errorhandler(413)
-    def too_large(e):
-        return render_template("error.html", code=413, message="上传文件过大，最大允许 16 MB"), 413
-
-    @app.errorhandler(500)
-    def internal_error(e):
-        logger.exception("服务器内部错误")
-        return render_template("error.html", code=500, message="服务器内部错误，请稍后重试"), 500
+    # 请求日志中间件
+    app.wsgi_app = RequestLogMiddleware(app.wsgi_app)
 
     logger.info("应用初始化完成")
     return app
