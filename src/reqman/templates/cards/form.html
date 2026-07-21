@@ -1,207 +1,524 @@
 {% extends "base.html" %}
-{% import "macros/tables.html" as tables %}
-{% block title %}{{ "编辑工卡" if edit_mode else "新增工卡" }} - 定检需求单管理{% endblock %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block head %}
+<style>
+/* ===== 表���布局 ===== */
+.form-container {
+    max-width: 960px;
+    margin: 0 auto;
+}
+.form-card {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    padding: 24px;
+    margin-bottom: 20px;
+}
+.form-card h3 {
+    margin: 0 0 16px;
+    font-size: 16px;
+    color: #333;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #1976d2;
+}
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+.form-grid .full-width { grid-column: 1 / -1; }
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+.form-group label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 4px;
+}
+.form-group label .required { color: #c62828; }
+.form-group input,
+.form-group select,
+.form-group textarea {
+    padding: 9px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    border-color: #1976d2;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(25,118,210,0.12);
+}
+.form-group textarea { resize: vertical; min-height: 80px; }
+
+/* ===== 表单验证 ===== */
+.form-group .field-error {
+    color: #c62828;
+    font-size: 12px;
+    margin-top: 3px;
+    display: none;
+}
+.form-group.has-error input,
+.form-group.has-error select,
+.form-group.has-error textarea {
+    border-color: #c62828;
+    box-shadow: 0 0 0 3px rgba(198,40,40,0.1);
+}
+.form-group.has-error .field-error { display: block; }
+.form-group.has-success input,
+.form-group.has-success select,
+.form-group.has-success textarea {
+    border-color: #2e7d32;
+}
+
+/* ===== 工具/航材表格 ===== */
+.sub-table-wrap {
+    overflow-x: auto;
+    margin-bottom: 12px;
+}
+.sub-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.sub-table th {
+    background: #f5f7fa;
+    padding: 8px 6px;
+    text-align: left;
+    font-weight: 600;
+    color: #555;
+    border-bottom: 2px solid #e0e0e0;
+    white-space: nowrap;
+    font-size: 12px;
+}
+.sub-table td {
+    padding: 6px;
+    border-bottom: 1px solid #eee;
+    vertical-align: middle;
+}
+.sub-table td input {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+.sub-table td input:focus {
+    border-color: #1976d2;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(25,118,210,0.1);
+}
+.sub-table .btn-remove {
+    background: #ffebee;
+    color: #c62828;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 0.2s;
+    white-space: nowrap;
+}
+.sub-table .btn-remove:hover { background: #ffcdd2; }
+.sub-table .btn-remove:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-add-row {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: background 0.2s;
+    margin-bottom: 8px;
+}
+.btn-add-row:hover { background: #c8e6c9; }
+
+/* ===== 提交按钮 ===== */
+.form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+.form-actions .btn {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.form-actions .btn-primary {
+    background: #1976d2;
+    color: #fff;
+}
+.form-actions .btn-primary:hover { background: #1565c0; }
+.form-actions .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+.form-actions .btn-secondary {
+    background: #f5f5f5;
+    color: #555;
+}
+.form-actions .btn-secondary:hover { background: #e0e0e0; }
+.form-actions .btn-danger {
+    background: #ffebee;
+    color: #c62828;
+}
+.form-actions .btn-danger:hover { background: #ffcdd2; }
+
+/* ===== 提交中遮罩 ===== */
+.submit-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(255,255,255,0.8);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: 12px;
+}
+.submit-overlay.active { display: flex; }
+.submit-overlay .spinner {
+    width: 40px; height: 40px;
+    border: 4px solid #e0e0e0;
+    border-top-color: #1976d2;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.submit-overlay p { color: #555; font-size: 14px; }
+
+/* ===== 响应式 ===== */
+@media (max-width: 768px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .form-card { padding: 16px; }
+    .form-actions { flex-direction: column; }
+    .form-actions .btn { width: 100%; justify-content: center; }
+    .sub-table { font-size: 12px; }
+    .sub-table th, .sub-table td { padding: 4px; }
+}
+</style>
+{% endblock %}
+
 {% block content %}
+<div class="form-container">
+    <h2>📝 {{ title }}</h2>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h5 class="mb-0">{{ "编辑工卡" if edit_mode else "新增工卡" }}</h5>
-    <a href="/card/list" class="btn btn-outline-secondary btn-sm">&larr; 返回</a>
-</div>
-
-<div class="card">
-    <div class="card-body">
-        <form method="POST" id="cardForm">
-            <!-- 基本信息 -->
-            <div class="row g-3 mb-4">
-                <div class="col-md-4">
-                    <label class="form-label small">工卡号 <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control form-control-sm" name="task_code"
-                           value="{{ item.task_code if item else prefill_code if prefill_code else "" }}" required>
+    <form id="cardForm" method="POST">
+        <!-- 基本信息 -->
+        <div class="form-card">
+            <h3>基本信息</h3>
+            <div class="form-grid">
+                <div class="form-group" data-validate="required">
+                    <label>工卡编号 <span class="required">*</span></label>
+                    <input type="text" name="task_code" id="task_code"
+                           value="{{ card.task_code if card else '' }}"
+                           placeholder="如：AMM-27-00-01"
+                           data-validate="required" autocomplete="off">
+                    <div class="field-error">请输入工卡编号</div>
                 </div>
-                <div class="col-md-5">
-                    <label class="form-label small">工卡描述</label>
-                    <input type="text" class="form-control form-control-sm" name="task_name"
-                           value="{{ item.task_name if item else prefill_name if prefill_name else "" }}">
+                <div class="form-group" data-validate="required">
+                    <label>工卡名称 <span class="required">*</span></label>
+                    <input type="text" name="task_name" id="task_name"
+                           value="{{ card.task_name if card else '' }}"
+                           placeholder="如：起落架收放测试"
+                           data-validate="required" autocomplete="off">
+                    <div class="field-error">请输入工卡名称</div>
                 </div>
-                <div class="col-md-1">
-                    <label class="form-label small">专业</label>
-                    <select class="form-select form-select-sm" name="category">
+                <div class="form-group" data-validate="required">
+                    <label>类别 <span class="required">*</span></label>
+                    <select name="category" id="category" data-validate="required">
+                        <option value="">— 请选择 —</option>
                         {% for c in categories %}
-                        <option value="{{ c }}" {{ "selected" if (item and item.category == c) or (prefill_category and prefill_category == c) }}>{{ c }}</option>
+                        <option value="{{ c }}" {% if card and card.category == c %}selected{% endif %}>{{ c }}</option>
                         {% endfor %}
                     </select>
+                    <div class="field-error">请选择类别</div>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label small">类型</label>
-                    <select class="form-select form-select-sm" name="task_type">
-                        <option value="">请选择类型</option>
+                <div class="form-group">
+                    <label>机型</label>
+                    <input type="text" name="aircraft_type" id="aircraft_type"
+                           value="{{ card.aircraft_type if card else '' }}"
+                           placeholder="如：B737NG"
+                           autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label>ATA 章节</label>
+                    <input type="text" name="ata_code" id="ata_code"
+                           value="{{ card.ata_code if card else '' }}"
+                           placeholder="如：27-00-01"
+                           autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label>任务类型</label>
+                    <select name="task_type" id="task_type">
+                        <option value="">— 请选择 —</option>
                         {% for t in task_types %}
-                        {% if t %}
-                        <option value="{{ t }}" {{ "selected" if (item and item.task_type == t) or (prefill_task_type and prefill_task_type == t) }}>{{ t }}</option>
-                        {% endif %}
+                        <option value="{{ t }}" {% if card and card.task_type == t %}selected{% endif %}>{{ t }}</option>
                         {% endfor %}
                     </select>
                 </div>
+                <div class="form-group">
+                    <label>工时 (人×时)</label>
+                    <input type="number" step="0.1" min="0" name="man_hours" id="man_hours"
+                           value="{{ card.man_hours if card else '' }}"
+                           placeholder="如：2.5"
+                           autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label>��属工卡组</label>
+                    <select name="set_id" id="set_id">
+                        <option value="">— 无 —</option>
+                        {% for s in card_sets %}
+                        <option value="{{ s.id }}" {% if card and card.set_id == s.id %}selected{% endif %}>{{ s.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group full-width">
+                    <label>描述 / 工作内容</label>
+                    <textarea name="description" id="description"
+                              placeholder="输入工卡的工作内容和注意事项…">{{ card.description if card else '' }}</textarea>
+                </div>
             </div>
+        </div>
 
-            <!-- 工具清单 -->
-            <div class="mb-3">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <label class="form-label fw-bold mb-0">&#x1F527; 工具清单</label>
-                    <button type="button" class="btn btn-outline-success btn-sm"
-                            onclick="addRow('tool')">+ 新增工具</button>
-                </div>
-                {{ tables.tool_table(tools, usage_types, editable=true, show_delete=true) }}
+        <!-- 工具设备 -->
+        <div class="form-card">
+            <h3>🔧 工具设备</h3>
+            <div class="sub-table-wrap">
+                <table class="sub-table" id="toolsTable">
+                    <thead>
+                        <tr>
+                            <th style="width:15%;">编号</th>
+                            <th style="width:25%;">名称</th>
+                            <th style="width:25%;">规格</th>
+                            <th style="width:10%;">数量</th>
+                            <th style="width:15%;">备注</th>
+                            <th style="width:10%;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="toolsBody">
+                        {% if card and card.tools %}
+                        {% for t in card.tools %}
+                        <tr>
+                            <td><input name="tools[][tool_code]" value="{{ t.tool_code or '' }}" placeholder="编号"></td>
+                            <td><input name="tools[][tool_name]" value="{{ t.tool_name or '' }}" placeholder="名称"></td>
+                            <td><input name="tools[][spec]" value="{{ t.spec or '' }}" placeholder="规格"></td>
+                            <td><input name="tools[][quantity]" value="{{ t.quantity or '' }}" placeholder="数量"></td>
+                            <td><input name="tools[][remark]" value="{{ t.remark or '' }}" placeholder="备注"></td>
+                            <td><button type="button" class="btn-remove" onclick="removeRow(this)">删除</button></td>
+                        </tr>
+                        {% endfor %}
+                        {% endif %}
+                    </tbody>
+                </table>
             </div>
-            <div class="mb-2">
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="confirmNoTools" name="confirm_no_tools" value="1"
-                           {{ "checked" if item and item.tools_confirmed else "" }}>
-                    <label class="form-check-label small text-muted" for="confirmNoTools">
-                        确认无工具
-                    </label>
-                </div>
-            </div>
+            <button type="button" class="btn-add-row" onclick="addToolRow()">+ 添加工��</button>
+        </div>
 
-            <!-- 航材清单 -->
-            <div class="mb-3">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <label class="form-label fw-bold mb-0">&#x1F4E6; 航材清单</label>
-                    <button type="button" class="btn btn-outline-success btn-sm"
-                            onclick="addRow('mat')">+ 新增航材</button>
-                </div>
-                {{ tables.material_table(materials, usage_types, editable=true, show_delete=true) }}
+        <!-- 航材 -->
+        <div class="form-card">
+            <h3>📦 航材</h3>
+            <div class="sub-table-wrap">
+                <table class="sub-table" id="materialsTable">
+                    <thead>
+                        <tr>
+                            <th style="width:15%;">件号</th>
+                            <th style="width:20%;">名称</th>
+                            <th style="width:20%;">规格</th>
+                            <th style="width:8%;">��量</th>
+                            <th style="width:12%;">使用类型</th>
+                            <th style="width:15%;">备注</th>
+                            <th style="width:10%;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="materialsBody">
+                        {% if card and card.materials %}
+                        {% for m in card.materials %}
+                        <tr>
+                            <td><input name="materials[][part_no]" value="{{ m.part_no or '' }}" placeholder="件号"></td>
+                            <td><input name="materials[][material_name]" value="{{ m.material_name or '' }}" placeholder="名称"></td>
+                            <td><input name="materials[][spec]" value="{{ m.spec or '' }}" placeholder="规格"></td>
+                            <td><input name="materials[][quantity]" value="{{ m.quantity or '' }}" placeholder="数量"></td>
+                            <td>
+                                <select name="materials[][usage_type]">
+                                    <option value="">—</option>
+                                    <option value="消耗" {% if m.usage_type == '消耗' %}selected{% endif %}>消耗</option>
+                                    <option value="周转" {% if m.usage_type == '周转' %}selected{% endif %}>周转</option>
+                                    <option value="��用" {% if m.usage_type == '借用' %}selected{% endif %}>借用</option>
+                                </select>
+                            </td>
+                            <td><input name="materials[][remark]" value="{{ m.remark or '' }}" placeholder="备注"></td>
+                            <td><button type="button" class="btn-remove" onclick="removeRow(this)">删除</button></td>
+                        </tr>
+                        {% endfor %}
+                        {% endif %}
+                    </tbody>
+                </table>
             </div>
-            <div class="mb-2">
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="confirmNoMats" name="confirm_no_mats" value="1"
-                           {{ "checked" if item and item.materials_confirmed else "" }}>
-                    <label class="form-check-label small text-muted" for="confirmNoMats">
-                        确认无航材
-                    </label>
-                </div>
-            </div>
+            <button type="button" class="btn-add-row" onclick="addMaterialRow()">+ 添加航材</button>
+        </div>
 
-            <div class="d-flex justify-content-between">
-                <a href="/card/list" class="btn btn-outline-secondary btn-sm">取消</a>
-                <button type="submit" class="btn btn-primary btn-sm px-4">
-                    {{ "保存修改" if edit_mode else "保存" }}
-                </button>
-            </div>
-        </form>
-    </div>
+        <!-- 操作按钮 -->
+        <div class="form-actions">
+            <a href="{{ url_for('cards.card_list') }}" class="btn btn-secondary">← 返回列表</a>
+            <button type="submit" class="btn btn-primary" id="submitBtn">💾 保存工卡</button>
+            {% if card %}
+            <a href="javascript:void(0)" onclick="if(confirm('确���删除该工卡？')){document.getElementById('deleteForm').submit()}" class="btn btn-danger">🗑 删除</a>
+            {% endif %}
+        </div>
+    </form>
+
+    {% if card %}
+    <form id="deleteForm" method="POST" action="{{ url_for('cards.card_delete', card_id=card.id) }}" style="display:none;"></form>
+    {% endif %}
 </div>
 
+<!-- 提交遮罩 -->
+<div class="submit-overlay" id="submitOverlay">
+    <div class="spinner"></div>
+    <p>正在保存…</p>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-var confirmNoTools = document.getElementById("confirmNoTools");
-var confirmNoMats = document.getElementById("confirmNoMats");
-
-confirmNoTools.addEventListener("change", function() {
-    if (this.checked) {
-        if (!confirm("确认该卡无需工具？已填内容将被清空。")) {
-            this.checked = false;
-            return;
-        }
-        var tbody = document.querySelector("#toolTable tbody");
-        if (tbody) tbody.innerHTML = "";
-    }
-});
-
-confirmNoMats.addEventListener("change", function() {
-    if (this.checked) {
-        if (!confirm("确认该卡无需航材？已填内容将被清空。")) {
-            this.checked = false;
-            return;
-        }
-        var tbody = document.querySelector("#matTable tbody");
-        if (tbody) tbody.innerHTML = "";
-    }
-});
-
-function watchTable(tableId, checkbox) {
-    var table = document.getElementById(tableId);
-    if (!table) return;
-    table.addEventListener("input", function() {
-        var tbody = table.querySelector("tbody");
-        if (tbody) {
-            var hasVal = false;
-            tbody.querySelectorAll("input[type=text]").forEach(function(inp) {
-                if (inp.value.trim()) hasVal = true;
-            });
-            if (hasVal) checkbox.checked = false;
-        }
-    });
-    var observer = new MutationObserver(function() {
-        var tbody = table.querySelector("tbody");
-        if (!tbody || tbody.children.length === 0) return;
-        var hasVal = false;
-        tbody.querySelectorAll("input[type=text]").forEach(function(inp) {
-            if (inp.value.trim()) hasVal = true;
-        });
-        if (hasVal) checkbox.checked = false;
-    });
-    observer.observe(table, { childList: true, subtree: true });
+// ===== 工具行模板 =====
+function toolRowHTML(index) {
+    return '<tr>' +
+        '<td><input name="tools[' + index + '][tool_code]" placeholder="编号"></td>' +
+        '<td><input name="tools[' + index + '][tool_name]" placeholder="名称"></td>' +
+        '<td><input name="tools[' + index + '][spec]" placeholder="规格"></td>' +
+        '<td><input name="tools[' + index + '][quantity]" placeholder="数量"></td>' +
+        '<td><input name="tools[' + index + '][remark]" placeholder="备注"></td>' +
+        '<td><button type="button" class="btn-remove" onclick="removeRow(this)">删除</button></td>' +
+        '</tr>';
+}
+function addToolRow() {
+    var tbody = document.getElementById('toolsBody');
+    var idx = tbody.children.length;
+    tbody.insertAdjacentHTML('beforeend', toolRowHTML(idx));
 }
 
-document.addEventListener("DOMContentLoaded", function() {
-    watchTable("toolTable", confirmNoTools);
-    watchTable("matTable", confirmNoMats);
-});
-
-var usageTypes = {{ usage_types|tojson }};
-
-function addRow(type) {
-    if (type == "tool") confirmNoTools.checked = false;
-    else confirmNoMats.checked = false;
-
-    var table = document.getElementById(type == "tool" ? "toolTable" : "matTable");
-    var tbody = table.querySelector("tbody");
-    var tr = document.createElement("tr");
-    if (type == "tool") {
-        tr.innerHTML = '<td><input type="text" class="form-control form-control-sm" name="tool_name[]" placeholder="设备名称"></td>' +
-            '<td><input type="text" class="form-control form-control-sm" name="tool_pn[]"></td>' +
-            '<td><input type="text" class="form-control form-control-sm" name="tool_qty[]" value="1"></td>' +
-            '<td><input type="text" class="form-control form-control-sm" name="tool_remark[]"></td>' +
-            '<td><select class="form-select form-select-sm" name="tool_type[]">' + usageTypes.map(function(u){return '<option value="'+u+'">'+u+'</option>';}).join('') + '</select></td>' +
-            '<td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest(\'tr\').remove()">&times;</button></td>';
-    } else {
-        tr.innerHTML = '<td><input type="text" class="form-control form-control-sm" name="mat_name[]" placeholder="航材名称"></td>' +
-            '<td><input type="text" class="form-control form-control-sm" name="mat_pn[]"></td>' +
-            '<td><input type="text" class="form-control form-control-sm" name="mat_qty[]" value="1"></td>' +
-            '<td><input type="text" class="form-control form-control-sm" name="mat_remark[]"></td>' +
-            '<td><select class="form-select form-select-sm" name="mat_type[]">' + usageTypes.map(function(u){return '<option value="'+u+'">'+u+'</option>';}).join('') + '</select></td>' +
-            '<td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest(\'tr\').remove()">&times;</button></td>';
-    }
-    tbody.appendChild(tr);
+// ===== 航材行模板 =====
+function materialRowHTML(index) {
+    return '<tr>' +
+        '<td><input name="materials[' + index + '][part_no]" placeholder="件号"></td>' +
+        '<td><input name="materials[' + index + '][material_name]" placeholder="名称"></td>' +
+        '<td><input name="materials[' + index + '][spec]" placeholder="规格"></td>' +
+        '<td><input name="materials[' + index + '][quantity]" placeholder="数量"></td>' +
+        '<td><select name="materials[' + index + '][usage_type]"><option value="">—</option><option value="消耗">消耗</option><option value="周转">周转</option><option value="借用">借用</option></select></td>' +
+        '<td><input name="materials[' + index + '][remark]" placeholder="备注"></td>' +
+        '<td><button type="button" class="btn-remove" onclick="removeRow(this)">删除</button></td>' +
+        '</tr>';
+}
+function addMaterialRow() {
+    var tbody = document.getElementById('materialsBody');
+    var idx = tbody.children.length;
+    tbody.insertAdjacentHTML('beforeend', materialRowHTML(idx));
 }
 
-document.getElementById("cardForm").addEventListener("submit", function(e) {
-    var toolHasContent = false, matHasContent = false;
-    var toolTbody = document.querySelector("#toolTable tbody");
-    var matTbody = document.querySelector("#matTable tbody");
-    if (toolTbody) {
-        toolTbody.querySelectorAll("input[type=text]").forEach(function(inp) {
-            if (inp.value.trim()) toolHasContent = true;
-        });
+// ===== ��除行 =====
+function removeRow(btn) {
+    var tr = btn.closest('tr');
+    if (!tr) return;
+    var tbody = tr.parentNode;
+    // 至少保留一行时允许删除
+    tr.remove();
+}
+
+// ===== 实时表单验证 =====
+var validationRules = {
+    'task_code': {
+        required: true,
+        message: '请输入工卡编号',
+        validate: function(val) { return val.trim().length > 0; }
+    },
+    'task_name': {
+        required: true,
+        message: '请输入���卡名称',
+        validate: function(val) { return val.trim().length > 0; }
+    },
+    'category': {
+        required: true,
+        message: '请选择类别',
+        validate: function(val) { return val !== ''; }
     }
-    if (matTbody) {
-        matTbody.querySelectorAll("input[type=text]").forEach(function(inp) {
-            if (inp.value.trim()) matHasContent = true;
-        });
+};
+
+function validateField(el) {
+    var name = el.name;
+    var rule = validationRules[name];
+    if (!rule) return true;
+
+    var value = el.value;
+    var isValid = rule.validate(value);
+    var group = el.closest('.form-group');
+
+    if (!group) return true;
+
+    group.classList.remove('has-error', 'has-success');
+    if (isValid && value.trim().length > 0) {
+        group.classList.add('has-success');
+    } else if (!isValid) {
+        group.classList.add('has-error');
     }
-    if (!toolHasContent && !confirmNoTools.checked) {
-        e.preventDefault();
-        alert("请添加工具或确认无工具");
-        return false;
+    return isValid;
+}
+
+function validateAll() {
+    var valid = true;
+    var fields = document.querySelectorAll('[data-validate]');
+    for (var i = 0; i < fields.length; i++) {
+        if (!validateField(fields[i])) valid = false;
     }
-    if (!matHasContent && !confirmNoMats.checked) {
-        e.preventDefault();
-        alert("请添加航材或确认无航材");
-        return false;
+    return valid;
+}
+
+// 绑定实时验证事件
+document.addEventListener('DOMContentLoaded', function() {
+    var fields = document.querySelectorAll('[data-validate]');
+    for (var i = 0; i < fields.length; i++) {
+        fields[i].addEventListener('blur', function() { validateField(this); });
+        fields[i].addEventListener('input', function() { validateField(this); });
+        fields[i].addEventListener('change', function() { validateField(this); });
     }
+
+    // 表单提交
+    document.getElementById('cardForm').addEventListener('submit', function(e) {
+        if (!validateAll()) {
+            e.preventDefault();
+            // 聚焦第一个错误字段
+            var firstError = document.querySelector('.has-error input, .has-error select, .has-error textarea');
+            if (firstError) firstError.focus();
+            return;
+        }
+        document.getElementById('submitBtn').disabled = true;
+        document.getElementById('submitOverlay').classList.add('active');
+    });
+});
+
+// 回车键不影响 select
+document.querySelectorAll('select').forEach(function(s) {
+    s.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') e.preventDefault();
+    });
 });
 </script>
 {% endblock %}

@@ -1,136 +1,546 @@
 {% extends "base.html" %}
-{% import "macros/list_macros.html" as list %}
-{% block title %}工卡信息 - 定检需求单管理{% endblock %}
-{% block content %}
+{% block title %}工卡列表{% endblock %}
 
+{% block head %}
 <style>
-@keyframes blink-red {
-    0% { border-color: #dc3545; box-shadow: 0 0 6px rgba(220,53,69,0.4); }
-    50% { border-color: #dc3545; box-shadow: 0 0 12px rgba(220,53,69,0.7); }
-    100% { border-color: #dc3545; box-shadow: 0 0 6px rgba(220,53,69,0.4); }
+/* ===== 加载动画 ===== */
+.ajax-loader {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(255,255,255,0.7);
+    z-index: 9999;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 20vh;
 }
-tr.blink-warn {
-    animation: blink-red 2s ease-in-out 3;
-    border-left: 4px solid #dc3545 !important;
-    background-color: #fff8f8;
+.ajax-loader.active { display: flex; }
+.spinner {
+    width: 48px; height: 48px;
+    border: 4px solid #e0e0e0;
+    border-top-color: #1976d2;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
 }
-tr.blink-warn td:first-child {
-    padding-left: calc(0.5rem - 4px);
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== 搜索栏 ===== */
+.search-bar {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 16px;
 }
-tr.blink-warn:hover {
-    background-color: #fff0f0;
+.search-bar .search-group {
+    display: flex;
+    gap: 8px;
+    flex: 1 1 300px;
+}
+.search-bar input, .search-bar select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+.search-bar input:focus, .search-bar select:focus {
+    border-color: #1976d2;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(25,118,210,0.12);
+}
+.search-bar .btn-search {
+    padding: 8px 20px;
+    background: #1976d2;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+.search-bar .btn-search:hover { background: #1565c0; }
+
+/* ===== 分页 ===== */
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 16px 0;
+    flex-wrap: wrap;
+}
+.pagination .page-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px; height: 36px;
+    padding: 0 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+    transition: all 0.2s;
+}
+.pagination .page-btn:hover:not(.active):not(.disabled) {
+    border-color: #1976d2;
+    color: #1976d2;
+}
+.pagination .page-btn.active {
+    background: #1976d2;
+    color: #fff;
+    border-color: #1976d2;
+}
+.pagination .page-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.pagination .page-info {
+    font-size: 13px;
+    color: #666;
+    margin: 0 8px;
+}
+
+/* ===== 工卡表格 ===== */
+.card-table-wrap {
+    overflow-x: auto;
+}
+.card-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+.card-table th {
+    background: #f5f7fa;
+    padding: 12px 10px;
+    text-align: left;
+    font-weight: 600;
+    color: #555;
+    border-bottom: 2px solid #e0e0e0;
+    white-space: nowrap;
+}
+.card-table td {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    vertical-align: top;
+}
+.card-table tr:hover td {
+    background: #f0f7ff;
+}
+.card-table .col-actions {
+    white-space: nowrap;
+    text-align: center;
+}
+.card-table .col-actions a {
+    display: inline-block;
+    margin: 0 4px;
+    padding: 4px 10px;
+    font-size: 13px;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+.card-table .empty-row td {
+    padding: 40px;
+    text-align: center;
+    color: #999;
+}
+
+/* ===== 统计栏 ===== */
+.stats-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 12px 0;
+    font-size: 13px;
+    color: #666;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.stats-bar .stat-item {
+    display: flex;
+    gap: 16px;
+}
+.stats-bar .stat-item span { white-space: nowrap; }
+.stats-bar .stat-item .num { font-weight: 600; color: #333; }
+
+/* ===== 详情弹窗 (保持原样) ===== */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+.modal-overlay.active { display: flex; }
+.modal-overlay .modal-content {
+    background: #fff;
+    border-radius: 10px;
+    max-width: 640px;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    animation: modalIn 0.25s ease;
+}
+@keyframes modalIn {
+    from { opacity: 0; transform: translateY(-20px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.modal-overlay .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #eee;
+}
+.modal-overlay .modal-header h3 { margin: 0; font-size: 18px; }
+.modal-overlay .modal-header .close-btn {
+    background: none; border: none;
+    font-size: 24px; cursor: pointer;
+    color: #999; padding: 0 4px;
+    line-height: 1;
+}
+.modal-overlay .modal-body { padding: 20px; }
+.modal-overlay .modal-body .detail-table { width: 100%; }
+.modal-overlay .modal-body .detail-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #f0f0f0;
+}
+.modal-overlay .modal-body .detail-table td:first-child {
+    font-weight: 600;
+    color: #555;
+    white-space: nowrap;
+    width: 100px;
+}
+.modal-overlay .modal-body .section-title {
+    font-weight: 600;
+    color: #333;
+    margin: 16px 0 8px;
+    padding-bottom: 4px;
+    border-bottom: 2px solid #1976d2;
+}
+
+/* ===== Toast 通知 ===== */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 99999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.toast {
+    padding: 12px 20px;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    animation: toastIn 0.3s ease;
+    max-width: 360px;
+}
+.toast.success { background: #2e7d32; }
+.toast.error { background: #c62828; }
+.toast.info { background: #1565c0; }
+@keyframes toastIn {
+    from { opacity: 0; transform: translateX(40px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 768px) {
+    .search-bar { flex-direction: column; align-items: stretch; }
+    .search-bar .search-group { flex: 1 1 auto; }
+    .card-table { font-size: 13px; }
+    .card-table th, .card-table td { padding: 8px 6px; }
+    .stats-bar { flex-direction: column; align-items: flex-start; }
+    .pagination .page-btn { min-width: 32px; height: 32px; font-size: 13px; }
+    .modal-overlay .modal-content { max-width: 100%; }
+}
+@media (max-width: 480px) {
+    .card-table .col-actions a { padding: 4px 6px; font-size: 12px; }
 }
 </style>
+{% endblock %}
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h5 class="mb-0">工卡信息</h5>
-    <a href="/card/new" class="btn btn-primary btn-sm">+ 新增工卡</a>
+{% block content %}
+<h2>📋 工卡列表</h2>
+
+<!-- 加载动画 -->
+<div class="ajax-loader" id="ajaxLoader">
+    <div class="spinner"></div>
 </div>
 
-<div class="card">
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0" id="cardTable">
-                <thead>
-                    {{ list.filter_row([('搜索工卡号...','fCode'),('搜索描述...','fDesc'),('搜索专业...','fCat'),('搜索类型...','fType'),('','_'),('','_'),('','_'),('','_')]) }}
-                    <tr>
-                        <th class="sortable" data-col="0" onclick="AppFilter.sort(document.getElementById('cardTable'),0)">工卡号 <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
-                        <th class="sortable" data-col="1" onclick="AppFilter.sort(document.getElementById('cardTable'),1)">工卡描述 <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
-                        <th class="sortable" data-col="2" onclick="AppFilter.sort(document.getElementById('cardTable'),2)">专业 <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
-                        <th class="sortable" data-col="3" onclick="AppFilter.sort(document.getElementById('cardTable'),3)">类型 <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
-                        <th>所属工卡组</th>
-                        <th class="text-center">工具数</th>
-                        <th class="text-center">航材数</th>
-                        <th style="width:120px" class="text-center">操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                {% if items %}
-                {% for item in items %}
-                    {% set blink = (not item.tools or item.tools|length == 0) and not item.tools_confirmed
-                                   or (not item.materials or item.materials|length == 0) and not item.materials_confirmed %}
-                    <tr onclick="showDetail({{ item.id }})" style="cursor:pointer" class="{{ 'blink-warn' if blink }}">
-                        <td style="font-weight:700;font-family:Consolas,monospace">{{ item.task_code }}</td>
-                        <td>{{ item.task_name[:60] }}{% if item.task_name|length > 60 %}...{% endif %}</td>
-                        <td>{{ item.category }}</td>
-                        <td>{{ item.task_type or '-' }}</td>
-                        <td>{{ item.set_name or '-' }}</td>
-                        <td class="text-center">{{ item.tools|length }}</td>
-                        <td class="text-center">{{ item.materials|length }}</td>
-                        <td onclick="event.stopPropagation()">
-                            <a href="/card/{{ item.id }}/edit" class="btn btn-outline-primary btn-sm py-0">编辑</a>
-                            <form method="POST" action="/card/{{ item.id }}/delete" style="display:inline" onsubmit="return confirm('确认删除？')">
-                                <button type="submit" class="btn btn-outline-danger btn-sm py-0">删除</button>
-                            </form>
-                        </td>
-                    </tr>
-                {% endfor %}
-                {% else %}
-                    {{ list.empty_state('暂无工卡数据，点击右上角新增', '/card/new', '新增工卡', colspan=8) }}
-                {% endif %}
-                </tbody>
-            </table>
-        </div>
+<!-- Toast 容器 -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- 搜索栏 -->
+<div class="search-bar">
+    <div class="search-group">
+        <input type="text" id="searchInput" placeholder="搜索工卡编号/名称…"
+               value="{{ search }}" autocomplete="off">
+        <select id="categorySelect">
+            <option value="">全部类别</option>
+            {% for c in categories %}
+            <option value="{{ c }}" {% if category == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <button class="btn-search" onclick="loadCards(1)">搜索</button>
+    <a href="{{ url_for('cards.card_new') }}" class="btn-search" style="background:#388e3c;">+ 新建工卡</a>
+</div>
+
+<!-- 统计栏 -->
+<div class="stats-bar" id="statsBar">
+    <div class="stat-item">
+        <span>📋 <span class="num" id="totalCount">0</span> 条记录</span>
+        <span>第 <span class="num" id="currentPageDisplay">1</span>/<span id="totalPagesDisplay">1</span> 页</span>
     </div>
 </div>
 
-<div class="modal fade" id="detailModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
-        <div class="modal-header">
-            <h5 class="modal-title">工卡详情</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body" id="detailContent"><p class="text-muted">点击行加载...</p></div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">关闭</button>
-        </div>
-    </div></div>
+<!-- 工卡表格 -->
+<div class="card-table-wrap">
+    <table class="card-table" id="cardTable">
+        <thead>
+            <tr>
+                <th>编号</th>
+                <th>名称</th>
+                <th>类别</th>
+                <th>所属工卡组</th>
+                <th style="width:160px;">操作</th>
+            </tr>
+        </thead>
+        <tbody id="cardTableBody">
+            <tr class="empty-row"><td colspan="5">加载中…</td></tr>
+        </tbody>
+    </table>
 </div>
 
+<!-- 分页 -->
+<div class="pagination" id="pagination"></div>
+
+<!-- 详情弹窗 -->
+<div class="modal-overlay" id="detailModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modalTitle">工卡详情</h3>
+            <button class="close-btn" onclick="closeModal()">×</button>
+        </div>
+        <div class="modal-body" id="modalBody">
+            <p style="color:#999;text-align:center;">加载中…</p>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-var cardData = [{% for item in items %}{{ item|tojson }}{% if not loop.last %},{% endif %}{% endfor %}];
-
-function showDetail(id) {
-    var d = cardData.find(function(c) { return c.id === id; });
-    if (!d) return;
-    var h = '<div class="row g-3 mb-3">'
-        + '<div class="col-md-3"><label class="form-label small">工卡号</label><div><strong>' + d.task_code + '</strong></div></div>'
-        + '<div class="col-md-5"><label class="form-label small">工卡描述</label><div>' + (d.task_name || '-') + '</div></div>'
-        + '<div class="col-md-2"><label class="form-label small">专业</label><div>' + (d.category || '-') + '</div></div>'
-        + '<div class="col-md-2"><label class="form-label small">类型</label><div>' + (d.task_type || '-') + '</div></div>'
-        + '</div>';
-    h += '<div class="mb-3"><label class="form-label small">所属工卡组</label><div>' + (d.set_name || '-') + '</div></div>';
-    if (d.tools && d.tools.length) {
-        h += '<label class="form-label small fw-bold">工具清单</label>'
-           + '<table class="table table-bordered table-sm mb-3"><thead><tr><th>设备名称</th><th>件号</th><th>数量</th><th>备注</th><th>使用类型</th></tr></thead><tbody>';
-        d.tools.forEach(function(t) {
-            h += '<tr><td>' + (t.device_name||'') + '</td><td>' + (t.part_number||'') + '</td><td>' + (t.quantity||'') + '</td><td>' + (t.remark||'') + '</td><td>' + (t.usage_type||'') + '</td></tr>';
-        });
-        h += '</tbody></table>';
-    } else {
-        h += '<p class="text-muted small mb-3">工具清单：无</p>';
-    }
-    if (d.materials && d.materials.length) {
-        h += '<label class="form-label small fw-bold">航材清单</label>'
-           + '<table class="table table-bordered table-sm mb-0"><thead><tr><th>航材名称</th><th>件号</th><th>数量</th><th>备注</th><th>使用类型</th></tr></thead><tbody>';
-        d.materials.forEach(function(m) {
-            h += '<tr><td>' + (m.material_name||'') + '</td><td>' + (m.part_number||'') + '</td><td>' + (m.quantity||'') + '</td><td>' + (m.remark||'') + '</td><td>' + (m.usage_type||'') + '</td></tr>';
-        });
-        h += '</tbody></table>';
-    } else {
-        h += '<p class="text-muted small mb-0">航材清单：无</p>';
-    }
-    document.getElementById('detailContent').innerHTML = h;
-    new bootstrap.Modal(document.getElementById('detailModal')).show();
+// ===== Toast =====
+function showToast(msg, type) {
+    type = type || 'info';
+    var c = document.getElementById('toastContainer');
+    var t = document.createElement('div');
+    t.className = 'toast ' + type;
+    t.textContent = msg;
+    c.appendChild(t);
+    setTimeout(function(){ if(t.parentNode) t.parentNode.removeChild(t); }, 3500);
 }
 
-['fCode:0','fDesc:1','fCat:2','fType:3'].forEach(function(p) {
-    var id = p.split(':')[0], col = p.split(':')[1];
-    var el = document.getElementById(id);
-    if (el) el.setAttribute('data-col', col);
+// ===== 加载状态 =====
+function showLoader() { document.getElementById('ajaxLoader').classList.add('active'); }
+function hideLoader() { document.getElementById('ajaxLoader').classList.remove('active'); }
+
+// ===== 加载工卡列表 =====
+function loadCards(page) {
+    page = page || 1;
+    var search = document.getElementById('searchInput').value.trim();
+    var category = document.getElementById('categorySelect').value;
+    showLoader();
+
+    var url = '{{ url_for("cards.card_api_list") }}?page=' + page + '&per_page=20';
+    if (search) url += '&search=' + encodeURIComponent(search);
+    if (category) url += '&category=' + encodeURIComponent(category);
+
+    fetch(url)
+        .then(function(r) { return r.json(); })
+        .then(function(res) {
+            hideLoader();
+            if (!res.success) {
+                showToast(res.message || res.error || '加载失败', 'error');
+                return;
+            }
+            renderCards(res.data.items, res.data.pagination);
+        })
+        .catch(function(err) {
+            hideLoader();
+            showToast('网络请求失败：' + err.message, 'error');
+        });
+}
+
+// ===== 渲染表格 =====
+function renderCards(items, pagination) {
+    var tbody = document.getElementById('cardTableBody');
+    if (!items || items.length === 0) {
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="5">暂无数据</td></tr>';
+        document.getElementById('totalCount').textContent = '0';
+        document.getElementById('currentPageDisplay').textContent = '0';
+        document.getElementById('totalPagesDisplay').textContent = '0';
+        renderPagination(null);
+        return;
+    }
+
+    var html = '';
+    for (var i = 0; i < items.length; i++) {
+        var c = items[i];
+        html += '<tr>' +
+            '<td><a href="javascript:void(0)" onclick="showDetail(' + c.id + ')">' + escHtml(c.task_code) + '</a></td>' +
+            '<td>' + escHtml(c.task_name) + '</td>' +
+            '<td><span class="tag">' + escHtml(c.category || '') + '</span></td>' +
+            '<td>' + escHtml(c.set_name || '-') + '</td>' +
+            '<td class="col-actions">' +
+            '<a href="/card/' + c.id + '/edit" style="background:#e3f2fd;color:#1565c0;">编辑</a>' +
+            '<a href="javascript:void(0)" onclick="deleteCard(' + c.id + ',\'' + escHtml(c.task_code) + '\')" style="background:#ffebee;color:#c62828;">删除</a>' +
+            '</td>' +
+            '</tr>';
+    }
+    tbody.innerHTML = html;
+
+    document.getElementById('totalCount').textContent = pagination.total;
+    document.getElementById('currentPageDisplay').textContent = pagination.page;
+    document.getElementById('totalPagesDisplay').textContent = pagination.total_pages;
+
+    renderPagination(pagination);
+}
+
+// ===== HTML 转义 =====
+function escHtml(s) {
+    if (!s) return '';
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+}
+
+// ===== 渲染分页 =====
+function renderPagination(p) {
+    var el = document.getElementById('pagination');
+    if (!p || p.total_pages <= 1) {
+        el.innerHTML = '';
+        return;
+    }
+    var page = p.page, total = p.total_pages;
+    var html = '';
+
+    // 上一页
+    html += '<button class="page-btn' + (page <= 1 ? ' disabled' : '') + '" onclick="loadCards(' + (page - 1) + ')"' + (page <= 1 ? ' disabled' : '') + '>‹</button>';
+
+    // 页码
+    var start = Math.max(1, page - 2);
+    var end = Math.min(total, page + 2);
+    if (start > 1) { html += '<button class="page-btn" onclick="loadCards(1)">1</button>'; if (start > 2) html += '<span class="page-info">…</span>'; }
+    for (var i = start; i <= end; i++) {
+        html += '<button class="page-btn' + (i === page ? ' active' : '') + '" onclick="loadCards(' + i + ')">' + i + '</button>';
+    }
+    if (end < total) { if (end < total - 1) html += '<span class="page-info">…</span>'; html += '<button class="page-btn" onclick="loadCards(' + total + ')">' + total + '</button>'; }
+
+    // 下一页
+    html += '<button class="page-btn' + (page >= total ? ' disabled' : '') + '" onclick="loadCards(' + (page + 1) + ')"' + (page >= total ? ' disabled' : '') + '>›</button>';
+
+    el.innerHTML = html;
+}
+
+// ===== 详情弹窗 =====
+function showDetail(cardId) {
+    var modal = document.getElementById('detailModal');
+    var body = document.getElementById('modalBody');
+    var title = document.getElementById('modalTitle');
+    modal.classList.add('active');
+    body.innerHTML = '<p style="color:#999;text-align:center;">加载中…</p>';
+    title.textContent = '工卡详情';
+
+    fetch('/card/' + cardId)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) {
+                body.innerHTML = '<p style="color:#c62828;">加载失败：' + data.error + '</p>';
+                return;
+            }
+            var h = '<table class="detail-table">';
+            h += '<tr><td>编号</td><td>' + escHtml(data.task_code) + '</td></tr>';
+            h += '<tr><td>名称</td><td>' + escHtml(data.task_name) + '</td></tr>';
+            h += '<tr><td>类别</td><td>' + escHtml(data.category || '-') + '</td></tr>';
+            h += '<tr><td>机��</td><td>' + escHtml(data.aircraft_type || '-') + '</td></tr>';
+            h += '<tr><td>ATA 章节</td><td>' + escHtml(data.ata_code || '-') + '</td></tr>';
+            h += '<tr><td>任务类型</td><td>' + escHtml(data.task_type || '-') + '</td></tr>';
+            h += '<tr><td>工时 (人×时)</td><td>' + escHtml(data.man_hours || '-') + '</td></tr>';
+            h += '</table>';
+
+            if (data.tools && data.tools.length) {
+                h += '<div class="section-title">🔧 工具设备</div>';
+                h += '<table class="detail-table"><thead><tr><th>编号</th><th>名称</th><th>规格</th><th>数量</th></tr></thead><tbody>';
+                for (var i=0; i<data.tools.length; i++) {
+                    var t = data.tools[i];
+                    h += '<tr><td>' + escHtml(t.tool_code||'') + '</td><td>' + escHtml(t.tool_name||'') + '</td><td>' + escHtml(t.spec||'') + '</td><td>' + escHtml(t.quantity||'') + '</td></tr>';
+                }
+                h += '</tbody></table>';
+            }
+            if (data.materials && data.materials.length) {
+                h += '<div class="section-title">📦 航材</div>';
+                h += '<table class="detail-table"><thead><tr><th>件号</th><th>名称</th><th>规格</th><th>数量</th><th>使用类型</th></tr></thead><tbody>';
+                for (var i=0; i<data.materials.length; i++) {
+                    var m = data.materials[i];
+                    h += '<tr><td>' + escHtml(m.part_no||'') + '</td><td>' + escHtml(m.material_name||'') + '</td><td>' + escHtml(m.spec||'') + '</td><td>' + escHtml(m.quantity||'') + '</td><td>' + escHtml(m.usage_type||'') + '</td></tr>';
+                }
+                h += '</tbody></table>';
+            }
+            body.innerHTML = h;
+        })
+        .catch(function(err) {
+            body.innerHTML = '<p style="color:#c62828;">请求��败：' + err.message + '</p>';
+        });
+}
+
+function closeModal() {
+    document.getElementById('detailModal').classList.remove('active');
+}
+// 点击遮罩关闭
+document.getElementById('detailModal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+});
+
+// ===== 删除工卡 =====
+function deleteCard(id, code) {
+    if (!confirm('确认删除工卡「' + code + '」？此操作不可恢复。')) return;
+    showLoader();
+    fetch('/card/' + id + '/delete', { method: 'POST' })
+        .then(function(r) { return r.json(); })
+        .then(function(res) {
+            hideLoader();
+            if (res.success) {
+                showToast('工卡「' + code + '」已删除', 'success');
+                loadCards();
+            } else {
+                showToast(res.message || '删除失败', 'error');
+            }
+        })
+        .catch(function(err) {
+            hideLoader();
+            showToast('网络错误：' + err.message, 'error');
+        });
+}
+
+// ===== 回车搜索 =====
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('searchInput').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') loadCards(1);
+    });
+    // 初始加载
+    loadCards(1);
 });
 </script>
 {% endblock %}

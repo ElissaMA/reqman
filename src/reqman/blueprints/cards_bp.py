@@ -2,14 +2,48 @@
 
 import logging
 from flask import (Blueprint, current_app, render_template, request, redirect,
-                   url_for, jsonify, flash)
+                   url_for, flash)
 
 from ..services.card_service import ServiceError
+from ..utils.response import api_success, api_error, ApiException
+from ..utils.error_handlers import ValidationError, NotFoundError
+from ..utils.validators import (validate_required_fields, validate_tools_mats)
 from ..config import CATEGORIES, TASK_TYPES, USAGE_TYPES
 
 logger = logging.getLogger(__name__)
 
 cards_bp = Blueprint("cards", __name__)
+
+
+# ======================== 辅助函数 ========================
+
+def _is_ajax():
+    return request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+
+def _parse_tools_mats():
+    """解析并验证工具/航材，失败时抛出 ValidationError"""
+    tools, mats = current_app.extensions['card_service'].parse_tools_mats(request.form)
+    tools_confirmed = (not tools) and bool(request.form.get("confirm_no_tools"))
+    materials_confirmed = (not mats) and bool(request.form.get("confirm_no_mats"))
+    validate_tools_mats(tools, mats, tools_confirmed, materials_confirmed)
+    return tools, mats, tools_confirmed, materials_confirmed
+
+
+def _handle_ajax_or_redirect(success_msg, redirect_url, fallback_redirect=None):
+    """根据请求类型返回 AJAX 响应或重定向"""
+    if _is_ajax():
+        return api_success(message=success_msg)
+    flash(success_msg, "success")
+    return redirect(fallback_redirect or redirect_url)
+
+
+def _handle_error_ajax_or_flash(message, redirect_url, error_category="error"):
+    """统一处理错误响应"""
+    if _is_ajax():
+        return api_error(message=message, error_code="REQUEST_ERROR")
+    flash(message, error_category)
+    return redirect(redirect_url)
 
 
 # ======================== 工卡 ========================
@@ -39,47 +73,17 @@ def card_list():
                                categories=CATEGORIES)
 
 
-def _is_ajax():
-    return request.headers.get("X-Requested-With") == "XMLHttpRequest"
-
-
-def _parse_and_validate_tools_mats(redirect_url):
-    """解析并验证工具/航材，失败时返回 (None, None, None, None, error_response)。"""
-    tools, mats = current_app.extensions['card_service'].parse_tools_mats(request.form)
-    tools_confirmed = (not tools) and bool(request.form.get("confirm_no_tools"))
-    materials_confirmed = (not mats) and bool(request.form.get("confirm_no_mats"))
-
-    if not tools and not tools_confirmed:
-        msg = "请添加工具或确认无工具"
-        if _is_ajax():
-            return None, None, None, None, jsonify({"success": False, "message": msg})
-        flash(msg, "error")
-        return None, None, None, None, redirect(redirect_url)
-    if not mats and not materials_confirmed:
-        msg = "请添加航材或确认无航材"
-        if _is_ajax():
-            return None, None, None, None, jsonify({"success": False, "message": msg})
-        flash(msg, "error")
-        return None, None, None, None, redirect(redirect_url)
-
-    return tools, mats, tools_confirmed, materials_confirmed, None
-
-
 @cards_bp.route("/card/new", methods=["GET", "POST"])
 def card_new():
     """新增工卡"""
     if request.method == "POST":
         try:
-            task_code = request.form.get("task_code", "").strip()
-            if not task_code:
-                if _is_ajax():
-                    return jsonify({"success": False, "message": "工卡号不能为空"})
-                flash("工卡号不能为空", "error")
-                return redirect("/card/new")
+            task_code = validate_required_fields(
+                request.form, "task_code",
+                labels={"task_code": "工卡号"}
+            )
+            tools, mats, tools_confirmed, materials_confirmed = _parse_tools_mats()
 
-            tools, mats, tools_confirmed, materials_confirmed, err = _parse_and_validate_tools_mats("/card/new")
-            if err:
-                return err
             current_app.extensions['card_service'].add_card(
                 task_code=task_code,
                 task_name=request.form.get("task_name", ""),
@@ -91,22 +95,17 @@ def card_new():
                 tools_confirmed=tools_confirmed,
                 materials_confirmed=materials_confirmed,
             )
-            if _is_ajax():
-                return jsonify({"success": True, "message": "工卡新增成功"})
-            flash("工卡新增成功", "success")
-            return redirect("/card/list")
+            return _handle_ajax_or_redirect("工卡新增成功", "/card/list")
 
-        except ServiceError as e:
+        except (ValidationError, ServiceError) as e:
+            msg = e.message if hasattr(e, 'message') else str(e)
             if _is_ajax():
-                return jsonify({"success": False, "message": e.message})
-            flash(e.message, "error")
+                return api_error(message=msg, error_code=getattr(e, 'error_code', 'VALIDATION_ERROR'))
+            flash(msg, "error")
             return redirect("/card/new")
         except Exception as e:
             logger.exception("新增工卡失败")
-            if _is_ajax():
-                return jsonify({"success": False, "message": "服务器错误，请稍后重试"})
-            flash("服务器错误，请稍后重试", "error")
-            return redirect("/card/new")
+            return _handle_error_ajax_or_flash("服务器错误，请稍后重试", "/card/new")
 
     prefill_code = request.args.get("task_code", "")
     prefill_name = request.args.get("task_name", "")
@@ -134,9 +133,8 @@ def card_edit(card_id):
 
     if request.method == "POST":
         try:
-            tools, mats, tools_confirmed, materials_confirmed, err = _parse_and_validate_tools_mats(f"/card/{card_id}/edit")
-            if err:
-                return err
+            tools, mats, tools_confirmed, materials_confirmed = _parse_tools_mats()
+
             current_app.extensions['card_service'].update_card(
                 card_id,
                 task_code=request.form.get("task_code", item["task_code"]),
@@ -149,19 +147,17 @@ def card_edit(card_id):
                 tools_confirmed=tools_confirmed,
                 materials_confirmed=materials_confirmed,
             )
-            if _is_ajax():
-                return jsonify({"success": True, "message": "工卡更新成功"})
-            flash("工卡更新成功", "success")
-            return redirect("/card/list")
+            return _handle_ajax_or_redirect("工卡更新成功", "/card/list")
 
-        except ServiceError as e:
+        except (ValidationError, ServiceError) as e:
+            msg = e.message if hasattr(e, 'message') else str(e)
             if _is_ajax():
-                return jsonify({"success": False, "message": e.message})
-            flash(e.message, "error")
+                return api_error(message=msg, error_code=getattr(e, 'error_code', 'VALIDATION_ERROR'))
+            flash(msg, "error")
         except Exception as e:
             logger.exception("更新工卡失败")
             if _is_ajax():
-                return jsonify({"success": False, "message": "服务器错误"})
+                return api_error(message="服务器错误", error_code="SERVER_ERROR")
             flash("服务器错误，请稍后重试", "error")
 
     return render_template("cards/form.html",
@@ -180,19 +176,12 @@ def card_delete(card_id):
     """删除工卡"""
     try:
         current_app.extensions['card_service'].delete_card(card_id)
-        if _is_ajax():
-            return jsonify({"success": True, "message": "工卡已删除"})
-        flash("工卡已删除", "success")
+        return _handle_ajax_or_redirect("工卡已删除", "/card/list")
     except ServiceError as e:
-        if _is_ajax():
-            return jsonify({"success": False, "message": e.message})
-        flash(e.message, "error")
+        return _handle_error_ajax_or_flash(e.message, "/card/list")
     except Exception as e:
         logger.exception("删除工卡失败")
-        if _is_ajax():
-            return jsonify({"success": False, "message": "服务器错误"})
-        flash("服务器错误", "error")
-    return redirect("/card/list")
+        return _handle_error_ajax_or_flash("服务器错误", "/card/list")
 
 
 @cards_bp.route("/card/<int:card_id>")
@@ -201,12 +190,11 @@ def card_detail(card_id):
     try:
         item = current_app.extensions['card_service'].get_card(card_id)
         if not item:
-            return jsonify({"error": "not found"}), 404
-        return jsonify(item)
+            return api_error(message="���卡不存在", error_code="NOT_FOUND", status_code=404)
+        return api_success(data=item)
     except Exception as e:
         logger.exception("获取工卡详情失败")
-        return jsonify({"error": "server error"}), 500
-
+        return api_error(message="服务器错误", error_code="SERVER_ERROR", status_code=500)
 
 
 @cards_bp.route("/card/list-json")
@@ -214,15 +202,57 @@ def card_list_json():
     """工卡列表 JSON（供 set_form.html 搜索用）"""
     try:
         items = current_app.extensions['card_service'].list_cards()
-        return jsonify([{
-                    "id": c["id"],
+        data = [{
+            "id": c["id"],
             "task_code": c["task_code"],
             "task_name": c["task_name"],
             "category": c["category"],
-        } for c in items])
+        } for c in items]
+        return api_success(data=data)
     except Exception as e:
         logger.exception("获取工卡列表 JSON 失败")
-        return jsonify([])
+        return api_success(data=[])
+
+
+@cards_bp.route("/card/api/list")
+def card_api_list():
+    """工卡列表 AJAX API（支持分页+搜索+分类）"""
+    try:
+        search = request.args.get("search", "").strip()
+        category = request.args.get("category", "").strip()
+        page = request.args.get("page", 1, type=int)
+        per_page = request.args.get("per_page", 20, type=int)
+        per_page = min(per_page, 100)  # 上限保护
+
+        items = current_app.extensions['card_service'].list_cards(search=search, category=category)
+        all_sets = current_app.extensions['card_service'].list_card_sets()
+        set_map = {s["id"]: s.get("name", "") for s in all_sets}
+
+        for item in items:
+            sid = item.get("set_id")
+            item["set_name"] = set_map.get(sid, "") if sid else ""
+
+        total = len(items)
+        total_pages = max(1, (total + per_page - 1) // per_page)
+        page = max(1, min(page, total_pages))
+
+        start = (page - 1) * per_page
+        end = start + per_page
+        page_items = items[start:end]
+
+        return api_success(data={
+            "items": page_items,
+            "pagination": {
+                "page": page,
+                "per_page": per_page,
+                "total": total,
+                "total_pages": total_pages,
+            }
+        })
+    except Exception as e:
+        logger.exception("AJAX 获取工卡列表失败")
+        return api_error(message="获取工卡列表失败", error_code="SERVER_ERROR", status_code=500)
+
 
 # ======================== 工卡组 ========================
 
@@ -262,10 +292,13 @@ def card_set_new():
     """新增工卡组"""
     if request.method == "POST":
         try:
-            tools, mats, tools_confirmed, materials_confirmed, err = _parse_and_validate_tools_mats("/card/sets/new")
-            if err:
-                return err
+            validate_required_fields(
+                request.form, "name",
+                labels={"name": "工卡组名称"}
+            )
+            tools, mats, tools_confirmed, materials_confirmed = _parse_tools_mats()
             card_codes = request.form.getlist("card_codes[]")
+
             current_app.extensions['card_service'].add_card_set(
                 name=request.form.get("name", ""),
                 description=request.form.get("description", ""),
@@ -276,18 +309,19 @@ def card_set_new():
                 tools_confirmed=tools_confirmed,
                 materials_confirmed=materials_confirmed,
             )
+            return _handle_ajax_or_redirect(
+                "工卡组新增成功，工具/航材已同步至所有子工卡",
+                "/card/sets"
+            )
+        except (ValidationError, ServiceError) as e:
+            msg = e.message if hasattr(e, 'message') else str(e)
             if _is_ajax():
-                return jsonify({"success": True, "message": "工卡组新增成功"})
-            flash("工卡组新增成功，工具/航材已同步至所有子工卡", "success")
-            return redirect("/card/sets")
-        except ServiceError as e:
-            if _is_ajax():
-                return jsonify({"success": False, "message": e.message})
-            flash(e.message, "error")
+                return api_error(message=msg, error_code=getattr(e, 'error_code', 'VALIDATION_ERROR'))
+            flash(msg, "error")
         except Exception as e:
             logger.exception("新增工卡组失败")
             if _is_ajax():
-                return jsonify({"success": False, "message": "服务器错误"})
+                return api_error(message="服务器错误", error_code="SERVER_ERROR")
             flash("服务器错误", "error")
 
     all_cards = current_app.extensions['card_service'].list_cards()
@@ -313,10 +347,9 @@ def card_set_edit(set_id):
 
     if request.method == "POST":
         try:
-            tools, mats, tools_confirmed, materials_confirmed, err = _parse_and_validate_tools_mats(f"/card/sets/{set_id}/edit")
-            if err:
-                return err
+            tools, mats, tools_confirmed, materials_confirmed = _parse_tools_mats()
             card_codes = request.form.getlist("card_codes[]")
+
             current_app.extensions['card_service'].update_card_set(
                 set_id,
                 name=request.form.get("name", s.get("name", "")),
@@ -328,18 +361,19 @@ def card_set_edit(set_id):
                 tools_confirmed=tools_confirmed,
                 materials_confirmed=materials_confirmed,
             )
+            return _handle_ajax_or_redirect(
+                "工卡组更新成功，工具/航材已同步至所有子工卡",
+                "/card/sets"
+            )
+        except (ValidationError, ServiceError) as e:
+            msg = e.message if hasattr(e, 'message') else str(e)
             if _is_ajax():
-                return jsonify({"success": True, "message": "工卡组更新成功"})
-            flash("工卡组更新成功，工具/航材已同步至所有子工卡", "success")
-            return redirect("/card/sets")
-        except ServiceError as e:
-            if _is_ajax():
-                return jsonify({"success": False, "message": e.message})
-            flash(e.message, "error")
+                return api_error(message=msg, error_code=getattr(e, 'error_code', 'VALIDATION_ERROR'))
+            flash(msg, "error")
         except Exception as e:
             logger.exception("更新工卡组失败")
             if _is_ajax():
-                return jsonify({"success": False, "message": "服务器错误"})
+                return api_error(message="服务器错误", error_code="SERVER_ERROR")
             flash("服务器错误", "error")
 
     all_cards = current_app.extensions['card_service'].list_cards()
@@ -358,21 +392,12 @@ def card_set_delete(set_id):
     """删除工卡组"""
     try:
         current_app.extensions['card_service'].delete_card_set(set_id)
-        if _is_ajax():
-            return jsonify({"success": True, "message": "工卡组已删除"})
-        flash("工卡组已删除，关联工卡已解除绑定", "success")
+        return _handle_ajax_or_redirect("工卡组已删除，关联工卡已解除绑定", "/card/sets")
     except ServiceError as e:
-        if _is_ajax():
-            return jsonify({"success": False, "message": e.message})
-        flash(e.message, "error")
+        return _handle_error_ajax_or_flash(e.message, "/card/sets")
     except Exception as e:
-        logger.exception("删除工卡组失败")
-        if _is_ajax():
-            return jsonify({"success": False, "message": "服务器错误"})
-        flash("服务器错误", "error")
-    return redirect("/card/sets")
-
-
+        logger.exception("删除工卡组失��")
+        return _handle_error_ajax_or_flash("服务器错误", "/card/sets")
 
 
 # ======================== 飞机信息 ========================
@@ -396,11 +421,10 @@ def aircraft_new():
     """新增飞机"""
     if request.method == "POST":
         try:
-            reg = request.form.get("reg", "").strip()
-            if not reg:
-                flash("机号不能为空", "error")
-                return redirect("/card/aircraft")
-
+            reg = validate_required_fields(
+                request.form, "reg",
+                labels={"reg": "机号"}
+            )
             current_app.extensions['card_service'].add_aircraft(
                 reg=reg,
                 model=request.form.get("model", ""),
@@ -412,8 +436,9 @@ def aircraft_new():
             flash("飞机信息新增成功", "success")
             return redirect("/card/aircraft")
 
-        except ServiceError as e:
-            flash(e.message, "error")
+        except (ValidationError, ServiceError) as e:
+            msg = e.message if hasattr(e, 'message') else str(e)
+            flash(msg, "error")
         except Exception as e:
             logger.exception("新增飞机信息失败")
             flash("服务器错误", "error")
@@ -466,6 +491,5 @@ def aircraft_delete(aircraft_id):
         flash(e.message, "error")
     except Exception as e:
         logger.exception("删除飞机信息失败")
-        flash("服务器错误", "error")
+        flash("服��器错误", "error")
     return redirect("/card/aircraft")
-
