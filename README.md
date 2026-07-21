@@ -5,9 +5,10 @@
 ## 功能特性
 
 - **工卡管理** — CRUD + 搜索/筛选 + 工卡组 + 工具/航材管理
+- **工卡组显示** — 预览页和Excel输出均显示工卡组名称
+- **新增工卡自动填充** — 从预览页添加工卡时自动填充工卡号、名称、专业、类别
 - **工作包匹配** — 上传工作清单 Excel，自动与工卡数据库匹配
 - **需求单生成** — 生成定检需求单 Excel，支持预览与下载
-- **工卡组显示** — 匹配工卡组时，Excel 中显示工卡组名称而非单个工卡名称
 - **飞机信息管理** — 维护飞机基础信息
 
 ## 快速开始
@@ -33,22 +34,27 @@ python src/reqman/app.py
 
 ```
 需求单v1.0/
-├── src/reqman/          # 核心源码包
-│   ├── __init__.py      # Flask 应用工厂
-│   ├── app.py           # 启动入口
-│   ├── config.py        # 环境变量驱动配置
-│   ├── blueprints/      # 路由蓝图层
-│   ├── services/        # 业务服务层
-│   ├── models/          # 数据模型与持久化
-│   ├── templates/       # Jinja2 模板
-│   └── utils/           # 工具模块
-├── tests/               # 测试
-├── assets/              # 静态资源（Excel 模板）
-├── data/                # 运行时数据库
-├── output/              # 生成的需求单输出
-├── pyproject.toml       # 项目统一配置
-├── .env.example         # 环境变量模板
-└── .github/workflows/   # CI 自动化
+├── src/reqman/
+│   ├── app.py              # 启动入口
+│   ├── config.py           # 环境变量配置
+│   ├── blueprints/         # 路由蓝图
+│   │   ├── cards_bp.py     # 工卡管理
+│   │   ├── generate_bp.py  # 需求单生成
+│   │   └── packages_bp.py  # 工作包上传
+│   ├── services/           # 业务服务
+│   │   ├── card_service.py
+│   │   ├── form_generator.py
+│   │   ├── worklist_parser.py
+│   │   └── work_package_matcher.py
+│   ├── models/             # 数据模型
+│   ├── templates/          # Jinja2模板
+│   │   ├── cards/          # 工卡页面
+│   │   ├── generate/       # 需求单生成
+│   │   └── macros/         # 可复用宏
+│   └── utils/              # 工具函数
+├── assets/                 # Excel模板
+├── data/                   # 运行时数据库
+└── output/                 # 生成的需求单
 ```
 
 ## 环境变量
