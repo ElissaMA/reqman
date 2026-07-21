@@ -1,4 +1,4 @@
-﻿[project]
+[project]
 name = "inspection-demand-system"
 version = "3.0.0"
 description = "飞机定检需求单管理系统，工卡匹配与需求单自动生成工具"
@@ -19,7 +19,21 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
-addopts = "-v --cov=reqman --cov-report=term-missing"
+addopts = "-v --tb=short --cov=reqman --cov-report=term-missing --cov-report=html"
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["reqman"]
+omit = ["*/tests/*", "*/__pycache__/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "pass",
+]
 
 [tool.ruff]
 line-length = 120
