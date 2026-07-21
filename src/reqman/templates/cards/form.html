@@ -27,7 +27,7 @@
                     <label class="form-label small">专业</label>
                     <select class="form-select form-select-sm" name="category">
                         {% for c in categories %}
-                        <option value="{{ c }}" {{ "selected" if item and item.category == c }}>{{ c }}</option>
+                        <option value="{{ c }}" {{ "selected" if (item and item.category == c) or (prefill_category and prefill_category == c) }}>{{ c }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -37,7 +37,7 @@
                         <option value="">请选择类型</option>
                         {% for t in task_types %}
                         {% if t %}
-                        <option value="{{ t }}" {{ "selected" if item and item.task_type == t }}>{{ t }}</option>
+                        <option value="{{ t }}" {{ "selected" if (item and item.task_type == t) or (prefill_task_type and prefill_task_type == t) }}>{{ t }}</option>
                         {% endif %}
                         {% endfor %}
                     </select>

@@ -1,26 +1,15 @@
 """工卡管理蓝图 — 工卡 CRUD + 工卡组管理"""
 
 import logging
-from flask import (Blueprint, render_template, request, redirect,
+from flask import (Blueprint, current_app, render_template, request, redirect,
                    url_for, jsonify, flash)
 
-from ..models.json_store import JsonStore
 from ..services.card_service import ServiceError
 from ..config import CATEGORIES, TASK_TYPES, USAGE_TYPES
 
 logger = logging.getLogger(__name__)
 
 cards_bp = Blueprint("cards", __name__)
-
-
-# ---------- 懒加载依赖注入 ----------
-_svc_instance = None
-def _get_svc():
-    global _svc_instance
-    if _svc_instance is None:
-        from flask import current_app
-        _svc_instance = current_app.extensions['card_service']
-    return _svc_instance
 
 
 # ======================== 工卡 ========================
@@ -31,8 +20,8 @@ def card_list():
     try:
         search = request.args.get("search", "").strip()
         category = request.args.get("category", "").strip()
-        items = _get_svc().list_cards(search=search, category=category)
-        all_sets = _get_svc().list_card_sets()
+        items = current_app.extensions['card_service'].list_cards(search=search, category=category)
+        all_sets = current_app.extensions['card_service'].list_card_sets()
         set_map = {s["id"]: s.get("name", "") for s in all_sets}
         for item in items:
             sid = item.get("set_id")
@@ -54,6 +43,28 @@ def _is_ajax():
     return request.headers.get("X-Requested-With") == "XMLHttpRequest"
 
 
+def _parse_and_validate_tools_mats(redirect_url):
+    """解析并验证工具/航材，失败时返回 (None, None, None, None, error_response)。"""
+    tools, mats = current_app.extensions['card_service'].parse_tools_mats(request.form)
+    tools_confirmed = (not tools) and bool(request.form.get("confirm_no_tools"))
+    materials_confirmed = (not mats) and bool(request.form.get("confirm_no_mats"))
+
+    if not tools and not tools_confirmed:
+        msg = "请添加工具或确认无工具"
+        if _is_ajax():
+            return None, None, None, None, jsonify({"success": False, "message": msg})
+        flash(msg, "error")
+        return None, None, None, None, redirect(redirect_url)
+    if not mats and not materials_confirmed:
+        msg = "请添加航材或确认无航材"
+        if _is_ajax():
+            return None, None, None, None, jsonify({"success": False, "message": msg})
+        flash(msg, "error")
+        return None, None, None, None, redirect(redirect_url)
+
+    return tools, mats, tools_confirmed, materials_confirmed, None
+
+
 @cards_bp.route("/card/new", methods=["GET", "POST"])
 def card_new():
     """新增工卡"""
@@ -66,25 +77,10 @@ def card_new():
                 flash("工卡号不能为空", "error")
                 return redirect("/card/new")
 
-            tools, mats = _get_svc().parse_tools_mats(request.form)
-            tools_confirmed = (not tools) and bool(request.form.get("confirm_no_tools"))
-            materials_confirmed = (not mats) and bool(request.form.get("confirm_no_mats"))
-
-            if not tools and not tools_confirmed:
-                msg = "请添加工具或确认无工具"
-                if _is_ajax():
-                    return jsonify({"success": False, "message": msg})
-                flash(msg, "error")
-                return redirect("/card/new")
-            if not mats and not materials_confirmed:
-                msg = "请添加航材或确认无航材"
-                if _is_ajax():
-                    return jsonify({"success": False, "message": msg})
-                flash(msg, "error")
-                return redirect("/card/new")
-            tools_confirmed_val = not tools and bool(request.form.get("confirm_no_tools"))
-            mats_confirmed_val = not mats and bool(request.form.get("confirm_no_mats"))
-            _get_svc().add_card(
+            tools, mats, tools_confirmed, materials_confirmed, err = _parse_and_validate_tools_mats("/card/new")
+            if err:
+                return err
+            current_app.extensions['card_service'].add_card(
                 task_code=task_code,
                 task_name=request.form.get("task_name", ""),
                 category=request.form.get("category", "机体"),
@@ -114,18 +110,21 @@ def card_new():
 
     prefill_code = request.args.get("task_code", "")
     prefill_name = request.args.get("task_name", "")
+    prefill_category = request.args.get("category", "")
+    prefill_task_type = request.args.get("task_type", "")
     return render_template("cards/form.html",
                            item=None, tools=[], materials=[],
                            categories=CATEGORIES, task_types=TASK_TYPES,
                            usage_types=USAGE_TYPES, edit_mode=False,
-                           prefill_code=prefill_code, prefill_name=prefill_name)
+                           prefill_code=prefill_code, prefill_name=prefill_name,
+                           prefill_category=prefill_category, prefill_task_type=prefill_task_type)
 
 
 @cards_bp.route("/card/<int:card_id>/edit", methods=["GET", "POST"])
 def card_edit(card_id):
     """编辑工卡"""
     try:
-        item = _get_svc().get_card(card_id)
+        item = current_app.extensions['card_service'].get_card(card_id)
     except Exception:
         item = None
 
@@ -135,25 +134,10 @@ def card_edit(card_id):
 
     if request.method == "POST":
         try:
-            tools, mats = _get_svc().parse_tools_mats(request.form)
-            tools_confirmed = (not tools) and bool(request.form.get("confirm_no_tools"))
-            materials_confirmed = (not mats) and bool(request.form.get("confirm_no_mats"))
-
-            if not tools and not tools_confirmed:
-                msg = "请添加工具或确认无工具"
-                if _is_ajax():
-                    return jsonify({"success": False, "message": msg})
-                flash(msg, "error")
-                return redirect(f"/card/{card_id}/edit")
-            if not mats and not materials_confirmed:
-                msg = "请添加航材或确认无航材"
-                if _is_ajax():
-                    return jsonify({"success": False, "message": msg})
-                flash(msg, "error")
-                return redirect(f"/card/{card_id}/edit")
-            tools_confirmed_val = not tools and bool(request.form.get("confirm_no_tools"))
-            mats_confirmed_val = not mats and bool(request.form.get("confirm_no_mats"))
-            _get_svc().update_card(
+            tools, mats, tools_confirmed, materials_confirmed, err = _parse_and_validate_tools_mats(f"/card/{card_id}/edit")
+            if err:
+                return err
+            current_app.extensions['card_service'].update_card(
                 card_id,
                 task_code=request.form.get("task_code", item["task_code"]),
                 task_name=request.form.get("task_name", ""),
@@ -195,7 +179,7 @@ def card_edit(card_id):
 def card_delete(card_id):
     """删除工卡"""
     try:
-        _get_svc().delete_card(card_id)
+        current_app.extensions['card_service'].delete_card(card_id)
         if _is_ajax():
             return jsonify({"success": True, "message": "工卡已删除"})
         flash("工卡已删除", "success")
@@ -215,7 +199,7 @@ def card_delete(card_id):
 def card_detail(card_id):
     """工卡详情 (AJAX)"""
     try:
-        item = _get_svc().get_card(card_id)
+        item = current_app.extensions['card_service'].get_card(card_id)
         if not item:
             return jsonify({"error": "not found"}), 404
         return jsonify(item)
@@ -229,7 +213,7 @@ def card_detail(card_id):
 def card_list_json():
     """工卡列表 JSON（供 set_form.html 搜索用）"""
     try:
-        items = _get_svc().list_cards()
+        items = current_app.extensions['card_service'].list_cards()
         return jsonify([{
                     "id": c["id"],
             "task_code": c["task_code"],
@@ -246,11 +230,11 @@ def card_list_json():
 def card_sets():
     """工卡组列表"""
     try:
-        sets = _get_svc().list_card_sets()
+        sets = current_app.extensions['card_service'].list_card_sets()
         card_counts = {}
         set_data = []
         for s in sets:
-            cards = _get_svc().get_cards_in_set(s["id"])
+            cards = current_app.extensions['card_service'].get_cards_in_set(s["id"])
             card_counts[s["id"]] = len(cards)
             set_data.append({
                 "id": s["id"], "name": s["name"],
@@ -278,26 +262,11 @@ def card_set_new():
     """新增工卡组"""
     if request.method == "POST":
         try:
-            tools, mats = _get_svc().parse_tools_mats(request.form)
-            tools_confirmed = (not tools) and bool(request.form.get("confirm_no_tools"))
-            materials_confirmed = (not mats) and bool(request.form.get("confirm_no_mats"))
-
-            if not tools and not tools_confirmed:
-                msg = "请添加工具或确认无工具"
-                if _is_ajax():
-                    return jsonify({"success": False, "message": msg})
-                flash(msg, "error")
-                return redirect("/card/sets/new")
-            if not mats and not materials_confirmed:
-                msg = "请添加航材或确认无航材"
-                if _is_ajax():
-                    return jsonify({"success": False, "message": msg})
-                flash(msg, "error")
-                return redirect("/card/sets/new")
-            tools_confirmed_val = not tools and bool(request.form.get("confirm_no_tools"))
-            mats_confirmed_val = not mats and bool(request.form.get("confirm_no_mats"))
+            tools, mats, tools_confirmed, materials_confirmed, err = _parse_and_validate_tools_mats("/card/sets/new")
+            if err:
+                return err
             card_codes = request.form.getlist("card_codes[]")
-            _get_svc().add_card_set(
+            current_app.extensions['card_service'].add_card_set(
                 name=request.form.get("name", ""),
                 description=request.form.get("description", ""),
                 category=request.form.get("category", "机体"),
@@ -321,7 +290,7 @@ def card_set_new():
                 return jsonify({"success": False, "message": "服务器错误"})
             flash("服务器错误", "error")
 
-    all_cards = _get_svc().list_cards()
+    all_cards = current_app.extensions['card_service'].list_cards()
     return render_template("cards/set_form.html",
                            set_item=None,
                            set_card_codes=[],
@@ -334,7 +303,7 @@ def card_set_new():
 def card_set_edit(set_id):
     """编辑工卡组"""
     try:
-        s = _get_svc().get_card_set(set_id)
+        s = current_app.extensions['card_service'].get_card_set(set_id)
     except Exception:
         s = None
 
@@ -344,26 +313,11 @@ def card_set_edit(set_id):
 
     if request.method == "POST":
         try:
-            tools, mats = _get_svc().parse_tools_mats(request.form)
-            tools_confirmed = (not tools) and bool(request.form.get("confirm_no_tools"))
-            materials_confirmed = (not mats) and bool(request.form.get("confirm_no_mats"))
-
-            if not tools and not tools_confirmed:
-                msg = "请添加工具或确认无工具"
-                if _is_ajax():
-                    return jsonify({"success": False, "message": msg})
-                flash(msg, "error")
-                return redirect(f"/card/sets/{set_id}/edit")
-            if not mats and not materials_confirmed:
-                msg = "请添加航材或确认无航材"
-                if _is_ajax():
-                    return jsonify({"success": False, "message": msg})
-                flash(msg, "error")
-                return redirect(f"/card/sets/{set_id}/edit")
-            tools_confirmed_val = not tools and bool(request.form.get("confirm_no_tools"))
-            mats_confirmed_val = not mats and bool(request.form.get("confirm_no_mats"))
+            tools, mats, tools_confirmed, materials_confirmed, err = _parse_and_validate_tools_mats(f"/card/sets/{set_id}/edit")
+            if err:
+                return err
             card_codes = request.form.getlist("card_codes[]")
-            _get_svc().update_card_set(
+            current_app.extensions['card_service'].update_card_set(
                 set_id,
                 name=request.form.get("name", s.get("name", "")),
                 description=request.form.get("description", ""),
@@ -388,8 +342,8 @@ def card_set_edit(set_id):
                 return jsonify({"success": False, "message": "服务器错误"})
             flash("服务器错误", "error")
 
-    all_cards = _get_svc().list_cards()
-    cards_in_set = _get_svc().get_cards_in_set(set_id)
+    all_cards = current_app.extensions['card_service'].list_cards()
+    cards_in_set = current_app.extensions['card_service'].get_cards_in_set(set_id)
     set_card_codes = [c["task_code"] for c in cards_in_set]
     return render_template("cards/set_form.html",
                            set_item=s,
@@ -403,7 +357,7 @@ def card_set_edit(set_id):
 def card_set_delete(set_id):
     """删除工卡组"""
     try:
-        _get_svc().delete_card_set(set_id)
+        current_app.extensions['card_service'].delete_card_set(set_id)
         if _is_ajax():
             return jsonify({"success": True, "message": "工卡组已删除"})
         flash("工卡组已删除，关联工卡已解除绑定", "success")
@@ -427,7 +381,7 @@ def card_set_delete(set_id):
 def aircraft_list():
     """飞机信息列表"""
     try:
-        aircraft_list = _get_svc().list_aircraft()
+        aircraft_list = current_app.extensions['card_service'].list_aircraft()
         return render_template("cards/aircraft.html",
                                aircraft_list=aircraft_list)
     except Exception as e:
@@ -447,7 +401,7 @@ def aircraft_new():
                 flash("机号不能为空", "error")
                 return redirect("/card/aircraft")
 
-            _get_svc().add_aircraft(
+            current_app.extensions['card_service'].add_aircraft(
                 reg=reg,
                 model=request.form.get("model", ""),
                 engine=request.form.get("engine", ""),
@@ -471,7 +425,7 @@ def aircraft_new():
 def aircraft_edit(aircraft_id):
     """编辑飞机信息"""
     try:
-        ac = _get_svc().get_aircraft(aircraft_id)
+        ac = current_app.extensions['card_service'].get_aircraft(aircraft_id)
     except Exception:
         ac = None
 
@@ -481,7 +435,7 @@ def aircraft_edit(aircraft_id):
 
     if request.method == "POST":
         try:
-            _get_svc().update_aircraft(
+            current_app.extensions['card_service'].update_aircraft(
                 aircraft_id,
                 reg=request.form.get("reg", ac.get("reg", "")),
                 model=request.form.get("model", ""),
@@ -506,7 +460,7 @@ def aircraft_edit(aircraft_id):
 def aircraft_delete(aircraft_id):
     """删除飞机信息"""
     try:
-        _get_svc().delete_aircraft(aircraft_id)
+        current_app.extensions['card_service'].delete_aircraft(aircraft_id)
         flash("飞机信息已删除", "success")
     except ServiceError as e:
         flash(e.message, "error")

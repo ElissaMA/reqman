@@ -4,35 +4,16 @@ import os
 import logging
 import tempfile
 from datetime import datetime
-from flask import (Blueprint, render_template, request, redirect,
+from flask import (Blueprint, current_app, render_template, request, redirect,
                    flash)
 
-from ..models.json_store import JsonStore
 from ..services.worklist_parser import parse_worklist, merge_aircraft_info, WorklistError
 from ..config import CATEGORIES
 from ..services.work_package_matcher import match_work_package_items
-from ..services.card_service import CardService
 
 logger = logging.getLogger(__name__)
 
 packages_bp = Blueprint("packages", __name__)
-
-_store_instance = None
-def _get_store():
-    global _store_instance
-    if _store_instance is None:
-        from flask import current_app
-        _store_instance = current_app.extensions['store']
-    return _store_instance
-
-_svc_instance = None
-def _get_svc():
-    global _svc_instance
-    if _svc_instance is None:
-        from flask import current_app
-        _svc_instance = current_app.extensions['card_service']
-    return _svc_instance
-
 
 
 # ---------- 匹配辅助函数 ----------
@@ -40,7 +21,7 @@ def _get_svc():
 @packages_bp.route("/upload", methods=["GET", "POST"])
 def upload():
     """上传工作清单并匹配"""
-    store = _get_store()
+    store = current_app.extensions['store']
     if request.method == "POST":
         routine_file = request.files.get("routine_file")
         other_file = request.files.get("other_file")
@@ -114,7 +95,7 @@ def upload():
         return redirect("/upload")
 
     # GET: 显示上传页面和工作包列表
-    store = _get_store()
+    store = current_app.extensions['store']
     work_packages = store.get_work_packages()
     return render_template("packages/upload.html", work_packages=work_packages)
 
@@ -122,14 +103,14 @@ def upload():
 @packages_bp.route("/packages/<package_id>/rematch", methods=["POST"])
 def package_rematch(package_id):
     """重新匹配工作包中的工卡（数据库更新后刷新匹配状态）"""
-    store = _get_store()
+    store = current_app.extensions['store']
     pkg_data = store.get_work_package(package_id)
     if not pkg_data:
         flash("工作包不存在", "error")
         return redirect("/upload")
 
     all_items = pkg_data.get("all_items", [])
-    svc = _get_svc()
+    svc = current_app.extensions['card_service']
     matched, new_cards, cancelled = match_work_package_items(all_items, store, svc)
 
     now_str = datetime.now().strftime("%Y.%m.%d %H:%M")

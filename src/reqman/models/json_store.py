@@ -16,7 +16,6 @@ import logging
 import uuid
 from typing import Optional
 
-from .repository import CardRepository
 from ..config import CATEGORIES
 
 logger = logging.getLogger(__name__)
@@ -46,10 +45,32 @@ _EMPTY_DB = {
 }
 
 
-class JsonStore(CardRepository):
+class JsonStore:
     """单文件 JSON 存储，带编码索引"""
 
     _lock = threading.Lock()
+
+    _FIELDS = {
+        "card": {
+            "id": None, "task_code": "", "task_name": "", "category": "机体",
+            "task_type": "", "remark": "", "tools": [], "materials": [],
+            "tools_confirmed": False, "materials_confirmed": False,
+            "set_id": None, "reminder_type": "一般提醒",
+        },
+        "set": {
+            "id": None, "name": "", "description": "", "category": "机体",
+            "tools": [], "materials": [],
+            "tools_confirmed": False, "materials_confirmed": False,
+        },
+        "aircraft": {
+            "id": None, "reg": "", "model": "", "engine": "",
+            "fsn": "", "msn": "", "apu": "",
+        },
+    }
+
+    def _norm(self, d, kind):
+        defaults = self._FIELDS[kind]
+        return {k: d.get(k, v) for k, v in defaults.items()}
 
     # ---------- 初始化 ----------
 
@@ -87,51 +108,6 @@ class JsonStore(CardRepository):
                 self._write(_EMPTY_DB)
                 return
 
-        # 迁移：补齐缺失字段 + 重建索引
-        try:
-            db = self._read()
-            migrated = False
-
-            # 移除旧的 main_card_code
-            for s in db.get("card_sets", {}).values():
-                if "main_card_code" in s:
-                    del s["main_card_code"]
-                    migrated = True
-
-            # card_sets：补齐 tools_confirmed / materials_confirmed
-            for s in db.get("card_sets", {}).values():
-                if "tools_confirmed" not in s:
-                    s["tools_confirmed"] = False
-                    migrated = True
-                if "materials_confirmed" not in s:
-                    s["materials_confirmed"] = False
-                    migrated = True
-
-            # cards：补齐 tools_confirmed / materials_confirmed / reminder_type
-            for card in db.get("cards", {}).values():
-                changed = False
-                if "tools_confirmed" not in card:
-                    card["tools_confirmed"] = False
-                    changed = True
-                if "materials_confirmed" not in card:
-                    card["materials_confirmed"] = False
-                    changed = True
-                if "reminder_type" not in card:
-                    card["reminder_type"] = "一般提醒"
-                    changed = True
-                if changed:
-                    migrated = True
-
-            # 重建 code_index（修复索引缺失问题如 TEST-MULTI-001）
-            self._rebuild_index(db)
-
-            if migrated:
-                self._write(db)
-                logger.info("已迁移数据：补齐字段 + 重建索引")
-        except Exception:
-            logger.exception("数据迁移失败，跳过")
-            pass
-
     # ---------- 内部分方法 ----------
 
     def _read(self) -> dict:
@@ -151,23 +127,6 @@ class JsonStore(CardRepository):
         nid = db["next_id"]
         db["next_id"] = nid + 1
         return nid
-
-    def _card_dict(self, card: dict) -> dict:
-        """规范化工卡 dict，确保所有字段存在"""
-        return {
-            "id": card["id"],
-            "task_code": card.get("task_code", ""),
-            "task_name": card.get("task_name", ""),
-            "category": card.get("category", "机体"),
-            "task_type": card.get("task_type", ""),
-            "remark": card.get("remark", ""),
-            "tools": card.get("tools", []),
-            "materials": card.get("materials", []),
-            "tools_confirmed": card.get("tools_confirmed", False),
-            "materials_confirmed": card.get("materials_confirmed", False),
-            "set_id": card.get("set_id"),
-            "reminder_type": card.get("reminder_type", "一般提醒"),
-        }
 
     def _rebuild_index(self, db: dict) -> None:
         """重建编码索引"""
@@ -199,7 +158,7 @@ class JsonStore(CardRepository):
     def get(self, card_id: int) -> Optional[dict]:
         db = self._read()
         card = db.get("cards", {}).get(str(card_id))
-        return self._card_dict(card) if card else None
+        return self._norm(card, "card") if card else None
 
     def find_by_code(self, code: str) -> Optional[dict]:
         db = self._read()
@@ -207,7 +166,7 @@ class JsonStore(CardRepository):
         if cid is None:
             return None
         card = db.get("cards", {}).get(str(cid))
-        return self._card_dict(card) if card else None
+        return self._norm(card, "card") if card else None
 
     def add(self, task_code: str, task_name: str = "",
             category: str = "机体", task_type: str = "",
@@ -242,7 +201,7 @@ class JsonStore(CardRepository):
             db.setdefault("code_index", {})[task_code] = card_id
 
             self._write(db)
-            return self._card_dict(card)
+            return self._norm(card, "card")
 
     def update(self, card_id: int, **kwargs) -> Optional[dict]:
         with self._lock:
@@ -257,9 +216,7 @@ class JsonStore(CardRepository):
                         "task_type", "remark", "tools", "materials",
                         "set_id", "tools_confirmed", "materials_confirmed",
                         "reminder_type"):
-                if key in kwargs and kwargs[key] is not None:
-                    card[key] = kwargs[key]
-                elif key in kwargs:
+                if key in kwargs:
                     card[key] = kwargs[key]
 
             # 如果编码变了，更新索引
@@ -270,7 +227,7 @@ class JsonStore(CardRepository):
                     db["code_index"][new_code] = card_id
 
             self._write(db)
-            return self._card_dict(card)
+            return self._norm(card, "card")
 
     def delete(self, card_id: int) -> bool:
         with self._lock:
@@ -285,30 +242,16 @@ class JsonStore(CardRepository):
 
     # ---------- 工卡组 CRUD ----------
 
-    @staticmethod
-    def _set_dict(s: dict) -> dict:
-        """规范化工卡组 dict，确保所有字段存在"""
-        return {
-            "id": s["id"],
-            "name": s.get("name", ""),
-            "description": s.get("description", ""),
-            "category": s.get("category", "机体"),
-            "tools": s.get("tools", []),
-            "materials": s.get("materials", []),
-            "tools_confirmed": s.get("tools_confirmed", False),
-            "materials_confirmed": s.get("materials_confirmed", False),
-        }
-
     def get_all_sets(self) -> list[dict]:
         db = self._read()
-        sets = [self._set_dict(s) for s in db.get("card_sets", {}).values()]
+        sets = [self._norm(s, "set") for s in db.get("card_sets", {}).values()]
         sets.sort(key=lambda s: s.get("name", ""))
         return sets
 
     def get_set(self, set_id: int) -> Optional[dict]:
         db = self._read()
         s = db.get("card_sets", {}).get(str(set_id))
-        return self._set_dict(s) if s else None
+        return self._norm(s, "set") if s else None
 
     def add_set(self, name: str, description: str = "",
                 category: str = "机体") -> dict:
@@ -362,39 +305,27 @@ class JsonStore(CardRepository):
     def get_cards_in_set(self, set_id: int) -> list[dict]:
         db = self._read()
         return [
-            self._card_dict(c) for c in db.get("cards", {}).values()
+            self._norm(c, "card") for c in db.get("cards", {}).values()
             if c.get("set_id") == set_id
         ]
 
     # ---------- 飞机信息 CRUD ----------
 
-    def _aircraft_dict(self, ac: dict) -> dict:
-        """规范化飞机 dict"""
-        return {
-            "id": ac["id"],
-            "reg": ac.get("reg", ""),
-            "model": ac.get("model", ""),
-            "engine": ac.get("engine", ""),
-            "fsn": ac.get("fsn", ""),
-            "msn": ac.get("msn", ""),
-            "apu": ac.get("apu", ""),
-        }
-
     def get_all_aircraft(self) -> list[dict]:
         db = self._read()
         aircraft = list(db.get("aircraft", {}).values())
         aircraft.sort(key=lambda a: a.get("reg", ""))
-        return [self._aircraft_dict(a) for a in aircraft]
+        return [self._norm(a, "aircraft") for a in aircraft]
 
     def get_aircraft(self, aircraft_id: int) -> Optional[dict]:
         db = self._read()
         ac = db.get("aircraft", {}).get(str(aircraft_id))
-        return self._aircraft_dict(ac) if ac else None
+        return self._norm(ac, "aircraft") if ac else None
 
     def find_aircraft_by_reg(self, reg: str):
         for a in self._read().get("aircraft", {}).values():
             if a.get("reg") == reg:
-                return self._aircraft_dict(a)
+                return self._norm(a, "aircraft")
         return None
 
     def add_aircraft(self, reg: str, model: str = "",
@@ -413,7 +344,7 @@ class JsonStore(CardRepository):
             }
             db.setdefault("aircraft", {})[str(ac_id)] = ac
             self._write(db)
-            return self._aircraft_dict(ac)
+            return self._norm(ac, "aircraft")
 
     def update_aircraft(self, aircraft_id: int, **kwargs) -> Optional[dict]:
         with self._lock:
@@ -427,7 +358,7 @@ class JsonStore(CardRepository):
                     ac[key] = kwargs[key]
 
             self._write(db)
-            return self._aircraft_dict(ac)
+            return self._norm(ac, "aircraft")
 
     def save_work_package(self, data):
         db = self._read()

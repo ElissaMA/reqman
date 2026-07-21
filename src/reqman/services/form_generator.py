@@ -29,17 +29,6 @@ def _discover_formula_map(ws, min_row=15, max_col=9):
     return formula_map
 
 
-def _save_formulas(ws, formula_map, max_row=None):
-    """从工作表保存公式到映射（反向操作：读取当前 ws 中的公式覆盖映射）。"""
-    if max_row is None:
-        max_row = ws.max_row
-    for row in range(1, max_row + 1):
-        for col in range(1, 10):
-            cell = ws.cell(row, col)
-            if cell.value and str(cell.value).startswith('='):
-                formula_map[(row, col)] = cell.value
-
-
 def _restore_formulas(ws, formula_map, max_row=None):
     """将保存的公式写回工作表中对应单元格。"""
     if max_row is None:
@@ -93,6 +82,18 @@ def write_placeholder(ws, row, cat, text="（暂无）"):
 
 
 
+def _pad_empty_rows(ws, row, cat_start, min_rows, formula_cols):
+    while row - cat_start < min_rows:
+        for bc in range(2, COLS + 1):
+            if formula_cols and bc in formula_cols:
+                set_border(ws, row, bc)
+            else:
+                set_cell(ws, row, bc, font=DATA_14, alignment=DATA_ALIGN_CENTER)
+        ws.row_dimensions[row].height = ROW_HEIGHT_DATA
+        row += 1
+    return row
+
+
 def _write_category_block_min_rows(ws, start_row, items, min_rows,
                                    name_key, task_key,
                                    merge_h_col=True, formula_cols=None):
@@ -118,14 +119,7 @@ def _write_category_block_min_rows(ws, start_row, items, min_rows,
                 set_border(ws, row, bc)
             ws.row_dimensions[row].height = ROW_HEIGHT_DATA
             row += 1
-            while row - cat_start < min_rows:
-                for bc in range(2, COLS + 1):
-                    if formula_cols and bc in formula_cols:
-                        set_border(ws, row, bc)
-                    else:
-                        set_cell(ws, row, bc, font=DATA_14, alignment=DATA_ALIGN_CENTER)
-                ws.row_dimensions[row].height = ROW_HEIGHT_DATA
-                row += 1
+            row = _pad_empty_rows(ws, row, cat_start, min_rows, formula_cols)
         else:
             for item in cat_items:
                 remark = item.get("remark", "")
@@ -135,7 +129,7 @@ def _write_category_block_min_rows(ws, start_row, items, min_rows,
                 set_cell(ws, row, 1, cat, font=DATA_14, alignment=DATA_ALIGN_CENTER)
                 set_cell(ws, row, 2, item.get(name_key, ""), font=DATA_14, alignment=DATA_ALIGN_CENTER)
                 set_cell(ws, row, 3, item.get("part_number", ""), font=DATA_14, alignment=DATA_ALIGN_CENTER)
-                set_cell(ws, row, 4, item.get(task_key, ""), font=DATA_14, alignment=DATA_ALIGN_CENTER)
+                set_cell(ws, row, 4, item.get("set_name", "") or item.get(task_key, ""), font=DATA_14, alignment=DATA_ALIGN_CENTER)
                 set_cell(ws, row, 5, item.get("quantity", "1"), font=DATA_14, alignment=DATA_ALIGN_CENTER)
                 set_cell(ws, row, 6, remark, font=DATA_14, alignment=DATA_ALIGN_CENTER)
                 # 跳过公式列（如 I 列的 MCC 调配反馈），仅补边框
@@ -147,15 +141,7 @@ def _write_category_block_min_rows(ws, start_row, items, min_rows,
                         set_cell(ws, row, bc, font=DATA_14, alignment=DATA_ALIGN_CENTER)
                 ws.row_dimensions[row].height = ROW_HEIGHT_DATA
                 row += 1
-            
-            while row - cat_start < min_rows:
-                for bc in range(2, COLS + 1):
-                    if formula_cols and bc in formula_cols:
-                        set_border(ws, row, bc)
-                    else:
-                        set_cell(ws, row, bc, font=DATA_14, alignment=DATA_ALIGN_CENTER)
-                ws.row_dimensions[row].height = ROW_HEIGHT_DATA
-                row += 1
+            row = _pad_empty_rows(ws, row, cat_start, min_rows, formula_cols)
         
         if row - cat_start > 1:
             ws.merge_cells(start_row=cat_start, start_column=1,
@@ -253,8 +239,6 @@ def _clear_data_area(ws, formula_map=None):
     """清除第15行起的数据区，但保留公式列。"""
     if formula_map is None:
         formula_map = {}
-    # 发现模板中已有公式
-    _save_formulas(ws, formula_map)
     for mr in list(ws.merged_cells.ranges):
         if mr.min_row >= 15:
             ws.unmerge_cells(str(mr))
@@ -281,7 +265,6 @@ def _clear_rows_below(ws, start_row, formula_map=None):
     """清除 start_row 起的数据，保留公式。"""
     if formula_map is None:
         formula_map = {}
-    _save_formulas(ws, formula_map)
     for mr in list(ws.merged_cells.ranges):
         if mr.min_row >= start_row:
             ws.unmerge_cells(str(mr))
@@ -359,38 +342,33 @@ def _write_material_section(ws, start_row, materials, formula_cols=None):
 
 
 def _write_spare_section(ws, start_row, spare_auto, spare_manual, formula_cols=None):
-    """"检查有问题领用" materials go here. Min 1 row per category."""
+    """"检查有问题领用" materials go here. Min 2 rows per category."""
     # Section title
     cell = ws.cell(row=start_row, column=1,
                    value="三、备用航材需求(机务二队、MCC负责)")
     cell.font = BOLD_16
     cell.alignment = Alignment(vertical="center")
     for c in range(1, COLS + 1):
-        ws.cell(row=start_row, column=c).border = FULL_MEDIUM
-        ws.cell(row=start_row, column=c).font = BOLD_16
+        cell = ws.cell(row=start_row, column=c)
+        cell.border = Border(left=MEDIUM, right=MEDIUM, top=MEDIUM)
+        cell.font = BOLD_16
     ws.merge_cells(start_row=start_row, start_column=1,
                   end_row=start_row, end_column=COLS)
     ws.row_dimensions[start_row].height = 26
-    # Header row: "备件" + column headers
+    # Header row
     hr = start_row + 1
-    for c in range(1, COLS + 1):
-        set_cell(ws, hr, c, border=FULL_THIN,
-                alignment=Alignment(vertical="center"))
-    ws.cell(row=hr, column=1).value = "备件"
-    ws.cell(row=hr, column=1).font = BOLD_16
-    ws.cell(row=hr, column=1).alignment = WRAP_CENTER
-    col_headers = ["", "航材名称", "件号",
+    col_headers = ["专业", "航材名称", "件号",
                    "工作名称", "数量", "备注",
                    "库存情况（库存不足需标红底色）",
-                   "调配数量", "MCC调配情况反馈"]
-    for i in range(1, COLS):
-        cell = ws.cell(row=hr, column=i + 1)
-        cell.value = col_headers[i]
+                   "调配数量", "MCC调配反馈（只调配库存为红色项目）"]
+    for i, t in enumerate(col_headers):
+        cell = ws.cell(row=hr, column=i + 1, value=t)
         cell.font = BOLD_16
         cell.alignment = WRAP_CENTER
         cell.border = FULL_THIN
+    ws.row_dimensions[hr].height = 47
     # Data rows via helper: merge_h_col=False（备用区不再合并调配数量列）
     data_start = hr + 1
-    return _write_category_block_min_rows(ws, data_start, spare_auto, 1,
+    return _write_category_block_min_rows(ws, data_start, spare_auto, 2,
         name_key="material_name", task_key="task_name",
         merge_h_col=False, formula_cols=formula_cols)

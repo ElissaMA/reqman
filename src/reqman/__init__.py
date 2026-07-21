@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from flask import Flask, render_template
 
-from .config import Config
+from .config import DB_FILE, SECRET_KEY, MAX_CONTENT_LENGTH, BASE_DIR
 from .utils.openpyxl_patch import apply_patches
 
 logging.basicConfig(
@@ -14,27 +14,20 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def create_app(config=None):
+def create_app():
     """应用工厂"""
-    if config is None:
-        config = Config()
-
     app = Flask(__name__, template_folder="templates", static_folder=None)
-    app.config.from_object(config)
-    app.secret_key = config.SECRET_KEY
-    app.config["MAX_CONTENT_LENGTH"] = config.MAX_CONTENT_LENGTH
+    app.secret_key = SECRET_KEY
+    app.config["MAX_CONTENT_LENGTH"] = MAX_CONTENT_LENGTH
 
     # openpyxl 猴子补丁
-    apply_patches(config.BASE_DIR)
-
-    # 自动创建必要目录
-    config()
+    apply_patches(BASE_DIR)
 
     # 依赖注入
     from .models.json_store import JsonStore
     from .services.card_service import CardService
 
-    app.extensions["store"] = JsonStore(str(config.DB_FILE))
+    app.extensions["store"] = JsonStore(str(DB_FILE))
     app.extensions["card_service"] = CardService(app.extensions["store"])
     logger.info("依赖注入完成：store + card_service")
 

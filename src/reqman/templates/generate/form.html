@@ -109,7 +109,7 @@
                             <td>{{ t.category }}{% if t.set_name %}<br><small class="text-info">[{{ t.set_name }}]</small>{% endif %}</td>
                             <td>{{ t.device_name }}</td>
                             <td>{{ t.part_number }}</td>
-                            <td>{{ t.task_name[:40] }}{% if t.task_name|length > 40 %}...{% endif %}</td>
+                            <td>{% if t.set_name %}{{ t.set_name }}{% else %}{{ t.task_name[:40] }}{% if t.task_name|length > 40 %}...{% endif %}{% endif %}</td>
                             <td>{{ t.quantity }}</td>
                             <td>{{ t.remark }}</td>
                             <td class="text-muted bg-light text-center small">留空</td>
@@ -145,7 +145,7 @@
                             <td>{{ m.category }}{% if m.set_name %}<br><small class="text-info">[{{ m.set_name }}]</small>{% endif %}</td>
                             <td>{{ m.material_name }}</td>
                             <td>{{ m.part_number }}</td>
-                            <td>{{ m.task_name[:40] }}{% if m.task_name|length > 40 %}...{% endif %}</td>
+                            <td>{% if m.set_name %}{{ m.set_name }}{% else %}{{ m.task_name[:40] }}{% if m.task_name|length > 40 %}...{% endif %}{% endif %}</td>
                             <td>{{ m.quantity }}</td>
                             <td>{{ m.remark }}</td>
                             <td class="text-muted bg-light text-center small">留空</td>
@@ -182,7 +182,7 @@
                                 {% if card.unconfirmed %}
                                 <a target="_blank" href="/card/{{ card.db_id }}/edit" class="btn btn-outline-warning btn-sm py-0">编辑工卡</a>
                                 {% else %}
-                                <a target="_blank" href="/card/new?task_code={{ card.task_code }}&task_name={{ card.task_name }}" class="btn btn-outline-primary btn-sm py-0">新增工卡</a>
+                                <a target="_blank" href="/card/new?task_code={{ card.task_code }}&task_name={{ card.task_name }}&category={{ card.category }}&task_type={{ card.task_type }}" class="btn btn-outline-primary btn-sm py-0">新增工卡</a>
                                 {% endif %}
                             </td>
                         </tr>

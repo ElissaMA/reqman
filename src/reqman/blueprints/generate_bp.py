@@ -90,19 +90,32 @@ def generate():
     # GET: 预览
     return _handle_generate_preview(pkg_data, package_id)
 
+def _dedup_matched(matched):
+    """按 set_id 去重，每组只取第一条"""
+    seen = set()
+    for item in matched:
+        sid = item.get("set_id")
+        if sid:
+            if sid in seen:
+                continue
+            seen.add(sid)
+        yield item
+
+
 def _handle_generate_post(pkg_data: dict, package_id: str):
     """处理表单提交，生成并返回 Excel"""
     aircraft_info = pkg_data.get("aircraft_info", {})
 
     # 解析运行条件
-    conditions = []
-    for i in range(len(CONDITIONS)):
-        conditions.append({
-            "name": CONDITIONS[i],
+    conditions = [
+        {
+            "name": c,
             "requirement": request.form.get(f"cond_{i}_req", "不需要"),
             "remark": request.form.get(f"cond_{i}_remark", ""),
             "responsible": request.form.get(f"cond_{i}_resp", ""),
-        })
+        }
+        for i, c in enumerate(CONDITIONS)
+    ]
 
     # 解析手动备用航材
     spare_items = []
@@ -139,33 +152,17 @@ def _handle_generate_post(pkg_data: dict, package_id: str):
 
     # 组装匹配数据（按set_id去重，同组只输出一套工具/航材）
     matched_tools, matched_mats, spare_auto = [], [], []
-    seen_sets = set()
 
-    for item in pkg_data.get("matched", []):
+    for item in _dedup_matched(pkg_data.get("matched", [])):
         task_name = item.get("task_name", "")
         cat = item.get("category", "")
-        sid = item.get("set_id")
-
-        # 同组去重：已处理的set_id跳过工具/航材提取
-        if sid and sid in seen_sets:
-            continue
-        if sid:
-            seen_sets.add(sid)
+        set_name = item.get("set_name", "")
 
         for t in item.get("tools", []):
-            entry = {
-                **t,
-                "category": cat,
-                "task_name": task_name,
-            }
-            matched_tools.append(entry)
+            matched_tools.append({**t, "category": cat, "task_name": task_name, "set_name": set_name})
 
         for m in item.get("materials", []):
-            entry = {
-                **m,
-                "category": cat,
-                "task_name": task_name,
-            }
+            entry = {**m, "category": cat, "task_name": task_name, "set_name": set_name}
             if m.get("usage_type") in ["", "必须使用"]:
                 matched_mats.append(entry)
             else:
@@ -211,29 +208,21 @@ def _handle_generate_preview(pkg_data: dict, package_id: str):
 
     # 预览工具/航材/备用（按set_id去重，每组只取第一条代表输出）
     tool_preview, mat_preview, spare_preview = [], [], []
-    seen_sets = set()
 
-    for item in matched:
+    for item in _dedup_matched(matched):
         cat = item.get("category", "")
         task_name = item.get("task_name", "")
         set_name = item.get("set_name", "")
-        sid = item.get("set_id")
-
-        # 同组去重
-        if sid and sid in seen_sets:
-            continue
-        if sid:
-            seen_sets.add(sid)
 
         for t in item.get("tools", []):
-            entry = {**t, "category": cat, "task_name": task_name,
-                     "set_name": set_name}
-            tool_preview.append(entry)
+            tool_preview.append({**t, "category": cat, "task_name": task_name, "set_name": set_name})
 
         for m in item.get("materials", []):
-            entry = {**m, "category": cat, "task_name": task_name,
-                     "set_name": set_name}
-            mat_preview.append(entry) if m.get("usage_type") in ["", "必须使用"] else spare_preview.append(entry)
+            entry = {**m, "category": cat, "task_name": task_name, "set_name": set_name}
+            if m.get("usage_type") in ["", "必须使用"]:
+                mat_preview.append(entry)
+            else:
+                spare_preview.append(entry)
 
     # 排序
     for lst in [tool_preview, mat_preview, spare_preview]:

@@ -13,7 +13,6 @@ import logging
 from typing import Optional
 
 from ..models.json_store import JsonStore
-from ..models.repository import CardRepository
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +29,7 @@ class ServiceError(Exception):
 class CardService:
     """工卡管理服务"""
 
-    def __init__(self, store: CardRepository):
+    def __init__(self, store: JsonStore):
         self.store = store
 
     # ---------- 工具/航材解析 ----------
