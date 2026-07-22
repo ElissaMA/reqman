@@ -1,315 +1,136 @@
 {% extends "base.html" %}
 {% import "macros/list_macros.html" as list %}
-{% block title %}工卡列表{% endblock %}
-
+{% block title %}工卡信息 - 定检需求单管理{% endblock %}
 {% block content %}
-<h5 class="mb-3">📋 工���列表</h5>
 
-<!-- Toast 容器（复用 base.html 样式） -->
-<div class="toast-container" id="toastContainer"></div>
+<style>
+@keyframes blink-red {
+    0% { border-color: #dc3545; box-shadow: 0 0 6px rgba(220,53,69,0.4); }
+    50% { border-color: #dc3545; box-shadow: 0 0 12px rgba(220,53,69,0.7); }
+    100% { border-color: #dc3545; box-shadow: 0 0 6px rgba(220,53,69,0.4); }
+}
+tr.blink-warn {
+    animation: blink-red 2s ease-in-out 3;
+    border-left: 4px solid #dc3545 !important;
+    background-color: #fff8f8;
+}
+tr.blink-warn td:first-child {
+    padding-left: calc(0.5rem - 4px);
+}
+tr.blink-warn:hover {
+    background-color: #fff0f0;
+}
+</style>
 
-<!-- 加载动画（复用 base.html 样式） -->
-<div class="global-loader" id="ajaxLoader">
-    <div class="spinner"></div>
-    <p>加载中…</p>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">工卡信息</h5>
+    <a href="/card/new" class="btn btn-primary btn-sm">+ 新增工卡</a>
 </div>
 
-<!-- 搜索栏（Bootstrap 风格） -->
-<div class="d-flex gap-2 flex-wrap align-items-center mb-3">
-    <div class="d-flex gap-2 flex-fill">
-        <input type="text" class="form-control form-control-sm" id="searchInput" placeholder="搜索工卡编号/名称…"
-               value="{{ search }}" autocomplete="off" style="max-width:300px;">
-        <select class="form-select form-select-sm" id="categorySelect" style="width:auto;">
-            <option value="">全部类别</option>
-            {% for c in categories %}
-            <option value="{{ c }}" {% if category == c %}selected{% endif %}>{{ c }}</option>
-            {% endfor %}
-        </select>
-    </div>
-    <button class="btn btn-primary btn-sm" onclick="loadCards(1)">搜索</button>
-    <a href="{{ url_for('cards.card_new') }}" class="btn btn-success btn-sm">+ 新建工卡</a>
-</div>
-
-<!-- 统计栏 -->
-<div class="d-flex justify-content-between align-items-center mb-2 small text-muted" id="statsBar">
-    <span>📋 <strong id="totalCount">0</strong> 条记录</span>
-    <span>第 <strong id="currentPageDisplay">0</strong>/<strong id="totalPagesDisplay">0</strong> 页</span>
-</div>
-
-<!-- 工卡���格（Bootstrap table table-hover + card） -->
-<div class="card shadow-sm">
+<div class="card">
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover mb-0" id="cardTable">
                 <thead>
-                    {{ list.filter_row([('��索编号…','fCode'),('搜索名称…','fName')], colspan_extra=3) }}
+                    {{ list.filter_row([('搜索工卡号...','fCode'),('搜索描述...','fDesc'),('搜索专业...','fCat'),('搜索类型...','fType'),('','_'),('','_'),('','_'),('','_')]) }}
                     <tr>
-                        <th>编号</th>
-                        <th>名称</th>
-                        <th>类别</th>
+                        <th class="sortable" data-col="0" onclick="AppFilter.sort(document.getElementById('cardTable'),0)">工卡号 <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
+                        <th class="sortable" data-col="1" onclick="AppFilter.sort(document.getElementById('cardTable'),1)">工卡描述 <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
+                        <th class="sortable" data-col="2" onclick="AppFilter.sort(document.getElementById('cardTable'),2)">专业 <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
+                        <th class="sortable" data-col="3" onclick="AppFilter.sort(document.getElementById('cardTable'),3)">类型 <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
                         <th>所属工卡组</th>
-                        <th style="width:160px;" class="text-center">操作</th>
+                        <th class="text-center">工具数</th>
+                        <th class="text-center">航材数</th>
+                        <th style="width:120px" class="text-center">操作</th>
                     </tr>
                 </thead>
-                <tbody id="cardTableBody">
-                    {{ list.empty_state('加载中…', colspan=5) }}
+                <tbody>
+                {% if items %}
+                {% for item in items %}
+                    {% set blink = (not item.tools or item.tools|length == 0) and not item.tools_confirmed
+                                   or (not item.materials or item.materials|length == 0) and not item.materials_confirmed %}
+                    <tr onclick="showDetail({{ item.id }})" style="cursor:pointer" class="{{ 'blink-warn' if blink }}">
+                        <td style="font-weight:700;font-family:Consolas,monospace">{{ item.task_code }}</td>
+                        <td>{{ item.task_name[:60] }}{% if item.task_name|length > 60 %}...{% endif %}</td>
+                        <td>{{ item.category }}</td>
+                        <td>{{ item.task_type or '-' }}</td>
+                        <td>{{ item.set_name or '-' }}</td>
+                        <td class="text-center">{{ item.tools|length }}</td>
+                        <td class="text-center">{{ item.materials|length }}</td>
+                        <td onclick="event.stopPropagation()">
+                            <a href="/card/{{ item.id }}/edit" class="btn btn-outline-primary btn-sm py-0">编辑</a>
+                            <form method="POST" action="/card/{{ item.id }}/delete" style="display:inline" onsubmit="return confirm('确认删除？')">
+                                <button type="submit" class="btn btn-outline-danger btn-sm py-0">删除</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                {% else %}
+                    {{ list.empty_state('暂无工卡数据，点击右上角新增', '/card/new', '新增工卡', colspan=8) }}
+                {% endif %}
                 </tbody>
             </table>
         </div>
     </div>
 </div>
 
-<!-- 分页（Bootstrap pagination） -->
-<nav aria-label="Page navigation" class="mt-3">
-    <ul class="pagination justify-content-center pagination-sm" id="pagination"></ul>
-</nav>
-
-<!-- 详情弹窗（Bootstrap Modal） -->
 <div class="modal fade" id="detailModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="modalTitle">工卡详情</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="modalBody">
-                <p class="text-muted text-center">加载中…</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">关闭</button>
-            </div>
+    <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title">工卡详情</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-    </div>
+        <div class="modal-body" id="detailContent"><p class="text-muted">点击行加载...</p></div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">关闭</button>
+        </div>
+    </div></div>
 </div>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
-// ===== Toast 通知 =====
-function showToast(msg, type) {
-    type = type || 'info';
-    var c = document.getElementById('toastContainer');
-    if (!c) return;
-    var t = document.createElement('div');
-    t.className = 'toast ' + type;
-    t.textContent = msg;
-    c.appendChild(t);
-    setTimeout(function(){ if(t.parentNode) t.parentNode.removeChild(t); }, 3500);
-}
+var cardData = [{% for item in items %}{{ item|tojson }}{% if not loop.last %},{% endif %}{% endfor %}];
 
-// ===== 加载状态 =====
-function showLoader() { document.getElementById('ajaxLoader').classList.add('active'); }
-function hideLoader() { document.getElementById('ajaxLoader').classList.remove('active'); }
-
-// ===== 加载工卡列表（AJAX） =====
-function loadCards(page) {
-    page = page || 1;
-    var search = document.getElementById('searchInput').value.trim();
-    var category = document.getElementById('categorySelect').value;
-    showLoader();
-
-    var url = '{{ url_for("cards.card_api_list") }}?page=' + page + '&per_page=20';
-    if (search) url += '&search=' + encodeURIComponent(search);
-    if (category) url += '&category=' + encodeURIComponent(category);
-
-    fetch(url)
-        .then(function(r) { return r.json(); })
-        .then(function(res) {
-            hideLoader();
-            if (!res.success) {
-                showToast(res.message || res.error || '加载失败', 'error');
-                return;
-            }
-            renderCards(res.data.items, res.data.pagination);
-        })
-        .catch(function(err) {
-            hideLoader();
-            showToast('网络请求失败：' + err.message, 'error');
+function showDetail(id) {
+    var d = cardData.find(function(c) { return c.id === id; });
+    if (!d) return;
+    var h = '<div class="row g-3 mb-3">'
+        + '<div class="col-md-3"><label class="form-label small">工卡号</label><div><strong>' + d.task_code + '</strong></div></div>'
+        + '<div class="col-md-5"><label class="form-label small">工卡描述</label><div>' + (d.task_name || '-') + '</div></div>'
+        + '<div class="col-md-2"><label class="form-label small">专业</label><div>' + (d.category || '-') + '</div></div>'
+        + '<div class="col-md-2"><label class="form-label small">类型</label><div>' + (d.task_type || '-') + '</div></div>'
+        + '</div>';
+    h += '<div class="mb-3"><label class="form-label small">所属工卡组</label><div>' + (d.set_name || '-') + '</div></div>';
+    if (d.tools && d.tools.length) {
+        h += '<label class="form-label small fw-bold">工具清单</label>'
+           + '<table class="table table-bordered table-sm mb-3"><thead><tr><th>设备名称</th><th>件号</th><th>数量</th><th>备注</th><th>使用类型</th></tr></thead><tbody>';
+        d.tools.forEach(function(t) {
+            h += '<tr><td>' + (t.device_name||'') + '</td><td>' + (t.part_number||'') + '</td><td>' + (t.quantity||'') + '</td><td>' + (t.remark||'') + '</td><td>' + (t.usage_type||'') + '</td></tr>';
         });
-}
-
-// ===== 渲染表格 =====
-function renderCards(items, pagination) {
-    var tbody = document.getElementById('cardTableBody');
-    if (!items || items.length === 0) {
-        tbody.innerHTML = '<tr class="empty-state-row"><td colspan="5" class="text-center py-4 text-muted"><div style="font-size:40px;color:#c0c8d4">📋</div><p class="mt-2 mb-0">暂无数据</p></td></tr>';
-        document.getElementById('totalCount').textContent = '0';
-        document.getElementById('currentPageDisplay').textContent = '0';
-        document.getElementById('totalPagesDisplay').textContent = '0';
-        renderPagination(null);
-        return;
+        h += '</tbody></table>';
+    } else {
+        h += '<p class="text-muted small mb-3">工具清单：无</p>';
     }
-
-    var html = '';
-    for (var i = 0; i < items.length; i++) {
-        var c = items[i];
-        html += '<tr>' +
-            '<td><a href="javascript:void(0)" onclick="showDetail(' + c.id + ')">' + escHtml(c.task_code) + '</a></td>' +
-            '<td>' + escHtml(c.task_name) + '</td>' +
-            '<td>' + escHtml(c.category || '') + '</td>' +
-            '<td>' + escHtml(c.set_name || '-') + '</td>' +
-            '<td class="text-center">' +
-            '<a href="/card/' + c.id + '/edit" class="btn btn-outline-primary btn-sm py-0">编辑</a> ' +
-            '<a href="javascript:void(0)" onclick="deleteCard(' + c.id + ',\'' + escHtml(c.task_code) + '\')" class="btn btn-outline-danger btn-sm py-0">删除</a>' +
-            '</td>' +
-            '</tr>';
-    }
-    tbody.innerHTML = html;
-
-    document.getElementById('totalCount').textContent = pagination.total;
-    document.getElementById('currentPageDisplay').textContent = pagination.page;
-    document.getElementById('totalPagesDisplay').textContent = pagination.total_pages;
-
-    renderPagination(pagination);
-}
-
-// ===== HTML 转义 =====
-function escHtml(s) {
-    if (!s) return '';
-    var d = document.createElement('div');
-    d.textContent = s;
-    return d.innerHTML;
-}
-
-// ===== 渲染分页（Bootstrap pagination） =====
-function renderPagination(p) {
-    var el = document.getElementById('pagination');
-    if (!p || p.total_pages <= 1) {
-        el.innerHTML = '';
-        return;
-    }
-    var page = p.page, total = p.total_pages;
-    var html = '';
-
-    // 上一页
-    html += '<li class="page-item' + (page <= 1 ? ' disabled' : '') + '">';
-    html += '<a class="page-link" href="javascript:void(0)" onclick="loadCards(' + (page - 1) + ')">‹</a></li>';
-
-    // 页码
-    var start = Math.max(1, page - 2);
-    var end = Math.min(total, page + 2);
-    if (start > 1) {
-        html += '<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="loadCards(1)">1</a></li>';
-        if (start > 2) html += '<li class="page-item disabled"><span class="page-link">…</span></li>';
-    }
-    for (var i = start; i <= end; i++) {
-        html += '<li class="page-item' + (i === page ? ' active' : '') + '">';
-        html += '<a class="page-link" href="javascript:void(0)" onclick="loadCards(' + i + ')">' + i + '</a></li>';
-    }
-    if (end < total) {
-        if (end < total - 1) html += '<li class="page-item disabled"><span class="page-link">…</span></li>';
-        html += '<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="loadCards(' + total + ')">' + total + '</a></li>';
-    }
-
-    // 下一页
-    html += '<li class="page-item' + (page >= total ? ' disabled' : '') + '">';
-    html += '<a class="page-link" href="javascript:void(0)" onclick="loadCards(' + (page + 1) + ')">›</a></li>';
-
-    el.innerHTML = html;
-}
-
-// ===== 详情弹窗（Bootstrap Modal） =====
-var detailModalInstance = null;
-
-function showDetail(cardId) {
-    var body = document.getElementById('modalBody');
-    var title = document.getElementById('modalTitle');
-    body.innerHTML = '<p class="text-muted text-center">加载中…</p>';
-    title.textContent = '工卡详情';
-
-    fetch('/card/' + cardId)
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (data.error) {
-                body.innerHTML = '<p class="text-danger text-center">加载失败：' + data.error + '</p>';
-                return;
-            }
-            var h = '<table class="table table-sm table-bordered mb-3">';
-            h += '<tr><td style="width:120px;font-weight:600;">编号</td><td>' + escHtml(data.task_code) + '</td></tr>';
-            h += '<tr><td style="font-weight:600;">名称</td><td>' + escHtml(data.task_name) + '</td></tr>';
-            h += '<tr><td style="font-weight:600;">类别</td><td>' + escHtml(data.category || '-') + '</td></tr>';
-            h += '<tr><td style="font-weight:600;">机型</td><td>' + escHtml(data.aircraft_type || '-') + '</td></tr>';
-            h += '<tr><td style="font-weight:600;">ATA 章节</td><td>' + escHtml(data.ata_code || '-') + '</td></tr>';
-            h += '<tr><td style="font-weight:600;">任务类型</td><td>' + escHtml(data.task_type || '-') + '</td></tr>';
-            h += '<tr><td style="font-weight:600;">工时 (人×时)</td><td>' + escHtml(data.man_hours || '-') + '</td></tr>';
-            h += '</table>';
-
-            if (data.tools && data.tools.length) {
-                h += '<h6 class="fw-bold border-bottom pb-1 mb-2">🔧 工具设备</h6>';
-                h += '<table class="table table-bordered table-sm"><thead><tr><th>编号</th><th>名称</th><th>规格</th><th>数量</th></tr></thead><tbody>';
-                for (var i=0; i<data.tools.length; i++) {
-                    var t = data.tools[i];
-                    h += '<tr><td>' + escHtml(t.tool_code||'') + '</td><td>' + escHtml(t.tool_name||'') + '</td><td>' + escHtml(t.spec||'') + '</td><td>' + escHtml(t.quantity||'') + '</td></tr>';
-                }
-                h += '</tbody></table>';
-            }
-            if (data.materials && data.materials.length) {
-                h += '<h6 class="fw-bold border-bottom pb-1 mb-2">📦 航材</h6>';
-                h += '<table class="table table-bordered table-sm"><thead><tr><th>件号</th><th>名称</th><th>规格</th><th>数量</th><th>使用类型</th></tr></thead><tbody>';
-                for (var i=0; i<data.materials.length; i++) {
-                    var m = data.materials[i];
-                    h += '<tr><td>' + escHtml(m.part_no||'') + '</td><td>' + escHtml(m.material_name||'') + '</td><td>' + escHtml(m.spec||'') + '</td><td>' + escHtml(m.quantity||'') + '</td><td>' + escHtml(m.usage_type||'') + '</td></tr>';
-                }
-                h += '</tbody></table>';
-            }
-            body.innerHTML = h;
-        })
-        .catch(function(err) {
-            body.innerHTML = '<p class="text-danger text-center">请求失败：' + err.message + '</p>';
+    if (d.materials && d.materials.length) {
+        h += '<label class="form-label small fw-bold">航材清单</label>'
+           + '<table class="table table-bordered table-sm mb-0"><thead><tr><th>航材名称</th><th>件号</th><th>数量</th><th>备注</th><th>使用类型</th></tr></thead><tbody>';
+        d.materials.forEach(function(m) {
+            h += '<tr><td>' + (m.material_name||'') + '</td><td>' + (m.part_number||'') + '</td><td>' + (m.quantity||'') + '</td><td>' + (m.remark||'') + '</td><td>' + (m.usage_type||'') + '</td></tr>';
         });
-
-    if (!detailModalInstance) {
-        detailModalInstance = new bootstrap.Modal(document.getElementById('detailModal'));
+        h += '</tbody></table>';
+    } else {
+        h += '<p class="text-muted small mb-0">航材清单：无</p>';
     }
-    detailModalInstance.show();
+    document.getElementById('detailContent').innerHTML = h;
+    new bootstrap.Modal(document.getElementById('detailModal')).show();
 }
 
-function closeModal() {
-    if (detailModalInstance) detailModalInstance.hide();
-}
-// 点击遮罩关闭（Bootstrap modal 已内建支持，此处作为后备）
-document.getElementById('detailModal').addEventListener('click', function(e) {
-    if (e.target === this && detailModalInstance) detailModalInstance.hide();
-});
-
-// ===== 删除工卡 =====
-function deleteCard(id, code) {
-    if (!confirm('确认删除工卡「' + code + '」？此操作不可恢复。')) return;
-    showLoader();
-    fetch('/card/' + id + '/delete', { method: 'POST' })
-        .then(function(r) { return r.json(); })
-        .then(function(res) {
-            hideLoader();
-            if (res.success) {
-                showToast('工卡「' + code + '」已删除', 'success');
-                loadCards();
-            } else {
-                showToast(res.message || '删除失败', 'error');
-            }
-        })
-        .catch(function(err) {
-            hideLoader();
-            showToast('网络错���：' + err.message, 'error');
-        });
-}
-
-// ===== DOM 初始化 =====
-document.addEventListener('DOMContentLoaded', function() {
-    // 设置 filter_row 的 data-col 属性（配合 AppFilter）
-    ['fCode:0','fName:1'].forEach(function(p) {
-        var parts = p.split(':');
-        var id = parts[0], col = parseInt(parts[1], 10);
-        var el = document.getElementById(id);
-        if (el) el.setAttribute('data-col', col);
-    });
-
-    // 回车搜索
-    document.getElementById('searchInput').addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') loadCards(1);
-    });
-
-    // 初始加载
-    loadCards(1);
+['fCode:0','fDesc:1','fCat:2','fType:3'].forEach(function(p) {
+    var id = p.split(':')[0], col = p.split(':')[1];
+    var el = document.getElementById(id);
+    if (el) el.setAttribute('data-col', col);
 });
 </script>
 {% endblock %}

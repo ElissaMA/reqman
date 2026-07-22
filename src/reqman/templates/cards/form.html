@@ -1,252 +1,207 @@
 ﻿{% extends "base.html" %}
 {% import "macros/tables.html" as tables %}
-{% block title %}{{ "编���工卡" if edit_mode else "新增工卡" }}{% endblock %}
-
+{% block title %}{{ "编辑工卡" if edit_mode else "新增工卡" }} - 定检需求单管理{% endblock %}
 {% block content %}
-<h5 class="mb-3">📝 {{ "编辑工卡" if edit_mode else "新增工卡" }}</h5>
 
-<form id="cardForm" method="POST">
-  <!-- ========== 基本信息 ========== -->
-  <div class="card mb-3">
-    <div class="card-body">
-      <h6 class="fw-bold border-bottom pb-1 mb-3">基本信息</h6>
-      <div class="row g-3">
-        <div class="col-md-6">
-          <label class="form-label small" for="task_code">工卡编号 <span class="text-danger">*</span></label>
-          <input type="text" class="form-control form-control-sm" name="task_code" id="task_code"
-                 value="{{ item.task_code if item else (prefill_code or '') }}"
-                 placeholder="如：AMM-27-00-01" autocomplete="off"
-                 data-validate="required">
-          <div class="invalid-feedback">请输入���卡编号</div>
-        </div>
-        <div class="col-md-6">
-          <label class="form-label small" for="task_name">工卡名称 <span class="text-danger">*</span></label>
-          <input type="text" class="form-control form-control-sm" name="task_name" id="task_name"
-                 value="{{ item.task_name if item else (prefill_name or '') }}"
-                 placeholder="如：起落架收��测试" autocomplete="off"
-                 data-validate="required">
-          <div class="invalid-feedback">请输入工卡名称</div>
-        </div>
-        <div class="col-md-4">
-          <label class="form-label small" for="category">类别 <span class="text-danger">*</span></label>
-          <select class="form-select form-select-sm" name="category" id="category" data-validate="required">
-            <option value="">— 请选择 —</option>
-            {% for c in categories %}
-            <option value="{{ c }}" {% if (item and item.category == c) or (prefill_category == c) %}selected{% endif %}>{{ c }}</option>
-            {% endfor %}
-          </select>
-          <div class="invalid-feedback">请选择类别</div>
-        </div>
-        <div class="col-md-4">
-          <label class="form-label small" for="task_type">任务类型</label>
-          <select class="form-select form-select-sm" name="task_type" id="task_type">
-            <option value="">— 请选择 —</option>
-            {% for t in task_types %}
-            <option value="{{ t }}" {% if item and item.task_type == t %}selected{% endif %}>{{ t }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="col-md-2">
-          <label class="form-label small" for="man_hours">工时 (人×时)</label>
-          <input type="number" step="0.1" min="0" class="form-control form-control-sm" name="man_hours" id="man_hours"
-                 value="{{ item.man_hours if item else '' }}" placeholder="如：2.5" autocomplete="off">
-        </div>
-        <div class="col-md-2">
-          <label class="form-label small" for="set_id">所属工卡组</label>
-          <select class="form-select form-select-sm" name="set_id" id="set_id">
-            <option value="">— 无 —</option>
-            {% for s in card_sets %}
-            <option value="{{ s.id }}" {% if item and item.set_id == s.id %}selected{% endif %}>{{ s.name }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="col-md-6">
-          <label class="form-label small" for="aircraft_type">机型</label>
-          <input type="text" class="form-control form-control-sm" name="aircraft_type" id="aircraft_type"
-                 value="{{ item.aircraft_type if item else '' }}" placeholder="如：B737NG" autocomplete="off">
-        </div>
-        <div class="col-md-6">
-          <label class="form-label small" for="ata_code">ATA 章节</label>
-          <input type="text" class="form-control form-control-sm" name="ata_code" id="ata_code"
-                 value="{{ item.ata_code if item else '' }}" placeholder="如：27-00-01" autocomplete="off">
-        </div>
-        <div class="col-12">
-          <label class="form-label small" for="remark">备注</label>
-          <textarea class="form-control form-control-sm" name="remark" id="remark" rows="3"
-                    placeholder="输入备注信息…">{{ item.remark if item else '' }}</textarea>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ========== 工具设备 ========== -->
-  <div class="card mb-3">
-    <div class="card-body">
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <h6 class="fw-bold mb-0">🔧 工具设备</h6>
-        <button type="button" class="btn btn-outline-success btn-sm" onclick="addRow('tool')">+ 新增工具</button>
-      </div>
-      {{ tables.tool_table(tools, usage_types, editable=true, show_delete=true) }}
-      <div class="form-check mt-2">
-        <input class="form-check-input" type="checkbox" id="confirmNoTools" name="confirm_no_tools" value="1"
-               {{ 'checked' if item and item.tools_confirmed else '' }}>
-        <label class="form-check-label small text-muted" for="confirmNoTools">确认无工具</label>
-      </div>
-    </div>
-  </div>
-
-  <!-- ========== 航材 ========== -->
-  <div class="card mb-3">
-    <div class="card-body">
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <h6 class="fw-bold mb-0">📦 航材</h6>
-        <button type="button" class="btn btn-outline-success btn-sm" onclick="addRow('mat')">+ 新增航材</button>
-      </div>
-      {{ tables.material_table(materials, usage_types, editable=true, show_delete=true) }}
-      <div class="form-check mt-2">
-        <input class="form-check-input" type="checkbox" id="confirmNoMats" name="confirm_no_mats" value="1"
-               {{ 'checked' if item and item.materials_confirmed else '' }}>
-        <label class="form-check-label small text-muted" for="confirmNoMats">确认无航材</label>
-      </div>
-    </div>
-  </div>
-
-  <!-- ========== 操作按钮 ========== -->
-  <div class="d-flex gap-2 justify-content-end flex-wrap">
-    <a href="{{ url_for('cards.card_list') }}" class="btn btn-outline-secondary btn-sm">← ���回列表</a>
-    <button type="submit" class="btn btn-primary btn-sm px-4" id="submitBtn">💾 保存工卡</button>
-    {% if item %}
-    <a href="javascript:void(0)" onclick="deleteCard({{ item.id }})" class="btn btn-outline-danger btn-sm">🗑 删除</a>
-    {% endif %}
-  </div>
-</form>
-
-{% if item %}
-<form id="deleteForm" method="POST" action="{{ url_for('cards.card_delete', card_id=item.id) }}" style="display:none;"></form>
-{% endif %}
-
-<!-- 提交遮罩（复用 base.html .global-loader 样式） -->
-<div class="global-loader" id="submitOverlay">
-  <div class="spinner"></div>
-  <p>正在保存…</p>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">{{ "编辑工卡" if edit_mode else "新增工卡" }}</h5>
+    <a href="/card/list" class="btn btn-outline-secondary btn-sm">&larr; 返回</a>
 </div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST" id="cardForm">
+            <!-- 基本信息 -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <label class="form-label small">工卡号 <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control form-control-sm" name="task_code"
+                           value="{{ item.task_code if item else prefill_code if prefill_code else "" }}" required>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label small">工卡描述</label>
+                    <input type="text" class="form-control form-control-sm" name="task_name"
+                           value="{{ item.task_name if item else prefill_name if prefill_name else "" }}">
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label small">专业</label>
+                    <select class="form-select form-select-sm" name="category">
+                        {% for c in categories %}
+                        <option value="{{ c }}" {{ "selected" if (item and item.category == c) or (prefill_category and prefill_category == c) }}>{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">类型</label>
+                    <select class="form-select form-select-sm" name="task_type">
+                        <option value="">请选择类型</option>
+                        {% for t in task_types %}
+                        {% if t %}
+                        <option value="{{ t }}" {{ "selected" if (item and item.task_type == t) or (prefill_task_type and prefill_task_type == t) }}>{{ t }}</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- 工具清单 -->
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <label class="form-label fw-bold mb-0">&#x1F527; 工具清单</label>
+                    <button type="button" class="btn btn-outline-success btn-sm"
+                            onclick="addRow('tool')">+ 新增工具</button>
+                </div>
+                {{ tables.tool_table(tools, usage_types, editable=true, show_delete=true) }}
+            </div>
+            <div class="mb-2">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="confirmNoTools" name="confirm_no_tools" value="1"
+                           {{ "checked" if item and item.tools_confirmed else "" }}>
+                    <label class="form-check-label small text-muted" for="confirmNoTools">
+                        确认无工具
+                    </label>
+                </div>
+            </div>
+
+            <!-- 航材清单 -->
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <label class="form-label fw-bold mb-0">&#x1F4E6; 航材清单</label>
+                    <button type="button" class="btn btn-outline-success btn-sm"
+                            onclick="addRow('mat')">+ 新增航材</button>
+                </div>
+                {{ tables.material_table(materials, usage_types, editable=true, show_delete=true) }}
+            </div>
+            <div class="mb-2">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="confirmNoMats" name="confirm_no_mats" value="1"
+                           {{ "checked" if item and item.materials_confirmed else "" }}>
+                    <label class="form-check-label small text-muted" for="confirmNoMats">
+                        确认无航材
+                    </label>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <a href="/card/list" class="btn btn-outline-secondary btn-sm">取消</a>
+                <button type="submit" class="btn btn-primary btn-sm px-4">
+                    {{ "保存修改" if edit_mode else "保存" }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
-var usageTypes = {{ usage_types|tojson }};
-var confirmNoTools = document.getElementById('confirmNoTools');
-var confirmNoMats = document.getElementById('confirmNoMats');
+var confirmNoTools = document.getElementById("confirmNoTools");
+var confirmNoMats = document.getElementById("confirmNoMats");
 
-// ===== 确认无工具/航材交互 =====
-if (confirmNoTools) {
-  confirmNoTools.addEventListener('change', function() {
+confirmNoTools.addEventListener("change", function() {
     if (this.checked) {
-      if (!confirm('确认无需工具？已填内容将被清空。')) { this.checked = false; return; }
-      var tb = document.querySelector('#toolTable tbody');
-      if (tb) tb.innerHTML = '';
+        if (!confirm("确认该卡无需工具？已填内容将被清空。")) {
+            this.checked = false;
+            return;
+        }
+        var tbody = document.querySelector("#toolTable tbody");
+        if (tbody) tbody.innerHTML = "";
     }
-  });
-}
-if (confirmNoMats) {
-  confirmNoMats.addEventListener('change', function() {
-    if (this.checked) {
-      if (!confirm('确认无需航材？已填内容将被清空。')) { this.checked = false; return; }
-      var tb = document.querySelector('#matTable tbody');
-      if (tb) tb.innerHTML = '';
-    }
-  });
-}
-
-// ===== 新增工具/航材行 =====
-function addRow(type) {
-  if (type === 'tool' && confirmNoTools) confirmNoTools.checked = false;
-  if (type === 'mat' && confirmNoMats) confirmNoMats.checked = false;
-
-  var table = document.getElementById(type === 'tool' ? 'toolTable' : 'matTable');
-  var tbody = table ? table.querySelector('tbody') : null;
-  if (!tbody) return;
-
-  var tr = document.createElement('tr');
-  if (type === 'tool') {
-    tr.innerHTML =
-      '<td><input type="text" class="form-control form-control-sm" name="tool_name[]" placeholder="设备名称"></td>' +
-      '<td><input type="text" class="form-control form-control-sm" name="tool_pn[]"></td>' +
-      '<td><input type="text" class="form-control form-control-sm" name="tool_qty[]" value="1"></td>' +
-      '<td><input type="text" class="form-control form-control-sm" name="tool_remark[]"></td>' +
-      '<td><select class="form-select form-select-sm" name="tool_type[]">' +
-        usageTypes.map(function(u){return '<option value="'+u+'">'+u+'</option>';}).join('') +
-      '</select></td>' +
-      '<td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm py-0" onclick="this.closest(\'tr\').remove()">&times;</button></td>';
-  } else {
-    tr.innerHTML =
-      '<td><input type="text" class="form-control form-control-sm" name="mat_name[]" placeholder="航材名称"></td>' +
-      '<td><input type="text" class="form-control form-control-sm" name="mat_pn[]"></td>' +
-      '<td><input type="text" class="form-control form-control-sm" name="mat_qty[]" value="1"></td>' +
-      '<td><input type="text" class="form-control form-control-sm" name="mat_remark[]"></td>' +
-      '<td><select class="form-select form-select-sm" name="mat_type[]">' +
-        usageTypes.map(function(u){return '<option value="'+u+'">'+u+'</option>';}).join('') +
-      '</select></td>' +
-      '<td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm py-0" onclick="this.closest(\'tr\').remove()">&times;</button></td>';
-  }
-  tbody.appendChild(tr);
-}
-
-// ===== 实时表单验证 =====
-var validationRules = {
-  task_code: { required: true, message: '请输入工卡编号', validate: function(v){return v.trim().length>0;} },
-  task_name: { required: true, message: '请输入工卡名称', validate: function(v){return v.trim().length>0;} },
-  category:  { required: true, message: '请选择类别',     validate: function(v){return v!=='';} },
-};
-
-function validateField(el) {
-  var name = el.name;
-  var rule = validationRules[name];
-  if (!rule) return true;
-  var valid = rule.validate(el.value);
-  el.classList.remove('is-invalid', 'is-valid');
-  if (valid && el.value.trim().length > 0) {
-    el.classList.add('is-valid');
-  } else if (!valid) {
-    el.classList.add('is-invalid');
-  }
-  return valid;
-}
-
-function validateAll() {
-  var valid = true;
-  document.querySelectorAll('[data-validate]').forEach(function(el) {
-    if (!validateField(el)) valid = false;
-  });
-  return valid;
-}
-
-// ===== DOM 初始化 =====
-document.addEventListener('DOMContentLoaded', function() {
-  // 绑定验证事件
-  document.querySelectorAll('[data-validate]').forEach(function(el) {
-    el.addEventListener('blur',  function(){ validateField(this); });
-    el.addEventListener('input', function(){ validateField(this); });
-    el.addEventListener('change',function(){ validateField(this); });
-  });
-
-  // 表单提交验证
-  document.getElementById('cardForm').addEventListener('submit', function(e) {
-    if (!validateAll()) {
-      e.preventDefault();
-      var first = document.querySelector('.is-invalid');
-      if (first) first.focus();
-      return;
-    }
-    document.getElementById('submitBtn').disabled = true;
-    document.getElementById('submitOverlay').classList.add('active');
-  });
 });
 
-// ===== 删除工卡 =====
-function deleteCard(id) {
-  if (!confirm('确认删���该工卡？此操作不可恢复。')) return;
-  document.getElementById('deleteForm').submit();
+confirmNoMats.addEventListener("change", function() {
+    if (this.checked) {
+        if (!confirm("确认该卡无需航材？已填内容将被清空。")) {
+            this.checked = false;
+            return;
+        }
+        var tbody = document.querySelector("#matTable tbody");
+        if (tbody) tbody.innerHTML = "";
+    }
+});
+
+function watchTable(tableId, checkbox) {
+    var table = document.getElementById(tableId);
+    if (!table) return;
+    table.addEventListener("input", function() {
+        var tbody = table.querySelector("tbody");
+        if (tbody) {
+            var hasVal = false;
+            tbody.querySelectorAll("input[type=text]").forEach(function(inp) {
+                if (inp.value.trim()) hasVal = true;
+            });
+            if (hasVal) checkbox.checked = false;
+        }
+    });
+    var observer = new MutationObserver(function() {
+        var tbody = table.querySelector("tbody");
+        if (!tbody || tbody.children.length === 0) return;
+        var hasVal = false;
+        tbody.querySelectorAll("input[type=text]").forEach(function(inp) {
+            if (inp.value.trim()) hasVal = true;
+        });
+        if (hasVal) checkbox.checked = false;
+    });
+    observer.observe(table, { childList: true, subtree: true });
 }
+
+document.addEventListener("DOMContentLoaded", function() {
+    watchTable("toolTable", confirmNoTools);
+    watchTable("matTable", confirmNoMats);
+});
+
+var usageTypes = {{ usage_types|tojson }};
+
+function addRow(type) {
+    if (type == "tool") confirmNoTools.checked = false;
+    else confirmNoMats.checked = false;
+
+    var table = document.getElementById(type == "tool" ? "toolTable" : "matTable");
+    var tbody = table.querySelector("tbody");
+    var tr = document.createElement("tr");
+    if (type == "tool") {
+        tr.innerHTML = '<td><input type="text" class="form-control form-control-sm" name="tool_name[]" placeholder="设备名称"></td>' +
+            '<td><input type="text" class="form-control form-control-sm" name="tool_pn[]"></td>' +
+            '<td><input type="text" class="form-control form-control-sm" name="tool_qty[]" value="1"></td>' +
+            '<td><input type="text" class="form-control form-control-sm" name="tool_remark[]"></td>' +
+            '<td><select class="form-select form-select-sm" name="tool_type[]">' + usageTypes.map(function(u){return '<option value="'+u+'">'+u+'</option>';}).join('') + '</select></td>' +
+            '<td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest(\'tr\').remove()">&times;</button></td>';
+    } else {
+        tr.innerHTML = '<td><input type="text" class="form-control form-control-sm" name="mat_name[]" placeholder="航材名称"></td>' +
+            '<td><input type="text" class="form-control form-control-sm" name="mat_pn[]"></td>' +
+            '<td><input type="text" class="form-control form-control-sm" name="mat_qty[]" value="1"></td>' +
+            '<td><input type="text" class="form-control form-control-sm" name="mat_remark[]"></td>' +
+            '<td><select class="form-select form-select-sm" name="mat_type[]">' + usageTypes.map(function(u){return '<option value="'+u+'">'+u+'</option>';}).join('') + '</select></td>' +
+            '<td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest(\'tr\').remove()">&times;</button></td>';
+    }
+    tbody.appendChild(tr);
+}
+
+document.getElementById("cardForm").addEventListener("submit", function(e) {
+    var toolHasContent = false, matHasContent = false;
+    var toolTbody = document.querySelector("#toolTable tbody");
+    var matTbody = document.querySelector("#matTable tbody");
+    if (toolTbody) {
+        toolTbody.querySelectorAll("input[type=text]").forEach(function(inp) {
+            if (inp.value.trim()) toolHasContent = true;
+        });
+    }
+    if (matTbody) {
+        matTbody.querySelectorAll("input[type=text]").forEach(function(inp) {
+            if (inp.value.trim()) matHasContent = true;
+        });
+    }
+    if (!toolHasContent && !confirmNoTools.checked) {
+        e.preventDefault();
+        alert("请添加工具或确认无工具");
+        return false;
+    }
+    if (!matHasContent && !confirmNoMats.checked) {
+        e.preventDefault();
+        alert("请添加航材或确认无航材");
+        return false;
+    }
+});
 </script>
 {% endblock %}
