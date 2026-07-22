@@ -3,6 +3,11 @@
 {% block title %}工作包 - 定检需求单管理{% endblock %}
 {% block content %}
 
+<style>
+.wp-warning td { background-color: #f0f0f0 !important; }
+.wp-danger td { background-color: #f8d7da !important; }
+</style>
+
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h5 class="mb-0">上传工作清单</h5>
 </div>
@@ -62,7 +67,9 @@
                 </thead>
                 <tbody>
                 {% for wp in work_packages %}
-                <tr onclick="window.open('/generate?package_id={{ wp.package_id }}', '_blank')" style="cursor:pointer">
+                <tr onclick="window.open('/generate?package_id={{ wp.package_id }}', '_blank')"
+                    style="cursor:pointer"
+                    class="{% if wp.status == 'warning' %}wp-warning{% elif wp.status == 'danger' %}wp-danger{% endif %}">
                     <td>{{ wp.aircraft_info.reg if wp.aircraft_info else wp.reg }}</td>
                     <td>{{ wp.date }}</td>
                     <td>{{ wp.aircraft_info.description if wp.aircraft_info else wp.description }}</td>

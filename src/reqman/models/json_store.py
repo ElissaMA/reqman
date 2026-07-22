@@ -390,6 +390,17 @@ class JsonStore:
                 return dict(wp)
         return None
 
+    def delete_work_package(self, package_id: str) -> bool:
+        with self._lock:
+            db = self._read()
+            wps = db.get("work_packages", [])
+            new_wps = [w for w in wps if w.get("package_id") != package_id]
+            if len(new_wps) == len(wps):
+                return False
+            db["work_packages"] = new_wps
+            self._write(db)
+            return True
+
     def delete_aircraft(self, aircraft_id: int) -> bool:
         with self._lock:
             db = self._read()

@@ -3,7 +3,7 @@
 import os
 import logging
 import tempfile
-from datetime import datetime
+from datetime import datetime, date
 from flask import (Blueprint, current_app, render_template, request, redirect,
                    flash)
 
@@ -24,6 +24,31 @@ packages_bp = Blueprint("packages", __name__)
 
 def _is_ajax():
     return request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+
+def _parse_wp_date(date_str):
+    """解析 'YYYY.MM.DD' 格式日期，失败返回 None"""
+    try:
+        return datetime.strptime(date_str, "%Y.%m.%d").date()
+    except (ValueError, TypeError):
+        return None
+
+
+def _classify_package(wp):
+    """判断工作包状态：expired(过期>2天删除) / warning(过期≤2天灰色) / danger(未来4天内红色) / normal"""
+    wp_date = _parse_wp_date(wp.get("date", ""))
+    if not wp_date:
+        return "normal"
+    today = date.today()
+    diff = (wp_date - today).days
+    if diff < -2:
+        return "expired"
+    elif diff < 0:
+        return "warning"
+    elif diff <= 4:
+        return "danger"
+    else:
+        return "normal"
 
 
 def _parse_and_save_file(f, label):
@@ -50,7 +75,19 @@ def upload():
         return _handle_upload_post()
     store = current_app.extensions['store']
     work_packages = store.get_work_packages()
-    return render_template("packages/upload.html", work_packages=work_packages)
+
+    # 自动删除过期>2天的工作包，并标记状态
+    today = date.today()
+    filtered = []
+    for wp in work_packages:
+        wp_date = _parse_wp_date(wp.get("date", ""))
+        if wp_date and (today - wp_date).days > 2:
+            store.delete_work_package(wp["package_id"])
+            continue
+        wp["status"] = _classify_package(wp)
+        filtered.append(wp)
+
+    return render_template("packages/upload.html", work_packages=filtered)
 
 
 def _handle_upload_post():
