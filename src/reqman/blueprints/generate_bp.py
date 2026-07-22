@@ -7,15 +7,23 @@ from flask import (Blueprint, render_template, request, redirect,
 
 from ..services.form_generator import generate_form
 from ..services.work_package_matcher import match_work_package_items
+from ..utils.response import api_success, api_error
+from ..utils.error_handlers import NotFoundError, ValidationError
+from ..utils.validators import validate_required
 from ..config import CONDITIONS, CATEGORIES
 
 generate_bp = Blueprint("generate", __name__)
 
 logger = logging.getLogger(__name__)
 
+
 def _get_store():
-    """懒加载获取 store 实例"""
     return current_app.extensions['store']
+
+
+def _is_ajax():
+    return request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
 
 def _ensure_package_matched(pkg_data):
     """若工作包尚未匹配，执行匹配并保存"""
@@ -69,12 +77,13 @@ def generate():
     package_id = request.args.get("package_id", "") or request.form.get("package_id", "")
 
     if not package_id:
+        if _is_ajax():
+            return api_error("缺少工作包参数", "MISSING_PACKAGE_ID", 400)
         return render_template("generate/form.html", has_data=False)
 
     pkg_data = _get_store().get_work_package(package_id)
     if not pkg_data:
-        flash("数据已过期，请重新上传工作清单", "error")
-        return redirect("/upload")
+        raise NotFoundError("数据已过期，请重新上传工作清单")
 
     # 延迟匹配：首次访问时匹配数据库并生成预览
     pkg_data = _ensure_package_matched(pkg_data)
@@ -88,10 +97,13 @@ def generate():
             return redirect("/generate?package_id=" + package_id)
 
     # GET: 预览
+    if _is_ajax():
+        return _handle_generate_json_preview(pkg_data, package_id)
     return _handle_generate_preview(pkg_data, package_id)
 
+
 def _dedup_matched(matched):
-    """按 set_id 去重，每组只取第一条"""
+    """按 set_id 去��，每组只取第一条"""
     seen = set()
     for item in matched:
         sid = item.get("set_id")
@@ -150,7 +162,7 @@ def _handle_generate_post(pkg_data: dict, package_id: str):
         "spare_items": spare_items,
     }
 
-    # 组装匹配数据（按set_id去重，同组只输出一套工具/航材）
+    # 组装匹配数据���按set_id去重，同组只输出一套工具/航材���
     matched_tools, matched_mats, spare_auto = [], [], []
 
     for item in _dedup_matched(pkg_data.get("matched", [])):
@@ -186,6 +198,27 @@ def _handle_generate_post(pkg_data: dict, package_id: str):
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
 
+
+def _handle_generate_json_preview(pkg_data: dict, package_id: str):
+    """AJAX 请求返回预览 JSON"""
+    aircraft_info = pkg_data.get("aircraft_info", {})
+    matched = pkg_data.get("matched", [])
+    new_cards = pkg_data.get("new_cards", [])
+    cancelled = pkg_data.get("cancelled", [])
+
+    return api_success(data={
+        "package_id": package_id,
+        "aircraft_info": aircraft_info,
+        "matched_count": len(matched),
+        "new_cards_count": len(new_cards),
+        "cancelled_count": len(cancelled),
+        "routine_count": pkg_data.get("routine_count", 0),
+        "other_count": pkg_data.get("other_count", 0),
+        "generated_at": pkg_data.get("generated_at"),
+        "is_matched": pkg_data.get("is_matched", False),
+    })
+
+
 def _handle_generate_preview(pkg_data: dict, package_id: str):
     """组装预览数据并渲染页面"""
     aircraft_info = pkg_data.get("aircraft_info", {})
@@ -206,7 +239,7 @@ def _handle_generate_preview(pkg_data: dict, package_id: str):
     # 分类排序权重
     cat_order = {"发动机": 0, "机体": 1, "电子": 2}
 
-    # 预览工具/航材/备用（按set_id去重，每组只取第一条代表输出）
+    # 预览工具/航材/备用（按set_id去重，每组只取第一条代表输出���
     tool_preview, mat_preview, spare_preview = [], [], []
 
     for item in _dedup_matched(matched):
@@ -228,7 +261,6 @@ def _handle_generate_preview(pkg_data: dict, package_id: str):
     for lst in [tool_preview, mat_preview, spare_preview]:
         lst.sort(key=lambda x: cat_order.get(x.get("category", ""), 99))
 
-    # 有数据的专业列表
     def _active_cats(lst):
         return [c for c in CATEGORIES
                 if any(t.get("category") == c for t in lst)]

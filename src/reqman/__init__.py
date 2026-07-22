@@ -3,7 +3,7 @@
 import logging
 import time
 from pathlib import Path
-from flask import Flask, render_template
+from flask import Flask, jsonify, render_template
 
 from .config import DB_FILE, SECRET_KEY, MAX_CONTENT_LENGTH, BASE_DIR
 from .utils.openpyxl_patch import apply_patches
@@ -14,13 +14,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
-# ---------- 请求日志中间件 ----------
+# ---------- 请求日志中间件（增强版） ----------
 class RequestLogMiddleware:
-    """记录每次请求的方法、路径、状态码和耗时"""
+    """记录每次请求的方法、路径、状态码和耗时，标记慢请求"""
 
     def __init__(self, app):
         self.app = app
+        self.slow_threshold = 2.0  # 超过 2 秒标记为慢请求
 
     def __call__(self, environ, start_response):
         method = environ.get("REQUEST_METHOD", "")
@@ -31,14 +31,51 @@ class RequestLogMiddleware:
             return self.app(environ, start_response)
 
         start = time.time()
+        response_size = [0]
 
         def _start_response(status, headers, *args):
             elapsed = time.time() - start
             status_code = status.split()[0] if status else "?"
-            logger.info("[%.3fs] %s %s -> %s", elapsed, method, path, status_code)
+            size_info = ""
+            if response_size[0]:
+                size_info = f" [{response_size[0]:,}B]"
+            log_msg = "[%.3fs]%s %s %s -> %s" % (
+                elapsed, size_info, method, path, status_code
+            )
+            if elapsed >= self.slow_threshold:
+                logger.warning("SLOW [%.3fs] %s %s -> %s", elapsed, method, path, status_code)
+            else:
+                logger.info(log_msg)
             return start_response(status, headers, *args)
 
-        return self.app(environ, _start_response)
+        def _write_data(data):
+            response_size[0] += len(data)
+            return data
+
+        original_write = None
+
+        # 包装 start_response 以拦截 Content-Length
+        def _start_response_with_size(status, headers, *args):
+            nonlocal original_write
+            for h_name, h_val in headers or []:
+                if h_name.lower() == "content-length":
+                    try:
+                        response_size[0] = int(h_val)
+                    except (ValueError, TypeError):
+                        pass
+                    break
+            result = _start_response(status, headers, *args)
+            if result and hasattr(result, '__iter__'):
+                original_write = result
+            return result
+
+        wsgi_iter = self.app(environ, _start_response_with_size)
+        try:
+            for data in wsgi_iter:
+                yield _write_data(data)
+        finally:
+            if hasattr(wsgi_iter, 'close'):
+                wsgi_iter.close()
 
 
 def create_app():
@@ -73,11 +110,23 @@ def create_app():
         from flask import redirect
         return redirect("/card/list")
 
+    # API 规范文档端点
+    @app.route("/api/spec")
+    def api_spec():
+        from .api_docs import get_openapi_spec
+        return jsonify(get_openapi_spec())
+
+    # API 文档说明页（简易 HTML）
+    @app.route("/api/docs")
+    def api_docs_page():
+        from .api_docs import ENDPOINTS
+        return render_template("api_docs.html", endpoint_groups=ENDPOINTS)
+
     # 统一错误处理（支持 JSON 和 HTML 两种模式）
     from .utils.error_handlers import register_error_handlers
     register_error_handlers(app)
 
-    # 请求日志中间件
+    # 请求日志中间���
     app.wsgi_app = RequestLogMiddleware(app.wsgi_app)
 
     logger.info("应用初始化完成")

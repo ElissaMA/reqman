@@ -1,4 +1,4 @@
-﻿"""工作包蓝图 — 上传工作清单 + 工卡匹配"""
+"""工作包蓝图 — 上传工作清单 + 工卡匹配"""
 
 import os
 import logging
@@ -8,96 +8,115 @@ from flask import (Blueprint, current_app, render_template, request, redirect,
                    flash)
 
 from ..services.worklist_parser import parse_worklist, merge_aircraft_info, WorklistError
-from ..config import CATEGORIES
 from ..services.work_package_matcher import match_work_package_items
+from ..utils.response import api_success, api_error
+from ..utils.error_handlers import NotFoundError, ValidationError
+from ..utils.validators import validate_file_extension
+from ..config import CATEGORIES
 
 logger = logging.getLogger(__name__)
 
 packages_bp = Blueprint("packages", __name__)
 
 
-# ---------- 匹配辅助函数 ----------
+# ======================== 辅助函数 ========================
+
+
+def _is_ajax():
+    return request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+
+def _parse_and_save_file(f, label):
+    """解析上传的 Excel 文件，返回 (items, aircraft_info)
+    如失败抛出 ValidationError
+    """
+    if not f or not f.filename:
+        return [], {}
+    validate_file_extension(f.filename, {"xlsx"}, label=f"{label}清单")
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_path = os.path.join(tmp_dir, f"{label}.xlsx")
+        f.save(tmp_path)
+        result = parse_worklist(tmp_path, label)
+    return result["items"], result["aircraft_info"]
+
+
+# ======================== 路由 ========================
+
 
 @packages_bp.route("/upload", methods=["GET", "POST"])
 def upload():
     """上传工作清单并匹配"""
-    store = current_app.extensions['store']
     if request.method == "POST":
-        routine_file = request.files.get("routine_file")
-        other_file = request.files.get("other_file")
-
-        if not routine_file and not other_file:
-            flash("请至少上传一个文件", "error")
-            return redirect("/upload")
-
-        all_items = []
-        info_list = []
-        errors = []
-
-        # 上传文件存入系统临时目录，解析完随上下文退出自动清理，不污染项目目录
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            for f, label in [(routine_file, "例行"), (other_file, "其他")]:
-                if not f or not f.filename:
-                    continue
-
-                # 校验文件类型
-                if not f.filename.lower().endswith(".xlsx"):
-                    errors.append(f"{label}清单不是 .xlsx 格式")
-                    continue
-
-                tmp_path = os.path.join(tmp_dir, f"{label}.xlsx")
-                try:
-                    f.save(tmp_path)
-                    result = parse_worklist(tmp_path, label)
-                    all_items.extend(result["items"])
-                    info_list.append(result["aircraft_info"])
-                except WorklistError as e:
-                    errors.append(f"{label}清单: {e.message}")
-                    logger.warning(f"解析{label}清单失败: {e}")
-                except Exception as e:
-                    errors.append(f"{label}清单解析失败")
-                    logger.exception(f"解析{label}清单异常")
-
-        if errors:
-            for err in errors:
-                flash(err, "error")
-            if not all_items:
-                return redirect("/upload")
-
-        # 合并飞机信息
-        aircraft_info = merge_aircraft_info(info_list)
-
-        # 按专业排序
-        cat_order = {c: i for i, c in enumerate(CATEGORIES)}
-        all_items.sort(key=lambda x: cat_order.get(x.get("category", ""), 99))
-
-        # 统计（仅统计，不匹配）
-        routine_count = sum(1 for i in all_items if i.get("source") == "例行")
-        other_count = sum(1 for i in all_items if i.get("source") == "其他")
-
-        # 保存原始工作包（不匹配），点击时延迟匹配
-        package_data = {
-            "reg": aircraft_info.get("reg", ""),
-            "description": aircraft_info.get("description", ""),
-            "date": aircraft_info.get("date", datetime.now().strftime("%Y.%m.%d")),
-            "aircraft_info": aircraft_info,
-            "matched": [],
-            "new_cards": [],
-            "cancelled": [],
-            "all_items": all_items,
-            "routine_count": routine_count,
-            "other_count": other_count,
-            "is_matched": False,
-            "generated_at": None,
-        }
-        store.save_work_package(package_data)
-        flash("工作包上传成功，点击工作包即可匹配生成", "success")
-        return redirect("/upload")
-
-    # GET: 显示上传页面和工作包列表
+        return _handle_upload_post()
     store = current_app.extensions['store']
     work_packages = store.get_work_packages()
     return render_template("packages/upload.html", work_packages=work_packages)
+
+
+def _handle_upload_post():
+    """处理���传 POST 请求逻辑"""
+    store = current_app.extensions['store']
+    routine_file = request.files.get("routine_file")
+    other_file = request.files.get("other_file")
+
+    if not routine_file and not other_file:
+        raise ValidationError("请至少上传��个文件", "NO_FILE")
+
+    all_items = []
+    info_list = []
+    errors = []
+
+    for f, label in [(routine_file, "例行"), (other_file, "其他")]:
+        if not f or not f.filename:
+            continue
+        try:
+            items, info = _parse_and_save_file(f, label)
+            all_items.extend(items)
+            if info:
+                info_list.append(info)
+        except (ValidationError, WorklistError) as e:
+            msg = e.message if hasattr(e, "message") else str(e)
+            errors.append(f"{label}清单: {msg}")
+        except Exception:
+            errors.append(f"{label}清单解析失败")
+            logger.exception(f"解析{label}清单异常")
+
+    if errors:
+        for err in errors:
+            logger.warning("上传错误: %s", err)
+        if not all_items:
+            raise ValidationError("；".join(errors), "PARSE_FAILED")
+        # 部���成功：仅警告不阻断
+
+    aircraft_info = merge_aircraft_info(info_list) if info_list else {}
+
+    cat_order = {c: i for i, c in enumerate(CATEGORIES)}
+    all_items.sort(key=lambda x: cat_order.get(x.get("category", ""), 99))
+
+    routine_count = sum(1 for i in all_items if i.get("source") == "例行")
+    other_count = sum(1 for i in all_items if i.get("source") == "其他")
+
+    package_data = {
+        "reg": aircraft_info.get("reg", ""),
+        "description": aircraft_info.get("description", ""),
+        "date": aircraft_info.get("date", datetime.now().strftime("%Y.%m.%d")),
+        "aircraft_info": aircraft_info,
+        "matched": [],
+        "new_cards": [],
+        "cancelled": [],
+        "all_items": all_items,
+        "routine_count": routine_count,
+        "other_count": other_count,
+        "is_matched": False,
+        "generated_at": None,
+    }
+    store.save_work_package(package_data)
+
+    if _is_ajax():
+        return api_success(data={"package_id": package_data.get("id")},
+                           message="工作包上传成功")
+    flash("工作包上传成功，点击工作包即可匹配生成", "success")
+    return redirect("/upload")
 
 
 @packages_bp.route("/packages/<package_id>/rematch", methods=["POST"])
@@ -106,8 +125,7 @@ def package_rematch(package_id):
     store = current_app.extensions['store']
     pkg_data = store.get_work_package(package_id)
     if not pkg_data:
-        flash("工作包不存在", "error")
-        return redirect("/upload")
+        raise NotFoundError("工作包不存在")
 
     all_items = pkg_data.get("all_items", [])
     svc = current_app.extensions['card_service']
@@ -123,9 +141,7 @@ def package_rematch(package_id):
     pkg_data["generated_at"] = now_str
     store.save_work_package(pkg_data)
 
-    flash("重新匹配完成", "success")
+    if _is_ajax():
+        return api_success(message="重新匹配完成")
+    flash("重新匹配���成", "success")
     return redirect("/upload")
-
-
-
-

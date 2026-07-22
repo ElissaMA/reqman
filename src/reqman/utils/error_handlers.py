@@ -1,9 +1,9 @@
-"""错误处理中间件 —— 全局异常处理器���错误日志记录、自定义错误页面"""
+"""错误处理中间件 —— 全局异常处理器、错误日志记录、自定义错误页面"""
 
 import logging
 import traceback
 
-from flask import render_template, request
+from flask import render_template, request, flash, redirect
 from werkzeug.exceptions import HTTPException
 
 from .response import api_error, ApiException
@@ -37,19 +37,38 @@ class ServerError(ApiException):
         super().__init__(message, error_code, status_code)
 
 
+# ===================== 辅助函数 =====================
+
+
+def _wants_json():
+    """判断请求是否期望 JSON 响应"""
+    if request.is_xhr or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return True
+    return request.accept_mimetypes.best == "application/json"
+
+
+def raise_or_flash(exception_class, message, error_code=None, referer=None):
+    """在蓝图操作中统一处理错误。
+
+    AJAX 请求 -> 抛出异常（由全局处理器返回 JSON）
+    表单请求 -> flash 消息并重定向到来源页
+    """
+    if _wants_json():
+        kwargs = {"message": message}
+        if error_code:
+            kwargs["error_code"] = error_code
+        raise exception_class(**kwargs)
+    flash(message, "error")
+    return redirect(referer or request.headers.get("Referer", "/"))
+
+
 # ===================== 注册函数 =====================
+
 
 def register_error_handlers(app):
     """在 Flask app 上注册所有错误处理器"""
 
-    # ---------- 判断请求类型 ----------
-    def _wants_json():
-        """优先检查 X-Requested-With 头，其次是 Accept 头"""
-        if request.is_xhr or request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            return True
-        return request.accept_mimetypes.best == "application/json"
-
-    # ---------- HTTPException（如 404/405/403 等） ----------
+    # ---------- HTTPException（如 404/405/403 等�� ----------
     @app.errorhandler(HTTPException)
     def handle_http_exception(error):
         logger.warning("HTTP %s: %s %s", error.code, request.method, request.path)
@@ -75,7 +94,12 @@ def register_error_handlers(app):
                 "ApiException [%s]: %s (path=%s)",
                 error.error_code, error.message, request.path,
             )
-        return error.to_response()
+        if _wants_json():
+            return error.to_response()
+        # 非 AJAX 请求：flash 消息后重定向
+        flash(error.message, "error")
+        referrer = request.headers.get("Referer", "/")
+        return redirect(referrer)
 
     # ---------- 通用 500（未捕获异常兜底） ----------
     @app.errorhandler(Exception)
@@ -83,7 +107,7 @@ def register_error_handlers(app):
         logger.exception("未捕获异常: %s %s", request.method, request.path)
         if _wants_json():
             return api_error(
-                message="服务器内部错误，请稍后重试",
+                message="服务器内部错误���请稍后重试",
                 error_code="INTERNAL_ERROR",
                 status_code=500,
             )
