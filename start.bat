@@ -1,12 +1,11 @@
-﻿@echo off
-chcp 65001 >nul
+@echo off
 cd /d "%~dp0"
 
 echo ================================================
-echo   定检需求单管理系统 V3
-echo   架构: 工厂模式 + 蓝图 + 服务层
+echo   Reqman V3 - Inspection Demand System
+echo   Architecture: Factory + Blueprint + Service
 echo ================================================
 
 set PYTHONPATH=src
-python src\reqman\app.py
+py src\reqman\app.py
 pause
