@@ -42,7 +42,7 @@ class ServerError(ApiException):
 
 def _wants_json():
     """判断请求是否期望 JSON 响应"""
-    if request.is_xhr or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         return True
     return request.accept_mimetypes.best == "application/json"
 
