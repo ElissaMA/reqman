@@ -62,7 +62,7 @@
                 </thead>
                 <tbody>
                 {% for wp in work_packages %}
-                <tr onclick="window.location='/generate?package_id={{ wp.package_id }}'" style="cursor:pointer">
+                <tr onclick="window.open('/generate?package_id={{ wp.package_id }}', '_blank')" style="cursor:pointer">
                     <td>{{ wp.aircraft_info.reg if wp.aircraft_info else wp.reg }}</td>
                     <td>{{ wp.date }}</td>
                     <td>{{ wp.aircraft_info.description if wp.aircraft_info else wp.description }}</td>
