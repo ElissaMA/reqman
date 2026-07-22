@@ -381,7 +381,7 @@ class JsonStore:
     def get_work_packages(self):
         db = self._read()
         wps = db.get("work_packages", [])
-        return sorted(wps, key=lambda x: x.get("date", ""), reverse=True)
+        return sorted(wps, key=lambda x: x.get("date", ""), reverse=False)
 
     def get_work_package(self, package_id: str) -> Optional[dict]:
         db = self._read()

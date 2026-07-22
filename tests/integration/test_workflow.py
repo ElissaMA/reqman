@@ -102,7 +102,7 @@ class TestUploadWorkPackage:
         # 检查Store中是否有工作包
         packages = store.get_work_packages()
         assert len(packages) >= 1
-        latest = packages[-1]
+        latest = packages[0]
         assert latest is not None
         items = latest.get("all_items", [])
         assert len(items) >= 1
@@ -146,7 +146,7 @@ class TestMatchAndGenerate:
         data = {"routine_file": (io.BytesIO(excel_data), "routine.xlsx")}
         prefilled_client.post("/upload", data=data)
         all_pkgs = store.get_work_packages()
-        pkg = all_pkgs[-1] if all_pkgs else None
+        pkg = all_pkgs[0] if all_pkgs else None
         pkg_id = str(pkg.get("id", len(all_pkgs))) if pkg else "1"
 
         resp = prefilled_client.post(f"/packages/{pkg_id}/rematch",
@@ -198,7 +198,7 @@ class TestMatchAndGenerate:
         pkgs = store.get_work_packages()
         if not pkgs:
             return  # 无工作包则跳过
-        pkg_id = str(pkgs[-1].get("id", len(pkgs)))
+        pkg_id = str(pkgs[0].get("id", len(pkgs)))
 
         # 先���成预览��触发匹配）
         resp = prefilled_client.get(f"/generate?package_id={pkg_id}",
@@ -224,7 +224,7 @@ class TestMatchAndGenerate:
         pkgs = store.get_work_packages()
         if not pkgs:
             return
-        pkg_id = str(pkgs[-1].get("id", len(pkgs)))
+        pkg_id = str(pkgs[0].get("id", len(pkgs)))
 
         # 生成（先预览让系统匹配）
         prefilled_client.get(f"/generate?package_id={pkg_id}")
