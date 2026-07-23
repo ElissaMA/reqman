@@ -108,7 +108,7 @@ def create_app():
     @app.route("/")
     def index():
         from flask import redirect
-        return redirect("/card/list")
+        return redirect("/upload")
 
     # API 规范文档端点
     @app.route("/api/spec")
