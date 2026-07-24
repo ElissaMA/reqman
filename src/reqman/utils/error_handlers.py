@@ -68,7 +68,7 @@ def raise_or_flash(exception_class, message, error_code=None, referer=None):
 def register_error_handlers(app):
     """在 Flask app 上注册所有错误处理器"""
 
-    # ---------- HTTPException（如 404/405/403 等�� ----------
+    # ---------- HTTPException（如 404/405/403 等类 ----------
     @app.errorhandler(HTTPException)
     def handle_http_exception(error):
         logger.warning("HTTP %s: %s %s", error.code, request.method, request.path)
@@ -107,7 +107,7 @@ def register_error_handlers(app):
         logger.exception("未捕获异常: %s %s", request.method, request.path)
         if _wants_json():
             return api_error(
-                message="服务器内部错误���请稍后重试",
+                message="服务器内部错误，请稍后重试",
                 error_code="INTERNAL_ERROR",
                 status_code=500,
             )

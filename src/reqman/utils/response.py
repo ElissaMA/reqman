@@ -2,7 +2,7 @@
 
 定义项目统一的 JSON 响应格式：
 - 成功: {"success": true, "data": {...}, "message": "..."}
-- ��误: {"success": false, "message": "...", "error_code": "..."}
+- 错误: {"success": false, "message": "...", "error_code": "..."}
 """
 
 from flask import jsonify
@@ -27,7 +27,7 @@ def api_error(message="操作失败", error_code="UNKNOWN_ERROR", status_code=40
 
 
 class ApiException(Exception):
-    """API 异常 —— 可在任意层抛��，由全局异常处理器捕获并转换为统一错误响应"""
+    """API 异常 —— 可在任意层抛出，由全局异常处理器捕获并转换为统一错误响应"""
 
     def __init__(self, message="操作失败", error_code="UNKNOWN_ERROR", status_code=400):
         super().__init__(message)

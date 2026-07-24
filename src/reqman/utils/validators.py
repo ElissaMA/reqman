@@ -1,6 +1,6 @@
 """请求参数验证工具
 
-���供常用验证函数，统一校验错误���式。
+提供常用验证函数，统一校验错误格式。
 """
 
 from .error_handlers import ValidationError
@@ -37,16 +37,16 @@ def validate_str_length(value, field, min_len=1, max_len=None, label=None):
 
 
 def validate_int(value, field, label=None):
-    """验证整数��段"""
+    """验证整数范围"""
     name = label or field
     try:
         return int(value)
     except (ValueError, TypeError):
-        raise ValidationError(f"{name}必须是��数")
+        raise ValidationError(f"{name}必须是数字")
 
 
 def validate_choice(value, choices, field, label=None):
-    """验证字段值必须在允许的选���中"""
+    """验证字段值必须在允许的选项中"""
     name = label or field
     if value not in choices:
         allowed = ", ".join(str(c) for c in choices)
@@ -67,7 +67,7 @@ def validate_file_extension(filename, allowed_extensions, label=None):
 
 
 def validate_tools_mats(tools, materials, tools_confirmed=False, materials_confirmed=False):
-    """验证���具/航材至少有一项或有确���标志"""
+    """验证工具/航材至少有一项或有确认标志"""
     if not tools and not tools_confirmed:
         raise ValidationError("请添加工具或确认无工具")
     if not materials and not materials_confirmed:

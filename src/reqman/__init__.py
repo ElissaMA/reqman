@@ -126,7 +126,7 @@ def create_app():
     from .utils.error_handlers import register_error_handlers
     register_error_handlers(app)
 
-    # 请求日志中间���
+    # 请求日志中间（增强版）
     app.wsgi_app = RequestLogMiddleware(app.wsgi_app)
 
     logger.info("应用初始化完成")

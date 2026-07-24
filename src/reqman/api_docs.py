@@ -15,7 +15,7 @@ ENDPOINTS = {
             {
                 "path": "/card/api/list",
                 "method": "GET",
-                "summary": "工���列表（分页+搜索+分类过滤）",
+                "summary": "工具列表（分页+搜索+分类过滤）",
                 "parameters": [
                     {"name": "search", "in": "query", "required": False, "schema": {"type": "string"}, "description": "搜索关键词（工卡号/名称）"},
                     {"name": "category", "in": "query", "required": False, "schema": {"type": "string"}, "description": "专业分类"},
@@ -151,7 +151,7 @@ ENDPOINTS = {
                     {"name": "package_id", "in": "formData", "required": True, "schema": {"type": "string"}},
                 ],
                 "responses": {
-                    "200": {"description": "返回 Excel 文件下��"},
+                    "200": {"description": "返回 Excel 文件下载"},
                     "400": {"description": "参数错误"},
                 }
             },

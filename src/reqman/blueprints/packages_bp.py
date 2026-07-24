@@ -91,13 +91,13 @@ def upload():
 
 
 def _handle_upload_post():
-    """处理���传 POST 请求逻辑"""
+    """处理上传 POST 请求逻辑"""
     store = current_app.extensions['store']
     routine_file = request.files.get("routine_file")
     other_file = request.files.get("other_file")
 
     if not routine_file and not other_file:
-        raise ValidationError("请至少上传��个文件", "NO_FILE")
+        raise ValidationError("请至少上传一个文件", "NO_FILE")
 
     all_items = []
     info_list = []
@@ -123,7 +123,7 @@ def _handle_upload_post():
             logger.warning("上传错误: %s", err)
         if not all_items:
             raise ValidationError("；".join(errors), "PARSE_FAILED")
-        # 部���成功：仅警告不阻断
+        # 部分成功：仅警告不阻断
 
     aircraft_info = merge_aircraft_info(info_list) if info_list else {}
 
@@ -180,5 +180,5 @@ def package_rematch(package_id):
 
     if _is_ajax():
         return api_success(message="重新匹配完成")
-    flash("重新匹配���成", "success")
+    flash("重新匹配完成", "success")
     return redirect("/upload")

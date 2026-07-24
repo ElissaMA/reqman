@@ -2,6 +2,22 @@
 {% import "macros/list_macros.html" as list %}
 {% block title %}生成需求单 - 定检需求单管理{% endblock %}
 {% block content %}
+<style>
+/* 表格行高统一 */
+.table td, .table th {
+    vertical-align: middle;
+    text-align: center;
+    height: 30px;
+    padding: 0.25rem;
+}
+.table th {
+    height: 60px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: bold;
+}
+</style>
 
 {% if not has_data %}
 <div class="card text-center py-5">
@@ -62,7 +78,7 @@
                             <th style="width:15%">项目需求</th>
                             <th style="width:25%">备注</th>
                             <th style="width:30%">负责</th>
-                            <th style="width:5%">MCC反馈（留空）</th>
+                            <th style="width:5%">MCC落实情况反馈</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -79,82 +95,10 @@
                                        name="cond_{{ i }}_remark" placeholder="备注"
                                        value="{% if i == 1 %}优先514/513，若不是，请通知{% endif %}"></td>
                             <td><input type="text" class="form-control form-control-sm"
-                                       name="cond_{{ i }}_resp" value="MCC负责" placeholder="负责方"></td>
-                            <td class="text-muted bg-light text-center small">留空</td>
+                                       name="cond_{{ i }}_resp" value="{% if i == 0 %}MCC总控、维修支援中队负责{% else %}MCC负责{% endif %}" placeholder="负责方"></td>
+                            <td class="text-muted bg-light"></td>
                         </tr>
                         {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- ===== ③ 工具区预览 ===== -->
-    <div class="card mb-3">
-        <div class="card-header">&#x2462; 工具区预览（自动匹配）</div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-bordered table-sm mb-0">
-                    <thead>
-                        <tr>
-                            <th>专业</th><th>设备名称</th><th>件号</th>
-                            <th>工作名称</th><th>数量</th><th>备注</th>
-                            <th class="text-muted">留空</th><th class="text-muted">留空</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% if tool_preview %}
-                        {% for t in tool_preview %}
-                        <tr>
-                            <td>{{ t.category }}{% if t.set_name %}<br><small class="text-info">[{{ t.set_name }}]</small>{% endif %}</td>
-                            <td>{{ t.device_name }}</td>
-                            <td>{{ t.part_number }}</td>
-                            <td>{% if t.set_name %}{{ t.set_name }}{% else %}{{ t.task_name[:40] }}{% if t.task_name|length > 40 %}...{% endif %}{% endif %}</td>
-                            <td>{{ t.quantity }}</td>
-                            <td>{{ t.remark }}</td>
-                            <td class="text-muted bg-light text-center small">留空</td>
-                            <td class="text-muted bg-light text-center small">留空</td>
-                        </tr>
-                        {% endfor %}
-                        {% else %}
-                        <tr><td colspan="8" class="text-center text-muted py-3">无"必须使用"工具数据</td></tr>
-                        {% endif %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- ===== ④ 航材区预览 ===== -->
-    <div class="card mb-3">
-        <div class="card-header">&#x2463; 航材区预览（自动匹配）</div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-bordered table-sm mb-0">
-                    <thead>
-                        <tr>
-                            <th>专业</th><th>航材名称</th><th>件号</th>
-                            <th>工作名称</th><th>数量</th><th>备注</th>
-                            <th class="text-muted">留空</th><th class="text-muted">留空</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% if material_preview %}
-                        {% for m in material_preview %}
-                        <tr>
-                            <td>{{ m.category }}{% if m.set_name %}<br><small class="text-info">[{{ m.set_name }}]</small>{% endif %}</td>
-                            <td>{{ m.material_name }}</td>
-                            <td>{{ m.part_number }}</td>
-                            <td>{% if m.set_name %}{{ m.set_name }}{% else %}{{ m.task_name[:40] }}{% if m.task_name|length > 40 %}...{% endif %}{% endif %}</td>
-                            <td>{{ m.quantity }}</td>
-                            <td>{{ m.remark }}</td>
-                            <td class="text-muted bg-light text-center small">留空</td>
-                            <td class="text-muted bg-light text-center small">留空</td>
-                        </tr>
-                        {% endfor %}
-                        {% else %}
-                        <tr><td colspan="8" class="text-center text-muted py-3">无"必须使用"航材数据</td></tr>
-                        {% endif %}
                     </tbody>
                 </table>
             </div>
@@ -196,31 +140,47 @@
         </div>
     </div>
 
-    <!-- ===== ⑥ 匹配的工卡组 ===== -->
+
+    <!-- ===== ③ 工具区预览 ===== -->
     <div class="card mb-3">
-        <div class="card-header">&#x2465; 匹配的工卡组</div>
+        <div class="card-header">&#x2462; 工具区预览（自动匹配）</div>
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-bordered table-sm mb-0">
                     <thead>
-                        <tr><th>工卡组名称</th><th>组内工卡号</th><th>工卡名称</th><th>专业</th></tr>
+                        <tr>
+                            <th style="width:7%">定检专业<br>（工具）</th>
+                            <th style="width:14%">设备名称</th>
+                            <th style="width:11%">件号</th>
+                            <th style="width:28%">工作名称</th>
+                            <th style="width:5%">数量</th>
+                            <th style="width:16%">备注</th>
+                            <th style="width:6%">库存<br>情况</th>
+                            <th style="width:7%">区域<br>放行</th>
+                            <th style="width:6%">工具房<br>确认</th>
+                        </tr>
                     </thead>
                     <tbody>
-                        {% if matched_sets %}
-                        {% for set_id, group in matched_sets.items() %}
-                        {% for card in group.cards %}
+                        {% if tool_groups %}
+                        {% for cat, items in tool_groups %}
+                        {% for t in items %}
                         <tr>
                             {% if loop.first %}
-                            <td rowspan="{{ group.cards|length }}"><strong>{{ group.set_name }}</strong></td>
+                            <td rowspan="{{ items|length }}" class="text-center fw-bold align-middle">{{ cat }}</td>
                             {% endif %}
-                            <td><code>{{ card.task_code }}</code></td>
-                            <td>{{ card.task_name }}</td>
-                            <td>{{ card.category }}</td>
+                            <td>{{ t.device_name }}</td>
+                            <td>{{ t.part_number }}</td>
+                            <td>{% if t.set_name %}{{ t.set_name }}{% else %}{{ t.task_name[:40] }}{% if t.task_name|length > 40 %}...{% endif %}{% endif %}</td>
+                            <td>{{ t.quantity }}</td>
+                            <td>{{ t.remark }}</td>
+                            <td class="bg-light text-center small"></td>
+                            <td class="bg-light text-center small"></td>
+                            <td class="bg-light text-center small"></td>
                         </tr>
                         {% endfor %}
                         {% endfor %}
                         {% else %}
-                        <tr><td colspan="4" class="text-center text-muted py-3">无匹配的工卡组</td></tr>
+                        <tr><td colspan="9" class="text-center text-muted py-3">无"必须使用"工具数据</td></tr>
                         {% endif %}
                     </tbody>
                 </table>
@@ -228,32 +188,97 @@
         </div>
     </div>
 
+    <!-- ===== ④ 航材区预览 ===== -->
+    <div class="card mb-3">
+        <div class="card-header">&#x2463; 航材区预览（自动匹配）</div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width:7%">定检专业<br>（航材）</th>
+                            <th style="width:14%">航材名称</th>
+                            <th style="width:11%">件号</th>
+                            <th style="width:28%">工作名称</th>
+                            <th style="width:5%">数量</th>
+                            <th style="width:16%">备注</th>
+                            <th style="width:6%">库存<br>情况</th>
+                            <th style="width:7%">区域<br>放行</th>
+                            <th style="width:6%">MCC<br>调配反馈</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if mat_groups %}
+                        {% for cat, items in mat_groups %}
+                        {% for m in items %}
+                        <tr>
+                            {% if loop.first %}
+                            <td rowspan="{{ items|length }}" class="text-center fw-bold align-middle">{{ cat }}</td>
+                            {% endif %}
+                            <td>{{ m.material_name }}</td>
+                            <td>{{ m.part_number }}</td>
+                            <td>{% if m.set_name %}{{ m.set_name }}{% else %}{{ m.task_name[:40] }}{% if m.task_name|length > 40 %}...{% endif %}{% endif %}</td>
+                            <td>{{ m.quantity }}</td>
+                            <td>{{ m.remark }}</td>
+                            <td class="bg-light text-center small"></td>
+                            <td class="bg-light text-center small"></td>
+                            <td class="bg-light text-center small"></td>
+                        </tr>
+                        {% endfor %}
+                        {% endfor %}
+                        {% else %}
+                        <tr><td colspan="9" class="text-center text-muted py-3">无"必须使用"航材数据</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+
+
     <!-- ===== ⑦ 备用工具航材 ===== -->
     <div class="card mb-3">
         <div class="card-header">&#x2466; 备用工具航材预览</div>
-        <div class="card-body">
-            <!-- 自动部分 -->
-            <div class="table-responsive mb-3">
-                <p class="small text-muted mb-1">自动部分（"检查有问题领用"项目）：</p>
+        <div class="card-body p-0">
+            <div class="table-responsive">
                 <table class="table table-bordered table-sm mb-0">
                     <thead>
-                        <tr><th>专业</th><th>名称</th><th>件号</th><th>备注</th><th>数量</th><th class="text-muted">留空</th></tr>
+                        <tr>
+                            <th style="width:7%">定检专业<br>（备用）</th>
+                            <th style="width:14%">航材名称</th>
+                            <th style="width:11%">件号</th>
+                            <th style="width:28%">工作名称</th>
+                            <th style="width:5%">数量</th>
+                            <th style="width:16%">备注</th>
+                            <th style="width:6%">库存<br>情况</th>
+                            <th style="width:7%">调配<br>数量</th>
+                            <th style="width:6%">MCC<br>调配反馈</th>
+                        </tr>
                     </thead>
                     <tbody>
-                        {% if spare_auto %}
-                        {% for s in spare_auto %}
+                        {% if spare_groups %}
+                        {% for cat, items in spare_groups %}
+                        {% for s in items %}
                         <tr>
-                            <td>{{ s.category }}</td>
+                            {% if loop.first %}
+                            <td rowspan="{{ items|length }}" class="text-center fw-bold align-middle">{{ cat }}</td>
+                            {% endif %}
                             <td>{{ s.material_name or s.device_name or '' }}</td>
                             <td>{{ s.part_number }}</td>
-                            <td>{{ s.remark or '检查有问题领用' }}</td>
+                            <td>{{ s.task_name or '' }}</td>
                             <td>{{ s.quantity }}</td>
-                            <td class="text-muted bg-light text-center small">留空</td>
+                            <td>{{ s.remark or '检查有问题领用' }}</td>
+                            <td class="bg-light text-center small"></td>
+                            <td class="bg-light text-center small"></td>
+                            <td class="bg-light text-center small"></td>
                         </tr>
+                        {% endfor %}
                         {% endfor %}
                         {% else %}
                         {% for cat in categories %}
-                        <tr><td>{{ cat }}</td><td>(暂无)</td><td></td><td></td><td></td><td class="text-muted bg-light text-center small">留空</td></tr>
+                        <tr><td class="text-center fw-bold align-middle">{{ cat }}</td><td class="text-muted">(暂无)</td><td class="bg-light"></td><td class="bg-light"></td><td class="bg-light"></td><td class="bg-light"></td><td class="bg-light"></td><td class="bg-light"></td><td class="bg-light"></td></tr>
                         {% endfor %}
                         {% endif %}
                     </tbody>
@@ -282,3 +307,6 @@ function confirmGen() {
 }
 </script>
 {% endblock %}
+
+
+

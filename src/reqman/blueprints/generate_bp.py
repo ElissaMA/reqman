@@ -103,7 +103,7 @@ def generate():
 
 
 def _dedup_matched(matched):
-    """按 set_id 去��，每组只取第一条"""
+    """按 set_id 去重，每组只取第一条"""
     seen = set()
     for item in matched:
         sid = item.get("set_id")
@@ -162,7 +162,7 @@ def _handle_generate_post(pkg_data: dict, package_id: str):
         "spare_items": spare_items,
     }
 
-    # 组装匹配数据���按set_id去重，同组只输出一套工具/航材���
+    # 组装匹配数据（按set_id去重，同组只输出一套工具/航材）
     matched_tools, matched_mats, spare_auto = [], [], []
 
     for item in _dedup_matched(pkg_data.get("matched", [])):
@@ -239,7 +239,7 @@ def _handle_generate_preview(pkg_data: dict, package_id: str):
     # 分类排序权重
     cat_order = {"发动机": 0, "机体": 1, "电子": 2}
 
-    # 预览工具/航材/备用（按set_id去重，每组只取第一条代表输出���
+    # 预览工具/航材/备用（按set_id去重，每组只取第一条代表输出）
     tool_preview, mat_preview, spare_preview = [], [], []
 
     for item in _dedup_matched(matched):
@@ -265,6 +265,14 @@ def _handle_generate_preview(pkg_data: dict, package_id: str):
         return [c for c in CATEGORIES
                 if any(t.get("category") == c for t in lst)]
 
+    def _group_by_category(lst):
+        """按专业分组，返回 [(category, [items])]"""
+        grouped = {}
+        for item in lst:
+            cat = item.get("category", "")
+            grouped.setdefault(cat, []).append(item)
+        return [(cat, grouped[cat]) for cat in CATEGORIES if cat in grouped]
+
     return render_template("generate/form.html",
                            has_data=True,
                            package_id=package_id,
@@ -279,6 +287,9 @@ def _handle_generate_preview(pkg_data: dict, package_id: str):
                            tool_cats=_active_cats(tool_preview),
                            mat_cats=_active_cats(mat_preview),
                            spare_cats=_active_cats(spare_preview),
+                           tool_groups=_group_by_category(tool_preview),
+                           mat_groups=_group_by_category(mat_preview),
+                           spare_groups=_group_by_category(spare_preview),
                            routine_count=routine_count,
                            other_count=other_count,
                            now=datetime.now(),
