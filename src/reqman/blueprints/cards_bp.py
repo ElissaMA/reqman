@@ -344,7 +344,7 @@ def card_set_edit(set_id):
 
     all_cards = current_app.extensions['card_service'].list_cards()
     cards_in_set = current_app.extensions['card_service'].get_cards_in_set(set_id)
-    set_card_codes = [c["task_code"] for c in cards_in_set]
+    set_card_codes = [{"code": c["task_code"], "name": c.get("task_name", "")} for c in cards_in_set]
     return render_template("cards/set_form.html",
                            set_item=s,
                            all_cards=all_cards,
