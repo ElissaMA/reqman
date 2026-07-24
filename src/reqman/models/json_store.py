@@ -42,6 +42,8 @@ _EMPTY_DB = {
     "cards": {},
     "card_sets": {},
     "aircraft": {},
+    "card_logs": [],
+    "card_log_next_id": 1,
 }
 
 
@@ -67,6 +69,14 @@ class JsonStore:
             "fsn": "", "msn": "", "apu": "",
         },
     }
+
+    # 字段映射表（用于变更检测）
+    _CARD_FIELDS = ["task_code", "task_name", "category", "task_type", "remark",
+                    "tools", "materials", "tools_confirmed", "materials_confirmed",
+                    "set_id", "reminder_type"]
+    _SET_FIELDS = ["name", "description", "category", "tools", "materials",
+                   "tools_confirmed", "materials_confirmed"]
+    _AIRCRAFT_FIELDS = ["reg", "model", "engine", "fsn", "msn", "apu"]
 
     def _norm(self, d, kind):
         defaults = self._FIELDS[kind]
@@ -134,6 +144,43 @@ class JsonStore:
         for cid, card in db.get("cards", {}).items():
             db["code_index"][card["task_code"]] = int(cid)
 
+    # ---------- 日志辅助方法 ----------
+
+    @staticmethod
+    def _detect_changes(old_data: dict, new_data: dict, field_map: list) -> list:
+        """检测两个数据字典之间的变更，返回 changes 列表"""
+        changes = []
+        for field in field_map:
+            old_val = old_data.get(field)
+            new_val = new_data.get(field)
+            if old_val != new_val:
+                changes.append({
+                    "field": field,
+                    "old": old_val,
+                    "new": new_val,
+                })
+        return changes
+
+    def _add_log(self, db: dict, operation: str, target_type: str,
+                 target_id: int, target_identifier: str, target_name: str,
+                 changes: list) -> dict:
+        """添加变更日志到 db（调用方需持有 _lock）"""
+        from datetime import datetime
+        log_id = db["card_log_next_id"]
+        db["card_log_next_id"] = log_id + 1
+        log_entry = {
+            "id": log_id,
+            "operation": operation,
+            "target_type": target_type,
+            "target_id": target_id,
+            "target_identifier": target_identifier,
+            "target_name": target_name,
+            "changes": changes,
+            "timestamp": datetime.now().isoformat(),
+        }
+        db.setdefault("card_logs", []).append(log_entry)
+        return log_entry
+
     # ---------- 工卡 CRUD ----------
 
     def get_all(self, search: str = "", category: str = "") -> list[dict]:
@@ -200,6 +247,7 @@ class JsonStore:
             db.setdefault("cards", {})[str(card_id)] = card
             db.setdefault("code_index", {})[task_code] = card_id
 
+            self._add_log(db, "add", "card", card_id, task_code, task_name, [])
             self._write(db)
             return self._norm(card, "card")
 
@@ -210,6 +258,7 @@ class JsonStore:
             if card is None:
                 return None
 
+            old_card = dict(card)  # 变更前快照
             old_code = card.get("task_code")
 
             for key in ("task_code", "task_name", "category",
@@ -226,6 +275,9 @@ class JsonStore:
                 if new_code:
                     db["code_index"][new_code] = card_id
 
+            changes = self._detect_changes(old_card, card, self._CARD_FIELDS)
+            self._add_log(db, "update", "card", card_id,
+                          card.get("task_code", ""), card.get("task_name", ""), changes)
             self._write(db)
             return self._norm(card, "card")
 
@@ -237,6 +289,8 @@ class JsonStore:
                 return False
 
             db["code_index"].pop(card.get("task_code"), None)
+            self._add_log(db, "delete", "card", card_id,
+                          card.get("task_code", ""), card.get("task_name", ""), [])
             self._write(db)
             return True
 
@@ -269,6 +323,7 @@ class JsonStore:
                 "materials_confirmed": False,
             }
             db.setdefault("card_sets", {})[str(sid)] = s
+            self._add_log(db, "add", "set", sid, name, name, [])
             self._write(db)
             return dict(s)
 
@@ -279,11 +334,15 @@ class JsonStore:
             if s is None:
                 return None
 
+            old_s = dict(s)  # 变更前快照
             for key in ("name", "description", "category", "tools",
                          "materials", "tools_confirmed", "materials_confirmed"):
                 if key in kwargs and kwargs[key] is not None:
                     s[key] = kwargs[key]
 
+            changes = self._detect_changes(old_s, s, self._SET_FIELDS)
+            self._add_log(db, "update", "set", set_id,
+                          s.get("name", ""), s.get("name", ""), changes)
             self._write(db)
             return dict(s)
 
@@ -298,7 +357,9 @@ class JsonStore:
                 if card.get("set_id") == set_id:
                     card["set_id"] = None
 
-            db["card_sets"].pop(str(set_id))
+            s = db["card_sets"].pop(str(set_id))
+            self._add_log(db, "delete", "set", set_id,
+                          s.get("name", ""), s.get("name", ""), [])
             self._write(db)
             return True
 
@@ -343,6 +404,7 @@ class JsonStore:
                 "apu": apu,
             }
             db.setdefault("aircraft", {})[str(ac_id)] = ac
+            self._add_log(db, "add", "aircraft", ac_id, reg, model, [])
             self._write(db)
             return self._norm(ac, "aircraft")
 
@@ -353,10 +415,14 @@ class JsonStore:
             if ac is None:
                 return None
 
+            old_ac = dict(ac)  # 变更前快照
             for key in ("reg", "model", "engine", "fsn", "msn", "apu"):
                 if key in kwargs:
                     ac[key] = kwargs[key]
 
+            changes = self._detect_changes(old_ac, ac, self._AIRCRAFT_FIELDS)
+            self._add_log(db, "update", "aircraft", aircraft_id,
+                          ac.get("reg", ""), ac.get("model", ""), changes)
             self._write(db)
             return self._norm(ac, "aircraft")
 
@@ -406,7 +472,9 @@ class JsonStore:
             db = self._read()
             if str(aircraft_id) not in db.get("aircraft", {}):
                 return False
-            db["aircraft"].pop(str(aircraft_id))
+            ac = db["aircraft"].pop(str(aircraft_id))
+            self._add_log(db, "delete", "aircraft", aircraft_id,
+                          ac.get("reg", ""), ac.get("model", ""), [])
             self._write(db)
             return True
 
@@ -426,3 +494,50 @@ class JsonStore:
                     card["tools"] = list(tools)
                     card["materials"] = list(materials)
             self._write(db)
+
+    # ---------- 日志查询 ----------
+
+    def get_logs(self, operation: str = None, target_type: str = None,
+                 start_date: str = None, end_date: str = None,
+                 limit: int = 100) -> list[dict]:
+        """查询日志，支持按操作类型、目标类型、时间范围筛选，按时间降序"""
+        db = self._read()
+        logs = list(db.get("card_logs", []))
+        if operation:
+            logs = [l for l in logs if l.get("operation") == operation]
+        if target_type:
+            logs = [l for l in logs if l.get("target_type") == target_type]
+        if start_date:
+            logs = [l for l in logs if l.get("timestamp", "") >= start_date]
+        if end_date:
+            logs = [l for l in logs if l.get("timestamp", "") <= end_date]
+        logs.sort(key=lambda l: l.get("timestamp", ""), reverse=True)
+        return logs[:limit]
+
+    def delete_logs(self, log_ids: list[int]) -> int:
+        """删除指定 ID 的日志，返回删除数量"""
+        with self._lock:
+            db = self._read()
+            logs = db.get("card_logs", [])
+            id_set = set(log_ids)
+            new_logs = [l for l in logs if l.get("id") not in id_set]
+            deleted = len(logs) - len(new_logs)
+            if deleted:
+                db["card_logs"] = new_logs
+                self._write(db)
+            return deleted
+
+    def cleanup_old_logs(self, days: int = 30) -> int:
+        """清理指定天数之前的旧日志，返回删除数量"""
+        from datetime import datetime, timedelta
+        with self._lock:
+            db = self._read()
+            cutoff = datetime.now() - timedelta(days=days)
+            cutoff_str = cutoff.isoformat()
+            logs = db.get("card_logs", [])
+            new_logs = [l for l in logs if l.get("timestamp", "") >= cutoff_str]
+            deleted = len(logs) - len(new_logs)
+            if deleted:
+                db["card_logs"] = new_logs
+                self._write(db)
+            return deleted

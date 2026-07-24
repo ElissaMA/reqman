@@ -95,14 +95,25 @@ def create_app():
     app.extensions["card_service"] = CardService(app.extensions["store"])
     logger.info("依赖注入完成：store + card_service")
 
+    # 启动时清理30天前的日志
+    try:
+        store = app.extensions["store"]
+        deleted = store.cleanup_old_logs(days=30)
+        if deleted > 0:
+            logger.info("启动清理：已删除 %d 条过期日志", deleted)
+    except Exception:
+        logger.warning("启动时日志清理失败，跳过", exc_info=True)
+
     # 蓝图
     from .blueprints.cards_bp import cards_bp
     from .blueprints.packages_bp import packages_bp
     from .blueprints.generate_bp import generate_bp
+    from .blueprints.logs_bp import bp as logs_bp
 
     app.register_blueprint(cards_bp)
     app.register_blueprint(packages_bp)
     app.register_blueprint(generate_bp)
+    app.register_blueprint(logs_bp)
 
     # 根路由
     @app.route("/")

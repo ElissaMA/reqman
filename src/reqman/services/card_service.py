@@ -313,3 +313,25 @@ class CardService:
                 remove_idx.append(i)
         for idx in reversed(remove_idx):
             new_cards.pop(idx)
+
+    # ---------- 日志 ----------
+
+    def get_logs(self, operation: str = "", target_type: str = "",
+                 start_date: str = "", end_date: str = "") -> list[dict]:
+        """查询日志"""
+        return self.store.get_logs(
+            operation=operation or None,
+            target_type=target_type or None,
+            start_date=start_date or None,
+            end_date=end_date or None,
+        )
+
+    def delete_logs(self, log_ids: list[int]) -> int:
+        """删除指定 ID 的日志，返回删除数量"""
+        return self.store.delete_logs(log_ids)
+
+    def get_logs_by_ids(self, log_ids: list[int]) -> list[dict]:
+        """根据 ID 列表查询日志"""
+        all_logs = self.store.get_logs()
+        id_set = set(log_ids)
+        return [l for l in all_logs if l.get("id") in id_set]

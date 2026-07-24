@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+{% block title %}操作日志 - 定检需求单管理{% endblock %}
+{% block content %}
+
+<style>
+.log-table td, .log-table th {
+    vertical-align: middle;
+}
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">操作日志</h5>
+</div>
+
+<!-- 筛选区域 -->
+<div class="card mb-3">
+    <div class="card-body py-3">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label small mb-1 text-muted">操作类型</label>
+                <select name="operation" class="form-select form-select-sm" style="width:110px">
+                    <option value="">全部</option>
+                    {% for k, v in operation_labels.items() %}
+                    <option value="{{ k }}" {{ 'selected' if request.args.get('operation') == k }}>{{ v }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label small mb-1 text-muted">目标类型</label>
+                <select name="target_type" class="form-select form-select-sm" style="width:110px">
+                    <option value="">全部</option>
+                    {% for k, v in target_type_labels.items() %}
+                    <option value="{{ k }}" {{ 'selected' if request.args.get('target_type') == k }}>{{ v }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label small mb-1 text-muted">开始日期</label>
+                <input type="date" name="date_from" class="form-control form-control-sm"
+                       value="{{ request.args.get('date_from', '') }}" style="width:150px">
+            </div>
+            <div class="col-auto">
+                <label class="form-label small mb-1 text-muted">结束日期</label>
+                <input type="date" name="date_to" class="form-control form-control-sm"
+                       value="{{ request.args.get('date_to', '') }}" style="width:150px">
+            </div>
+            <div class="col-auto">
+                <label class="form-label small mb-1 text-muted">关键词</label>
+                <input type="text" name="keyword" class="form-control form-control-sm"
+                       value="{{ request.args.get('keyword', '') }}" placeholder="标识/名称" style="width:160px">
+            </div>
+            <div class="col-auto d-flex gap-1">
+                <button type="submit" class="btn btn-sm btn-primary">筛选</button>
+                <a href="/card/logs" class="btn btn-sm btn-outline-secondary">重置</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 日志列表 -->
+<div class="card">
+    <div class="card-body p-0">
+        {% if logs %}
+        <form method="POST" id="logsForm">
+            <!-- 操作栏 -->
+            <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom bg-body-tertiary">
+                <span class="small text-muted">
+                    共 <strong>{{ total }}</strong> 条日志
+                    <span id="selectedCount" class="ms-2 d-none">
+                        · 已选 <strong class="text-primary">0</strong> 条
+                    </span>
+                </span>
+                <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-outline-primary" onclick="exportSelected()">
+                        导出选中
+                    </button>
+                    <button type="button" class="btn btn-outline-danger" onclick="deleteSelected()">
+                        删除选中
+                    </button>
+                </div>
+            </div>
+
+            <!-- 表格 -->
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0 log-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width:40px">
+                                <input type="checkbox" id="selectAll" onchange="toggleAll(this)">
+                            </th>
+                            <th style="width:50px">ID</th>
+                            <th style="width:150px">时间</th>
+                            <th style="width:80px">操作</th>
+                            <th style="width:80px">目标类型</th>
+                            <th>目标标识</th>
+                            <th>目标名称</th>
+                            <th>变更内容</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs %}
+                        <tr>
+                            <td><input type="checkbox" name="log_ids[]" value="{{ log.id }}"></td>
+                            <td class="text-muted small">{{ log.id }}</td>
+                            <td class="small" title="{{ log.timestamp }}">{{ (log.timestamp or '')[:19] }}</td>
+                            <td>
+                                {% set op_label = operation_labels.get(log.operation, log.operation) %}
+                                {% if log.operation == 'add' %}
+                                <span class="badge bg-success">{{ op_label }}</span>
+                                {% elif log.operation == 'update' %}
+                                <span class="badge bg-primary">{{ op_label }}</span>
+                                {% elif log.operation == 'delete' %}
+                                <span class="badge bg-danger">{{ op_label }}</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ op_label }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% set tt_label = target_type_labels.get(log.target_type, log.target_type) %}
+                                {% if log.target_type == 'card' %}
+                                <span class="badge bg-info text-dark">{{ tt_label }}</span>
+                                {% elif log.target_type == 'card_set' %}
+                                <span class="badge bg-warning text-dark">{{ tt_label }}</span>
+                                {% elif log.target_type == 'aircraft' %}
+                                <span class="badge bg-secondary">{{ tt_label }}</span>
+                                {% else %}
+                                <span class="badge bg-light text-dark">{{ tt_label }}</span>
+                                {% endif %}
+                            </td>
+                            <td><code class="small">{{ log.target_identifier }}</code></td>
+                            <td class="small">{{ log.target_name }}</td>
+                            <td class="small" style="max-width:350px">
+                                {% set changes = log.get('changes', []) %}
+                                {% if changes %}
+                                {% set first = changes[0] %}
+                                {% set flabel = field_labels.get(first.field, first.field) %}
+                                <span title="{{ format_changes(changes)|e }}">
+                                    {{ flabel }}: {{ first.get('new', '')[:40] }}
+                                    {% if changes|length > 1 %}
+                                    <span class="text-muted">…等{{ changes|length }}项</span>
+                                    {% endif %}
+                                </span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </form>
+
+        <!-- 分页 -->
+        {% if total_pages > 1 %}
+        <div class="d-flex justify-content-center py-2 border-top">
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item {{ 'disabled' if page <= 1 }}">
+                        <a class="page-link" href="?page={{ page - 1 }}{{ query_params }}">上一页</a>
+                    </li>
+                    {% for p in range(1, total_pages + 1) %}
+                    <li class="page-item {{ 'active' if p == page }}">
+                        <a class="page-link" href="?page={{ p }}{{ query_params }}">{{ p }}</a>
+                    </li>
+                    {% endfor %}
+                    <li class="page-item {{ 'disabled' if page >= total_pages }}">
+                        <a class="page-link" href="?page={{ page + 1 }}{{ query_params }}">下一页</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <!-- 空状态 -->
+        <div class="text-center py-5 text-muted">
+            <p class="mb-1 fs-5">暂无日志记录</p>
+            <small>当前筛选条件下没有找到操作日志</small>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function toggleAll(cb) {
+    document.querySelectorAll('input[name="log_ids[]"]').forEach(function(c) { c.checked = cb.checked; });
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    var checks = document.querySelectorAll('input[name="log_ids[]"]:checked');
+    var span = document.getElementById('selectedCount');
+    if (checks.length) {
+        span.classList.remove('d-none');
+        span.querySelector('strong').textContent = checks.length;
+    } else {
+        span.classList.add('d-none');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('input[name="log_ids[]"]').forEach(function(cb) {
+        cb.addEventListener('change', updateSelectedCount);
+    });
+});
+
+function getSelectedIds() {
+    var checks = document.querySelectorAll('input[name="log_ids[]"]:checked');
+    return Array.from(checks).map(function(c) { return c.value; });
+}
+
+function exportSelected() {
+    var ids = getSelectedIds();
+    if (!ids.length) { alert('请先选择要导出的日志'); return; }
+    var f = document.createElement('form');
+    f.method = 'POST';
+    f.action = '/card/logs/export';
+    ids.forEach(function(id) {
+        var inp = document.createElement('input');
+        inp.type = 'hidden';
+        inp.name = 'log_ids[]';
+        inp.value = id;
+        f.appendChild(inp);
+    });
+    document.body.appendChild(f);
+    f.submit();
+    document.body.removeChild(f);
+}
+
+function deleteSelected() {
+    var ids = getSelectedIds();
+    if (!ids.length) { alert('请先选择要删除的日志'); return; }
+    if (!confirm('确定删除选中的 ' + ids.length + ' 条日志？此操作不可恢复。')) return;
+    var f = document.createElement('form');
+    f.method = 'POST';
+    f.action = '/card/logs/delete';
+    ids.forEach(function(id) {
+        var inp = document.createElement('input');
+        inp.type = 'hidden';
+        inp.name = 'log_ids[]';
+        inp.value = id;
+        f.appendChild(inp);
+    });
+    document.body.appendChild(f);
+    f.submit();
+    document.body.removeChild(f);
+}
+</script>
+{% endblock %}
