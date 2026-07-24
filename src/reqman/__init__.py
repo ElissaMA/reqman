@@ -95,15 +95,12 @@ def create_app():
     app.extensions["card_service"] = CardService(app.extensions["store"])
     logger.info("依赖注入完成：store + card_service")
 
-    # 启动时清理日志
+    # 启动时清理日志（保留最新200条）
     try:
         store = app.extensions["store"]
-        # 按时间清理30天前
-        deleted = store.cleanup_old_logs(days=30)
-        # 按总量清理，保留最新100条
-        trimmed = store.trim_logs(max_count=100)
-        if deleted or trimmed:
-            logger.info("启动清理：删除 %d 条过期日志，裁剪 %d 条多余日志", deleted, trimmed)
+        trimmed = store.trim_logs(max_count=200)
+        if trimmed:
+            logger.info("启动清理：裁剪 %d 条多余日志", trimmed)
     except Exception:
         logger.warning("启动时日志清理失败", exc_info=True)
 

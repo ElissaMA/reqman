@@ -527,22 +527,7 @@ class JsonStore:
                 self._write(db)
             return deleted
 
-    def cleanup_old_logs(self, days: int = 30) -> int:
-        """清理指定天数之前的旧日志，返回删除数量"""
-        from datetime import datetime, timedelta
-        with self._lock:
-            db = self._read()
-            cutoff = datetime.now() - timedelta(days=days)
-            cutoff_str = cutoff.isoformat()
-            logs = db.get("card_logs", [])
-            new_logs = [l for l in logs if l.get("timestamp", "") >= cutoff_str]
-            deleted = len(logs) - len(new_logs)
-            if deleted:
-                db["card_logs"] = new_logs
-                self._write(db)
-            return deleted
-
-    def trim_logs(self, max_count: int = 100) -> int:
+    def trim_logs(self, max_count: int = 200) -> int:
         """保留最新N条日志，删除多余的，返回删除数量"""
         with self._lock:
             db = self._read()
