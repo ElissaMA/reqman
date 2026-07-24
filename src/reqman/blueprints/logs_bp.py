@@ -2,6 +2,7 @@
 
 import logging
 from datetime import datetime, timedelta
+from urllib.parse import urlencode
 
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, send_file
 from flask import current_app
@@ -26,7 +27,7 @@ OPERATION_LABELS = {
 # 目标类型中文显示
 TARGET_TYPE_LABELS = {
     "card": "工卡",
-    "card_set": "工卡组",
+    "set": "工卡组",
     "aircraft": "飞机信息",
 }
 
@@ -131,9 +132,7 @@ def list_logs():
 
     # 保留筛选参数（除 page 外）用于分页链接
     qp = {k: v for k, v in request.args.items() if k != "page"}
-    query_params = "&".join(f"{k}={v}" for k, v in qp.items())
-    if query_params:
-        query_params = "&" + query_params
+    query_params = "&" + urlencode(qp) if qp else ""
 
     return render_template(
         "cards/logs.html",

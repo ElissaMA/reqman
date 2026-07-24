@@ -99,6 +99,7 @@
                 </div>
                 {{ tables.tool_table(set_item.tools if set_item else [], usage_types, editable=true, show_delete=true) }}
             </div>
+            </div>
             <div class="mb-2">
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="confirmNoTools" name="confirm_no_tools" value="1"
@@ -107,7 +108,6 @@
                         确认无工具
                     </label>
                 </div>
-            </div>
             </div>
 
             <!-- 航材清单 -->
@@ -120,6 +120,7 @@
                 </div>
                 {{ tables.material_table(set_item.materials if set_item else [], usage_types, editable=true, show_delete=true) }}
             </div>
+            </div>
             <div class="mb-2">
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="confirmNoMats" name="confirm_no_mats" value="1"
@@ -128,7 +129,6 @@
                         确认无航材
                     </label>
                 </div>
-            </div>
             </div>
 
             <div class="d-flex justify-content-between">

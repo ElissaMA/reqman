@@ -541,3 +541,17 @@ class JsonStore:
                 db["card_logs"] = new_logs
                 self._write(db)
             return deleted
+
+    def trim_logs(self, max_count: int = 100) -> int:
+        """保留最新N条日志，删除多余的，返回删除数量"""
+        with self._lock:
+            db = self._read()
+            logs = db.get("card_logs", [])
+            if len(logs) <= max_count:
+                return 0
+            # 按时间降序排列，保留前max_count条
+            logs.sort(key=lambda l: l.get("timestamp", ""), reverse=True)
+            deleted_count = len(logs) - max_count
+            db["card_logs"] = logs[:max_count]
+            self._write(db)
+            return deleted_count

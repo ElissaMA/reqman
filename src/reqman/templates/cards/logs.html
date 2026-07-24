@@ -135,7 +135,7 @@
                                 {% set first = changes[0] %}
                                 {% set flabel = field_labels.get(first.field, first.field) %}
                                 <span title="{{ format_changes(changes)|e }}">
-                                    {{ flabel }}: {{ first.get('new', '')|string[:40] }}
+                                    {{ flabel }}: {{ (first.get('new', '')|string)[:40] }}
                                     {% if changes|length > 1 %}
                                     <span class="text-muted">…等{{ changes|length }}项</span>
                                     {% endif %}
