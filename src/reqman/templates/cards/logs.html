@@ -13,6 +13,29 @@
     <div class="card-body py-3">
         <form method="GET" class="row g-2 align-items-end">
             <div class="col-auto">
+                <label class="form-label small mb-1 text-muted">操作类型</label>
+                <select name="operation" class="form-select form-select-sm" style="width:100px">
+                    <option value="">全部</option>
+                    <option value="add" {{ 'selected' if request.args.get('operation') == 'add' }}>新增</option>
+                    <option value="update" {{ 'selected' if request.args.get('operation') == 'update' }}>修改</option>
+                    <option value="delete" {{ 'selected' if request.args.get('operation') == 'delete' }}>删除</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label small mb-1 text-muted">目标类型</label>
+                <select name="target_type" class="form-select form-select-sm" style="width:100px">
+                    <option value="">全部</option>
+                    <option value="card" {{ 'selected' if request.args.get('target_type') == 'card' }}>工卡</option>
+                    <option value="card_set" {{ 'selected' if request.args.get('target_type') == 'card_set' }}>工卡组</option>
+                    <option value="aircraft" {{ 'selected' if request.args.get('target_type') == 'aircraft' }}>飞机信息</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label small mb-1 text-muted">关键词</label>
+                <input type="text" name="keyword" class="form-control form-control-sm"
+                       value="{{ request.args.get('keyword', '') }}" placeholder="搜索..." style="width:120px">
+            </div>
+            <div class="col-auto">
                 <label class="form-label small mb-1 text-muted">提交日期</label>
                 <input type="date" name="date_from" class="form-control form-control-sm"
                        value="{{ request.args.get('date_from', '') }}" style="width:150px">

@@ -70,6 +70,22 @@ def _build_filtered_logs(args: dict) -> list:
         return []
     logs = list(service.store.get_logs())
 
+    # 按操作类型筛选
+    operation = args.get("operation", "").strip()
+    if operation:
+        logs = [l for l in logs if l.get("operation") == operation]
+
+    # 按目标类型筛选
+    target_type = args.get("target_type", "").strip()
+    if target_type:
+        logs = [l for l in logs if l.get("target_type") == target_type]
+
+    # 按关键词搜索（目标标识/目标名称）
+    keyword = args.get("keyword", "").strip()
+    if keyword:
+        kw = keyword.lower()
+        logs = [l for l in logs if kw in (l.get("target_identifier") or "").lower() or kw in (l.get("target_name") or "").lower()]
+
     # 按日期筛选
     date_from = args.get("date_from", "").strip()
     if date_from:

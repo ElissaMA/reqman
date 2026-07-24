@@ -2945,6 +2945,83 @@
           "quantity": "按需",
           "remark": "",
           "usage_type": "必须使用"
+        },
+        {
+          "material_name": "放气活门和主滚珠丝杆作动组件",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "VBV主柔性轴",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "燃油齿轮马达组件",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "止动机构",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "位置传感器开口销",
+          "part_number": "649-001-211-0",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "位置传感器螺帽",
+          "part_number": "J1092P03",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "位置传感器垫片",
+          "part_number": "649-341-010-0",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "清洗剂",
+          "part_number": "RH-P-680-20L",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防咬合剂",
+          "part_number": "NYCOGREASEGNGA47",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "凡士林",
+          "part_number": "VV-P-236",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "化学品",
+          "part_number": "BRISAL-OX 50-855",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
         }
       ],
       "set_id": 939,
@@ -3022,6 +3099,83 @@
           "material_name": "可调放气活门位置传感器",
           "part_number": "VG22-01",
           "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "放气活门和主滚珠丝杆作动组件",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "VBV主柔性轴",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "燃油齿轮马达组件",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "止动机构",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "位置传感器开口销",
+          "part_number": "649-001-211-0",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "位置传感器螺帽",
+          "part_number": "J1092P03",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "位置传感器垫片",
+          "part_number": "649-341-010-0",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "清洗剂",
+          "part_number": "RH-P-680-20L",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防咬合剂",
+          "part_number": "NYCOGREASEGNGA47",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "凡士林",
+          "part_number": "VV-P-236",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "化学品",
+          "part_number": "BRISAL-OX 50-855",
+          "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
         }
@@ -3103,6 +3257,83 @@
           "quantity": "按需",
           "remark": "",
           "usage_type": "必须使用"
+        },
+        {
+          "material_name": "放气活门和主滚珠丝杆作动组件",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "VBV主柔性轴",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "燃油齿轮马达组件",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "止动机构",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "位置传感器开口销",
+          "part_number": "649-001-211-0",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "位置传感器螺帽",
+          "part_number": "J1092P03",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "位置传感器垫片",
+          "part_number": "649-341-010-0",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "清洗剂",
+          "part_number": "RH-P-680-20L",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防咬合剂",
+          "part_number": "NYCOGREASEGNGA47",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "凡士林",
+          "part_number": "VV-P-236",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "化学品",
+          "part_number": "BRISAL-OX 50-855",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
         }
       ],
       "set_id": 939,
@@ -3180,6 +3411,83 @@
           "material_name": "可调放气活门位置传感器",
           "part_number": "VG22-01",
           "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "放气活门和主滚珠丝杆作动组件",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "VBV主柔性轴",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "燃油齿轮马达组件",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "止动机构",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "位置传感器开口销",
+          "part_number": "649-001-211-0",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "位置传感器螺帽",
+          "part_number": "J1092P03",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "位置传感器垫片",
+          "part_number": "649-341-010-0",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "清洗剂",
+          "part_number": "RH-P-680-20L",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防咬合剂",
+          "part_number": "NYCOGREASEGNGA47",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "凡士林",
+          "part_number": "VV-P-236",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "化学品",
+          "part_number": "BRISAL-OX 50-855",
+          "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
         }
@@ -3261,6 +3569,83 @@
           "quantity": "按需",
           "remark": "",
           "usage_type": "必须使用"
+        },
+        {
+          "material_name": "放气活门和主滚珠丝杆作动组件",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "VBV主柔性轴",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "燃油齿轮马达组件",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "止动机构",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "位置传感器开口销",
+          "part_number": "649-001-211-0",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "位置传感器螺帽",
+          "part_number": "J1092P03",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "位置传感器垫片",
+          "part_number": "649-341-010-0",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "清洗剂",
+          "part_number": "RH-P-680-20L",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防咬合剂",
+          "part_number": "NYCOGREASEGNGA47",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "凡士林",
+          "part_number": "VV-P-236",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "化学品",
+          "part_number": "BRISAL-OX 50-855",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
         }
       ],
       "set_id": 939,
@@ -3338,6 +3723,83 @@
           "material_name": "可调放气活门位置传感器",
           "part_number": "VG22-01",
           "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "放气活门和主滚珠丝杆作动组件",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "VBV主柔性轴",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "燃油齿轮马达组件",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "止动机构",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "位置传感器开口销",
+          "part_number": "649-001-211-0",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "位置传感器螺帽",
+          "part_number": "J1092P03",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "位置传感器垫片",
+          "part_number": "649-341-010-0",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "清洗剂",
+          "part_number": "RH-P-680-20L",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防咬合剂",
+          "part_number": "NYCOGREASEGNGA47",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "凡士林",
+          "part_number": "VV-P-236",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "化学品",
+          "part_number": "BRISAL-OX 50-855",
+          "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
         }
@@ -3419,6 +3881,83 @@
           "quantity": "按需",
           "remark": "",
           "usage_type": "必须使用"
+        },
+        {
+          "material_name": "放气活门和主滚珠丝杆作动组件",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "VBV主柔性轴",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "燃油齿轮马达组件",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "止动机构",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "位置传感器开口销",
+          "part_number": "649-001-211-0",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "位置传感器螺帽",
+          "part_number": "J1092P03",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "位置传感器垫片",
+          "part_number": "649-341-010-0",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "清洗剂",
+          "part_number": "RH-P-680-20L",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防咬合剂",
+          "part_number": "NYCOGREASEGNGA47",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "凡士林",
+          "part_number": "VV-P-236",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "化学品",
+          "part_number": "BRISAL-OX 50-855",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
         }
       ],
       "set_id": 939,
@@ -3496,6 +4035,83 @@
           "material_name": "可调放气活门位置传感器",
           "part_number": "VG22-01",
           "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "放气活门和主滚珠丝杆作动组件",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "VBV主柔性轴",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "燃油齿轮马达组件",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "止动机构",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "位置传感器开口销",
+          "part_number": "649-001-211-0",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "位置传感器螺帽",
+          "part_number": "J1092P03",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "位置传感器垫片",
+          "part_number": "649-341-010-0",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "清洗剂",
+          "part_number": "RH-P-680-20L",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防咬合剂",
+          "part_number": "NYCOGREASEGNGA47",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "凡士林",
+          "part_number": "VV-P-236",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "化学品",
+          "part_number": "BRISAL-OX 50-855",
+          "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
         }
@@ -3577,6 +4193,83 @@
           "quantity": "按需",
           "remark": "",
           "usage_type": "必须使用"
+        },
+        {
+          "material_name": "放气活门和主滚珠丝杆作动组件",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "VBV主柔性轴",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "燃油齿轮马达组件",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "止动机构",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "位置传感器开口销",
+          "part_number": "649-001-211-0",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "位置传感器螺帽",
+          "part_number": "J1092P03",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "位置传感器垫片",
+          "part_number": "649-341-010-0",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "清洗剂",
+          "part_number": "RH-P-680-20L",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防咬合剂",
+          "part_number": "NYCOGREASEGNGA47",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "凡士林",
+          "part_number": "VV-P-236",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "化学品",
+          "part_number": "BRISAL-OX 50-855",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
         }
       ],
       "set_id": 939,
@@ -3656,6 +4349,83 @@
           "quantity": "按需",
           "remark": "",
           "usage_type": "必须使用"
+        },
+        {
+          "material_name": "放气活门和主滚珠丝杆作动组件",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "VBV主柔性轴",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "燃油齿轮马达组件",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "止动机构",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "位置传感器开口销",
+          "part_number": "649-001-211-0",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "位置传感器螺帽",
+          "part_number": "J1092P03",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "位置传感器垫片",
+          "part_number": "649-341-010-0",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "清洗剂",
+          "part_number": "RH-P-680-20L",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防咬合剂",
+          "part_number": "NYCOGREASEGNGA47",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "凡士林",
+          "part_number": "VV-P-236",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "化学品",
+          "part_number": "BRISAL-OX 50-855",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
         }
       ],
       "set_id": 939,
@@ -3733,6 +4503,83 @@
           "material_name": "可调放气活门位置传感器",
           "part_number": "VG22-01",
           "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "放气活门和主滚珠丝杆作动组件",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "VBV主柔性轴",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "燃油齿轮马达组件",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "止动机构",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "位置传感器开口销",
+          "part_number": "649-001-211-0",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "位置传感器螺帽",
+          "part_number": "J1092P03",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "位置传感器垫片",
+          "part_number": "649-341-010-0",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "清洗剂",
+          "part_number": "RH-P-680-20L",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防咬合剂",
+          "part_number": "NYCOGREASEGNGA47",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "凡士林",
+          "part_number": "VV-P-236",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "化学品",
+          "part_number": "BRISAL-OX 50-855",
+          "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
         }
@@ -12758,6 +13605,83 @@
           "quantity": "按需",
           "remark": "",
           "usage_type": "必须使用"
+        },
+        {
+          "material_name": "放气活门和主滚珠丝杆作动组件",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "VBV主柔性轴",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "燃油齿轮马达组件",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "止动机构",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "位置传感器开口销",
+          "part_number": "649-001-211-0",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "位置传感器螺帽",
+          "part_number": "J1092P03",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "位置传感器垫片",
+          "part_number": "649-341-010-0",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "清洗剂",
+          "part_number": "RH-P-680-20L",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防咬合剂",
+          "part_number": "NYCOGREASEGNGA47",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "凡士林",
+          "part_number": "VV-P-236",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "化学品",
+          "part_number": "BRISAL-OX 50-855",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
         }
       ],
       "tools_confirmed": true,
@@ -12837,6 +13761,83 @@
           "quantity": "按需",
           "remark": "",
           "usage_type": "必须使用"
+        },
+        {
+          "material_name": "放气活门和主滚珠丝杆作动组件",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "VBV主柔性轴",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "燃油齿轮马达组件",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "止动机构",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "位置传感器开口销",
+          "part_number": "649-001-211-0",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "位置传感器螺帽",
+          "part_number": "J1092P03",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "位置传感器垫片",
+          "part_number": "649-341-010-0",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "清洗剂",
+          "part_number": "RH-P-680-20L",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防咬合剂",
+          "part_number": "NYCOGREASEGNGA47",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "凡士林",
+          "part_number": "VV-P-236",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "化学品",
+          "part_number": "BRISAL-OX 50-855",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
         }
       ],
       "tools_confirmed": true,
@@ -12914,6 +13915,83 @@
           "material_name": "可调放气活门位置传感器",
           "part_number": "VG22-01",
           "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "放气活门和主滚珠丝杆作动组件",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "VBV主柔性轴",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "燃油齿轮马达组件",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "止动机构",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "位置传感器开口销",
+          "part_number": "649-001-211-0",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "位置传感器螺帽",
+          "part_number": "J1092P03",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "位置传感器垫片",
+          "part_number": "649-341-010-0",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "清洗剂",
+          "part_number": "RH-P-680-20L",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防咬合剂",
+          "part_number": "NYCOGREASEGNGA47",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "凡士林",
+          "part_number": "VV-P-236",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "化学品",
+          "part_number": "BRISAL-OX 50-855",
+          "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
         }
@@ -14278,6 +15356,83 @@
           "material_name": "可调放气活门位置传感器",
           "part_number": "VG22-01",
           "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "放气活门和主滚珠丝杆作动组件",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "VBV主柔性轴",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "燃油齿轮马达组件",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "止动机构",
+          "part_number": "",
+          "quantity": "按需",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "位置传感器开口销",
+          "part_number": "649-001-211-0",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "位置传感器螺帽",
+          "part_number": "J1092P03",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "位置传感器垫片",
+          "part_number": "649-341-010-0",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "清洗剂",
+          "part_number": "RH-P-680-20L",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防咬合剂",
+          "part_number": "NYCOGREASEGNGA47",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "凡士林",
+          "part_number": "VV-P-236",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "化学品",
+          "part_number": "BRISAL-OX 50-855",
+          "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
         }
@@ -40602,7 +41757,7 @@
       "package_id": "b5bde1d6-bf21-4482-8f6e-0e12016fe8d7"
     }
   ],
-  "card_log_next_id": 19,
+  "card_log_next_id": 20,
   "card_logs": [
     {
       "id": 1,
@@ -40965,6 +42120,143 @@
         }
       ],
       "timestamp": "2026-07-25T00:59:33.076193"
+    },
+    {
+      "id": 19,
+      "operation": "update",
+      "target_type": "set",
+      "target_id": 939,
+      "target_identifier": "VBV系统检查和时控",
+      "target_name": "VBV系统检查和时控",
+      "changes": [
+        {
+          "field": "materials",
+          "old": [
+            {
+              "material_name": "放气活门和滚珠丝杆作动组件",
+              "part_number": "121664-8",
+              "quantity": "按需",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "VBV辅助柔性轴",
+              "part_number": "121762-4",
+              "quantity": "按需",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "可调放气活门位置传感器",
+              "part_number": "VG22-01",
+              "quantity": "按需",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "new": [
+            {
+              "material_name": "放气活门和滚珠丝杆作动组件",
+              "part_number": "121664-8",
+              "quantity": "按需",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "VBV辅助柔性轴",
+              "part_number": "121762-4",
+              "quantity": "按需",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "可调放气活门位置传感器",
+              "part_number": "VG22-01",
+              "quantity": "按需",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "放气活门和主滚珠丝杆作动组件",
+              "part_number": "",
+              "quantity": "按需",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "VBV主柔性轴",
+              "part_number": "",
+              "quantity": "按需",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "燃油齿轮马达组件",
+              "part_number": "",
+              "quantity": "按需",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "止动机构",
+              "part_number": "",
+              "quantity": "按需",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "位置传感器开口销",
+              "part_number": "649-001-211-0",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "位置传感器螺帽",
+              "part_number": "J1092P03",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "检查有问题领用"
+            },
+            {
+              "material_name": "位置传感器垫片",
+              "part_number": "649-341-010-0",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "检查有问题领用"
+            },
+            {
+              "material_name": "清洗剂",
+              "part_number": "RH-P-680-20L",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "防咬合剂",
+              "part_number": "NYCOGREASEGNGA47",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "凡士林",
+              "part_number": "VV-P-236",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "化学品",
+              "part_number": "BRISAL-OX 50-855",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ]
+        }
+      ],
+      "timestamp": "2026-07-25T01:21:17.759424"
     }
   ]
 }
