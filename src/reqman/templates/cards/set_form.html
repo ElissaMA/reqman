@@ -320,5 +320,28 @@ function addRow(type) {
 	        alert("请添加航材或确认无航材");
 	        return false;
 	    }
-	});</script>
+	});// 如果是从其他页面 window.open() 打开的，保存成功后自动关闭
+if (window.opener) {
+    document.getElementById("setForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        var form = this;
+        var formData = new FormData(form);
+        var setId = '{{ set_item.id if set_item else "" }}';
+        var url = setId ? '/card/sets/' + setId + '/edit' : '/card/sets/new';
+        
+        fetch(url, {
+            method: 'POST',
+            body: formData
+        }).then(function(resp) {
+            if (resp.ok) {
+                window.close();
+            } else {
+                form.submit();
+            }
+        }).catch(function() {
+            form.submit();
+        });
+    });
+}
+</script>
 {% endblock %}

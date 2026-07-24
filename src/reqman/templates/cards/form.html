@@ -203,5 +203,28 @@ document.getElementById("cardForm").addEventListener("submit", function(e) {
         return false;
     }
 });
+// 如果是从其他页面 window.open() 打开的，保存成功后自动关闭
+if (window.opener) {
+    document.getElementById("cardForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        var form = this;
+        var formData = new FormData(form);
+        var cardId = '{{ item.id if item else "" }}';
+        var url = cardId ? '/card/' + cardId + '/edit' : '/card/new';
+        
+        fetch(url, {
+            method: 'POST',
+            body: formData
+        }).then(function(resp) {
+            if (resp.ok) {
+                window.close();
+            } else {
+                form.submit();
+            }
+        }).catch(function() {
+            form.submit();
+        });
+    });
+}
 </script>
 {% endblock %}

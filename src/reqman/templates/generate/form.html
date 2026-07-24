@@ -117,16 +117,16 @@
                     <tbody>
                         {% if new_cards %}
                         {% for card in new_cards %}
-                        <tr>
+                        <tr data-task-code="{{ card.task_code }}">
                             <td><code>{{ card.task_code }}</code></td>
                             <td>{{ card.task_name }}{% if card.unconfirmed %}<span class="badge bg-warning text-dark ms-1">未确认</span>{% endif %}</td>
                             <td>{{ card.category }}</td>
                             <td>{{ card.task_type or '-' }}</td>
                             <td>
                                 {% if card.unconfirmed %}
-                                <a target="_blank" href="/card/{{ card.db_id }}/edit" class="btn btn-outline-warning btn-sm py-0">编辑工卡</a>
+                                <a href="javascript:void(0)" onclick="markAndOpen('{{ card.task_code }}', '/card/{{ card.db_id }}/edit')" class="btn btn-outline-warning btn-sm py-0">编辑工卡</a>
                                 {% else %}
-                                <a target="_blank" href="/card/new?task_code={{ card.task_code }}&task_name={{ card.task_name }}&category={{ card.category }}&task_type={{ card.task_type }}" class="btn btn-outline-primary btn-sm py-0">新增工卡</a>
+                                <a href="javascript:void(0)" onclick="markAndOpen('{{ card.task_code }}', '/card/new?task_code={{ card.task_code }}&task_name={{ card.task_name }}&category={{ card.category }}&task_type={{ card.task_type }}')" class="btn btn-outline-primary btn-sm py-0">新增工卡</a>
                                 {% endif %}
                             </td>
                         </tr>
@@ -305,6 +305,45 @@ function confirmGen() {
     }
     return confirm('确认生成并下载需求单？');
 }
+var STORAGE_PREFIX = 'processed_card_';
+var PACKAGE_ID = '{{ package_id }}';
+
+function markAndOpen(taskCode, url) {
+    localStorage.setItem(STORAGE_PREFIX + PACKAGE_ID + '_' + taskCode, '1');
+    var row = document.querySelector('tr[data-task-code="' + taskCode + '"]');
+    if (row) row.style.backgroundColor = '#d4edda';
+    window.open(url, '_blank', 'width=900,height=700');
+    checkAllProcessed();
+}
+
+function checkAllProcessed() {
+    var rows = document.querySelectorAll('tr[data-task-code]');
+    if (rows.length === 0) return;
+    var allGreen = true;
+    rows.forEach(function(row) {
+        var code = row.getAttribute('data-task-code');
+        if (!localStorage.getItem(STORAGE_PREFIX + PACKAGE_ID + '_' + code)) {
+            allGreen = false;
+        }
+    });
+    if (allGreen) {
+        rows.forEach(function(row) {
+            localStorage.removeItem(STORAGE_PREFIX + PACKAGE_ID + '_' + row.getAttribute('data-task-code'));
+        });
+        location.reload();
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var rows = document.querySelectorAll('tr[data-task-code]');
+    rows.forEach(function(row) {
+        var code = row.getAttribute('data-task-code');
+        if (localStorage.getItem(STORAGE_PREFIX + PACKAGE_ID + '_' + code)) {
+            row.style.backgroundColor = '#d4edda';
+        }
+    });
+    checkAllProcessed();
+});
 </script>
 {% endblock %}
 

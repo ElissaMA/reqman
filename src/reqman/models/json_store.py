@@ -166,7 +166,7 @@ class JsonStore:
                  changes: list) -> dict:
         """添加变更日志到 db（调用方需持有 _lock）"""
         from datetime import datetime
-        log_id = db["card_log_next_id"]
+        log_id = db.setdefault("card_log_next_id", 1)
         db["card_log_next_id"] = log_id + 1
         log_entry = {
             "id": log_id,
