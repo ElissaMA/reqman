@@ -41755,6 +41755,4344 @@
       "is_matched": true,
       "generated_at": "2026.07.24 10:47",
       "package_id": "b5bde1d6-bf21-4482-8f6e-0e12016fe8d7"
+    },
+    {
+      "reg": "B-32KV",
+      "description": "7A",
+      "date": "2026.08.02",
+      "aircraft_info": {
+        "reg": "B-32KV",
+        "type": "A320-271N/PW1100",
+        "package": "10642755",
+        "description": "7A",
+        "date": "2026.08.02"
+      },
+      "matched": [
+        {
+          "task_code": "CSCA320-242000-23-1-1",
+          "task_name": "报废IDG回油和供油滤芯，排放和补充滑油系统-1发(NEO)",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 709,
+          "set_id": 711,
+          "tools": [
+            {
+              "device_name": "球头笔检查工具",
+              "part_number": "STYLUS",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [
+            {
+              "material_name": "IDG放油口胶圈",
+              "part_number": "AS3208-05",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "IDG油滤",
+              "part_number": "7588429",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "IDG油滤口盖胶圈",
+              "part_number": "AS3209-226",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "set_name": "报废IDG回油和供油滤芯，排放和补充滑油系统-单发(NEO)"
+        },
+        {
+          "task_code": "CSCA320-242000-23-1-1A",
+          "task_name": "综合驱动发电机(IDG)的放油-1发(NEO)",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 706,
+          "set_id": 711,
+          "tools": [
+            {
+              "device_name": "球头笔检查工具",
+              "part_number": "STYLUS",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [
+            {
+              "material_name": "IDG放油口胶圈",
+              "part_number": "AS3208-05",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "IDG油滤",
+              "part_number": "7588429",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "IDG油滤口盖胶圈",
+              "part_number": "AS3209-226",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "set_name": "报废IDG回油和供油滤芯，排放和补充滑油系统-单发(NEO)"
+        },
+        {
+          "task_code": "CSCA320-242000-23-1-1B",
+          "task_name": "IDG 勤务-在油位检查后向IDG注油或添加滑油 -1发(NEO)",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 707,
+          "set_id": 711,
+          "tools": [
+            {
+              "device_name": "球头笔检查工具",
+              "part_number": "STYLUS",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [
+            {
+              "material_name": "IDG放油口胶圈",
+              "part_number": "AS3208-05",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "IDG油滤",
+              "part_number": "7588429",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "IDG油滤口盖胶圈",
+              "part_number": "AS3209-226",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "set_name": "报废IDG回油和供油滤芯，排放和补充滑油系统-单发(NEO)"
+        },
+        {
+          "task_code": "CSCA320-242000-23-1-1C",
+          "task_name": "IDG供油滤和回油滤的检查-1发(NEO)",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 708,
+          "set_id": 711,
+          "tools": [
+            {
+              "device_name": "球头笔检查工具",
+              "part_number": "STYLUS",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [
+            {
+              "material_name": "IDG放油口胶圈",
+              "part_number": "AS3208-05",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "IDG油滤",
+              "part_number": "7588429",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "IDG油滤口盖胶圈",
+              "part_number": "AS3209-226",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "set_name": "报废IDG回油和供油滤芯，排放和补充滑油系统-单发(NEO)"
+        },
+        {
+          "task_code": "CSCA320-242100-17-1-1",
+          "task_name": "IDG QAD拉紧螺栓的力矩检查(1发) (PW11)",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 724,
+          "set_id": 801,
+          "tools": [
+            {
+              "device_name": "表盘式扭力扳手0-300LB-IN",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "电子游标卡尺",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [
+            {
+              "material_name": "钢索保险",
+              "part_number": "AS3510-0218C",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "钢索子弹",
+              "part_number": "AS3510-02F",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "防腐剂",
+              "part_number": "WADIS24",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            }
+          ],
+          "set_name": "IDG QAD拉紧螺栓的力矩检查-PW双发"
+        },
+        {
+          "task_code": "CSCA320-242100-17-1-2",
+          "task_name": "IDG QAD拉紧螺栓的力矩检查(2发) (PW11)",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 795,
+          "set_id": 801,
+          "tools": [
+            {
+              "device_name": "表盘式扭力扳手0-300LB-IN",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "电子游标卡尺",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [
+            {
+              "material_name": "钢索保险",
+              "part_number": "AS3510-0218C",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "钢索子弹",
+              "part_number": "AS3510-02F",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "防腐剂",
+              "part_number": "WADIS24",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            }
+          ],
+          "set_name": "IDG QAD拉紧螺栓的力矩检查-PW双发"
+        },
+        {
+          "task_code": "CSCA320-72ZB16-03-1-1",
+          "task_name": "清洗发动机气道-1发(PW11)",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 714,
+          "set_id": 715,
+          "tools": [
+            {
+              "device_name": "充门工具箱",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [],
+          "set_name": "清洗发动机气道-(PW11)"
+        },
+        {
+          "task_code": "CSCA320-72ZB16-03-1-1A",
+          "task_name": "EEC的安装-发动机1（PW11）",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 64,
+          "set_id": 715,
+          "tools": [
+            {
+              "device_name": "充门工具箱",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [],
+          "set_name": "清洗发动机气道-(PW11)"
+        },
+        {
+          "task_code": "CSCA320-72ZB16-03-1-1B",
+          "task_name": "燃烧室压力传感器的安装-发动机1（PW11）",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 65,
+          "set_id": 715,
+          "tools": [
+            {
+              "device_name": "充门工具箱",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [],
+          "set_name": "清洗发动机气道-(PW11)"
+        },
+        {
+          "task_code": "CSCA320-72ZB16-03-1-1C",
+          "task_name": "安装缓冲空气活门压力传感器-发动机1（PW11）",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 66,
+          "set_id": 715,
+          "tools": [
+            {
+              "device_name": "充门工具箱",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [],
+          "set_name": "清洗发动机气道-(PW11)"
+        },
+        {
+          "task_code": "CSCA320-72ZB16-03-1-1D",
+          "task_name": "高压压气机（HPC）放气阀空气压力传感器（被动）的安装-发动机1（PW11）",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 67,
+          "set_id": 715,
+          "tools": [
+            {
+              "device_name": "充门工具箱",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [],
+          "set_name": "清洗发动机气道-(PW11)"
+        },
+        {
+          "task_code": "CSCA320-72ZB16-03-1-1E",
+          "task_name": "安装高压压气机（HPC）放气阀空气压力传感器（主动）-发动机1（PW11）",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 68,
+          "set_id": 715,
+          "tools": [
+            {
+              "device_name": "充门工具箱",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [],
+          "set_name": "清洗发动机气道-(PW11)"
+        },
+        {
+          "task_code": "CSCA320-731100-W1-1-1",
+          "task_name": "检查在FH01管路临近区域的点火线缆的磨损(PW11-1发)",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 721,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-731100-W1-1-2",
+          "task_name": "检查在FH01管路临近区域的点火线缆的磨损(PW11-2发)",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 720,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-732100-W1-1-1",
+          "task_name": "检查与角齿轮箱相邻的W03线束分支的磨损情况–1发（PW11）",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 731,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-732100-W1-1-2",
+          "task_name": "检查与角齿轮箱相邻的W03线束分支的磨损情况–2发（PW11）",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 732,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-73ZB03-05-1-1",
+          "task_name": "发动机线缆磨损情况检查(左发)",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 737,
+          "set_id": 802,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "胶带",
+              "part_number": "RL6000SA",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "胶带",
+              "part_number": "538728",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "set_name": "发动机线缆磨损情况检查-双发"
+        },
+        {
+          "task_code": "CSCA320-73ZB03-05-1-2",
+          "task_name": "发动机线缆磨损情况检查(右发)",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 734,
+          "set_id": 802,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "胶带",
+              "part_number": "RL6000SA",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "胶带",
+              "part_number": "538728",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "set_name": "发动机线缆磨损情况检查-双发"
+        },
+        {
+          "task_code": "CSCA320-79ZB03-02-2-1",
+          "task_name": "检查磁堵是否存在滑油污染物（1发）PW11",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 729,
+          "set_id": null,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "胶圈",
+              "part_number": "5325487",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "检查有问题领用"
+            }
+          ]
+        },
+        {
+          "task_code": "CSCA320-79ZB03-02-2-2",
+          "task_name": "检查磁堵是否存在滑油污染物（2发）PW11",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 718,
+          "set_id": null,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "胶圈",
+              "part_number": "5325487",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "检查有问题领用"
+            }
+          ]
+        },
+        {
+          "task_code": "EOJC-A320-26-2025-004-A",
+          "task_name": "对A320NEO飞机发动机火警环路进行检查",
+          "category": "发动机",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 126,
+          "set_id": null,
+          "tools": [
+            {
+              "device_name": "火警环路弯曲工具",
+              "part_number": "98D26203003001",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-29-2022-005-A",
+          "task_name": "A320系列NEO飞机发动机EDP压力管、吸油管、壳体回油管检查",
+          "category": "发动机",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 133,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-71-2021-006-S",
+          "task_name": "PW1100发动机预防发动机空中停车的重要目视检查",
+          "category": "发动机",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 148,
+          "set_id": null,
+          "tools": [
+            {
+              "device_name": "孔探仪",
+              "part_number": "DF65HKC",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "塞尺",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "电子拉力计",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "火警环路弯曲工具",
+              "part_number": "98D26203003001",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-212141-01-1-A",
+          "task_name": "拆卸再循环滤芯",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 165,
+          "set_id": 931,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "再循环气滤",
+              "part_number": "QA06423-01PY",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "set_name": "报废再循环系统的滤芯"
+        },
+        {
+          "task_code": "CSCA320-212141-01-1-B",
+          "task_name": "安装再循环滤芯",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 166,
+          "set_id": 931,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "再循环气滤",
+              "part_number": "QA06423-01PY",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "set_name": "报废再循环系统的滤芯"
+        },
+        {
+          "task_code": "CSCA320-212141-01-1-X",
+          "task_name": "报废再循环系统的滤芯",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 930,
+          "set_id": 931,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "再循环气滤",
+              "part_number": "QA06423-01PY",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "set_name": "报废再循环系统的滤芯"
+        },
+        {
+          "task_code": "CSCA320-255000-16-1-X",
+          "task_name": "详细检查分隔网, 门网和网连接点",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 766,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-281100-02-1-X",
+          "task_name": "操作测试渗漏监视器有无燃油渗漏迹象以及活门是否正确闭合",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 762,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-281100-05-1-X",
+          "task_name": "一般目视检查燃油箱轻微外部渗漏",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 856,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-281100-06-1-X",
+          "task_name": "放水活门的操作检查",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 857,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-291000-01-1-X",
+          "task_name": "通过液压油箱指示器检查液压油量",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 756,
+          "set_id": null,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "液压油",
+              "part_number": "PE-5",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "检查有问题领用"
+            }
+          ]
+        },
+        {
+          "task_code": "CSCA320-321000-01-1-X",
+          "task_name": "主起落架和门的润滑",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 763,
+          "set_id": 803,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "33号油脂",
+              "part_number": "MOBILGREASE33",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            }
+          ],
+          "set_name": "起落架润滑"
+        },
+        {
+          "task_code": "CSCA320-322000-01-1-X",
+          "task_name": "前起落架和舱门的润滑",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 745,
+          "set_id": 803,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "33号油脂",
+              "part_number": "MOBILGREASE33",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            }
+          ],
+          "set_name": "起落架润滑"
+        },
+        {
+          "task_code": "CSCA320-323000-01-1-X",
+          "task_name": "目视检查前起落架和主起落架下锁弹簧和连接",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 746,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-323000-19-1-X",
+          "task_name": "一般目视检查起落架放下/收上系统部件",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 742,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-323000-26-1-X",
+          "task_name": "起落架上位锁装置的润滑",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 196,
+          "set_id": 803,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "33号油脂",
+              "part_number": "MOBILGREASE33",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            }
+          ],
+          "set_name": "起落架润滑"
+        },
+        {
+          "task_code": "CSCA320-324411-01-2-X",
+          "task_name": "通过读取储压器压力表上的充气压力，对停留/应急刹车储压器进行功能检查",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 198,
+          "set_id": null,
+          "tools": [
+            {
+              "device_name": "温度计",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "弯头胎压表",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [
+            {
+              "material_name": "泡泡水",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "task_code": "CSCA320-53ZB85-54-5-X",
+          "task_name": "对A320系列飞机液压系统勤务面板铰链和锁扣进行详细检查",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 741,
+          "set_id": null,
+          "tools": [
+            {
+              "device_name": "孔探仪",
+              "part_number": "DF65HKC",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-21-2023-007-A",
+          "task_name": "A320飞机ACM检查",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 210,
+          "set_id": null,
+          "tools": [
+            {
+              "device_name": "孔探仪",
+              "part_number": "DF65HKC",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [
+            {
+              "material_name": "防咬合剂",
+              "part_number": "C5A",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "胶圈",
+              "part_number": "AS3582-232",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "task_code": "EOJC-A320-27-2025-010-A",
+          "task_name": "对A320系列飞机执行升降舵伺服控制振荡检査",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 213,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-29-2022-004-A",
+          "task_name": "A320系列飞机液压系统渗漏检查",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 216,
+          "set_id": null,
+          "tools": [
+            {
+              "device_name": "俯仰控制锁",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-32-2021-002-A",
+          "task_name": "重复性检查和清洁A320系列飞机主起落架解锁作动筒",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 217,
+          "set_id": null,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "起落架解锁作动筒擦拭布",
+              "part_number": "S1068D",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "task_code": "EOJC-A320-32-2021-005-A",
+          "task_name": "检查A320系列飞机前起落架左右随动舱门作动筒连杆的安装状态",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 218,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-32-2026-016-B",
+          "task_name": "右主起落架正常/备用刹车总管液压软管检查",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 223,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-32-2026-016-A",
+          "task_name": "左主起落架正常/备用刹车总管液压软管检查",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 222,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-51-2026-006-A",
+          "task_name": "飞机外观损伤修理完成后状态普查",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 226,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-52-2023-003-A",
+          "task_name": "对货舱门人工选择阀选择手柄安装紧固状态进行检查",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 229,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-52-2024-004-A",
+          "task_name": "对货舱门密封条进行详细目视检查",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 231,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-53-2021-015-A",
+          "task_name": "详细目视检查前货舱后壁板后FR35（A321为FR35.8）下方区域",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 233,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-53-2021-018-A",
+          "task_name": "A320系列飞机污水面板及周围区域的详细目视检查",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 234,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-53-2022-004-A",
+          "task_name": "目视检查货舱地锚、地板、地板封严条和密封胶",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 235,
+          "set_id": null,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "外表清洗剂",
+              "part_number": "TURCO 5948 DPM",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "task_code": "EOJC-A320-53-2025-012-A",
+          "task_name": "对A320系列飞机的前/后货舱门槛下表面进行目视检查",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 236,
+          "set_id": null,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "油箱粘接胶",
+              "part_number": "PS890A1/2",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "task_code": "EOJC-A320-57-2026-005-A",
+          "task_name": "飞机襟缝翼修理状态检查",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 243,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "DP1000001357",
+          "task_name": "A320系列雷达罩粘贴专用胶带的检查实施要求",
+          "category": "机体",
+          "task_type": "DP项目",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 208,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-23ZB12-02-1-C",
+          "task_name": "MVDR系统操作测试",
+          "category": "电子",
+          "task_type": "A",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 907,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-730000-W1-1-1",
+          "task_name": "校正发动机SMR故障 -1发（PW11)",
+          "category": "电子",
+          "task_type": "A",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 797,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-212300-02-1-X",
+          "task_name": "报废厕所排气滤芯",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 778,
+          "set_id": null,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "清洁剂",
+              "part_number": "RH-P-680-20L",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "液体肥皂",
+              "part_number": "83-182-01",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "过滤棉",
+              "part_number": "A225400454-204-PY",
+              "quantity": "按需",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "task_code": "CSCA320-212643-07-1-X",
+          "task_name": "报废滤芯",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 781,
+          "set_id": null,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "电子舱通风滤",
+              "part_number": "QB0776 PY",
+              "quantity": "1",
+              "remark": "成都航飞机不同",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "task_code": "CSCA320-23ZB11-01-1-X",
+          "task_name": "HF系统自测试",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 772,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-23ZB11-02-1-X",
+          "task_name": "HF系统的操作测试",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 783,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-23ZB12-01-1-C",
+          "task_name": "MVDR系统自测试",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 908,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-242000-01-1-X",
+          "task_name": "通过 CFDS 操作检查 GAPCU",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 779,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-242800-01-2-X",
+          "task_name": "当飞机电路从外部电源供电时静变流机的操作测试",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 784,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-243800-01-1-X",
+          "task_name": "通过CFDS操作测试电瓶充电限制器(BCL1,2)，(通过CFDS)",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 787,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-254000-01-1-X",
+          "task_name": "详细检查垃圾桶包含垃圾桶盖板并操作检查垃圾桶盖板",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 749,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-256241-01-1-X",
+          "task_name": "检查舱门/应急门/翼上撤离滑梯/救生船充气瓶的压力",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 754,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-256652-01-1-X",
+          "task_name": "检查救生衣",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 771,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-25ZB12-01-1-X",
+          "task_name": "驾驶舱设备清洁",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 793,
+          "set_id": null,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "清洁剂",
+              "part_number": "TURCO 5948 DPM",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "异丙醇",
+              "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "task_code": "CSCA320-25ZB36-01-1-X",
+          "task_name": "按照最新版应急设备分布图检查应急设备",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 770,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-25ZB37-01-1-X",
+          "task_name": "更换咖啡壶进行清洗",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 775,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-25ZB61-06-1-X",
+          "task_name": "确保驾驶舱电源接头输出（4NA和5NA）为115VAC/60HZ",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 255,
+          "set_id": null,
+          "tools": [
+            {
+              "device_name": "驾驶舱电源输出测试工具",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "万用表",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-261200-01-1-1",
+          "task_name": "环路/爆炸帽的操作检查-1发",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 791,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-261200-01-1-2",
+          "task_name": "环路/爆炸帽的操作检查-2发",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 798,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-261600-06-1-X",
+          "task_name": "读取CFDS的 3 类故障信息",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 800,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-261700-06-1-X",
+          "task_name": "读取CFDS中的3类故障",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 794,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-272400-01-1-X",
+          "task_name": "用单个液压系统操作测试方向舵伺服控制器",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 788,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-274000-02-1-X",
+          "task_name": "使用独立的液压系统操作检查THS作动筒",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 789,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-313000-01-1-X",
+          "task_name": "读取中央故障显示系统（CFDS）3类故障",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 799,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-335100-16-1-X",
+          "task_name": "拆下应急电源组件电池以进行车间内电池容量检查",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 261,
+          "set_id": null,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "镍镉蓄电池",
+              "part_number": "3214-31",
+              "quantity": "按需",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "task_code": "CSCA320-344200-03-1-X",
+          "task_name": "清洁无线电高度表天线的外表面",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 858,
+          "set_id": null,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "异丙醇",
+              "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "task_code": "CSCA320-353000-01-1-X",
+          "task_name": "检查便携式氧气瓶连接管路，面罩和压力表压力",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 862,
+          "set_id": null,
+          "tools": [
+            {
+              "device_name": "温度计",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-353000-05-1-X",
+          "task_name": "目视检查呼吸保护设备的箱密封/可用性能指示",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 863,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-361200-01-1-X",
+          "task_name": "手动模式下交输引气活门的操作检查",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 751,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-381000-01-1-A",
+          "task_name": "用次氯酸钙或次氯酸钠对水箱和分配系统消毒",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 753,
+          "set_id": null,
+          "tools": [
+            {
+              "device_name": "水箱杀菌增压管",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "水系统专用水管",
+              "part_number": "KAISERROYLYN 0031-0119 ASSEM 1Q07",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "电子秤（充电型）",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [
+            {
+              "material_name": "次氯酸钙",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "余氯测试试纸",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "过滤布",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "消毒液",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "水滤",
+              "part_number": "按需",
+              "quantity": "按需",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "胶圈",
+              "part_number": "按需",
+              "quantity": "按需",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "task_code": "CSCA320-383200-01-1-X",
+          "task_name": "清洁洗手池排水活门的滤芯",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 748,
+          "set_id": null,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "水性清洗剂",
+              "part_number": "TURCO4181",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "凡士林",
+              "part_number": "VV-P-236",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "task_code": "CSCA320-525111-06-2-X",
+          "task_name": "功能性检查驾驶舱门、电子释放装置和锁闩机构的调节是否正确",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 859,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-730000-W1-1-2",
+          "task_name": "校正发动机SMR故障- 2发(PW11)",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 782,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-341300-11-1-1",
+          "task_name": "清洁皮托管(9DA1)",
+          "category": "电子",
+          "task_type": "PROBES清洁",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 893,
+          "set_id": 867,
+          "tools": [
+            {
+              "device_name": "皮托管清洁工具",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [],
+          "set_name": "清洁皮托管"
+        },
+        {
+          "task_code": "EOJC-A320-11-2019-001-B",
+          "task_name": "定期检查A320系列飞机内部标记和标牌",
+          "category": "电子",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 326,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-24-2024-005-A",
+          "task_name": "读取GCU的TSD数据",
+          "category": "电子",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 286,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-25-2020-026-A",
+          "task_name": "加强检查客舱内湿区",
+          "category": "电子",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 211,
+          "set_id": null,
+          "tools": [
+            {
+              "device_name": "手持吸尘器",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-25-2021-022-A",
+          "task_name": "对厨房工作台面及水槽密封胶状态进行检查并修复",
+          "category": "电子",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 329,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-25-2024-022-A",
+          "task_name": "对驾驶舱和客舱设备进行检查并视情更换",
+          "category": "电子",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 291,
+          "set_id": null,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "南孚电池1#",
+              "part_number": "DC-1",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "检查有问题领用"
+            },
+            {
+              "material_name": "遮阳纸(A320风挡遮阳膜副驾位)",
+              "part_number": "RD0028",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "检查有问题领用"
+            },
+            {
+              "material_name": "遮阳帘组件",
+              "part_number": "170-12180-990TX",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "检查有问题领用"
+            },
+            {
+              "material_name": "遮阳纸(A320风挡遮阳膜机长位)",
+              "part_number": "RD0029",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "检查有问题领用"
+            },
+            {
+              "material_name": "滑窗遮阳帘",
+              "part_number": "170-12155-990-RD",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "检查有问题领用"
+            },
+            {
+              "material_name": "滑窗遮阳帘",
+              "part_number": "170-12156-990-RD",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "检查有问题领用"
+            }
+          ]
+        },
+        {
+          "task_code": "EOJC-A320-25-2026-002-A",
+          "task_name": "对驾驶舱座椅进行定期检查",
+          "category": "电子",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 292,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-30-2025-001-A",
+          "task_name": "重复性检查A320系列飞机驾驶舱左、右滑窗加温线束磨损情况",
+          "category": "电子",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 295,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-32-2024-016-A",
+          "task_name": "飞机停留刹车操作测试",
+          "category": "电子",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 297,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-52-2024-003-A",
+          "task_name": "对登机门密封胶条的详细目视检查",
+          "category": "电子",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 230,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-56-2020-002-A",
+          "task_name": "详细目视检查前风挡气象封严",
+          "category": "电子",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 299,
+          "set_id": null,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "风挡胶",
+              "part_number": "PR1425CFB1/2",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "task_code": "DP1000000739",
+          "task_name": "关于机上MEL保留不工作标签及CB夹的检查工作",
+          "category": "电子",
+          "task_type": "DP项目",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 282,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-724000-W2-1-1",
+          "task_name": "孔探检查燃烧室和高压涡轮喷嘴导向叶片-1发(PW)",
+          "category": "特检",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 768,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-724000-W2-1-2",
+          "task_name": "孔探检查燃烧室和高压涡轮喷嘴导向叶片-2发(PW)",
+          "category": "特检",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 767,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-72-2023-003-S",
+          "task_name": "孔探检查PW1100发动机高压涡轮转子叶片",
+          "category": "特检",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 313,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-72-2023-004-S2",
+          "task_name": "孔探检查PW1100发动机3号轴承封严状况",
+          "category": "特检",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 314,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-11-2019-001-A",
+          "task_name": "定期检查A320系列飞机外部标记和标牌",
+          "category": "支援",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 325,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-25-2023-020-A",
+          "task_name": "A320客舱定期维护检查单",
+          "category": "支援",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 330,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-25-2025-007-A",
+          "task_name": "检查客舱内应急出口旅客座椅椅垫使用状态",
+          "category": "支援",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 331,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        }
+      ],
+      "new_cards": [
+        {
+          "task_code": "EOJC-A320-78-2023-004-A",
+          "task_name": "目视检查A320NEO飞机左发反推接近传感器",
+          "category": "发动机",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "new",
+          "db_id": 154,
+          "unconfirmed": true
+        },
+        {
+          "task_code": "EOJC-A320-78-2023-004-B",
+          "task_name": "目视检查A320NEO飞机右发反推接近传感器",
+          "category": "发动机",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "new",
+          "db_id": 155,
+          "unconfirmed": true
+        },
+        {
+          "task_code": "CSCA320-274451-10-1-X",
+          "task_name": "详细检查THSA下部附件主负载通道和次级负载通道",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "new"
+        },
+        {
+          "task_code": "EOJC-A320-00-2025-016-A",
+          "task_name": "重复性检查MEL中M项接近盖板紧固件",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "new"
+        },
+        {
+          "task_code": "CSCA320-273400-01-1-X",
+          "task_name": "用BITE做升降舵阻尼测量的操作检查",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "new"
+        },
+        {
+          "task_code": "ERJC-PW1100-07",
+          "task_name": "孔探检查PW1100发动机高压涡轮一级转子叶片",
+          "category": "特检",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "new",
+          "db_id": 324,
+          "unconfirmed": true
+        }
+      ],
+      "cancelled": [],
+      "all_items": [
+        {
+          "task_code": "CSCA320-242000-23-1-1",
+          "task_name": "报废IDG回油和供油滤芯，排放和补充滑油系统-1发(NEO)",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 709,
+          "set_id": 711,
+          "tools": [
+            {
+              "device_name": "球头笔检查工具",
+              "part_number": "STYLUS",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [
+            {
+              "material_name": "IDG放油口胶圈",
+              "part_number": "AS3208-05",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "IDG油滤",
+              "part_number": "7588429",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "IDG油滤口盖胶圈",
+              "part_number": "AS3209-226",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "set_name": "报废IDG回油和供油滤芯，排放和补充滑油系统-单发(NEO)"
+        },
+        {
+          "task_code": "CSCA320-242000-23-1-1A",
+          "task_name": "综合驱动发电机(IDG)的放油-1发(NEO)",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 706,
+          "set_id": 711,
+          "tools": [
+            {
+              "device_name": "球头笔检查工具",
+              "part_number": "STYLUS",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [
+            {
+              "material_name": "IDG放油口胶圈",
+              "part_number": "AS3208-05",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "IDG油滤",
+              "part_number": "7588429",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "IDG油滤口盖胶圈",
+              "part_number": "AS3209-226",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "set_name": "报废IDG回油和供油滤芯，排放和补充滑油系统-单发(NEO)"
+        },
+        {
+          "task_code": "CSCA320-242000-23-1-1B",
+          "task_name": "IDG 勤务-在油位检查后向IDG注油或添加滑油 -1发(NEO)",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 707,
+          "set_id": 711,
+          "tools": [
+            {
+              "device_name": "球头笔检查工具",
+              "part_number": "STYLUS",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [
+            {
+              "material_name": "IDG放油口胶圈",
+              "part_number": "AS3208-05",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "IDG油滤",
+              "part_number": "7588429",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "IDG油滤口盖胶圈",
+              "part_number": "AS3209-226",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "set_name": "报废IDG回油和供油滤芯，排放和补充滑油系统-单发(NEO)"
+        },
+        {
+          "task_code": "CSCA320-242000-23-1-1C",
+          "task_name": "IDG供油滤和回油滤的检查-1发(NEO)",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 708,
+          "set_id": 711,
+          "tools": [
+            {
+              "device_name": "球头笔检查工具",
+              "part_number": "STYLUS",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [
+            {
+              "material_name": "IDG放油口胶圈",
+              "part_number": "AS3208-05",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "IDG油滤",
+              "part_number": "7588429",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "IDG油滤口盖胶圈",
+              "part_number": "AS3209-226",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "set_name": "报废IDG回油和供油滤芯，排放和补充滑油系统-单发(NEO)"
+        },
+        {
+          "task_code": "CSCA320-242100-17-1-1",
+          "task_name": "IDG QAD拉紧螺栓的力矩检查(1发) (PW11)",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 724,
+          "set_id": 801,
+          "tools": [
+            {
+              "device_name": "表盘式扭力扳手0-300LB-IN",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "电子游标卡尺",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [
+            {
+              "material_name": "钢索保险",
+              "part_number": "AS3510-0218C",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "钢索子弹",
+              "part_number": "AS3510-02F",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "防腐剂",
+              "part_number": "WADIS24",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            }
+          ],
+          "set_name": "IDG QAD拉紧螺栓的力矩检查-PW双发"
+        },
+        {
+          "task_code": "CSCA320-242100-17-1-2",
+          "task_name": "IDG QAD拉紧螺栓的力矩检查(2发) (PW11)",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 795,
+          "set_id": 801,
+          "tools": [
+            {
+              "device_name": "表盘式扭力扳手0-300LB-IN",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "电子游标卡尺",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [
+            {
+              "material_name": "钢索保险",
+              "part_number": "AS3510-0218C",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "钢索子弹",
+              "part_number": "AS3510-02F",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "防腐剂",
+              "part_number": "WADIS24",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            }
+          ],
+          "set_name": "IDG QAD拉紧螺栓的力矩检查-PW双发"
+        },
+        {
+          "task_code": "CSCA320-72ZB16-03-1-1",
+          "task_name": "清洗发动机气道-1发(PW11)",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 714,
+          "set_id": 715,
+          "tools": [
+            {
+              "device_name": "充门工具箱",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [],
+          "set_name": "清洗发动机气道-(PW11)"
+        },
+        {
+          "task_code": "CSCA320-72ZB16-03-1-1A",
+          "task_name": "EEC的安装-发动机1（PW11）",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 64,
+          "set_id": 715,
+          "tools": [
+            {
+              "device_name": "充门工具箱",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [],
+          "set_name": "清洗发动机气道-(PW11)"
+        },
+        {
+          "task_code": "CSCA320-72ZB16-03-1-1B",
+          "task_name": "燃烧室压力传感器的安装-发动机1（PW11）",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 65,
+          "set_id": 715,
+          "tools": [
+            {
+              "device_name": "充门工具箱",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [],
+          "set_name": "清洗发动机气道-(PW11)"
+        },
+        {
+          "task_code": "CSCA320-72ZB16-03-1-1C",
+          "task_name": "安装缓冲空气活门压力传感器-发动机1（PW11）",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 66,
+          "set_id": 715,
+          "tools": [
+            {
+              "device_name": "充门工具箱",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [],
+          "set_name": "清洗发动机气道-(PW11)"
+        },
+        {
+          "task_code": "CSCA320-72ZB16-03-1-1D",
+          "task_name": "高压压气机（HPC）放气阀空气压力传感器（被动）的安装-发动机1（PW11）",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 67,
+          "set_id": 715,
+          "tools": [
+            {
+              "device_name": "充门工具箱",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [],
+          "set_name": "清洗发动机气道-(PW11)"
+        },
+        {
+          "task_code": "CSCA320-72ZB16-03-1-1E",
+          "task_name": "安装高压压气机（HPC）放气阀空气压力传感器（主动）-发动机1（PW11）",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 68,
+          "set_id": 715,
+          "tools": [
+            {
+              "device_name": "充门工具箱",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [],
+          "set_name": "清洗发动机气道-(PW11)"
+        },
+        {
+          "task_code": "CSCA320-731100-W1-1-1",
+          "task_name": "检查在FH01管路临近区域的点火线缆的磨损(PW11-1发)",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 721,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-731100-W1-1-2",
+          "task_name": "检查在FH01管路临近区域的点火线缆的磨损(PW11-2发)",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 720,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-732100-W1-1-1",
+          "task_name": "检查与角齿轮箱相邻的W03线束分支的磨损情况–1发（PW11）",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 731,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-732100-W1-1-2",
+          "task_name": "检查与角齿轮箱相邻的W03线束分支的磨损情况–2发（PW11）",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 732,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-73ZB03-05-1-1",
+          "task_name": "发动机线缆磨损情况检查(左发)",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 737,
+          "set_id": 802,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "胶带",
+              "part_number": "RL6000SA",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "胶带",
+              "part_number": "538728",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "set_name": "发动机线缆磨损情况检查-双发"
+        },
+        {
+          "task_code": "CSCA320-73ZB03-05-1-2",
+          "task_name": "发动机线缆磨损情况检查(右发)",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 734,
+          "set_id": 802,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "胶带",
+              "part_number": "RL6000SA",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "胶带",
+              "part_number": "538728",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "set_name": "发动机线缆磨损情况检查-双发"
+        },
+        {
+          "task_code": "CSCA320-79ZB03-02-2-1",
+          "task_name": "检查磁堵是否存在滑油污染物（1发）PW11",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 729,
+          "set_id": null,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "胶圈",
+              "part_number": "5325487",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "检查有问题领用"
+            }
+          ]
+        },
+        {
+          "task_code": "CSCA320-79ZB03-02-2-2",
+          "task_name": "检查磁堵是否存在滑油污染物（2发）PW11",
+          "category": "发动机",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 718,
+          "set_id": null,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "胶圈",
+              "part_number": "5325487",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "检查有问题领用"
+            }
+          ]
+        },
+        {
+          "task_code": "EOJC-A320-26-2025-004-A",
+          "task_name": "对A320NEO飞机发动机火警环路进行检查",
+          "category": "发动机",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 126,
+          "set_id": null,
+          "tools": [
+            {
+              "device_name": "火警环路弯曲工具",
+              "part_number": "98D26203003001",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-29-2022-005-A",
+          "task_name": "A320系列NEO飞机发动机EDP压力管、吸油管、壳体回油管检查",
+          "category": "发动机",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 133,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-71-2021-006-S",
+          "task_name": "PW1100发动机预防发动机空中停车的重要目视检查",
+          "category": "发动机",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 148,
+          "set_id": null,
+          "tools": [
+            {
+              "device_name": "孔探仪",
+              "part_number": "DF65HKC",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "塞尺",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "电子拉力计",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "火警环路弯曲工具",
+              "part_number": "98D26203003001",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-78-2023-004-A",
+          "task_name": "目视检查A320NEO飞机左发反推接近传感器",
+          "category": "发动机",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "new",
+          "db_id": 154,
+          "unconfirmed": true
+        },
+        {
+          "task_code": "EOJC-A320-78-2023-004-B",
+          "task_name": "目视检查A320NEO飞机右发反推接近传感器",
+          "category": "发动机",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "new",
+          "db_id": 155,
+          "unconfirmed": true
+        },
+        {
+          "task_code": "CSCA320-212141-01-1-A",
+          "task_name": "拆卸再循环滤芯",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 165,
+          "set_id": 931,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "再循环气滤",
+              "part_number": "QA06423-01PY",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "set_name": "报废再循环系统的滤芯"
+        },
+        {
+          "task_code": "CSCA320-212141-01-1-B",
+          "task_name": "安装再循环滤芯",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 166,
+          "set_id": 931,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "再循环气滤",
+              "part_number": "QA06423-01PY",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "set_name": "报废再循环系统的滤芯"
+        },
+        {
+          "task_code": "CSCA320-212141-01-1-X",
+          "task_name": "报废再循环系统的滤芯",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 930,
+          "set_id": 931,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "再循环气滤",
+              "part_number": "QA06423-01PY",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "set_name": "报废再循环系统的滤芯"
+        },
+        {
+          "task_code": "CSCA320-255000-16-1-X",
+          "task_name": "详细检查分隔网, 门网和网连接点",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 766,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-274451-10-1-X",
+          "task_name": "详细检查THSA下部附件主负载通道和次级负载通道",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "new"
+        },
+        {
+          "task_code": "CSCA320-281100-02-1-X",
+          "task_name": "操作测试渗漏监视器有无燃油渗漏迹象以及活门是否正确闭合",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 762,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-281100-05-1-X",
+          "task_name": "一般目视检查燃油箱轻微外部渗漏",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 856,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-281100-06-1-X",
+          "task_name": "放水活门的操作检查",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 857,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-291000-01-1-X",
+          "task_name": "通过液压油箱指示器检查液压油量",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 756,
+          "set_id": null,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "液压油",
+              "part_number": "PE-5",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "检查有问题领用"
+            }
+          ]
+        },
+        {
+          "task_code": "CSCA320-321000-01-1-X",
+          "task_name": "主起落架和门的润滑",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 763,
+          "set_id": 803,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "33号油脂",
+              "part_number": "MOBILGREASE33",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            }
+          ],
+          "set_name": "起落架润滑"
+        },
+        {
+          "task_code": "CSCA320-322000-01-1-X",
+          "task_name": "前起落架和舱门的润滑",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 745,
+          "set_id": 803,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "33号油脂",
+              "part_number": "MOBILGREASE33",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            }
+          ],
+          "set_name": "起落架润滑"
+        },
+        {
+          "task_code": "CSCA320-323000-01-1-X",
+          "task_name": "目视检查前起落架和主起落架下锁弹簧和连接",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 746,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-323000-19-1-X",
+          "task_name": "一般目视检查起落架放下/收上系统部件",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 742,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-323000-26-1-X",
+          "task_name": "起落架上位锁装置的润滑",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 196,
+          "set_id": 803,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "33号油脂",
+              "part_number": "MOBILGREASE33",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            }
+          ],
+          "set_name": "起落架润滑"
+        },
+        {
+          "task_code": "CSCA320-324411-01-2-X",
+          "task_name": "通过读取储压器压力表上的充气压力，对停留/应急刹车储压器进行功能检查",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 198,
+          "set_id": null,
+          "tools": [
+            {
+              "device_name": "温度计",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "弯头胎压表",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [
+            {
+              "material_name": "泡泡水",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "task_code": "CSCA320-53ZB85-54-5-X",
+          "task_name": "对A320系列飞机液压系统勤务面板铰链和锁扣进行详细检查",
+          "category": "机体",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 741,
+          "set_id": null,
+          "tools": [
+            {
+              "device_name": "孔探仪",
+              "part_number": "DF65HKC",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-00-2025-016-A",
+          "task_name": "重复性检查MEL中M项接近盖板紧固件",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "new"
+        },
+        {
+          "task_code": "EOJC-A320-21-2023-007-A",
+          "task_name": "A320飞机ACM检查",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 210,
+          "set_id": null,
+          "tools": [
+            {
+              "device_name": "孔探仪",
+              "part_number": "DF65HKC",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [
+            {
+              "material_name": "防咬合剂",
+              "part_number": "C5A",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "胶圈",
+              "part_number": "AS3582-232",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "task_code": "EOJC-A320-27-2025-010-A",
+          "task_name": "对A320系列飞机执行升降舵伺服控制振荡检査",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 213,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-29-2022-004-A",
+          "task_name": "A320系列飞机液压系统渗漏检查",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 216,
+          "set_id": null,
+          "tools": [
+            {
+              "device_name": "俯仰控制锁",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-32-2021-002-A",
+          "task_name": "重复性检查和清洁A320系列飞机主起落架解锁作动筒",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 217,
+          "set_id": null,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "起落架解锁作动筒擦拭布",
+              "part_number": "S1068D",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "task_code": "EOJC-A320-32-2021-005-A",
+          "task_name": "检查A320系列飞机前起落架左右随动舱门作动筒连杆的安装状态",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 218,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-32-2026-016-B",
+          "task_name": "右主起落架正常/备用刹车总管液压软管检查",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 223,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-32-2026-016-A",
+          "task_name": "左主起落架正常/备用刹车总管液压软管检查",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 222,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-51-2026-006-A",
+          "task_name": "飞机外观损伤修理完成后状态普查",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 226,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-52-2023-003-A",
+          "task_name": "对货舱门人工选择阀选择手柄安装紧固状态进行检查",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 229,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-52-2024-004-A",
+          "task_name": "对货舱门密封条进行详细目视检查",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 231,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-53-2021-015-A",
+          "task_name": "详细目视检查前货舱后壁板后FR35（A321为FR35.8）下方区域",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 233,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-53-2021-018-A",
+          "task_name": "A320系列飞机污水面板及周围区域的详细目视检查",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 234,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-53-2022-004-A",
+          "task_name": "目视检查货舱地锚、地板、地板封严条和密封胶",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 235,
+          "set_id": null,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "外表清洗剂",
+              "part_number": "TURCO 5948 DPM",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "task_code": "EOJC-A320-53-2025-012-A",
+          "task_name": "对A320系列飞机的前/后货舱门槛下表面进行目视检查",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 236,
+          "set_id": null,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "油箱粘接胶",
+              "part_number": "PS890A1/2",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "task_code": "EOJC-A320-57-2026-005-A",
+          "task_name": "飞机襟缝翼修理状态检查",
+          "category": "机体",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 243,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "DP1000001357",
+          "task_name": "A320系列雷达罩粘贴专用胶带的检查实施要求",
+          "category": "机体",
+          "task_type": "DP项目",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 208,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-23ZB12-02-1-C",
+          "task_name": "MVDR系统操作测试",
+          "category": "电子",
+          "task_type": "A",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 907,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-730000-W1-1-1",
+          "task_name": "校正发动机SMR故障 -1发（PW11)",
+          "category": "电子",
+          "task_type": "A",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 797,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-212300-02-1-X",
+          "task_name": "报废厕所排气滤芯",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 778,
+          "set_id": null,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "清洁剂",
+              "part_number": "RH-P-680-20L",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "液体肥皂",
+              "part_number": "83-182-01",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "过滤棉",
+              "part_number": "A225400454-204-PY",
+              "quantity": "按需",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "task_code": "CSCA320-212643-07-1-X",
+          "task_name": "报废滤芯",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 781,
+          "set_id": null,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "电子舱通风滤",
+              "part_number": "QB0776 PY",
+              "quantity": "1",
+              "remark": "成都航飞机不同",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "task_code": "CSCA320-23ZB11-01-1-X",
+          "task_name": "HF系统自测试",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 772,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-23ZB11-02-1-X",
+          "task_name": "HF系统的操作测试",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 783,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-23ZB12-01-1-C",
+          "task_name": "MVDR系统自测试",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 908,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-242000-01-1-X",
+          "task_name": "通过 CFDS 操作检查 GAPCU",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 779,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-242800-01-2-X",
+          "task_name": "当飞机电路从外部电源供电时静变流机的操作测试",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 784,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-243800-01-1-X",
+          "task_name": "通过CFDS操作测试电瓶充电限制器(BCL1,2)，(通过CFDS)",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 787,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-254000-01-1-X",
+          "task_name": "详细检查垃圾桶包含垃圾桶盖板并操作检查垃圾桶盖板",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 749,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-256241-01-1-X",
+          "task_name": "检查舱门/应急门/翼上撤离滑梯/救生船充气瓶的压力",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 754,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-256652-01-1-X",
+          "task_name": "检查救生衣",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 771,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-25ZB12-01-1-X",
+          "task_name": "驾驶舱设备清洁",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 793,
+          "set_id": null,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "清洁剂",
+              "part_number": "TURCO 5948 DPM",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "异丙醇",
+              "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "task_code": "CSCA320-25ZB36-01-1-X",
+          "task_name": "按照最新版应急设备分布图检查应急设备",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 770,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-25ZB37-01-1-X",
+          "task_name": "更换咖啡壶进行清洗",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 775,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-25ZB61-06-1-X",
+          "task_name": "确保驾驶舱电源接头输出（4NA和5NA）为115VAC/60HZ",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 255,
+          "set_id": null,
+          "tools": [
+            {
+              "device_name": "驾驶舱电源输出测试工具",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "万用表",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-261200-01-1-1",
+          "task_name": "环路/爆炸帽的操作检查-1发",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 791,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-261200-01-1-2",
+          "task_name": "环路/爆炸帽的操作检查-2发",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 798,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-261600-06-1-X",
+          "task_name": "读取CFDS的 3 类故障信息",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 800,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-261700-06-1-X",
+          "task_name": "读取CFDS中的3类故障",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 794,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-272400-01-1-X",
+          "task_name": "用单个液压系统操作测试方向舵伺服控制器",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 788,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-273400-01-1-X",
+          "task_name": "用BITE做升降舵阻尼测量的操作检查",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "new"
+        },
+        {
+          "task_code": "CSCA320-274000-02-1-X",
+          "task_name": "使用独立的液压系统操作检查THS作动筒",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 789,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-313000-01-1-X",
+          "task_name": "读取中央故障显示系统（CFDS）3类故障",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 799,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-335100-16-1-X",
+          "task_name": "拆下应急电源组件电池以进行车间内电池容量检查",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 261,
+          "set_id": null,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "镍镉蓄电池",
+              "part_number": "3214-31",
+              "quantity": "按需",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "task_code": "CSCA320-344200-03-1-X",
+          "task_name": "清洁无线电高度表天线的外表面",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 858,
+          "set_id": null,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "异丙醇",
+              "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "task_code": "CSCA320-353000-01-1-X",
+          "task_name": "检查便携式氧气瓶连接管路，面罩和压力表压力",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 862,
+          "set_id": null,
+          "tools": [
+            {
+              "device_name": "温度计",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-353000-05-1-X",
+          "task_name": "目视检查呼吸保护设备的箱密封/可用性能指示",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 863,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-361200-01-1-X",
+          "task_name": "手动模式下交输引气活门的操作检查",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 751,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-381000-01-1-A",
+          "task_name": "用次氯酸钙或次氯酸钠对水箱和分配系统消毒",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 753,
+          "set_id": null,
+          "tools": [
+            {
+              "device_name": "水箱杀菌增压管",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "水系统专用水管",
+              "part_number": "KAISERROYLYN 0031-0119 ASSEM 1Q07",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "电子秤（充电型）",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [
+            {
+              "material_name": "次氯酸钙",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "余氯测试试纸",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "过滤布",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "消毒液",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "水滤",
+              "part_number": "按需",
+              "quantity": "按需",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "胶圈",
+              "part_number": "按需",
+              "quantity": "按需",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "task_code": "CSCA320-383200-01-1-X",
+          "task_name": "清洁洗手池排水活门的滤芯",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 748,
+          "set_id": null,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "水性清洗剂",
+              "part_number": "TURCO4181",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "凡士林",
+              "part_number": "VV-P-236",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "task_code": "CSCA320-525111-06-2-X",
+          "task_name": "功能性检查驾驶舱门、电子释放装置和锁闩机构的调节是否正确",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 859,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-730000-W1-1-2",
+          "task_name": "校正发动机SMR故障- 2发(PW11)",
+          "category": "电子",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 782,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-341300-11-1-1",
+          "task_name": "清洁皮托管(9DA1)",
+          "category": "电子",
+          "task_type": "PROBES清洁",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 893,
+          "set_id": 867,
+          "tools": [
+            {
+              "device_name": "皮托管清洁工具",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": [],
+          "set_name": "清洁皮托管"
+        },
+        {
+          "task_code": "EOJC-A320-11-2019-001-B",
+          "task_name": "定期检查A320系列飞机内部标记和标牌",
+          "category": "电子",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 326,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-24-2024-005-A",
+          "task_name": "读取GCU的TSD数据",
+          "category": "电子",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 286,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-25-2020-026-A",
+          "task_name": "加强检查客舱内湿区",
+          "category": "电子",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 211,
+          "set_id": null,
+          "tools": [
+            {
+              "device_name": "手持吸尘器",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-25-2021-022-A",
+          "task_name": "对厨房工作台面及水槽密封胶状态进行检查并修复",
+          "category": "电子",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 329,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-25-2024-022-A",
+          "task_name": "对驾驶舱和客舱设备进行检查并视情更换",
+          "category": "电子",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 291,
+          "set_id": null,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "南孚电池1#",
+              "part_number": "DC-1",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "检查有问题领用"
+            },
+            {
+              "material_name": "遮阳纸(A320风挡遮阳膜副驾位)",
+              "part_number": "RD0028",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "检查有问题领用"
+            },
+            {
+              "material_name": "遮阳帘组件",
+              "part_number": "170-12180-990TX",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "检查有问题领用"
+            },
+            {
+              "material_name": "遮阳纸(A320风挡遮阳膜机长位)",
+              "part_number": "RD0029",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "检查有问题领用"
+            },
+            {
+              "material_name": "滑窗遮阳帘",
+              "part_number": "170-12155-990-RD",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "检查有问题领用"
+            },
+            {
+              "material_name": "滑窗遮阳帘",
+              "part_number": "170-12156-990-RD",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "检查有问题领用"
+            }
+          ]
+        },
+        {
+          "task_code": "EOJC-A320-25-2026-002-A",
+          "task_name": "对驾驶舱座椅进行定期检查",
+          "category": "电子",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 292,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-30-2025-001-A",
+          "task_name": "重复性检查A320系列飞机驾驶舱左、右滑窗加温线束磨损情况",
+          "category": "电子",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 295,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-32-2024-016-A",
+          "task_name": "飞机停留刹车操作测试",
+          "category": "电子",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 297,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-52-2024-003-A",
+          "task_name": "对登机门密封胶条的详细目视检查",
+          "category": "电子",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 230,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-56-2020-002-A",
+          "task_name": "详细目视检查前风挡气象封严",
+          "category": "电子",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 299,
+          "set_id": null,
+          "tools": [],
+          "materials": [
+            {
+              "material_name": "风挡胶",
+              "part_number": "PR1425CFB1/2",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "task_code": "DP1000000739",
+          "task_name": "关于机上MEL保留不工作标签及CB夹的检查工作",
+          "category": "电子",
+          "task_type": "DP项目",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 282,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-724000-W2-1-1",
+          "task_name": "孔探检查燃烧室和高压涡轮喷嘴导向叶片-1发(PW)",
+          "category": "特检",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 768,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "CSCA320-724000-W2-1-2",
+          "task_name": "孔探检查燃烧室和高压涡轮喷嘴导向叶片-2发(PW)",
+          "category": "特检",
+          "task_type": "",
+          "remark": "",
+          "source": "例行",
+          "status": "matched",
+          "db_id": 767,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-72-2023-003-S",
+          "task_name": "孔探检查PW1100发动机高压涡轮转子叶片",
+          "category": "特检",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 313,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-72-2023-004-S2",
+          "task_name": "孔探检查PW1100发动机3号轴承封严状况",
+          "category": "特检",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 314,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "ERJC-PW1100-07",
+          "task_name": "孔探检查PW1100发动机高压涡轮一级转子叶片",
+          "category": "特检",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "new",
+          "db_id": 324,
+          "unconfirmed": true
+        },
+        {
+          "task_code": "EOJC-A320-11-2019-001-A",
+          "task_name": "定期检查A320系列飞机外部标记和标牌",
+          "category": "支援",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 325,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-25-2023-020-A",
+          "task_name": "A320客舱定期维护检查单",
+          "category": "支援",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 330,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        },
+        {
+          "task_code": "EOJC-A320-25-2025-007-A",
+          "task_name": "检查客舱内应急出口旅客座椅椅垫使用状态",
+          "category": "支援",
+          "task_type": "EO分段",
+          "remark": "",
+          "source": "其他",
+          "status": "matched",
+          "db_id": 331,
+          "set_id": null,
+          "tools": [],
+          "materials": []
+        }
+      ],
+      "routine_count": 73,
+      "other_count": 39,
+      "is_matched": true,
+      "generated_at": "2026.07.26 02:10",
+      "package_id": "1c11e9e9-4252-42da-8ee2-eabbf0a95034"
     }
   ],
   "card_log_next_id": 20,
