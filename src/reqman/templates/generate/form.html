@@ -313,10 +313,7 @@ var PACKAGE_ID = '{{ package_id }}';
 
 function markAndOpen(taskCode, url) {
     localStorage.setItem(STORAGE_PREFIX + PACKAGE_ID + '_' + taskCode, '1');
-    var row = document.querySelector('tr[data-task-code="' + taskCode + '"]');
-    if (row) row.style.backgroundColor = '#d4edda';
     window.open(url, '_blank', 'width=900,height=700');
-    checkAllProcessed();
 }
 
 function checkAllProcessed() {
@@ -346,6 +343,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     checkAllProcessed();
+
+    // 工卡保存后标绿并检查是否全部完成
+    window.addEventListener('message', function(e) {
+        if (e.data && e.data.type === 'cardSaved') {
+            var taskCode = e.data.taskCode;
+            var row = document.querySelector('tr[data-task-code="' + taskCode + '"]');
+            if (row) row.style.backgroundColor = '#d4edda';
+            localStorage.setItem(STORAGE_PREFIX + PACKAGE_ID + '_' + taskCode, '1');
+            checkAllProcessed();
+        }
+    });
 });
 </script>
 {% endblock %}

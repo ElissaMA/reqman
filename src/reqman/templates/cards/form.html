@@ -207,6 +207,10 @@ if (window.opener) {
             body: formData
         }).then(function(resp) {
             if (resp.ok) {
+                window.opener && window.opener.postMessage({
+                    type: 'cardSaved',
+                    taskCode: document.querySelector('[name="task_code"]').value
+                }, '*');
                 window.close();
             } else {
                 form.submit();
