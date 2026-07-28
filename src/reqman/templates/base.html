@@ -27,6 +27,24 @@
         .gap-row td { height: 20px; background: #f0f4f8; }
         .gap-row td:first-child { font-weight: 600; color: #6c757d; font-size: 12px; }
 
+        /* ===== 警告闪烁动画 ===== */
+        @keyframes blink-warn {
+            0% { border-color: #dc3545; box-shadow: 0 0 6px rgba(220,53,69,0.4); }
+            50% { border-color: #dc3545; box-shadow: 0 0 12px rgba(220,53,69,0.7); }
+            100% { border-color: #dc3545; box-shadow: 0 0 6px rgba(220,53,69,0.4); }
+        }
+        tr.blink-warn {
+            animation: blink-warn 2s ease-in-out 3;
+            border-left: 4px solid #dc3545 !important;
+            background-color: #fff8f8;
+        }
+        tr.blink-warn td:first-child {
+            padding-left: calc(0.5rem - 4px);
+        }
+        tr.blink-warn:hover {
+            background-color: #fff0f0;
+        }
+
         /* ===== 状态标签 ===== */
         .status-matched { background-color: #d4edda !important; }
         .status-new { background-color: #f8d7da !important; }
@@ -90,24 +108,6 @@
             from { opacity: 0; transform: translateX(40px); }
             to { opacity: 1; transform: translateX(0); }
         }
-
-        /* ===== 按钮通用 ===== */
-        .btn-flat {
-            display: inline-block;
-            padding: 8px 18px;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-decoration: none;
-            text-align: center;
-        }
-        .btn-flat-primary { background: #1976d2; color: #fff; }
-        .btn-flat-primary:hover { background: #1565c0; color: #fff; text-decoration: none; }
-        .btn-flat-danger { background: #ffebee; color: #c62828; }
-        .btn-flat-danger:hover { background: #ffcdd2; color: #c62828; }
 
         /* ===== 空状态（统一 48px 图标） ===== */
         .empty-state-icon { font-size: 48px; color: #c0c8d4; }

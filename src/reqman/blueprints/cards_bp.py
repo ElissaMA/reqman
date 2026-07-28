@@ -394,29 +394,31 @@ def aircraft_list():
 @cards_bp.route("/card/aircraft/new", methods=["GET", "POST"])
 def aircraft_new():
     """新增飞机"""
-    if request.method == "POST":
-        try:
-            reg = request.form.get("reg", "").strip()
-            if not reg:
-                flash("机号不能为空", "error")
-                return redirect("/card/aircraft")
+    if request.method == "GET":
+        return render_template("cards/aircraft_form.html", ac=None, edit_mode=False)
 
-            current_app.extensions['card_service'].add_aircraft(
-                reg=reg,
-                model=request.form.get("model", ""),
-                engine=request.form.get("engine", ""),
-                fsn=request.form.get("fsn", ""),
-                msn=request.form.get("msn", ""),
-                apu=request.form.get("apu", ""),
-            )
-            flash("飞机信息新增成功", "success")
+    try:
+        reg = request.form.get("reg", "").strip()
+        if not reg:
+            flash("机号不能为空", "error")
             return redirect("/card/aircraft")
 
-        except ServiceError as e:
-            flash(e.message, "error")
-        except Exception as e:
-            logger.exception("新增飞机信息失败")
-            flash("服务器错误", "error")
+        current_app.extensions['card_service'].add_aircraft(
+            reg=reg,
+            model=request.form.get("model", ""),
+            engine=request.form.get("engine", ""),
+            fsn=request.form.get("fsn", ""),
+            msn=request.form.get("msn", ""),
+            apu=request.form.get("apu", ""),
+        )
+        flash("飞机信息新增成功", "success")
+        return redirect("/card/aircraft")
+
+    except ServiceError as e:
+        flash(e.message, "error")
+    except Exception as e:
+        logger.exception("新增飞机信息失败")
+        flash("服务器错误", "error")
 
     return redirect("/card/aircraft")
 
@@ -433,25 +435,27 @@ def aircraft_edit(aircraft_id):
         flash("飞机信息不存在", "error")
         return redirect("/card/aircraft")
 
-    if request.method == "POST":
-        try:
-            current_app.extensions['card_service'].update_aircraft(
-                aircraft_id,
-                reg=request.form.get("reg", ac.get("reg", "")),
-                model=request.form.get("model", ""),
-                engine=request.form.get("engine", ""),
-                fsn=request.form.get("fsn", ""),
-                msn=request.form.get("msn", ""),
-                apu=request.form.get("apu", ""),
-            )
-            flash("飞机信息更新成功", "success")
-            return redirect("/card/aircraft")
+    if request.method == "GET":
+        return render_template("cards/aircraft_form.html", ac=ac, edit_mode=True)
 
-        except ServiceError as e:
-            flash(e.message, "error")
-        except Exception as e:
-            logger.exception("更新飞机信息失败")
-            flash("服务器错误", "error")
+    try:
+        current_app.extensions['card_service'].update_aircraft(
+            aircraft_id,
+            reg=request.form.get("reg", ac.get("reg", "")),
+            model=request.form.get("model", ""),
+            engine=request.form.get("engine", ""),
+            fsn=request.form.get("fsn", ""),
+            msn=request.form.get("msn", ""),
+            apu=request.form.get("apu", ""),
+        )
+        flash("飞机信息更新成功", "success")
+        return redirect("/card/aircraft")
+
+    except ServiceError as e:
+        flash(e.message, "error")
+    except Exception as e:
+        logger.exception("更新飞机信息失败")
+        flash("服务器错误", "error")
 
     return redirect("/card/aircraft")
 

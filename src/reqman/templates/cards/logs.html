@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "macros/list_macros.html" as list %}
 {% block title %}操作日志 - 定检需求单管理{% endblock %}
 {% block content %}
 
@@ -8,59 +9,52 @@
 }
 </style>
 
-<!-- 筛选区域 -->
 <div class="card mb-3">
-    <div class="card-body py-3">
-        <form method="GET" class="row g-2 align-items-end">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">操作日志 <span class="badge bg-secondary ms-2">共 <span id="logCount">{{ logs|length }}</span> 条</span></h5>
+    </div>
+    <div class="card-body">
+        <form class="row g-2 align-items-end" onsubmit="return false;">
             <div class="col-auto">
                 <label class="form-label small mb-1 text-muted">操作类型</label>
-                <select name="operation" class="form-select form-select-sm" style="width:100px">
+                <select name="operation" class="form-select form-select-sm" style="width:100px" onchange="filterLogs()">
                     <option value="">全部</option>
-                    <option value="add" {{ 'selected' if request.args.get('operation') == 'add' }}>新增</option>
-                    <option value="update" {{ 'selected' if request.args.get('operation') == 'update' }}>修改</option>
-                    <option value="delete" {{ 'selected' if request.args.get('operation') == 'delete' }}>删除</option>
+                    <option value="add">新增</option>
+                    <option value="update">修改</option>
+                    <option value="delete">删除</option>
                 </select>
             </div>
             <div class="col-auto">
                 <label class="form-label small mb-1 text-muted">目标类型</label>
-                <select name="target_type" class="form-select form-select-sm" style="width:100px">
+                <select name="target_type" class="form-select form-select-sm" style="width:100px" onchange="filterLogs()">
                     <option value="">全部</option>
-                    <option value="card" {{ 'selected' if request.args.get('target_type') == 'card' }}>工卡</option>
-                    <option value="card_set" {{ 'selected' if request.args.get('target_type') == 'card_set' }}>工卡组</option>
-                    <option value="aircraft" {{ 'selected' if request.args.get('target_type') == 'aircraft' }}>飞机信息</option>
+                    <option value="card">工卡</option>
+                    <option value="set">工卡组</option>
+                    <option value="aircraft">飞机信息</option>
                 </select>
             </div>
             <div class="col-auto">
                 <label class="form-label small mb-1 text-muted">关键词</label>
                 <input type="text" name="keyword" class="form-control form-control-sm"
-                       value="{{ request.args.get('keyword', '') }}" placeholder="搜索..." style="width:120px">
+                       placeholder="搜索..." style="width:120px" oninput="filterLogs()">
             </div>
             <div class="col-auto">
                 <label class="form-label small mb-1 text-muted">提交日期</label>
                 <input type="date" name="date_from" class="form-control form-control-sm"
-                       value="{{ request.args.get('date_from', '') }}" style="width:150px">
+                       style="width:150px" onchange="filterLogs()">
             </div>
             <div class="col-auto d-flex gap-1">
-                <button type="submit" class="btn btn-sm btn-primary">筛选</button>
-                <a href="/card/logs" class="btn btn-sm btn-outline-secondary">重置</a>
+                <button type="button" class="btn btn-sm btn-primary" onclick="filterLogs()">筛选</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetFilter()">重置</button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- 日志列表 -->
 <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i class="bi bi-clock-history"></i> 操作日志
-            <span class="badge bg-secondary ms-2">共 {{ total }} 条</span>
-        </h5>
-    </div>
-
     <div class="card-body p-0">
-        {% if logs %}
         <div class="table-responsive">
-            <table class="table table-hover table-sm mb-0 log-table">
+            <table class="table table-hover table-sm mb-0 log-table" id="logTable">
                 <thead class="table-light">
                     <tr>
                         <th style="width:50px">ID</th>
@@ -72,86 +66,117 @@
                         <th>变更内容</th>
                     </tr>
                 </thead>
-                <tbody>
-                    {% for log in logs %}
-                    <tr>
-                        <td class="text-muted small">{{ log.id }}</td>
-                        <td class="small" title="{{ log.timestamp }}">{{ (log.timestamp or '')[:19] }}</td>
-                        <td>
-                            {% set op_label = operation_labels.get(log.operation, log.operation) %}
-                            {% if log.operation == 'add' %}
-                            <span class="badge bg-success">{{ op_label }}</span>
-                            {% elif log.operation == 'update' %}
-                            <span class="badge bg-primary">{{ op_label }}</span>
-                            {% elif log.operation == 'delete' %}
-                            <span class="badge bg-danger">{{ op_label }}</span>
-                            {% else %}
-                            <span class="badge bg-secondary">{{ op_label }}</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% set tt_label = target_type_labels.get(log.target_type, log.target_type) %}
-                            {% if log.target_type == 'card' %}
-                            <span class="badge bg-info text-dark">{{ tt_label }}</span>
-                            {% elif log.target_type == 'card_set' %}
-                            <span class="badge bg-warning text-dark">{{ tt_label }}</span>
-                            {% elif log.target_type == 'aircraft' %}
-                            <span class="badge bg-secondary">{{ tt_label }}</span>
-                            {% else %}
-                            <span class="badge bg-light text-dark">{{ tt_label }}</span>
-                            {% endif %}
-                        </td>
-                        <td><code class="small">{{ log.target_identifier }}</code></td>
-                        <td class="small">{{ log.target_name }}</td>
-                        <td class="small" style="max-width:350px">
-                            {% set changes = log.get('changes', []) %}
-                            {% if changes %}
-                            {% set first = changes[0] %}
-                            {% set flabel = field_labels.get(first.field, first.field) %}
-                            <span title="{{ format_changes(changes)|e }}">
-                                {{ flabel }}: {{ (first.get('new', '')|string)[:40] }}
-                                {% if changes|length > 1 %}
-                                <span class="text-muted">…等{{ changes|length }}项</span>
-                                {% endif %}
-                            </span>
-                            {% else %}
-                            <span class="text-muted">-</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
+                <tbody id="logTableBody"></tbody>
             </table>
         </div>
-
-        <!-- 分页 -->
-        {% if total_pages > 1 %}
-        <div class="d-flex justify-content-center py-2 border-top">
-            <nav>
-                <ul class="pagination pagination-sm mb-0">
-                    <li class="page-item {{ 'disabled' if page <= 1 }}">
-                        <a class="page-link" href="?page={{ page - 1 }}{{ query_params }}">上一页</a>
-                    </li>
-                    {% for p in range(1, total_pages + 1) %}
-                    <li class="page-item {{ 'active' if p == page }}">
-                        <a class="page-link" href="?page={{ p }}{{ query_params }}">{{ p }}</a>
-                    </li>
-                    {% endfor %}
-                    <li class="page-item {{ 'disabled' if page >= total_pages }}">
-                        <a class="page-link" href="?page={{ page + 1 }}{{ query_params }}">下一页</a>
-                    </li>
-                </ul>
-            </nav>
-        </div>
-        {% endif %}
-
-        {% else %}
-        <!-- 空状态 -->
-        <div class="text-center py-5 text-muted">
+        <div id="logEmpty" class="text-center py-5 text-muted" style="display:none">
             <p class="mb-1 fs-5">暂无日志记录</p>
             <small>当前筛选条件下没有找到操作日志</small>
         </div>
-        {% endif %}
     </div>
 </div>
+
+<script>
+var logData = {{ logs|tojson }};
+var operationLabels = {{ operation_labels|tojson }};
+var targetTypeLabels = {{ target_type_labels|tojson }};
+var fieldLabels = {{ field_labels|tojson }};
+
+function formatChanges(changes) {
+    if (!changes || !changes.length) return '';
+    return changes.map(function(c) {
+        var label = fieldLabels[c.field] || c.field;
+        var oldVal = Array.isArray(c.old) ? '[' + c.old.length + ' 项]' : c.old;
+        var newVal = Array.isArray(c.new) ? '[' + c.new.length + ' 项]' : c.new;
+        return label + ': ' + oldVal + ' \u2192 ' + newVal;
+    }).join('; ');
+}
+
+function filterLogs() {
+    var op = document.querySelector('select[name="operation"]').value;
+    var tt = document.querySelector('select[name="target_type"]').value;
+    var kw = document.querySelector('input[name="keyword"]').value.trim().toLowerCase();
+    var df = document.querySelector('input[name="date_from"]').value;
+
+    var filtered = logData.filter(function(l) {
+        if (op && l.operation !== op) return false;
+        if (tt && l.target_type !== tt) return false;
+        if (kw) {
+            var idf = (l.target_identifier || '').toLowerCase();
+            var tn = (l.target_name || '').toLowerCase();
+            if (idf.indexOf(kw) < 0 && tn.indexOf(kw) < 0) return false;
+        }
+        if (df) {
+            var ts = (l.timestamp || '').substring(0, 10);
+            if (ts < df) return false;
+        }
+        return true;
+    });
+
+    var tbody = document.getElementById('logTableBody');
+    var empty = document.getElementById('logEmpty');
+    var count = document.getElementById('logCount');
+
+    if (!filtered.length) {
+        tbody.innerHTML = '';
+        empty.style.display = 'block';
+        count.textContent = '0';
+        return;
+    }
+    empty.style.display = 'none';
+    count.textContent = filtered.length;
+
+    var html = '';
+    filtered.forEach(function(l) {
+        var opLabel = operationLabels[l.operation] || l.operation;
+        var ttl = targetTypeLabels[l.target_type] || l.target_type;
+
+        var opBadge = 'bg-secondary';
+        if (l.operation === 'add') opBadge = 'bg-success';
+        else if (l.operation === 'update') opBadge = 'bg-primary';
+        else if (l.operation === 'delete') opBadge = 'bg-danger';
+
+        var ttBadge = 'bg-light text-dark';
+        if (l.target_type === 'card') ttBadge = 'bg-info text-dark';
+        else if (l.target_type === 'card_set') ttBadge = 'bg-warning text-dark';
+        else if (l.target_type === 'aircraft') ttBadge = 'bg-secondary';
+
+        var changes = l.changes || [];
+        var changesHtml = '-';
+        if (changes.length) {
+            var first = changes[0];
+            var flabel = fieldLabels[first.field] || first.field;
+            var titleAttr = formatChanges(changes);
+            var newVal = first.new;
+            if (typeof newVal !== 'string') newVal = JSON.stringify(newVal);
+            if (newVal && newVal.length > 40) newVal = newVal.substring(0, 40);
+            changesHtml = '<span title="' + titleAttr.replace(/"/g, '&quot;') + '">' +
+                flabel + ': ' + newVal +
+                (changes.length > 1 ? ' <span class="text-muted">\u2026\u7b49' + changes.length + '\u9879</span>' : '') +
+                '</span>';
+        }
+
+        html += '<tr>' +
+            '<td class="text-muted small">' + l.id + '</td>' +
+            '<td class="small" title="' + (l.timestamp || '') + '">' + (l.timestamp || '').substring(0, 19) + '</td>' +
+            '<td><span class="badge ' + opBadge + '">' + opLabel + '</span></td>' +
+            '<td><span class="badge ' + ttBadge + '">' + ttl + '</span></td>' +
+            '<td><code class="small">' + (l.target_identifier || '') + '</code></td>' +
+            '<td class="small">' + (l.target_name || '') + '</td>' +
+            '<td class="small" style="max-width:350px">' + changesHtml + '</td>' +
+            '</tr>';
+    });
+    tbody.innerHTML = html;
+}
+
+function resetFilter() {
+    document.querySelector('select[name="operation"]').value = '';
+    document.querySelector('select[name="target_type"]').value = '';
+    document.querySelector('input[name="keyword"]').value = '';
+    document.querySelector('input[name="date_from"]').value = '';
+    filterLogs();
+}
+
+document.addEventListener('DOMContentLoaded', filterLogs);
+</script>
 {% endblock %}

@@ -100,34 +100,31 @@ def _build_filtered_logs(args: dict) -> list:
 
 @bp.route("/logs")
 def list_logs():
-    """日志列表页面"""
-    logs = _build_filtered_logs(request.args)
+    """操作日志列表 - 全量传前端做客户端筛选"""
+    try:
+        service = _get_service()
+        if not service:
+            raise ServerError("服务不可用")
+        all_logs = list(service.get_logs())
+        # 按时间倒序
+        all_logs.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
 
-    page = request.args.get("page", 1, type=int)
-    per_page = 20
-    total = len(logs)
-    total_pages = max(1, (total + per_page - 1) // per_page)
-    page = max(1, min(page, total_pages))
-    start = (page - 1) * per_page
-    end = start + per_page
-    page_logs = logs[start:end]
-
-    # 保留筛选参数（除 page 外）用于分页链接
-    qp = {k: v for k, v in request.args.items() if k != "page"}
-    query_params = "&" + urlencode(qp) if qp else ""
-
-    return render_template(
-        "cards/logs.html",
-        logs=page_logs,
-        page=page,
-        total_pages=total_pages,
-        total=total,
-        query_params=query_params,
-        operation_labels=OPERATION_LABELS,
-        target_type_labels=TARGET_TYPE_LABELS,
-        field_labels=FIELD_LABELS,
-        format_changes=_format_changes,
-    )
+        return render_template("cards/logs.html",
+                               logs=all_logs,
+                               total=len(all_logs),
+                               operation_labels=OPERATION_LABELS,
+                               target_type_labels=TARGET_TYPE_LABELS,
+                               field_labels=FIELD_LABELS,
+                               format_changes=_format_changes)
+    except Exception as e:
+        logger.exception("获取操作日志失败")
+        flash("加载操作日志失败", "error")
+        return render_template("cards/logs.html",
+                               logs=[], total=0,
+                               operation_labels=OPERATION_LABELS,
+                               target_type_labels=TARGET_TYPE_LABELS,
+                               field_labels=FIELD_LABELS,
+                               format_changes=_format_changes)
 
 
 @bp.route("/logs/delete", methods=["POST"])
