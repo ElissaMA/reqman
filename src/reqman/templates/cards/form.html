@@ -45,6 +45,7 @@
             </div>
 
             <!-- 工具清单 -->
+            <div id="toolSection">
             <div class="mb-3">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <label class="form-label fw-bold mb-0">&#x1F527; 工具清单</label>
@@ -52,6 +53,7 @@
                             onclick="addRow('tool')">+ 新增工具</button>
                 </div>
                 {{ tables.tool_table(tools, usage_types, editable=true, show_delete=true) }}
+            </div>
             </div>
             <div class="mb-2">
                 <div class="form-check">
@@ -64,6 +66,7 @@
             </div>
 
             <!-- 航材清单 -->
+            <div id="matSection">
             <div class="mb-3">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <label class="form-label fw-bold mb-0">&#x1F4E6; 航材清单</label>
@@ -71,6 +74,7 @@
                             onclick="addRow('mat')">+ 新增航材</button>
                 </div>
                 {{ tables.material_table(materials, usage_types, editable=true, show_delete=true) }}
+            </div>
             </div>
             <div class="mb-2">
                 <div class="form-check">
@@ -100,25 +104,11 @@ var confirmNoTools = document.getElementById("confirmNoTools");
 var confirmNoMats = document.getElementById("confirmNoMats");
 
 confirmNoTools.addEventListener("change", function() {
-    if (this.checked) {
-        if (!confirm("确认该卡无需工具？已填内容将被清空。")) {
-            this.checked = false;
-            return;
-        }
-        var tbody = document.querySelector("#toolTable tbody");
-        if (tbody) tbody.innerHTML = "";
-    }
+    document.getElementById("toolSection").classList.toggle("section-disabled", this.checked);
 });
 
 confirmNoMats.addEventListener("change", function() {
-    if (this.checked) {
-        if (!confirm("确认该卡无需航材？已填内容将被清空。")) {
-            this.checked = false;
-            return;
-        }
-        var tbody = document.querySelector("#matTable tbody");
-        if (tbody) tbody.innerHTML = "";
-    }
+    document.getElementById("matSection").classList.toggle("section-disabled", this.checked);
 });
 
 function watchTable(tableId, checkbox) {

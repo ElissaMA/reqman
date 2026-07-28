@@ -1,27 +1,27 @@
 # 贡献指南
 
-## 开发环境搭建
+## 开发环境
 
 ```bash
 pip install -e ".[dev]"
-cp .env.example .env  # 按需编辑
+cp .env.example .env
 ```
 
-## 分支规范
+## 分支
 
-- `main` — 稳定版本
-- `dev` — 开发分支
-- `feature/*` — 功能分支
+- `main` — 稳定版
+- `dev` — 开发
+- `feature/*` — 功能
 
-## 提交流程
+## 提交
 
-1. Fork 仓库
-2. 创建功能分支
-3. 运行 `pytest` 确保测试通过
-4. 提交 PR 到 `dev` 分支
+1. Fork
+2. 创建分支
+3. `pytest` 测试通过
+4. PR到`dev`
 
-## 代码规范
+## 规范
 
-- 遵循 PEP 8
-- 使用 `ruff` 进行检查
-- 类型注解使用 Python 3.10+ 语法
+- PEP 8
+- ruff检查
+- Python 3.10+ 类型注解

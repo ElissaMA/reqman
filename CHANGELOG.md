@@ -1,5 +1,23 @@
 # Changelog
 
+## [3.2.0] - 2026-07-28
+
+### Added
+- 虚拟环境自动检测（app.py启动时自动切换venv）
+- 日志功能测试（test_card_logs.py）
+- 工作包功能测试（test_work_packages.py）
+- 双文件存储测试（test_dual_file.py）
+- 日志清理测试（test_log_cleanup.py）
+
+### Changed
+- 数据库拆分为核心文件+运行时文件（json_store.py双文件读写）
+- .gitignore忽略运行时文件（reqman_db_runtime.json）
+- 启动脚本简化（start.bat/start.sh）
+- 测试覆盖从138提升至169
+
+### Fixed
+- 虚拟环境未激活时Flask导入失败
+
 ## [3.1.0] - 2026-07-21
 
 ### Added
