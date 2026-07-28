@@ -1,8 +1,6 @@
 #!/bin/bash
 cd "$(dirname "$0")"
 echo "================================================"
-echo "  Reqman V3 - Inspection Demand System"
-echo "  Architecture: Factory + Blueprint + Service"
+echo "  定检需求单管理系统 V3"
 echo "================================================"
-export PYTHONPATH=src
 python3 src/reqman/app.py

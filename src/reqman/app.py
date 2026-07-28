@@ -8,6 +8,27 @@
 
 import sys
 import os
+
+def _ensure_venv():
+    """确保在虚拟环境中运行，否则自动切换"""
+    if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
+        return  # 已在虚拟环境中
+
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    venv_python = os.path.join(project_root, "venv", "Scripts", "python.exe")
+    venv_python_unix = os.path.join(project_root, "venv", "bin", "python3")
+
+    if os.path.exists(venv_python):
+        print("[启动] 检测到虚拟环境，正在切换...")
+        os.execv(venv_python, [venv_python] + sys.argv)
+    elif os.path.exists(venv_python_unix):
+        print("[启动] 检测到虚拟环境，正在切换...")
+        os.execv(venv_python_unix, [venv_python_unix] + sys.argv)
+    else:
+        print("[警告] 未找到虚拟环境，请先运行: python -m venv venv")
+
+_ensure_venv()
+
 import socket
 import subprocess
 import threading

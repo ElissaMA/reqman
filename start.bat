@@ -1,11 +1,7 @@
 @echo off
 cd /d "%~dp0"
-
 echo ================================================
-echo   Reqman V3 - Inspection Demand System
-echo   Architecture: Factory + Blueprint + Service
+echo   定检需求单管理系统 V3
 echo ================================================
-
-set PYTHONPATH=src
-py src\reqman\app.py
+python src\reqman\app.py
 pause
