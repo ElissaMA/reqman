@@ -118,5 +118,36 @@ function fileSelected(input, zoneId) {
     var el = document.getElementById(id);
     if (el) el.setAttribute('data-col', col);
 });
+
+// ===== 拖拽上传支持 =====
+function setupDragDrop(zoneId, inputId) {
+    var zone = document.getElementById(zoneId);
+    if (!zone) return;
+    zone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        zone.style.borderColor = '#2a5a8c';
+        zone.style.background = '#f0f4ff';
+    });
+    zone.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        zone.style.borderColor = '';
+        zone.style.background = '';
+    });
+    zone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        zone.style.borderColor = '';
+        zone.style.background = '';
+        var files = e.dataTransfer.files;
+        if (files.length > 0) {
+            var input = document.getElementById(inputId);
+            input.files = files;
+            fileSelected(input, zoneId);
+        }
+    });
+}
+document.addEventListener('DOMContentLoaded', function() {
+    setupDragDrop('zoneRoutine', 'routineFile');
+    setupDragDrop('zoneOther', 'otherFile');
+});
 </script>
 {% endblock %}

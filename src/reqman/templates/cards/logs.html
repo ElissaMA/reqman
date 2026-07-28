@@ -73,6 +73,9 @@
             <p class="mb-1 fs-5">暂无日志记录</p>
             <small>当前筛选条件下没有找到操作日志</small>
         </div>
+        <div id="logLoading" class="text-center py-2 text-muted small" style="display:none">
+            <span id="logLoadingText">加载中...</span>
+        </div>
     </div>
 </div>
 
@@ -81,6 +84,9 @@ var logData = {{ logs|tojson }};
 var operationLabels = {{ operation_labels|tojson }};
 var targetTypeLabels = {{ target_type_labels|tojson }};
 var fieldLabels = {{ field_labels|tojson }};
+var PAGE_SIZE = 50;
+var currentPage = 1;
+var currentFiltered = [];
 
 function formatChanges(changes) {
     if (!changes || !changes.length) return '';
@@ -90,6 +96,78 @@ function formatChanges(changes) {
         var newVal = Array.isArray(c.new) ? '[' + c.new.length + ' 项]' : c.new;
         return label + ': ' + oldVal + ' \u2192 ' + newVal;
     }).join('; ');
+}
+
+function renderLogs() {
+    var tbody = document.getElementById('logTableBody');
+    var empty = document.getElementById('logEmpty');
+    var count = document.getElementById('logCount');
+    var loading = document.getElementById('logLoading');
+    var loadingText = document.getElementById('logLoadingText');
+
+    var filtered = currentFiltered;
+    var endIndex = currentPage * PAGE_SIZE;
+    var slice = filtered.slice(0, endIndex);
+
+    if (!filtered.length) {
+        tbody.innerHTML = '';
+        empty.style.display = 'block';
+        loading.style.display = 'none';
+        count.textContent = '0';
+        return;
+    }
+    empty.style.display = 'none';
+    count.textContent = filtered.length;
+
+    if (endIndex < filtered.length) {
+        loading.style.display = 'block';
+        loadingText.textContent = '加载更多...';
+    } else {
+        loading.style.display = 'block';
+        loadingText.textContent = '已加载全部 ' + filtered.length + ' 条';
+    }
+
+    var html = '';
+    slice.forEach(function(l) {
+        var opLabel = operationLabels[l.operation] || l.operation;
+        var ttl = targetTypeLabels[l.target_type] || l.target_type;
+
+        var opBadge = 'bg-secondary';
+        if (l.operation === 'add') opBadge = 'bg-success';
+        else if (l.operation === 'update') opBadge = 'bg-primary';
+        else if (l.operation === 'delete') opBadge = 'bg-danger';
+
+        var ttBadge = 'bg-light text-dark';
+        if (l.target_type === 'card') ttBadge = 'bg-info text-dark';
+        else if (l.target_type === 'set') ttBadge = 'bg-warning text-dark';
+        else if (l.target_type === 'aircraft') ttBadge = 'bg-secondary';
+
+        var changes = l.changes || [];
+        var changesHtml = '-';
+        if (changes.length) {
+            var first = changes[0];
+            var flabel = fieldLabels[first.field] || first.field;
+            var titleAttr = formatChanges(changes);
+            var newVal = first.new;
+            if (typeof newVal !== 'string') newVal = JSON.stringify(newVal);
+            if (newVal && newVal.length > 40) newVal = newVal.substring(0, 40);
+            changesHtml = '<span title="' + titleAttr.replace(/"/g, '&quot;') + '">' +
+                flabel + ': ' + newVal +
+                (changes.length > 1 ? ' <span class="text-muted">…等' + changes.length + '项</span>' : '') +
+                '</span>';
+        }
+
+        html += '<tr>' +
+            '<td class="text-muted small">' + l.id + '</td>' +
+            '<td class="small" title="' + (l.timestamp || '') + '">' + (l.timestamp || '').substring(0, 19) + '</td>' +
+            '<td><span class="badge ' + opBadge + '">' + opLabel + '</span></td>' +
+            '<td><span class="badge ' + ttBadge + '">' + ttl + '</span></td>' +
+            '<td><code class="small">' + (l.target_identifier || '') + '</code></td>' +
+            '<td class="small">' + (l.target_name || '') + '</td>' +
+            '<td class="small" style="max-width:350px">' + changesHtml + '</td>' +
+            '</tr>';
+    });
+    tbody.innerHTML = html;
 }
 
 function filterLogs() {
@@ -113,60 +191,9 @@ function filterLogs() {
         return true;
     });
 
-    var tbody = document.getElementById('logTableBody');
-    var empty = document.getElementById('logEmpty');
-    var count = document.getElementById('logCount');
-
-    if (!filtered.length) {
-        tbody.innerHTML = '';
-        empty.style.display = 'block';
-        count.textContent = '0';
-        return;
-    }
-    empty.style.display = 'none';
-    count.textContent = filtered.length;
-
-    var html = '';
-    filtered.forEach(function(l) {
-        var opLabel = operationLabels[l.operation] || l.operation;
-        var ttl = targetTypeLabels[l.target_type] || l.target_type;
-
-        var opBadge = 'bg-secondary';
-        if (l.operation === 'add') opBadge = 'bg-success';
-        else if (l.operation === 'update') opBadge = 'bg-primary';
-        else if (l.operation === 'delete') opBadge = 'bg-danger';
-
-        var ttBadge = 'bg-light text-dark';
-        if (l.target_type === 'card') ttBadge = 'bg-info text-dark';
-        else if (l.target_type === 'card_set') ttBadge = 'bg-warning text-dark';
-        else if (l.target_type === 'aircraft') ttBadge = 'bg-secondary';
-
-        var changes = l.changes || [];
-        var changesHtml = '-';
-        if (changes.length) {
-            var first = changes[0];
-            var flabel = fieldLabels[first.field] || first.field;
-            var titleAttr = formatChanges(changes);
-            var newVal = first.new;
-            if (typeof newVal !== 'string') newVal = JSON.stringify(newVal);
-            if (newVal && newVal.length > 40) newVal = newVal.substring(0, 40);
-            changesHtml = '<span title="' + titleAttr.replace(/"/g, '&quot;') + '">' +
-                flabel + ': ' + newVal +
-                (changes.length > 1 ? ' <span class="text-muted">\u2026\u7b49' + changes.length + '\u9879</span>' : '') +
-                '</span>';
-        }
-
-        html += '<tr>' +
-            '<td class="text-muted small">' + l.id + '</td>' +
-            '<td class="small" title="' + (l.timestamp || '') + '">' + (l.timestamp || '').substring(0, 19) + '</td>' +
-            '<td><span class="badge ' + opBadge + '">' + opLabel + '</span></td>' +
-            '<td><span class="badge ' + ttBadge + '">' + ttl + '</span></td>' +
-            '<td><code class="small">' + (l.target_identifier || '') + '</code></td>' +
-            '<td class="small">' + (l.target_name || '') + '</td>' +
-            '<td class="small" style="max-width:350px">' + changesHtml + '</td>' +
-            '</tr>';
-    });
-    tbody.innerHTML = html;
+    currentFiltered = filtered;
+    currentPage = 1;
+    renderLogs();
 }
 
 function resetFilter() {
@@ -177,6 +204,16 @@ function resetFilter() {
     filterLogs();
 }
 
-document.addEventListener('DOMContentLoaded', filterLogs);
+document.addEventListener('DOMContentLoaded', function() {
+    filterLogs();
+    // 滚动加载
+    document.querySelector('.table-responsive').addEventListener('scroll', function() {
+        if (currentFiltered.length <= currentPage * PAGE_SIZE) return;
+        if (this.scrollHeight - this.scrollTop - this.clientHeight < 50) {
+            currentPage++;
+            renderLogs();
+        }
+    });
+});
 </script>
 {% endblock %}
