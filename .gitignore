@@ -61,7 +61,8 @@ htmlcov/
 *.log
 *.tmp
 data/*.json
-!data/reqman_db.json
+!data/reqman_db.json         # 核心数据（飞机/工卡/工卡组）继续追踪
+data/reqman_db_runtime.json  # 运行时数据（工作包/日志）不追踪
 output/
 .env
 .venv/

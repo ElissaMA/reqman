@@ -46,9 +46,23 @@ _EMPTY_DB = {
     "card_log_next_id": 1,
 }
 
+# 运行时数据（不纳入 Git 追踪）的键列表
+_RUNTIME_KEYS = {
+    "work_packages",
+    "card_logs",
+    "card_log_next_id",
+    "next_id",
+    "code_index",
+    "next_ac_id",
+}
+
 
 class JsonStore:
-    """单文件 JSON 存储，带编码索引"""
+    """双文件 JSON 存储：核心数据（飞机/工卡/工卡组）+ 运行时数据（工作包/日志）
+
+    核心数据默认受 Git 追踪，运行时数据（_RUNTIME_KEYS）写入独立文件，
+    应在 .gitignore 中忽略运行时文件。
+    """
 
     _lock = threading.Lock()
 
@@ -86,12 +100,14 @@ class JsonStore:
 
     def __init__(self, db_path: str):
         self._path = str(db_path)
+        base, ext = os.path.splitext(self._path)
+        self._runtime_path = base + "_runtime" + ext
         os.makedirs(os.path.dirname(self._path), exist_ok=True)
         self._init_db()
 
     def _init_db(self):
-        """初始化或修复数据库"""
-        if not os.path.exists(self._path):
+        """初始化或修复数据库。首次拆分时将运行时数据写入独立文件"""
+        if not os.path.exists(self._path) and not os.path.exists(self._runtime_path):
             bak = self._path + ".bak"
             if os.path.exists(bak):
                 logger.warning("主数据库缺失，从备份恢复")
@@ -100,7 +116,17 @@ class JsonStore:
                 self._write(_EMPTY_DB)
                 return
 
-        # 验证文件可读
+        # 核心文件缺失但运行时存在时，尝试从备份恢复核心文件
+        if not os.path.exists(self._path) and os.path.exists(self._runtime_path):
+            bak = self._path + ".bak"
+            if os.path.exists(bak):
+                logger.warning("核心数据库缺失，从备份恢复")
+                shutil.copy2(bak, self._path)
+            else:
+                # 无备份，用空核心
+                _atomic_write(self._path, {})
+
+        # 验证文件可读（合并读取两个文件）
         try:
             self._read()
         except (json.JSONDecodeError, IOError) as e:
@@ -121,12 +147,36 @@ class JsonStore:
     # ---------- 内部分方法 ----------
 
     def _read(self) -> dict:
-        with open(self._path, encoding="utf-8") as f:
-            return json.load(f)
+        """合并加载两个文件：核心数据 + 运行时数据"""
+        db = {}
+        if os.path.exists(self._path):
+            try:
+                with open(self._path, encoding="utf-8") as f:
+                    db.update(json.load(f))
+            except Exception:
+                pass
+        if os.path.exists(self._runtime_path):
+            try:
+                with open(self._runtime_path, encoding="utf-8") as f:
+                    db.update(json.load(f))
+            except Exception:
+                pass
+        return db
 
     def _write(self, data: dict) -> None:
-        _atomic_write(self._path, data)
-        # 自动备份
+        """拆分写入两个文件：运行时数据写入独立文件"""
+        core = {}
+        runtime = {}
+        for k, v in data.items():
+            if k in _RUNTIME_KEYS:
+                runtime[k] = v
+            else:
+                core[k] = v
+
+        _atomic_write(self._path, core)
+        _atomic_write(self._runtime_path, runtime)
+
+        # 备份核心文件
         try:
             shutil.copy2(self._path, self._path + ".bak")
         except Exception:
