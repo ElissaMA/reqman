@@ -7,10 +7,10 @@ Windows 上杀软扫描可能导致 openpyxl 关闭工作簿时无法删除内�
 3. 每次启动时自动清空上次遗留的临时文件
 """
 
-import os
 import glob as _glob
-import tempfile
 import logging
+import os
+import tempfile
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -45,9 +45,9 @@ def apply_patches(base_dir: Path) -> None:
             except (PermissionError, OSError):
                 try:
                     self.out.close()
-                except Exception:
-                    pass
-                _path = getattr(self.out, "name", None)
+                except OSError:
+                    logger.debug("Failed to close temp writer: %s", getattr(self.out, "name", "?"))
+                    _path = getattr(self.out, "name", None)
                 if _path and os.path.exists(_path):
                     try:
                         os.remove(_path)
@@ -72,5 +72,5 @@ def apply_patches(base_dir: Path) -> None:
                     pass
 
         _oxl_writer._openpyxl_shutdown = _patched_shutdown
-    except Exception:
-        pass
+    except (ImportError, AttributeError):
+        logger.warning("openpyxl补丁: 无法应用清理补丁")

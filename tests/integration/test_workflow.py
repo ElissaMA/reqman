@@ -1,9 +1,8 @@
 """端到端工作流测试 — 上传 → 匹配 → 生成需求单"""
 
 import io
-import json
+
 import openpyxl
-from openpyxl.utils import get_column_letter
 
 
 def _make_mock_excel(items: list[dict]) -> bytes:
@@ -29,7 +28,7 @@ def _make_mock_excel(items: list[dict]) -> bytes:
     # 表头（Row 5，仅作标识，不被 parser 使用）
     headers = ["序号", "工卡号", "ATA", "工种", "类型", "专业", "��域", "工卡描述", "工时", "数量", "备注", "L-column"]
     for col, header in enumerate(headers, 1):
-        cell = ws.cell(row=5, column=col, value=header)
+        ws.cell(row=5, column=col, value=header)
 
     # 数据行（从 Row 7 开始）
     # 列对应: B(2)=工卡��, E(5)=类型, F(6)=专业, H(8)=工��描述, L(12)=备注

@@ -1,5 +1,4 @@
 """日志功能测试"""
-import pytest
 from reqman.models.json_store import JsonStore
 
 

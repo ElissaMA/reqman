@@ -9,12 +9,12 @@
 """
 
 import json
+import logging
 import os
 import shutil
 import threading
-import logging
 import uuid
-from typing import Optional
+from typing import ClassVar
 
 from ..config import CATEGORIES
 
@@ -28,10 +28,12 @@ def _atomic_write(path: str, data: dict) -> None:
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
         os.replace(tmp, path)  # Windows / Unix 上均为原子操作
-    except Exception:
+    except (OSError, TypeError):
         if os.path.exists(tmp):
-            try: os.remove(tmp)
-            except: pass
+            try:
+                os.remove(tmp)
+            except OSError:
+                logger.debug("Failed to remove temp file: %s", tmp)
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
@@ -66,7 +68,7 @@ class JsonStore:
 
     _lock = threading.Lock()
 
-    _FIELDS = {
+    _FIELDS: ClassVar[dict] = {
         "card": {
             "id": None, "task_code": "", "task_name": "", "category": "机体",
             "task_type": "", "remark": "", "tools": [], "materials": [],
@@ -85,12 +87,12 @@ class JsonStore:
     }
 
     # 字段映射表（用于变更检测）
-    _CARD_FIELDS = ["task_code", "task_name", "category", "task_type", "remark",
+    _CARD_FIELDS: ClassVar[list] = ["task_code", "task_name", "category", "task_type", "remark",
                     "tools", "materials", "tools_confirmed", "materials_confirmed",
                     "set_id", "reminder_type"]
-    _SET_FIELDS = ["name", "description", "category", "tools", "materials",
+    _SET_FIELDS: ClassVar[list] = ["name", "description", "category", "tools", "materials",
                    "tools_confirmed", "materials_confirmed"]
-    _AIRCRAFT_FIELDS = ["reg", "model", "engine", "fsn", "msn", "apu"]
+    _AIRCRAFT_FIELDS: ClassVar[list] = ["reg", "model", "engine", "fsn", "msn", "apu"]
 
     def _norm(self, d, kind):
         defaults = self._FIELDS[kind]
@@ -129,7 +131,7 @@ class JsonStore:
         # 验证文件可读（合并读取两个文件）
         try:
             self._read()
-        except (json.JSONDecodeError, IOError) as e:
+        except (OSError, json.JSONDecodeError) as e:
             logger.error(f"数据库文件损坏: {e}")
             bak = self._path + ".bak"
             if os.path.exists(bak):
@@ -137,7 +139,7 @@ class JsonStore:
                 shutil.copy2(bak, self._path)
                 try:
                     self._read()
-                except Exception:
+                except (OSError, json.JSONDecodeError):
                     self._write(_EMPTY_DB)
                     return
             else:
@@ -153,14 +155,14 @@ class JsonStore:
             try:
                 with open(self._path, encoding="utf-8") as f:
                     db.update(json.load(f))
-            except Exception:
-                pass
+            except (OSError, json.JSONDecodeError):
+                logger.warning("核心数据库读取失败: %s", self._path)
         if os.path.exists(self._runtime_path):
             try:
                 with open(self._runtime_path, encoding="utf-8") as f:
                     db.update(json.load(f))
-            except Exception:
-                pass
+            except (OSError, json.JSONDecodeError):
+                logger.warning("运行时数据库读取失败: %s", self._runtime_path)
         return db
 
     def _write(self, data: dict) -> None:
@@ -179,8 +181,8 @@ class JsonStore:
         # 备份核心文件
         try:
             shutil.copy2(self._path, self._path + ".bak")
-        except Exception:
-            pass  # 备份失败不影响主流程
+        except OSError:
+            logger.warning("核心文件备份失败: %s.bak", self._path)
 
     def _next_id(self, db: dict) -> int:
         """从 db dict 中取 next_id 并递增。调用方需持有 _lock"""
@@ -215,7 +217,7 @@ class JsonStore:
                  target_id: int, target_identifier: str, target_name: str,
                  changes: list) -> dict:
         """添加变更日志到 db（调用方需持有 _lock）"""
-        from datetime import datetime
+        from datetime import datetime, timezone
         log_id = db.setdefault("card_log_next_id", 1)
         db["card_log_next_id"] = log_id + 1
         log_entry = {
@@ -226,7 +228,7 @@ class JsonStore:
             "target_identifier": target_identifier,
             "target_name": target_name,
             "changes": changes,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         db.setdefault("card_logs", []).append(log_entry)
         return log_entry
@@ -252,12 +254,12 @@ class JsonStore:
         cards.sort(key=lambda c: (cat_order.get(c.get("category"), 99), c["task_code"]))
         return cards
 
-    def get(self, card_id: int) -> Optional[dict]:
+    def get(self, card_id: int) -> dict | None:
         db = self._read()
         card = db.get("cards", {}).get(str(card_id))
         return self._norm(card, "card") if card else None
 
-    def find_by_code(self, code: str) -> Optional[dict]:
+    def find_by_code(self, code: str) -> dict | None:
         db = self._read()
         cid = db.get("code_index", {}).get(code)
         if cid is None:
@@ -267,7 +269,7 @@ class JsonStore:
 
     def add(self, task_code: str, task_name: str = "",
             category: str = "机体", task_type: str = "",
-            remark: str = "") -> Optional[dict]:
+            remark: str = "") -> dict | None:
         with self._lock:
             db = self._read()
 
@@ -301,7 +303,7 @@ class JsonStore:
             self._write(db)
             return self._norm(card, "card")
 
-    def update(self, card_id: int, **kwargs) -> Optional[dict]:
+    def update(self, card_id: int, **kwargs) -> dict | None:
         with self._lock:
             db = self._read()
             card = db.get("cards", {}).get(str(card_id))
@@ -352,7 +354,7 @@ class JsonStore:
         sets.sort(key=lambda s: s.get("name", ""))
         return sets
 
-    def get_set(self, set_id: int) -> Optional[dict]:
+    def get_set(self, set_id: int) -> dict | None:
         db = self._read()
         s = db.get("card_sets", {}).get(str(set_id))
         return self._norm(s, "set") if s else None
@@ -377,7 +379,7 @@ class JsonStore:
             self._write(db)
             return dict(s)
 
-    def update_set(self, set_id: int, **kwargs) -> Optional[dict]:
+    def update_set(self, set_id: int, **kwargs) -> dict | None:
         with self._lock:
             db = self._read()
             s = db.get("card_sets", {}).get(str(set_id))
@@ -428,7 +430,7 @@ class JsonStore:
         aircraft.sort(key=lambda a: a.get("reg", ""))
         return [self._norm(a, "aircraft") for a in aircraft]
 
-    def get_aircraft(self, aircraft_id: int) -> Optional[dict]:
+    def get_aircraft(self, aircraft_id: int) -> dict | None:
         db = self._read()
         ac = db.get("aircraft", {}).get(str(aircraft_id))
         return self._norm(ac, "aircraft") if ac else None
@@ -458,7 +460,7 @@ class JsonStore:
             self._write(db)
             return self._norm(ac, "aircraft")
 
-    def update_aircraft(self, aircraft_id: int, **kwargs) -> Optional[dict]:
+    def update_aircraft(self, aircraft_id: int, **kwargs) -> dict | None:
         with self._lock:
             db = self._read()
             ac = db.get("aircraft", {}).get(str(aircraft_id))
@@ -499,7 +501,7 @@ class JsonStore:
         wps = db.get("work_packages", [])
         return sorted(wps, key=lambda x: x.get("date", ""), reverse=False)
 
-    def get_work_package(self, package_id: str) -> Optional[dict]:
+    def get_work_package(self, package_id: str) -> dict | None:
         db = self._read()
         for wp in db.get("work_packages", []):
             if wp.get("package_id") == package_id:
@@ -547,8 +549,8 @@ class JsonStore:
 
     # ---------- 日志查询 ----------
 
-    def get_logs(self, operation: str = None, target_type: str = None,
-                 start_date: str = None, end_date: str = None,
+    def get_logs(self, operation: str | None = None, target_type: str | None = None,
+                 start_date: str | None = None, end_date: str | None = None,
                  limit: int = 100) -> list[dict]:
         """查询日志，支持按操作类型、目标类型、时间范围筛选，按时间降序"""
         db = self._read()

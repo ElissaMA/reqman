@@ -1,5 +1,4 @@
 """日志API测试"""
-import pytest
 
 
 class TestLogsAPI:

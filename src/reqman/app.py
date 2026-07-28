@@ -6,8 +6,9 @@
 - 服务就绪后自动打开浏览器
 """
 
-import sys
 import os
+import sys
+
 
 def _ensure_venv():
     """确保在虚拟环境中运行，否则自动切换"""
@@ -49,7 +50,7 @@ def find_pid_by_port(port):
                 parts = line.strip().split()
                 if parts:
                     return parts[-1]
-    except Exception:
+    except (OSError, subprocess.CalledProcessError):
         pass
     return None
 
@@ -57,9 +58,9 @@ def find_pid_by_port(port):
 def kill_process(pid):
     try:
         subprocess.run(["taskkill", "-f", "-pid", str(pid)],
-                       capture_output=True, text=True)
+                       capture_output=True, text=True, check=False)
         return True
-    except Exception:
+    except (OSError, subprocess.CalledProcessError):
         return False
 
 
@@ -87,7 +88,7 @@ def wait_and_open(port):
                 os.startfile(f"http://127.0.0.1:{port}")
                 return
             sock.close()
-        except Exception:
+        except OSError:
             pass
         time.sleep(0.5)
     print(f"[提示] 服务启动超时，请手动访问 http://127.0.0.1:{port}")
@@ -115,7 +116,7 @@ if __name__ == "__main__":
             port += 1
             try:
                 app.run(debug=False, host="127.0.0.1", port=port)
-            except Exception as e2:
+            except OSError as e2:
                 print(f"[错误] 无法启动服务: {e2}")
                 sys.exit(1)
         else:

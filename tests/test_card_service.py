@@ -84,8 +84,8 @@ class TestCardSetManagement:
         assert cs is not None and cs["name"] == "测试组"
 
     def test_add_card_set_with_cards(self, card_service):
-        c1 = card_service.add_card("CS-001", "组内工卡1", "发动机", "A", "")
-        c2 = card_service.add_card("CS-002", "组内工卡2", "发动机", "A", "")
+        _c1 = card_service.add_card("CS-001", "组内工卡1", "发动机", "A", "")
+        _c2 = card_service.add_card("CS-002", "组内工卡2", "发动机", "A", "")
         r = card_service.add_card_set(name="含卡组", description="",
                                       category="发动机",
                                       card_codes=["CS-001", "CS-002"])
@@ -127,10 +127,10 @@ class TestAircraftManagement:
 
     def test_add_aircraft_duplicate_reg(self, card_service):
         """重复注册号仍能添加（JsonStore 不校验 reg 唯一性）"""
-        card_service.add_aircraft("B-1234", "A320", "", "", "", "")
+        r = card_service.add_aircraft("B-1234", "A320", "", "", "", "")
         r2 = card_service.add_aircraft("B-1234", "A320", "", "", "", "")
         # 两个飞机都应有不同 id
-        assert r2["id"] != r["id"] if "r" in dir() else True
+        assert r2["id"] != r["id"]
 
     def test_update_aircraft(self, card_service):
         r = card_service.add_aircraft("B-1234", "A320", "", "", "", "")
@@ -184,7 +184,7 @@ class TestToolMaterialParsing:
         assert mats == []
 
     def test_parse_duplicates(self):
-        tools, mats = self._call(tool_names=["扳手", "扳手", "螺丝刀"])
+        tools, _mats = self._call(tool_names=["扳手", "扳手", "螺丝刀"])
         assert len(tools) == 3  # 不��重，保持原始数据
 
     def test_parse_fields(self):
@@ -195,7 +195,7 @@ class TestToolMaterialParsing:
             tool_qty=["2", "3"],
             tool_remark=["备件", ""],
         )
-        tools, mats = CardService.parse_tools_mats(form)
+        tools, _mats = CardService.parse_tools_mats(form)
         assert tools[0]["device_name"] == "扳手"
         assert tools[0]["part_number"] == "PN-001"
         assert tools[0]["quantity"] == "2"
@@ -205,7 +205,7 @@ class TestToolMaterialParsing:
         assert tools[1]["quantity"] == "3"
 
     def test_empty_names_skipped(self):
-        tools, mats = self._call(tool_names=["扳手", "", "螺丝刀", "  "])
+        tools, _mats = self._call(tool_names=["扳手", "", "螺丝刀", "  "])
         assert len(tools) == 2  # 空字符串和纯空格被跳过
 
 

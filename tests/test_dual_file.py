@@ -1,7 +1,7 @@
 """双文件存储测试"""
 import json
 import os
-import pytest
+
 from reqman.models.json_store import JsonStore
 
 

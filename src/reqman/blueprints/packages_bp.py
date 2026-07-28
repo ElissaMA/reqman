@@ -1,18 +1,18 @@
 """工作包蓝图 — 上传工作清单 + 工卡匹配"""
 
-import os
 import logging
+import os
 import tempfile
-from datetime import datetime, date
-from flask import (Blueprint, current_app, render_template, request, redirect,
-                   flash)
+from datetime import date, datetime, timezone
 
-from ..services.worklist_parser import parse_worklist, merge_aircraft_info, WorklistError
-from ..services.work_package_matcher import match_work_package_items
-from ..utils.response import api_success, api_error
-from ..utils.error_handlers import NotFoundError, ValidationError
-from ..utils.validators import validate_file_extension
+from flask import Blueprint, current_app, flash, redirect, render_template, request
+
 from ..config import CATEGORIES
+from ..services.work_package_matcher import match_work_package_items
+from ..services.worklist_parser import WorklistError, merge_aircraft_info, parse_worklist
+from ..utils.error_handlers import NotFoundError, ValidationError
+from ..utils.response import api_success
+from ..utils.validators import validate_file_extension
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,10 @@ def _is_ajax():
 def _parse_wp_date(date_str):
     """解析 'YYYY.MM.DD' 格式日期，失败返回 None"""
     try:
-        return datetime.strptime(date_str, "%Y.%m.%d").date()
+        parts = date_str.split(".")
+        if len(parts) != 3:
+            return None
+        return date(int(parts[0]), int(parts[1]), int(parts[2]))
     except (ValueError, TypeError):
         return None
 
@@ -39,7 +42,7 @@ def _classify_package(wp):
     wp_date = _parse_wp_date(wp.get("date", ""))
     if not wp_date:
         return "normal"
-    today = date.today()
+    today = datetime.now(timezone.utc).date()
     diff = (wp_date - today).days
     if diff < -2:
         return "expired"
@@ -77,7 +80,7 @@ def upload():
     work_packages = store.get_work_packages()
 
     # 自动删除过期>2天的工作包，并标记状态
-    today = date.today()
+    today = datetime.now(timezone.utc).date()
     filtered = []
     for wp in work_packages:
         wp_date = _parse_wp_date(wp.get("date", ""))
@@ -136,7 +139,7 @@ def _handle_upload_post():
     package_data = {
         "reg": aircraft_info.get("reg", ""),
         "description": aircraft_info.get("description", ""),
-        "date": aircraft_info.get("date", datetime.now().strftime("%Y.%m.%d")),
+        "date": aircraft_info.get("date", datetime.now(timezone.utc).strftime("%Y.%m.%d")),
         "aircraft_info": aircraft_info,
         "matched": [],
         "new_cards": [],
@@ -168,7 +171,7 @@ def package_rematch(package_id):
     svc = current_app.extensions['card_service']
     matched, new_cards, cancelled = match_work_package_items(all_items, store, svc)
 
-    now_str = datetime.now().strftime("%Y.%m.%d %H:%M")
+    now_str = datetime.now(timezone.utc).strftime("%Y.%m.%d %H:%M")
     pkg_data["matched"] = matched
     pkg_data["new_cards"] = new_cards
     pkg_data["cancelled"] = cancelled

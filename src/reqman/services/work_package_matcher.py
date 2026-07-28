@@ -1,7 +1,6 @@
 """工作包工卡匹配服务 — 从 packages_bp 提取，供 generate_bp 复用"""
 
 import logging
-from typing import Any
 
 logger = logging.getLogger(__name__)
 

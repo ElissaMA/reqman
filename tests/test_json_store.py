@@ -1,10 +1,7 @@
 """JsonStore 单元测试"""
-import json
 import os
 import shutil
 from pathlib import Path
-
-import pytest
 
 from reqman.models.json_store import JsonStore
 

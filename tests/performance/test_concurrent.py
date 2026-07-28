@@ -1,10 +1,7 @@
 """并发性能测试 — 多线程读写 JsonStore"""
 import threading
-import time
-from pathlib import Path
 
 import pytest
-
 
 # ============================================================
 # 辅助：每个测���函数独立的临时数据库
@@ -48,7 +45,7 @@ class TestConcurrentReads:
                     perf_store.find_by_code("PERF-0001")
                     perf_store.get(1)
                     perf_store.get_all()
-            except Exception as e:
+            except (OSError, KeyError, ValueError) as e:
                 errors.append(e)
 
         threads = [threading.Thread(target=_read) for _ in range(self.NUM_THREADS)]
@@ -71,7 +68,7 @@ class TestConcurrentReads:
                     perf_store.get_all_sets()
                     perf_store.get_all_aircraft()
                     perf_store.get_work_packages()
-            except Exception as e:
+            except (OSError, KeyError, ValueError) as e:
                 errors.append(e)
 
         threads = [threading.Thread(target=_read_mixed) for _ in range(5)]
@@ -112,7 +109,7 @@ class TestConcurrentWrites:
                         task_type="A",
                         remark=""
                     )
-            except Exception as e:
+            except (OSError, KeyError, ValueError) as e:
                 errors.append(e)
 
         threads = [threading.Thread(target=_add) for _ in range(self.NUM_WRITERS)]
@@ -137,7 +134,7 @@ class TestConcurrentWrites:
                     code = f"MX-{thread_id}-{i:04d}"
                     perf_store.add(task_code=code, task_name=f"���合测试{i}",
                                    category="发动机", task_type="A", remark="")
-            except Exception as e:
+            except (OSError, KeyError, ValueError) as e:
                 errors.append(e)
 
         def _reader():
@@ -147,10 +144,10 @@ class TestConcurrentWrites:
                         perf_store.get_all()
                         perf_store.get_all()
                         perf_store.get_all_sets()
-                    except (ValueError, Exception):
+                    except (OSError, KeyError, ValueError):
                         # 并发写入期间文件可能暂时为空，预期偶发读取失败
                         read_errors[0] += 1
-            except Exception as e:
+            except (OSError, KeyError, ValueError) as e:
                 errors.append(e)
 
         threads = []
@@ -183,7 +180,7 @@ class TestConcurrentWrites:
                         reg=f"B-CONC-{idx:04d}", model="A320",
                         engine="CFM56"
                     )
-            except Exception as e:
+            except (OSError, KeyError, ValueError) as e:
                 errors.append(e)
 
         threads = [threading.Thread(target=_add) for _ in range(4)]

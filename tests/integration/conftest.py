@@ -1,11 +1,9 @@
 """集成测试配置 — Flask 测试客户端、临时数据库、测试数据工厂"""
 
 from pathlib import Path
-from typing import Any
 
 import pytest
 from flask.testing import FlaskClient
-
 
 # ============================================================
 # Flask App Fixtures
@@ -18,7 +16,7 @@ def app(tmp_path_factory):
     db_path = str(tmp_dir / "test_reqman.json")
 
     # 覆写配置后创建应用
-    import reqman.config as config
+    from reqman import config
     original_db = config.DB_FILE
     config.DB_FILE = Path(db_path)
 

@@ -1,5 +1,4 @@
 """工作包功能测试"""
-import pytest
 from reqman.models.json_store import JsonStore
 
 
@@ -16,7 +15,7 @@ class TestWorkPackages:
         data1 = {"reg": "B-1234", "description": "A320定检", "date": "2026.07.22", "all_items": []}
         json_store.save_work_package(data1)
         data2 = {"reg": "B-1234", "description": "A320定检", "date": "2026.07.23", "all_items": [{"code": "NEW"}]}
-        result = json_store.save_work_package(data2)
+        json_store.save_work_package(data2)  # 覆盖保存
         wps = json_store.get_work_packages()
         assert len(wps) == 1
         assert wps[0]["date"] == "2026.07.23"

@@ -20,7 +20,6 @@ dev = [
 testpaths = ["tests"]
 pythonpath = ["src"]
 addopts = "-v --tb=short --strict-markers -m 'not slow' --cov=reqman --cov-report=term-missing --cov-report=html"
-asyncio_mode = "auto"
 markers = [
     "slow: 标记运行时间较长的测试（性能测试、大数据量测试），默认跳过",
     "integration: 标记集成测试和端到端测试",

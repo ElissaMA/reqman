@@ -15,7 +15,6 @@ from reqman.services.worklist_parser import (
     parse_worklist,
 )
 
-
 # ============================================================
 # Helper：创建模拟 Cell
 # ============================================================
@@ -186,9 +185,8 @@ class TestParseWorklist:
         wb.sheetnames = ["Sheet1"]
         wb.active = ws
 
-        with patch("openpyxl.load_workbook", return_value=wb):
-            with pytest.raises(WorklistError, match="内容不足"):
-                parse_worklist("empty.xlsx")
+        with patch("openpyxl.load_workbook", return_value=wb), pytest.raises(WorklistError, match="内容不足"):
+            parse_worklist("empty.xlsx")
 
     @patch("openpyxl.load_workbook")
     @patch("os.path.getsize")
@@ -208,7 +206,7 @@ class TestParseWorklist:
     def test_parse_invalid_file(self, mock_getsize, mock_load):
         """无��打开的文件应抛出异常"""
         mock_getsize.return_value = 1024
-        mock_load.side_effect = Exception("文件损坏")
+        mock_load.side_effect = ValueError("文件损坏")
 
         with pytest.raises(WorklistError, match="无法打开"):
             parse_worklist("invalid.xlsx")

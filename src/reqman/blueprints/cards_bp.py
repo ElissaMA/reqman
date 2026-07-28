@@ -1,11 +1,11 @@
 """工卡管理蓝图 — 工卡 CRUD + 工卡组管理"""
 
 import logging
-from flask import (Blueprint, current_app, render_template, request, redirect,
-                   url_for, jsonify, flash)
 
-from ..services.card_service import ServiceError
+from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request
+
 from ..config import CATEGORIES, TASK_TYPES, USAGE_TYPES
+from ..services.card_service import ServiceError
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ def card_list():
                                search=search,
                                category=category,
                                categories=CATEGORIES)
-    except Exception as e:
+    except Exception:
         logger.exception("获取工卡列表失败")
         flash("加载工卡列表失败，请稍后重试", "error")
         return render_template("cards/list.html", items=[],
@@ -101,7 +101,7 @@ def card_new():
                 return jsonify({"success": False, "message": e.message})
             flash(e.message, "error")
             return redirect("/card/new")
-        except Exception as e:
+        except Exception:
             logger.exception("新增工卡失败")
             if _is_ajax():
                 return jsonify({"success": False, "message": "服务器错误，请稍后重试"})
@@ -125,7 +125,7 @@ def card_edit(card_id):
     """编辑工卡"""
     try:
         item = current_app.extensions['card_service'].get_card(card_id)
-    except Exception:
+    except (ServiceError, KeyError):
         item = None
 
     if not item:
@@ -158,7 +158,7 @@ def card_edit(card_id):
             if _is_ajax():
                 return jsonify({"success": False, "message": e.message})
             flash(e.message, "error")
-        except Exception as e:
+        except Exception:
             logger.exception("更新工卡失败")
             if _is_ajax():
                 return jsonify({"success": False, "message": "服务器错误"})
@@ -187,7 +187,7 @@ def card_delete(card_id):
         if _is_ajax():
             return jsonify({"success": False, "message": e.message})
         flash(e.message, "error")
-    except Exception as e:
+    except Exception:
         logger.exception("删除工卡失败")
         if _is_ajax():
             return jsonify({"success": False, "message": "服务器错误"})
@@ -203,7 +203,7 @@ def card_detail(card_id):
         if not item:
             return jsonify({"error": "not found"}), 404
         return jsonify(item)
-    except Exception as e:
+    except Exception:
         logger.exception("获取工卡详情失败")
         return jsonify({"error": "server error"}), 500
 
@@ -220,7 +220,7 @@ def card_list_json():
             "task_name": c["task_name"],
             "category": c["category"],
         } for c in items])
-    except Exception as e:
+    except Exception:
         logger.exception("获取工卡列表 JSON 失败")
         return jsonify([])
 
@@ -250,7 +250,7 @@ def card_sets():
             })
         return render_template("cards/sets.html", sets=sets,
                                card_counts=card_counts, set_data=set_data)
-    except Exception as e:
+    except Exception:
         logger.exception("获取工卡组列表失败")
         flash("加载失败", "error")
         return render_template("cards/sets.html", sets=[],
@@ -284,7 +284,7 @@ def card_set_new():
             if _is_ajax():
                 return jsonify({"success": False, "message": e.message})
             flash(e.message, "error")
-        except Exception as e:
+        except Exception:
             logger.exception("新增工卡组失败")
             if _is_ajax():
                 return jsonify({"success": False, "message": "服务器错误"})
@@ -304,7 +304,7 @@ def card_set_edit(set_id):
     """编辑工卡组"""
     try:
         s = current_app.extensions['card_service'].get_card_set(set_id)
-    except Exception:
+    except (ServiceError, KeyError):
         s = None
 
     if not s:
@@ -336,7 +336,7 @@ def card_set_edit(set_id):
             if _is_ajax():
                 return jsonify({"success": False, "message": e.message})
             flash(e.message, "error")
-        except Exception as e:
+        except Exception:
             logger.exception("更新工卡组失败")
             if _is_ajax():
                 return jsonify({"success": False, "message": "服务器错误"})
@@ -365,7 +365,7 @@ def card_set_delete(set_id):
         if _is_ajax():
             return jsonify({"success": False, "message": e.message})
         flash(e.message, "error")
-    except Exception as e:
+    except Exception:
         logger.exception("删除工卡组失败")
         if _is_ajax():
             return jsonify({"success": False, "message": "服务器错误"})
@@ -384,7 +384,7 @@ def aircraft_list():
         aircraft_list = current_app.extensions['card_service'].list_aircraft()
         return render_template("cards/aircraft.html",
                                aircraft_list=aircraft_list)
-    except Exception as e:
+    except Exception:
         logger.exception("获取飞机信息列表失败")
         flash("加载飞机信息失败", "error")
         return render_template("cards/aircraft.html",
@@ -416,7 +416,7 @@ def aircraft_new():
 
     except ServiceError as e:
         flash(e.message, "error")
-    except Exception as e:
+    except Exception:
         logger.exception("新增飞机信息失败")
         flash("服务器错误", "error")
 
@@ -428,7 +428,7 @@ def aircraft_edit(aircraft_id):
     """编辑飞机信息"""
     try:
         ac = current_app.extensions['card_service'].get_aircraft(aircraft_id)
-    except Exception:
+    except (ServiceError, KeyError):
         ac = None
 
     if not ac:
@@ -453,7 +453,7 @@ def aircraft_edit(aircraft_id):
 
     except ServiceError as e:
         flash(e.message, "error")
-    except Exception as e:
+    except Exception:
         logger.exception("更新飞机信息失败")
         flash("服务器错误", "error")
 
@@ -468,7 +468,7 @@ def aircraft_delete(aircraft_id):
         flash("飞机信息已删除", "success")
     except ServiceError as e:
         flash(e.message, "error")
-    except Exception as e:
+    except Exception:
         logger.exception("删除飞机信息失败")
         flash("服务器错误", "error")
     return redirect("/card/aircraft")

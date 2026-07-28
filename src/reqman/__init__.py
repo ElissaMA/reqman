@@ -2,10 +2,10 @@
 
 import logging
 import time
-from pathlib import Path
+
 from flask import Flask, jsonify, render_template
 
-from .config import DB_FILE, SECRET_KEY, MAX_CONTENT_LENGTH, BASE_DIR
+from .config import BASE_DIR, DB_FILE, MAX_CONTENT_LENGTH, SECRET_KEY
 from .utils.openpyxl_patch import apply_patches
 
 logging.basicConfig(
@@ -39,9 +39,7 @@ class RequestLogMiddleware:
             size_info = ""
             if response_size[0]:
                 size_info = f" [{response_size[0]:,}B]"
-            log_msg = "[%.3fs]%s %s %s -> %s" % (
-                elapsed, size_info, method, path, status_code
-            )
+            log_msg = f"[{elapsed:.3f}s]{size_info} {method} {path} -> {status_code}"
             if elapsed >= self.slow_threshold:
                 logger.warning("SLOW [%.3fs] %s %s -> %s", elapsed, method, path, status_code)
             else:
@@ -106,9 +104,9 @@ def create_app():
 
     # 蓝图
     from .blueprints.cards_bp import cards_bp
-    from .blueprints.packages_bp import packages_bp
     from .blueprints.generate_bp import generate_bp
     from .blueprints.logs_bp import bp as logs_bp
+    from .blueprints.packages_bp import packages_bp
 
     app.register_blueprint(cards_bp)
     app.register_blueprint(packages_bp)

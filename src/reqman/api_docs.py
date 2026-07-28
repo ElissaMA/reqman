@@ -4,7 +4,6 @@
 不引入 flask-restx/flask-smorest 等重型依赖。
 """
 
-from datetime import datetime
 
 # ===================== 端点注册表 =====================
 

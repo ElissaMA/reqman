@@ -1,6 +1,5 @@
 """工卡管理 API 集成测试"""
 
-import json
 
 
 class TestListCards:

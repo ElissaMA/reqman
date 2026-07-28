@@ -1,14 +1,11 @@
 """日志蓝图 —— 操作日志的浏览、导出与删除"""
 
 import logging
-from datetime import datetime
-from urllib.parse import urlencode
 
-from flask import Blueprint, render_template, request, jsonify, flash, redirect
-from flask import current_app
+from flask import Blueprint, current_app, flash, redirect, render_template, request
 
-from ..utils.response import api_success, api_error
-from ..utils.error_handlers import _wants_json, raise_or_flash, NotFoundError, ServerError
+from ..utils.error_handlers import ServerError, _wants_json
+from ..utils.response import api_error, api_success
 
 logger = logging.getLogger(__name__)
 
@@ -116,7 +113,7 @@ def list_logs():
                                target_type_labels=TARGET_TYPE_LABELS,
                                field_labels=FIELD_LABELS,
                                format_changes=_format_changes)
-    except Exception as e:
+    except Exception:
         logger.exception("获取操作日志失败")
         flash("加载操作日志失败", "error")
         return render_template("cards/logs.html",

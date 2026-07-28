@@ -8,7 +8,6 @@
 """
 
 import logging
-from typing import Optional
 
 import openpyxl
 
@@ -50,7 +49,7 @@ def parse_worklist(file_path: str, file_type: str = "例行") -> dict:
 
     try:
         wb = openpyxl.load_workbook(file_path, data_only=True)
-    except Exception as e:
+    except (OSError, TypeError, ValueError) as e:
         raise WorklistError("无法打开文件，请确认是有效的 .xlsx 格式", str(e))
 
     try:
@@ -95,7 +94,7 @@ def _parse_aircraft_info(ws) -> dict:
                     info["description"] = val
                 elif cell.column == 10:    # J2 = 包号
                     info["package"] = val
-    except Exception as e:
+    except (AttributeError, ValueError) as e:
         logger.warning(f"解析飞机信息时出错: {e}")
 
     # 从 Row 4 C4 提取日期
@@ -108,7 +107,7 @@ def _parse_aircraft_info(ws) -> dict:
                     if date_part:
                         info["date"] = date_part.replace("-", ".")
                     break
-    except Exception as e:
+    except (AttributeError, ValueError) as e:
         logger.warning(f"解析日期时出错: {e}")
 
     return info
@@ -170,7 +169,7 @@ def _parse_items(ws, file_type: str) -> list[dict]:
                 "source": file_type,
             })
 
-        except Exception as e:
+        except (ValueError, AttributeError, TypeError) as e:
             error_rows.append(f"Row {row_idx}: {e}")
             continue
 
@@ -186,7 +185,7 @@ def merge_aircraft_info(info_list: list[dict]) -> dict:
     for info in info_list:
         if not isinstance(info, dict):
             continue
-        for key in merged:
-            if info.get(key) and not merged[key]:
+        for key, value in merged.items():
+            if info.get(key) and not value:
                 merged[key] = info[key]
     return merged

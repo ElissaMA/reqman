@@ -1,12 +1,11 @@
-# -*- coding: utf-8 -*-
 
 
 from __future__ import annotations
 
 import io
-import os
 import logging
-from datetime import datetime
+import os
+from datetime import datetime, timezone
 
 import openpyxl
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
@@ -132,9 +131,8 @@ def generate_form(form_data, parsed_data, output_filename=None):
     if not output_filename:
         reg = form_data.get("reg", "XXXX")
         # Strip B- prefix if present
-        if reg.startswith("B-"):
-            reg = reg[2:]
-        date_str = form_data.get("date", datetime.now().strftime("%Y.%m.%d"))
+        reg = reg.removeprefix("B-")
+        date_str = form_data.get("date", datetime.now(timezone.utc).strftime("%Y.%m.%d"))
         desc = form_data.get("description", "")
         output_filename = f"定检需求单（B-{reg} {desc}）{date_str}.xlsx"
 
@@ -168,7 +166,7 @@ def generate_form(form_data, parsed_data, output_filename=None):
     return buffer, output_filename
 
 def _fill_header(ws, form_data):
-    date_str = form_data.get("date", datetime.now().strftime("%Y.%m.%d"))
+    date_str = form_data.get("date", datetime.now(timezone.utc).strftime("%Y.%m.%d"))
     reg = form_data.get("reg", "B-XXXX")
     desc = form_data.get("description", "XXA")
     ws["A1"].value = f"机务二队定检需求单（ {date_str}）"
@@ -252,10 +250,10 @@ def _write_new_work_row(ws, start_row, new_cards, sub_cards=None):
     texts = []
     if sub_cards:
         for c in sub_cards:
-            texts.append("%s %s（工卡组子卡）" % (c.get("task_code",""), c.get("task_name","")))
+            texts.append(f'{c.get("task_code","")} {c.get("task_name","")}（工卡组子卡）')
     if new_cards:
         for c in new_cards:
-            texts.append("%s %s（未匹配）" % (c.get("task_code",""), c.get("task_name","")))
+            texts.append(f'{c.get("task_code","")} {c.get("task_name","")}（未匹配）')
     if texts:
         set_cell(ws, row, 2, "; ".join(texts), FULL_MEDIUM, alignment=WRAP_VERTICAL)
         ws.cell(row=row, column=2).font = Font(name="SimSun", size=16, bold=True, color="FF0000")

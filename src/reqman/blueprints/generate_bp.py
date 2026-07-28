@@ -1,16 +1,15 @@
 """生成需求单蓝图 — 预览 + 下载 Excel"""
 
 import logging
-from datetime import datetime
-from flask import (Blueprint, render_template, request, redirect,
-                   url_for, flash, send_file, current_app)
+from datetime import datetime, timezone
 
+from flask import Blueprint, current_app, flash, redirect, render_template, request, send_file
+
+from ..config import CATEGORIES, CONDITIONS
 from ..services.form_generator import generate_form
 from ..services.work_package_matcher import match_work_package_items
-from ..utils.response import api_success, api_error
-from ..utils.error_handlers import NotFoundError, ValidationError
-from ..utils.validators import validate_required
-from ..config import CONDITIONS, CATEGORIES
+from ..utils.error_handlers import NotFoundError
+from ..utils.response import api_error, api_success
 
 generate_bp = Blueprint("generate", __name__)
 
@@ -58,7 +57,7 @@ def _ensure_package_matched(pkg_data):
     matched[:] = still_matched
     new_cards = unconfirmed + new_cards
 
-    now_str = datetime.now().strftime("%Y.%m.%d %H:%M")
+    now_str = datetime.now(timezone.utc).strftime("%Y.%m.%d %H:%M")
     pkg_data["matched"] = matched
     pkg_data["new_cards"] = new_cards
     pkg_data["cancelled"] = cancelled
@@ -91,7 +90,7 @@ def generate():
     if request.method == "POST":
         try:
             return _handle_generate_post(pkg_data, package_id)
-        except Exception as e:
+        except Exception:
             logger.exception("生成需求单失败")
             flash("生成失败，请稍后重试", "error")
             return redirect("/generate?package_id=" + package_id)
@@ -157,7 +156,7 @@ def _handle_generate_post(pkg_data: dict, package_id: str):
                                      aircraft_info.get("package", "")),
         "description": request.form.get("description",
                                          aircraft_info.get("description", "")),
-        "date": request.form.get("date", datetime.now().strftime("%Y.%m.%d")),
+        "date": request.form.get("date", datetime.now(timezone.utc).strftime("%Y.%m.%d")),
         "conditions": conditions,
         "spare_items": spare_items,
     }
@@ -292,5 +291,5 @@ def _handle_generate_preview(pkg_data: dict, package_id: str):
                            spare_groups=_group_by_category(spare_preview),
                            routine_count=routine_count,
                            other_count=other_count,
-                           now=datetime.now(),
+                           now=datetime.now(timezone.utc),
                            categories=CATEGORIES)

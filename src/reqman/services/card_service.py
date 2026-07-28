@@ -10,7 +10,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from ..models.json_store import JsonStore
 
@@ -116,7 +115,7 @@ class CardService:
         if not self.store.delete(card_id):
             raise ServiceError("工卡不存在", "card_id")
 
-    def get_card(self, card_id: int) -> Optional[dict]:
+    def get_card(self, card_id: int) -> dict | None:
         return self.store.get(card_id)
 
     def list_cards(self, search: str = "", category: str = "") -> list[dict]:
@@ -212,7 +211,7 @@ class CardService:
     def list_card_sets(self) -> list[dict]:
         return self.store.get_all_sets()
 
-    def get_card_set(self, set_id: int) -> Optional[dict]:
+    def get_card_set(self, set_id: int) -> dict | None:
         return self.store.get_set(set_id)
 
     def get_cards_in_set(self, set_id: int) -> list[dict]:
@@ -223,7 +222,7 @@ class CardService:
     def list_aircraft(self) -> list[dict]:
         return self.store.get_all_aircraft()
 
-    def get_aircraft(self, aircraft_id: int) -> Optional[dict]:
+    def get_aircraft(self, aircraft_id: int) -> dict | None:
         return self.store.get_aircraft(aircraft_id)
 
     def add_aircraft(self, reg: str, model: str = "",
