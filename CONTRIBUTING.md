@@ -9,16 +9,23 @@ cp .env.example .env
 
 ## 分支
 
-- `main` — 稳定版
-- `dev` — 开发
-- `feature/*` — 功能
+- `main` — 稳定版，日常使用、数据更新
+- `dev` — UI完善、功能小改
+- `feature` — 底层重构、功能大改
+
+### 工作流程
+1. 日常数据更新直接在 `main` 操作
+2. **开始 dev/feature 工作前**：先 `git merge main` 同步最新数据
+3. UI/小功能改进在 `dev` 开发，完成后合并到 `main`
+4. 大改动/重构在 `feature` 开发，稳定后合并到 `main`
+5. 合并后分支保留，继续开发
 
 ## 提交
 
-1. Fork
-2. 创建分支
+1. 根据改动类型选择分支（main/dev/feature）
+2. 在对应分支开发
 3. `pytest` 测试通过
-4. PR到`dev`
+4. 合并到 `main`
 
 ## 规范
 
