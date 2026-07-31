@@ -904,8 +904,8 @@
       "tools": [],
       "materials": [],
       "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "48": {
@@ -1923,9 +1923,9 @@
       "remark": "",
       "tools": [],
       "materials": [],
-      "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "set_id": 954,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "63": {
@@ -1937,7 +1937,7 @@
       "remark": "",
       "tools": [],
       "materials": [],
-      "set_id": null,
+      "set_id": 954,
       "tools_confirmed": false,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
@@ -2296,10 +2296,32 @@
       "task_type": "",
       "remark": "",
       "tools": [],
-      "materials": [],
-      "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "materials": [
+        {
+          "material_name": "点火电嘴",
+          "part_number": "518888-1",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "封圈",
+          "part_number": "9048156",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防咬合剂",
+          "part_number": "NYCOGREASEGNGA47",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        }
+      ],
+      "set_id": 977,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "84": {
@@ -2310,8 +2332,30 @@
       "task_type": "",
       "remark": "",
       "tools": [],
-      "materials": [],
-      "set_id": null,
+      "materials": [
+        {
+          "material_name": "点火电嘴",
+          "part_number": "518888-1",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "封圈",
+          "part_number": "9048156",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防咬合剂",
+          "part_number": "NYCOGREASEGNGA47",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        }
+      ],
+      "set_id": 977,
       "tools_confirmed": false,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
@@ -2324,8 +2368,30 @@
       "task_type": "",
       "remark": "",
       "tools": [],
-      "materials": [],
-      "set_id": null,
+      "materials": [
+        {
+          "material_name": "点火电嘴",
+          "part_number": "518888-1",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "封圈",
+          "part_number": "9048156",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防咬合剂",
+          "part_number": "NYCOGREASEGNGA47",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        }
+      ],
+      "set_id": 977,
       "tools_confirmed": false,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
@@ -2338,8 +2404,30 @@
       "task_type": "",
       "remark": "",
       "tools": [],
-      "materials": [],
-      "set_id": null,
+      "materials": [
+        {
+          "material_name": "点火电嘴",
+          "part_number": "518888-1",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "封圈",
+          "part_number": "9048156",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防咬合剂",
+          "part_number": "NYCOGREASEGNGA47",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        }
+      ],
+      "set_id": 977,
       "tools_confirmed": false,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
@@ -2393,86 +2481,16 @@
           "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
+        },
+        {
+          "device_name": "28号注油枪",
+          "part_number": "自编号Z1006-28",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
         }
       ],
       "materials": [
-        {
-          "material_name": "放气活门和滚珠丝杆作动组件",
-          "part_number": "121664-8",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "VBV辅助柔性轴",
-          "part_number": "121762-4",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "可调放气活门位置传感器",
-          "part_number": "VG22-01",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "放气活门和主滚珠丝杆作动组件",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "VBV主柔性轴",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "燃油齿轮马达组件",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "止动机构",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "位置传感器开口销",
-          "part_number": "649-001-211-0",
-          "quantity": "2",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "位置传感器螺帽",
-          "part_number": "J1092P03",
-          "quantity": "1",
-          "remark": "",
-          "usage_type": "检查有问题领用"
-        },
-        {
-          "material_name": "位置传感器垫片",
-          "part_number": "649-341-010-0",
-          "quantity": "1",
-          "remark": "",
-          "usage_type": "检查有问题领用"
-        },
-        {
-          "material_name": "清洗剂",
-          "part_number": "RH-P-680-20L",
-          "quantity": "1",
-          "remark": "优先使用开封航化",
-          "usage_type": "必须使用"
-        },
         {
           "material_name": "防咬合剂",
           "part_number": "NYCOGREASEGNGA47",
@@ -2481,21 +2499,49 @@
           "usage_type": "必须使用"
         },
         {
-          "material_name": "凡士林",
-          "part_number": "VV-P-236",
+          "material_name": "28号油脂",
+          "part_number": "MOBILGREASE28",
           "quantity": "1",
           "remark": "优先使用开封航化",
           "usage_type": "必须使用"
         },
         {
-          "material_name": "化学品",
-          "part_number": "BRISAL-OX 50-855",
+          "material_name": "异丙醇",
+          "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "放气活门和滚珠丝杆作动组件",
+          "part_number": "121664-8",
           "quantity": "1",
           "remark": "",
-          "usage_type": "必须使用"
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "VBV辅助柔性轴",
+          "part_number": "121762-4",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "放气活门和主滚珠丝杆作动组件",
+          "part_number": "121666-13",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "VBV主柔性轴",
+          "part_number": "121762-3",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
         }
       ],
-      "set_id": 939,
+      "set_id": 973,
       "tools_confirmed": false,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
@@ -2549,86 +2595,16 @@
           "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
+        },
+        {
+          "device_name": "28号注油枪",
+          "part_number": "自编号Z1006-28",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
         }
       ],
       "materials": [
-        {
-          "material_name": "放气活门和滚珠丝杆作动组件",
-          "part_number": "121664-8",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "VBV辅助柔性轴",
-          "part_number": "121762-4",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "可调放气活门位置传感器",
-          "part_number": "VG22-01",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "放气活门和主滚珠丝杆作动组件",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "VBV主柔性轴",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "燃油齿轮马达组件",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "止动机构",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "位置传感器开口销",
-          "part_number": "649-001-211-0",
-          "quantity": "2",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "位置传感器螺帽",
-          "part_number": "J1092P03",
-          "quantity": "1",
-          "remark": "",
-          "usage_type": "检查有问题领用"
-        },
-        {
-          "material_name": "位置传感器垫片",
-          "part_number": "649-341-010-0",
-          "quantity": "1",
-          "remark": "",
-          "usage_type": "检查有问题领用"
-        },
-        {
-          "material_name": "清洗剂",
-          "part_number": "RH-P-680-20L",
-          "quantity": "1",
-          "remark": "优先使用开封航化",
-          "usage_type": "必须使用"
-        },
         {
           "material_name": "防咬合剂",
           "part_number": "NYCOGREASEGNGA47",
@@ -2637,21 +2613,49 @@
           "usage_type": "必须使用"
         },
         {
-          "material_name": "凡士林",
-          "part_number": "VV-P-236",
+          "material_name": "28号油脂",
+          "part_number": "MOBILGREASE28",
           "quantity": "1",
           "remark": "优先使用开封航化",
           "usage_type": "必须使用"
         },
         {
-          "material_name": "化学品",
-          "part_number": "BRISAL-OX 50-855",
+          "material_name": "异丙醇",
+          "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "放气活门和滚珠丝杆作动组件",
+          "part_number": "121664-8",
           "quantity": "1",
           "remark": "",
-          "usage_type": "必须使用"
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "VBV辅助柔性轴",
+          "part_number": "121762-4",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "放气活门和主滚珠丝杆作动组件",
+          "part_number": "121666-13",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "VBV主柔性轴",
+          "part_number": "121762-3",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
         }
       ],
-      "set_id": 939,
+      "set_id": 973,
       "tools_confirmed": false,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
@@ -2705,86 +2709,16 @@
           "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
+        },
+        {
+          "device_name": "28号注油枪",
+          "part_number": "自编号Z1006-28",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
         }
       ],
       "materials": [
-        {
-          "material_name": "放气活门和滚珠丝杆作动组件",
-          "part_number": "121664-8",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "VBV辅助柔性轴",
-          "part_number": "121762-4",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "可调放气活门位置传感器",
-          "part_number": "VG22-01",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "放气活门和主滚珠丝杆作动组件",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "VBV主柔性轴",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "燃油齿轮马达组件",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "止动机构",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "位置传感器开口销",
-          "part_number": "649-001-211-0",
-          "quantity": "2",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "位置传感器螺帽",
-          "part_number": "J1092P03",
-          "quantity": "1",
-          "remark": "",
-          "usage_type": "检查有问题领用"
-        },
-        {
-          "material_name": "位置传感器垫片",
-          "part_number": "649-341-010-0",
-          "quantity": "1",
-          "remark": "",
-          "usage_type": "检查有问题领用"
-        },
-        {
-          "material_name": "清洗剂",
-          "part_number": "RH-P-680-20L",
-          "quantity": "1",
-          "remark": "优先使用开封航化",
-          "usage_type": "必须使用"
-        },
         {
           "material_name": "防咬合剂",
           "part_number": "NYCOGREASEGNGA47",
@@ -2793,21 +2727,49 @@
           "usage_type": "必须使用"
         },
         {
-          "material_name": "凡士林",
-          "part_number": "VV-P-236",
+          "material_name": "28号油脂",
+          "part_number": "MOBILGREASE28",
           "quantity": "1",
           "remark": "优先使用开封航化",
           "usage_type": "必须使用"
         },
         {
-          "material_name": "化学品",
-          "part_number": "BRISAL-OX 50-855",
+          "material_name": "异丙醇",
+          "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "放气活门和滚珠丝杆作动组件",
+          "part_number": "121664-8",
           "quantity": "1",
           "remark": "",
-          "usage_type": "必须使用"
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "VBV辅助柔性轴",
+          "part_number": "121762-4",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "放气活门和主滚珠丝杆作动组件",
+          "part_number": "121666-13",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "VBV主柔性轴",
+          "part_number": "121762-3",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
         }
       ],
-      "set_id": 939,
+      "set_id": 973,
       "tools_confirmed": false,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
@@ -2861,6 +2823,13 @@
           "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
+        },
+        {
+          "device_name": "28号注油枪",
+          "part_number": "自编号Z1006-28",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
         }
       ],
       "materials": [
@@ -2887,14 +2856,14 @@
         },
         {
           "material_name": "放气活门和主滚珠丝杆作动组件",
-          "part_number": "",
+          "part_number": "121666-13",
           "quantity": "按需",
           "remark": "",
           "usage_type": "必须使用"
         },
         {
           "material_name": "VBV主柔性轴",
-          "part_number": "",
+          "part_number": "121762-3",
           "quantity": "按需",
           "remark": "",
           "usage_type": "必须使用"
@@ -2944,13 +2913,6 @@
         {
           "material_name": "防咬合剂",
           "part_number": "NYCOGREASEGNGA47",
-          "quantity": "1",
-          "remark": "优先使用开封航化",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "凡士林",
-          "part_number": "VV-P-236",
           "quantity": "1",
           "remark": "优先使用开封航化",
           "usage_type": "必须使用"
@@ -3017,86 +2979,16 @@
           "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
+        },
+        {
+          "device_name": "28号注油枪",
+          "part_number": "自编号Z1006-28",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
         }
       ],
       "materials": [
-        {
-          "material_name": "放气活门和滚珠丝杆作动组件",
-          "part_number": "121664-8",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "VBV辅助柔性轴",
-          "part_number": "121762-4",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "可调放气活门位置传感器",
-          "part_number": "VG22-01",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "放气活门和主滚珠丝杆作动组件",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "VBV主柔性轴",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "燃油齿轮马达组件",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "止动机构",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "位置传感器开口销",
-          "part_number": "649-001-211-0",
-          "quantity": "2",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "位置传感器螺帽",
-          "part_number": "J1092P03",
-          "quantity": "1",
-          "remark": "",
-          "usage_type": "检查有问题领用"
-        },
-        {
-          "material_name": "位置传感器垫片",
-          "part_number": "649-341-010-0",
-          "quantity": "1",
-          "remark": "",
-          "usage_type": "检查有问题领用"
-        },
-        {
-          "material_name": "清洗剂",
-          "part_number": "RH-P-680-20L",
-          "quantity": "1",
-          "remark": "优先使用开封航化",
-          "usage_type": "必须使用"
-        },
         {
           "material_name": "防咬合剂",
           "part_number": "NYCOGREASEGNGA47",
@@ -3105,21 +2997,49 @@
           "usage_type": "必须使用"
         },
         {
-          "material_name": "凡士林",
-          "part_number": "VV-P-236",
+          "material_name": "28号油脂",
+          "part_number": "MOBILGREASE28",
           "quantity": "1",
           "remark": "优先使用开封航化",
           "usage_type": "必须使用"
         },
         {
-          "material_name": "化学品",
-          "part_number": "BRISAL-OX 50-855",
+          "material_name": "异丙醇",
+          "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "放气活门和滚珠丝杆作动组件",
+          "part_number": "121664-8",
           "quantity": "1",
           "remark": "",
-          "usage_type": "必须使用"
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "VBV辅助柔性轴",
+          "part_number": "121762-4",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "放气活门和主滚珠丝杆作动组件",
+          "part_number": "121666-13",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "VBV主柔性轴",
+          "part_number": "121762-3",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
         }
       ],
-      "set_id": 939,
+      "set_id": 973,
       "tools_confirmed": false,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
@@ -3173,86 +3093,16 @@
           "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
+        },
+        {
+          "device_name": "28号注油枪",
+          "part_number": "自编号Z1006-28",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
         }
       ],
       "materials": [
-        {
-          "material_name": "放气活门和滚珠丝杆作动组件",
-          "part_number": "121664-8",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "VBV辅助柔性轴",
-          "part_number": "121762-4",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "可调放气活门位置传感器",
-          "part_number": "VG22-01",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "放气活门和主滚珠丝杆作动组件",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "VBV主柔性轴",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "燃油齿轮马达组件",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "止动机构",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "位置传感器开口销",
-          "part_number": "649-001-211-0",
-          "quantity": "2",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "位置传感器螺帽",
-          "part_number": "J1092P03",
-          "quantity": "1",
-          "remark": "",
-          "usage_type": "检查有问题领用"
-        },
-        {
-          "material_name": "位置传感器垫片",
-          "part_number": "649-341-010-0",
-          "quantity": "1",
-          "remark": "",
-          "usage_type": "检查有问题领用"
-        },
-        {
-          "material_name": "清洗剂",
-          "part_number": "RH-P-680-20L",
-          "quantity": "1",
-          "remark": "优先使用开封航化",
-          "usage_type": "必须使用"
-        },
         {
           "material_name": "防咬合剂",
           "part_number": "NYCOGREASEGNGA47",
@@ -3261,21 +3111,49 @@
           "usage_type": "必须使用"
         },
         {
-          "material_name": "凡士林",
-          "part_number": "VV-P-236",
+          "material_name": "28号油脂",
+          "part_number": "MOBILGREASE28",
           "quantity": "1",
           "remark": "优先使用开封航化",
           "usage_type": "必须使用"
         },
         {
-          "material_name": "化学品",
-          "part_number": "BRISAL-OX 50-855",
+          "material_name": "异丙醇",
+          "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "放气活门和滚珠丝杆作动组件",
+          "part_number": "121664-8",
           "quantity": "1",
           "remark": "",
-          "usage_type": "必须使用"
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "VBV辅助柔性轴",
+          "part_number": "121762-4",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "放气活门和主滚珠丝杆作动组件",
+          "part_number": "121666-13",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "VBV主柔性轴",
+          "part_number": "121762-3",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
         }
       ],
-      "set_id": 939,
+      "set_id": 973,
       "tools_confirmed": false,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
@@ -3329,86 +3207,16 @@
           "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
+        },
+        {
+          "device_name": "28号注油枪",
+          "part_number": "自编号Z1006-28",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
         }
       ],
       "materials": [
-        {
-          "material_name": "放气活门和滚珠丝杆作动组件",
-          "part_number": "121664-8",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "VBV辅助柔性轴",
-          "part_number": "121762-4",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "可调放气活门位置传感器",
-          "part_number": "VG22-01",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "放气活门和主滚珠丝杆作动组件",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "VBV主柔性轴",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "燃油齿轮马达组件",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "止动机构",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "位置传感器开口销",
-          "part_number": "649-001-211-0",
-          "quantity": "2",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "位置传感器螺帽",
-          "part_number": "J1092P03",
-          "quantity": "1",
-          "remark": "",
-          "usage_type": "检查有问题领用"
-        },
-        {
-          "material_name": "位置传感器垫片",
-          "part_number": "649-341-010-0",
-          "quantity": "1",
-          "remark": "",
-          "usage_type": "检查有问题领用"
-        },
-        {
-          "material_name": "清洗剂",
-          "part_number": "RH-P-680-20L",
-          "quantity": "1",
-          "remark": "优先使用开封航化",
-          "usage_type": "必须使用"
-        },
         {
           "material_name": "防咬合剂",
           "part_number": "NYCOGREASEGNGA47",
@@ -3417,21 +3225,49 @@
           "usage_type": "必须使用"
         },
         {
-          "material_name": "凡士林",
-          "part_number": "VV-P-236",
+          "material_name": "28号油脂",
+          "part_number": "MOBILGREASE28",
           "quantity": "1",
           "remark": "优先使用开封航化",
           "usage_type": "必须使用"
         },
         {
-          "material_name": "化学品",
-          "part_number": "BRISAL-OX 50-855",
+          "material_name": "异丙醇",
+          "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "放气活门和滚珠丝杆作动组件",
+          "part_number": "121664-8",
           "quantity": "1",
           "remark": "",
-          "usage_type": "必须使用"
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "VBV辅助柔性轴",
+          "part_number": "121762-4",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "放气活门和主滚珠丝杆作动组件",
+          "part_number": "121666-13",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "VBV主柔性轴",
+          "part_number": "121762-3",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
         }
       ],
-      "set_id": 939,
+      "set_id": 973,
       "tools_confirmed": false,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
@@ -3485,86 +3321,16 @@
           "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
+        },
+        {
+          "device_name": "28号注油枪",
+          "part_number": "自编号Z1006-28",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
         }
       ],
       "materials": [
-        {
-          "material_name": "放气活门和滚珠丝杆作动组件",
-          "part_number": "121664-8",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "VBV辅助柔性轴",
-          "part_number": "121762-4",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "可调放气活门位置传感器",
-          "part_number": "VG22-01",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "放气活门和主滚珠丝杆作动组件",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "VBV主柔性轴",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "燃油齿轮马达组件",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "止动机构",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "位置传感器开口销",
-          "part_number": "649-001-211-0",
-          "quantity": "2",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "位置传感器螺帽",
-          "part_number": "J1092P03",
-          "quantity": "1",
-          "remark": "",
-          "usage_type": "检查有问题领用"
-        },
-        {
-          "material_name": "位置传感器垫片",
-          "part_number": "649-341-010-0",
-          "quantity": "1",
-          "remark": "",
-          "usage_type": "检查有问题领用"
-        },
-        {
-          "material_name": "清洗剂",
-          "part_number": "RH-P-680-20L",
-          "quantity": "1",
-          "remark": "优先使用开封航化",
-          "usage_type": "必须使用"
-        },
         {
           "material_name": "防咬合剂",
           "part_number": "NYCOGREASEGNGA47",
@@ -3573,21 +3339,49 @@
           "usage_type": "必须使用"
         },
         {
-          "material_name": "凡士林",
-          "part_number": "VV-P-236",
+          "material_name": "28号油脂",
+          "part_number": "MOBILGREASE28",
           "quantity": "1",
           "remark": "优先使用开封航化",
           "usage_type": "必须使用"
         },
         {
-          "material_name": "化学品",
-          "part_number": "BRISAL-OX 50-855",
+          "material_name": "异丙醇",
+          "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "放气活门和滚珠丝杆作动组件",
+          "part_number": "121664-8",
           "quantity": "1",
           "remark": "",
-          "usage_type": "必须使用"
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "VBV辅助柔性轴",
+          "part_number": "121762-4",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "放气活门和主滚珠丝杆作动组件",
+          "part_number": "121666-13",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "VBV主柔性轴",
+          "part_number": "121762-3",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
         }
       ],
-      "set_id": 939,
+      "set_id": 973,
       "tools_confirmed": false,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
@@ -3641,86 +3435,16 @@
           "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
+        },
+        {
+          "device_name": "28号注油枪",
+          "part_number": "自编号Z1006-28",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
         }
       ],
       "materials": [
-        {
-          "material_name": "放气活门和滚珠丝杆作动组件",
-          "part_number": "121664-8",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "VBV辅助柔性轴",
-          "part_number": "121762-4",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "可调放气活门位置传感器",
-          "part_number": "VG22-01",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "放气活门和主滚珠丝杆作动组件",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "VBV主柔性轴",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "燃油齿轮马达组件",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "止动机构",
-          "part_number": "",
-          "quantity": "按需",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "位置传感器开口销",
-          "part_number": "649-001-211-0",
-          "quantity": "2",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "位置传感器螺帽",
-          "part_number": "J1092P03",
-          "quantity": "1",
-          "remark": "",
-          "usage_type": "检查有问题领用"
-        },
-        {
-          "material_name": "位置传感器垫片",
-          "part_number": "649-341-010-0",
-          "quantity": "1",
-          "remark": "",
-          "usage_type": "检查有问题领用"
-        },
-        {
-          "material_name": "清洗剂",
-          "part_number": "RH-P-680-20L",
-          "quantity": "1",
-          "remark": "优先使用开封航化",
-          "usage_type": "必须使用"
-        },
         {
           "material_name": "防咬合剂",
           "part_number": "NYCOGREASEGNGA47",
@@ -3729,21 +3453,49 @@
           "usage_type": "必须使用"
         },
         {
-          "material_name": "凡士林",
-          "part_number": "VV-P-236",
+          "material_name": "28号油脂",
+          "part_number": "MOBILGREASE28",
           "quantity": "1",
           "remark": "优先使用开封航化",
           "usage_type": "必须使用"
         },
         {
-          "material_name": "化学品",
-          "part_number": "BRISAL-OX 50-855",
+          "material_name": "异丙醇",
+          "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "放气活门和滚珠丝杆作动组件",
+          "part_number": "121664-8",
           "quantity": "1",
           "remark": "",
-          "usage_type": "必须使用"
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "VBV辅助柔性轴",
+          "part_number": "121762-4",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "放气活门和主滚珠丝杆作动组件",
+          "part_number": "121666-13",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "VBV主柔性轴",
+          "part_number": "121762-3",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
         }
       ],
-      "set_id": 939,
+      "set_id": 973,
       "tools_confirmed": false,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
@@ -3797,6 +3549,13 @@
           "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
+        },
+        {
+          "device_name": "28号注油枪",
+          "part_number": "自编号Z1006-28",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
         }
       ],
       "materials": [
@@ -3823,14 +3582,14 @@
         },
         {
           "material_name": "放气活门和主滚珠丝杆作动组件",
-          "part_number": "",
+          "part_number": "121666-13",
           "quantity": "按需",
           "remark": "",
           "usage_type": "必须使用"
         },
         {
           "material_name": "VBV主柔性轴",
-          "part_number": "",
+          "part_number": "121762-3",
           "quantity": "按需",
           "remark": "",
           "usage_type": "必须使用"
@@ -3880,13 +3639,6 @@
         {
           "material_name": "防咬合剂",
           "part_number": "NYCOGREASEGNGA47",
-          "quantity": "1",
-          "remark": "优先使用开封航化",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "凡士林",
-          "part_number": "VV-P-236",
           "quantity": "1",
           "remark": "优先使用开封航化",
           "usage_type": "必须使用"
@@ -3953,6 +3705,13 @@
           "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
+        },
+        {
+          "device_name": "28号注油枪",
+          "part_number": "自编号Z1006-28",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
         }
       ],
       "materials": [
@@ -3979,14 +3738,14 @@
         },
         {
           "material_name": "放气活门和主滚珠丝杆作动组件",
-          "part_number": "",
+          "part_number": "121666-13",
           "quantity": "按需",
           "remark": "",
           "usage_type": "必须使用"
         },
         {
           "material_name": "VBV主柔性轴",
-          "part_number": "",
+          "part_number": "121762-3",
           "quantity": "按需",
           "remark": "",
           "usage_type": "必须使用"
@@ -4041,13 +3800,6 @@
           "usage_type": "必须使用"
         },
         {
-          "material_name": "凡士林",
-          "part_number": "VV-P-236",
-          "quantity": "1",
-          "remark": "优先使用开封航化",
-          "usage_type": "必须使用"
-        },
-        {
           "material_name": "化学品",
           "part_number": "BRISAL-OX 50-855",
           "quantity": "1",
@@ -4070,8 +3822,8 @@
       "tools": [],
       "materials": [],
       "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "99": {
@@ -4084,8 +3836,8 @@
       "tools": [],
       "materials": [],
       "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "100": {
@@ -4336,10 +4088,18 @@
       "task_type": "",
       "remark": "",
       "tools": [],
-      "materials": [],
-      "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "materials": [
+        {
+          "material_name": "发动机主磁堵胶圈",
+          "part_number": "J221P018",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "set_id": 958,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "115": {
@@ -4349,9 +4109,17 @@
       "category": "发动机",
       "task_type": "",
       "remark": "",
-      "tools": [],
+      "tools": [
+        {
+          "device_name": "兆欧表",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
       "materials": [],
-      "set_id": null,
+      "set_id": 972,
       "tools_confirmed": false,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
@@ -4802,8 +4570,8 @@
       "tools": [],
       "materials": [],
       "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "145": {
@@ -4844,8 +4612,8 @@
       "tools": [],
       "materials": [],
       "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "148": {
@@ -4986,8 +4754,8 @@
       "tools": [],
       "materials": [],
       "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "153": {
@@ -5000,8 +4768,8 @@
       "tools": [],
       "materials": [],
       "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "154": {
@@ -5909,8 +5677,38 @@
       "category": "机体",
       "task_type": "",
       "remark": "",
-      "tools": [],
-      "materials": [],
+      "tools": [
+        {
+          "device_name": "扰流板锁定工具",
+          "part_number": "98D27604000000",
+          "quantity": "5",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "半流体导入工具",
+          "part_number": "A663160-00-SCZZ",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "materials": [
+        {
+          "material_name": "半流体油",
+          "part_number": "AEROSPEC100",
+          "quantity": "3",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防腐剂",
+          "part_number": "CA1000",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        }
+      ],
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
@@ -5993,11 +5791,48 @@
       "category": "机体",
       "task_type": "",
       "remark": "",
-      "tools": [],
-      "materials": [],
-      "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "tools": [
+        {
+          "device_name": "游标卡尺",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "塞尺",
+          "part_number": "SC-2",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "materials": [
+        {
+          "material_name": "防咬合剂",
+          "part_number": "MOLYKOTE DX",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "清洗剂",
+          "part_number": "RH-P-680-20L",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防咬合剂",
+          "part_number": "MOLYKOTE 111",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        }
+      ],
+      "set_id": 965,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "195": {
@@ -6007,11 +5842,48 @@
       "category": "机体",
       "task_type": "",
       "remark": "",
-      "tools": [],
-      "materials": [],
-      "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "tools": [
+        {
+          "device_name": "游标卡尺",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "塞尺",
+          "part_number": "SC-2",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "materials": [
+        {
+          "material_name": "防咬合剂",
+          "part_number": "MOLYKOTE DX",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "清洗剂",
+          "part_number": "RH-P-680-20L",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防咬合剂",
+          "part_number": "MOLYKOTE 111",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        }
+      ],
+      "set_id": 965,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "196": {
@@ -6595,9 +6467,24 @@
       "task_type": "",
       "remark": "",
       "tools": [],
-      "materials": [],
+      "materials": [
+        {
+          "material_name": "结构防腐密封胶",
+          "part_number": "PS870B1/2",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "粘结胶",
+          "part_number": "MC-780C2",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
       "set_id": null,
-      "tools_confirmed": false,
+      "tools_confirmed": true,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
     },
@@ -6800,27 +6687,6 @@
           "material_name": "结构防腐密封胶",
           "part_number": "PS870B1/2",
           "quantity": "1",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "开口销",
-          "part_number": "MS24665-153",
-          "quantity": "1",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "开口销",
-          "part_number": "MS24665-304",
-          "quantity": "4",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "开口销",
-          "part_number": "MS24665-155",
-          "quantity": "3",
           "remark": "",
           "usage_type": "必须使用"
         },
@@ -8259,14 +8125,22 @@
       "id": 316,
       "task_code": "EOJC-CFM56-72-2022-002-S1",
       "task_name": "孔探检查HPC三级可调静子叶片后部挂钩封严状态",
-      "category": "特检",
+      "category": "发动机",
       "task_type": "",
       "remark": "",
-      "tools": [],
+      "tools": [
+        {
+          "device_name": "VSV作动筒拆装工具",
+          "part_number": "856A1084G04",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
       "materials": [],
       "set_id": null,
       "tools_confirmed": false,
-      "materials_confirmed": false,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "317": {
@@ -8419,8 +8293,8 @@
       "tools": [],
       "materials": [],
       "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "328": {
@@ -8433,8 +8307,8 @@
       "tools": [],
       "materials": [],
       "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "329": {
@@ -9479,14 +9353,14 @@
       "materials": [
         {
           "material_name": "液压油",
-          "part_number": "PE-5",
+          "part_number": "SKYDROL PE-5",
           "quantity": "1",
           "remark": "",
           "usage_type": "检查有问题领用"
         }
       ],
       "set_id": null,
-      "tools_confirmed": false,
+      "tools_confirmed": true,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
     },
@@ -11768,8 +11642,8 @@
       "tools": [],
       "materials": [],
       "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "862": {
@@ -12142,13 +12016,6 @@
       "remark": "",
       "tools": [
         {
-          "device_name": "充门工具箱",
-          "part_number": "",
-          "quantity": "1",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
           "device_name": "V2500专用PB管路渗漏检查工具",
           "part_number": "PN-SCZZ-03-1078-A",
           "quantity": "1",
@@ -12185,13 +12052,6 @@
       "task_type": "",
       "remark": "",
       "tools": [
-        {
-          "device_name": "充门工具箱",
-          "part_number": "",
-          "quantity": "1",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
         {
           "device_name": "V2500专用PB管路渗漏检查工具",
           "part_number": "PN-SCZZ-03-1078-A",
@@ -13083,6 +12943,13 @@
           "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
+        },
+        {
+          "device_name": "28号注油枪",
+          "part_number": "自编号Z1006-28",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
         }
       ],
       "materials": [
@@ -13109,14 +12976,14 @@
         },
         {
           "material_name": "放气活门和主滚珠丝杆作动组件",
-          "part_number": "",
+          "part_number": "121666-13",
           "quantity": "按需",
           "remark": "",
           "usage_type": "必须使用"
         },
         {
           "material_name": "VBV主柔性轴",
-          "part_number": "",
+          "part_number": "121762-3",
           "quantity": "按需",
           "remark": "",
           "usage_type": "必须使用"
@@ -13166,13 +13033,6 @@
         {
           "material_name": "防咬合剂",
           "part_number": "NYCOGREASEGNGA47",
-          "quantity": "1",
-          "remark": "优先使用开封航化",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "凡士林",
-          "part_number": "VV-P-236",
           "quantity": "1",
           "remark": "优先使用开封航化",
           "usage_type": "必须使用"
@@ -13239,6 +13099,13 @@
           "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
+        },
+        {
+          "device_name": "28号注油枪",
+          "part_number": "自编号Z1006-28",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
         }
       ],
       "materials": [
@@ -13265,14 +13132,14 @@
         },
         {
           "material_name": "放气活门和主滚珠丝杆作动组件",
-          "part_number": "",
+          "part_number": "121666-13",
           "quantity": "按需",
           "remark": "",
           "usage_type": "必须使用"
         },
         {
           "material_name": "VBV主柔性轴",
-          "part_number": "",
+          "part_number": "121762-3",
           "quantity": "按需",
           "remark": "",
           "usage_type": "必须使用"
@@ -13322,13 +13189,6 @@
         {
           "material_name": "防咬合剂",
           "part_number": "NYCOGREASEGNGA47",
-          "quantity": "1",
-          "remark": "优先使用开封航化",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "凡士林",
-          "part_number": "VV-P-236",
           "quantity": "1",
           "remark": "优先使用开封航化",
           "usage_type": "必须使用"
@@ -13395,6 +13255,13 @@
           "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
+        },
+        {
+          "device_name": "28号注油枪",
+          "part_number": "自编号Z1006-28",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
         }
       ],
       "materials": [
@@ -13421,14 +13288,14 @@
         },
         {
           "material_name": "放气活门和主滚珠丝杆作动组件",
-          "part_number": "",
+          "part_number": "121666-13",
           "quantity": "按需",
           "remark": "",
           "usage_type": "必须使用"
         },
         {
           "material_name": "VBV主柔性轴",
-          "part_number": "",
+          "part_number": "121762-3",
           "quantity": "按需",
           "remark": "",
           "usage_type": "必须使用"
@@ -13478,13 +13345,6 @@
         {
           "material_name": "防咬合剂",
           "part_number": "NYCOGREASEGNGA47",
-          "quantity": "1",
-          "remark": "优先使用开封航化",
-          "usage_type": "必须使用"
-        },
-        {
-          "material_name": "凡士林",
-          "part_number": "VV-P-236",
           "quantity": "1",
           "remark": "优先使用开封航化",
           "usage_type": "必须使用"
@@ -13595,14 +13455,14 @@
           "material_name": "液体肥皂",
           "part_number": "83-182-01",
           "quantity": "1",
-          "remark": "",
+          "remark": "优先使用开封航化",
           "usage_type": "必须使用"
         },
         {
           "material_name": "外表清洗剂",
           "part_number": "TURCO 5948 DPM",
           "quantity": "1",
-          "remark": "",
+          "remark": "优先使用开封航化",
           "usage_type": "必须使用"
         }
       ],
@@ -13772,6 +13632,1062 @@
       ],
       "tools_confirmed": true,
       "materials_confirmed": false,
+      "set_id": null,
+      "reminder_type": "一般提醒"
+    },
+    "944": {
+      "id": 944,
+      "task_code": "CSCA320-75ZB02-01-1-1",
+      "task_name": "目视检查可变放气阀系统 — 1发（CFMB）",
+      "category": "发动机",
+      "task_type": "A",
+      "remark": "",
+      "tools": [
+        {
+          "device_name": "VBV门保持工具",
+          "part_number": "856A2664G01-FZC",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "VBV开关工具",
+          "part_number": "856A2501G01",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "VBV拆装工具",
+          "part_number": "856A3114G01",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "注油嘴（VBV）",
+          "part_number": "自编号Z4001-12",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "套筒1/4孔3/16六方杆",
+          "part_number": "自编号T7057-26",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "电动工具",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "28号注油枪",
+          "part_number": "自编号Z1006-28",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "materials": [
+        {
+          "material_name": "防咬合剂",
+          "part_number": "NYCOGREASEGNGA47",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "28号油脂",
+          "part_number": "MOBILGREASE28",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "异丙醇",
+          "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "放气活门和滚珠丝杆作动组件",
+          "part_number": "121664-8",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "VBV辅助柔性轴",
+          "part_number": "121762-4",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "放气活门和主滚珠丝杆作动组件",
+          "part_number": "121666-13",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "VBV主柔性轴",
+          "part_number": "121762-3",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        }
+      ],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": 973,
+      "reminder_type": "一般提醒"
+    },
+    "945": {
+      "id": 945,
+      "task_code": "CSCA320-801110-C3-1-1",
+      "task_name": "启动机排放和补充滑油系统 — 1发（CFMB）",
+      "category": "发动机",
+      "task_type": "A",
+      "remark": "",
+      "tools": [],
+      "materials": [
+        {
+          "material_name": "启动机快卸堵头胶圈",
+          "part_number": "M83485-1-012",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "启动机磁堵胶圈",
+          "part_number": "S3225-008",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": true,
+      "materials_confirmed": false,
+      "set_id": 963,
+      "reminder_type": "一般提醒"
+    },
+    "946": {
+      "id": 946,
+      "task_code": "CSCA320-242000-21-1-1",
+      "task_name": "拆卸并报废回油和供油滤芯，-排放和补充滑油系统-1发(CFMB)",
+      "category": "发动机",
+      "task_type": "",
+      "remark": "",
+      "tools": [
+        {
+          "device_name": "球头笔检查工具",
+          "part_number": "STYLUS-0.508MM",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "materials": [
+        {
+          "material_name": "IDG油滤口盖胶圈",
+          "part_number": "AS3209-226",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "IDG放油口胶圈",
+          "part_number": "AS3208-05",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "IDG油滤",
+          "part_number": "7588429",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": false,
+      "materials_confirmed": false,
+      "set_id": null,
+      "reminder_type": "一般提醒"
+    },
+    "947": {
+      "id": 947,
+      "task_code": "CSCA320-242100-01-1-1",
+      "task_name": "检查QAD张紧螺栓力矩 — 1发",
+      "category": "发动机",
+      "task_type": "",
+      "remark": "",
+      "tools": [
+        {
+          "device_name": "表盘式力矩",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "电子游标卡尺",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "materials": [],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": 949,
+      "reminder_type": "一般提醒"
+    },
+    "948": {
+      "id": 948,
+      "task_code": "CSCA320-242100-01-1-2",
+      "task_name": "检查QAD张紧螺栓力矩 — 2发",
+      "category": "发动机",
+      "task_type": "",
+      "remark": "",
+      "tools": [
+        {
+          "device_name": "表盘式力矩",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "电子游标卡尺",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "materials": [],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": 949,
+      "reminder_type": "一般提醒"
+    },
+    "950": {
+      "id": 950,
+      "task_code": "CSCA320-722000-C1-1-2",
+      "task_name": "发动机旋转整流锥、进气口、风扇叶片、风扇出口和耐磨材料的详细检查-2发(CFMB)",
+      "category": "发动机",
+      "task_type": "",
+      "remark": "",
+      "tools": [],
+      "materials": [],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": null,
+      "reminder_type": "一般提醒"
+    },
+    "951": {
+      "id": 951,
+      "task_code": "CSCA320-722000-C3-1-2",
+      "task_name": "详细检查和润滑风扇叶片的燕尾槽，中跨护罩，垫片，平台和风扇盘燕尾槽（单发）（CFMB）",
+      "category": "发动机",
+      "task_type": "",
+      "remark": "",
+      "tools": [
+        {
+          "device_name": "调节螺栓",
+          "part_number": "856A1130G01",
+          "quantity": "3",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "导向销",
+          "part_number": "856A3409G01",
+          "quantity": "3",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "热风枪",
+          "part_number": "",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "敲击工具",
+          "part_number": "98A57103013000",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "转接盒（正相+反相）",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "磨损测量工具",
+          "part_number": "856A5817G01",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "塞尺",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "内六方转接杆",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "红外温度仪",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "materials": [
+        {
+          "material_name": "异丙醇",
+          "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防咬合剂",
+          "part_number": "NYCOGREASEGNGA47",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "干膜润滑剂",
+          "part_number": "MOLYKOTE D321R",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": false,
+      "materials_confirmed": false,
+      "set_id": null,
+      "reminder_type": "一般提醒"
+    },
+    "952": {
+      "id": 952,
+      "task_code": "CSCA320-72ZB16-01-2-1B",
+      "task_name": "手动清洗风扇气道及风扇叶片 — 1发 （CFMB）",
+      "category": "发动机",
+      "task_type": "",
+      "remark": "",
+      "tools": [],
+      "materials": [],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": 954,
+      "reminder_type": "一般提醒"
+    },
+    "953": {
+      "id": 953,
+      "task_code": "CSCA320-72ZB16-01-2-1C",
+      "task_name": "纯水清洗发动机气路 — 1发（CFMB）",
+      "category": "发动机",
+      "task_type": "",
+      "remark": "",
+      "tools": [],
+      "materials": [],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": 954,
+      "reminder_type": "一般提醒"
+    },
+    "955": {
+      "id": 955,
+      "task_code": "CSCA320-75ZB04-01-1-1",
+      "task_name": "重复润滑VBV系统 — 单发 （CFMB）",
+      "category": "发动机",
+      "task_type": "",
+      "remark": "",
+      "tools": [
+        {
+          "device_name": "VBV门保持工具",
+          "part_number": "856A2664G01-FZC",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "VBV开关工具",
+          "part_number": "856A2501G01",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "VBV拆装工具",
+          "part_number": "856A3114G01",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "注油嘴（VBV）",
+          "part_number": "自编号Z4001-12",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "套筒1/4孔3/16六方杆",
+          "part_number": "自编号T7057-26",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "电动工具",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "28号注油枪",
+          "part_number": "自编号Z1006-28",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "materials": [
+        {
+          "material_name": "防咬合剂",
+          "part_number": "NYCOGREASEGNGA47",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "28号油脂",
+          "part_number": "MOBILGREASE28",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "异丙醇",
+          "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "放气活门和滚珠丝杆作动组件",
+          "part_number": "121664-8",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "VBV辅助柔性轴",
+          "part_number": "121762-4",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "放气活门和主滚珠丝杆作动组件",
+          "part_number": "121666-13",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "VBV主柔性轴",
+          "part_number": "121762-3",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        }
+      ],
+      "tools_confirmed": false,
+      "materials_confirmed": false,
+      "set_id": 973,
+      "reminder_type": "一般提醒"
+    },
+    "956": {
+      "id": 956,
+      "task_code": "CSCA320-792000-C4-2-1",
+      "task_name": "拆下并报废供油滤 — 单发（CFMB）",
+      "category": "发动机",
+      "task_type": "",
+      "remark": "",
+      "tools": [],
+      "materials": [
+        {
+          "material_name": "供油滤口盖胶圈",
+          "part_number": "J221P153",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "供油滤放油堵头胶圈",
+          "part_number": "J221P016",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "供油滤滤芯",
+          "part_number": "CA00077B",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "供油滤滤芯胶圈",
+          "part_number": "J221P151",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "供油滤口盖备用胶圈",
+          "part_number": "337-081-301-0",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "供油滤放油堵头备用胶圈",
+          "part_number": "337-081-101-0",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        }
+      ],
+      "tools_confirmed": true,
+      "materials_confirmed": false,
+      "set_id": null,
+      "reminder_type": "一般提醒"
+    },
+    "957": {
+      "id": 957,
+      "task_code": "CSCA320-792000-C8-1-1",
+      "task_name": "检查电气主碎屑检测器(EMCD)是否有微粒-1发(CFMB)",
+      "category": "发动机",
+      "task_type": "",
+      "remark": "",
+      "tools": [],
+      "materials": [
+        {
+          "material_name": "发动机主磁堵胶圈",
+          "part_number": "J221P018",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": 958,
+      "reminder_type": "一般提醒"
+    },
+    "959": {
+      "id": 959,
+      "task_code": "CSCA320-792000-C9-1-1",
+      "task_name": "主金属屑检测器远程指示的操作检查 — 1发(CFMB)",
+      "category": "发动机",
+      "task_type": "",
+      "remark": "",
+      "tools": [
+        {
+          "device_name": "兆欧表",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "materials": [],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": 972,
+      "reminder_type": "一般提醒"
+    },
+    "960": {
+      "id": 960,
+      "task_code": "CSCA320-801110-C1-1-1",
+      "task_name": "检查磁堵-1发(CFMB)",
+      "category": "发动机",
+      "task_type": "",
+      "remark": "",
+      "tools": [],
+      "materials": [
+        {
+          "material_name": "启动机快卸堵头胶圈",
+          "part_number": "M83485-1-012",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "启动机磁堵胶圈",
+          "part_number": "S3225-008",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": 963,
+      "reminder_type": "一般提醒"
+    },
+    "961": {
+      "id": 961,
+      "task_code": "CSCA320-801110-C1-1-2",
+      "task_name": "检查磁堵-2发(CFMB)",
+      "category": "发动机",
+      "task_type": "",
+      "remark": "",
+      "tools": [],
+      "materials": [
+        {
+          "material_name": "启动机快卸堵头胶圈",
+          "part_number": "M83485-1-012",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "启动机磁堵胶圈",
+          "part_number": "S3225-008",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": 963,
+      "reminder_type": "一般提醒"
+    },
+    "962": {
+      "id": 962,
+      "task_code": "CSCA320-801110-C3-1-2",
+      "task_name": "启动机排放和补充滑油系统 — 2发（CFMB）",
+      "category": "发动机",
+      "task_type": "",
+      "remark": "",
+      "tools": [],
+      "materials": [
+        {
+          "material_name": "启动机快卸堵头胶圈",
+          "part_number": "M83485-1-012",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "启动机磁堵胶圈",
+          "part_number": "S3225-008",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": 963,
+      "reminder_type": "一般提醒"
+    },
+    "964": {
+      "id": 964,
+      "task_code": "CSCA320-ZL-400-02-1-X",
+      "task_name": "一般目视检查动力装置,短舱和吊挂",
+      "category": "发动机",
+      "task_type": "",
+      "remark": "",
+      "tools": [],
+      "materials": [],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": null,
+      "reminder_type": "一般提醒"
+    },
+    "966": {
+      "id": 966,
+      "task_code": "CSCA320-52ZB71-01-1-C",
+      "task_name": "调节货舱门门锁手柄的接近传感器",
+      "category": "机体",
+      "task_type": "",
+      "remark": "",
+      "tools": [
+        {
+          "device_name": "货舱门间隙调节工具",
+          "part_number": "98D52308001000",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "专用塞尺",
+          "part_number": "98D52308002000",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "materials": [
+        {
+          "material_name": "异丙醇",
+          "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
+          "quantity": "1",
+          "remark": "优先使用二次航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防腐剂",
+          "part_number": "AV30",
+          "quantity": "1",
+          "remark": "优先使用二次航化",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": 804,
+      "reminder_type": "一般提醒"
+    },
+    "967": {
+      "id": 967,
+      "task_code": "CSCA320-52ZB71-02-1-A",
+      "task_name": "检查接近传感器",
+      "category": "电子",
+      "task_type": "",
+      "remark": "",
+      "tools": [
+        {
+          "device_name": "货舱门间隙调节工具",
+          "part_number": "98D52308001000",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "专用塞尺",
+          "part_number": "98D52308002000",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "materials": [
+        {
+          "material_name": "异丙醇",
+          "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
+          "quantity": "1",
+          "remark": "优先使用二次航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防腐剂",
+          "part_number": "AV30",
+          "quantity": "1",
+          "remark": "优先使用二次航化",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": 804,
+      "reminder_type": "一般提醒"
+    },
+    "968": {
+      "id": 968,
+      "task_code": "CSCA320-52ZB71-02-1-B",
+      "task_name": "调节电子舱门811,812 和 824接近传感器",
+      "category": "电子",
+      "task_type": "",
+      "remark": "",
+      "tools": [
+        {
+          "device_name": "货舱门间隙调节工具",
+          "part_number": "98D52308001000",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "专用塞尺",
+          "part_number": "98D52308002000",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "materials": [
+        {
+          "material_name": "异丙醇",
+          "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
+          "quantity": "1",
+          "remark": "优先使用二次航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防腐剂",
+          "part_number": "AV30",
+          "quantity": "1",
+          "remark": "优先使用二次航化",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": 804,
+      "reminder_type": "一般提醒"
+    },
+    "969": {
+      "id": 969,
+      "task_code": "CSCA320-52ZB71-02-1-C",
+      "task_name": "调节电子舱门822接近传感器",
+      "category": "电子",
+      "task_type": "",
+      "remark": "",
+      "tools": [
+        {
+          "device_name": "货舱门间隙调节工具",
+          "part_number": "98D52308001000",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "专用塞尺",
+          "part_number": "98D52308002000",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "materials": [
+        {
+          "material_name": "异丙醇",
+          "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
+          "quantity": "1",
+          "remark": "优先使用二次航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防腐剂",
+          "part_number": "AV30",
+          "quantity": "1",
+          "remark": "优先使用二次航化",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": 804,
+      "reminder_type": "一般提醒"
+    },
+    "970": {
+      "id": 970,
+      "task_code": "CSCA320-730000-C2-1-1",
+      "task_name": "校正发动机定期维护报告(SMR)的故障-1发(CFMB)",
+      "category": "电子",
+      "task_type": "",
+      "remark": "",
+      "tools": [],
+      "materials": [],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": null,
+      "reminder_type": "一般提醒"
+    },
+    "971": {
+      "id": 971,
+      "task_code": "CSCA320-730000-C2-1-2",
+      "task_name": "校正发动机定期维护报告(SMR)的故障-2发(CFMB)",
+      "category": "电子",
+      "task_type": "",
+      "remark": "",
+      "tools": [],
+      "materials": [],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": null,
+      "reminder_type": "一般提醒"
+    },
+    "974": {
+      "id": 974,
+      "task_code": "CSCA320-72ZB16-01-2-2B",
+      "task_name": "手动清洗风扇气道及风扇叶片 — 2发 （CFMB）",
+      "category": "发动机",
+      "task_type": "",
+      "remark": "",
+      "tools": [],
+      "materials": [],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": 954,
+      "reminder_type": "一般提醒"
+    },
+    "975": {
+      "id": 975,
+      "task_code": "CSCA320-72ZB16-01-2-2C",
+      "task_name": "纯水清洗发动机气路 — 2发（CFMB）",
+      "category": "发动机",
+      "task_type": "",
+      "remark": "",
+      "tools": [],
+      "materials": [],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": 954,
+      "reminder_type": "一般提醒"
+    },
+    "976": {
+      "id": 976,
+      "task_code": "CSCA320-74ZB01-01-1-1B",
+      "task_name": "更换（安装）A点火电嘴(4001JH1)– 1发(CFMB)",
+      "category": "发动机",
+      "task_type": "",
+      "remark": "",
+      "tools": [],
+      "materials": [
+        {
+          "material_name": "点火电嘴",
+          "part_number": "518888-1",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "封圈",
+          "part_number": "9048156",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防咬合剂",
+          "part_number": "NYCOGREASEGNGA47",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": 977,
+      "reminder_type": "一般提醒"
+    },
+    "978": {
+      "id": 978,
+      "task_code": "CSCA320-ZL-435-01-1-1",
+      "task_name": "一般目视检查发动机风扇区和附件齿轮箱(EWIS) — 1发",
+      "category": "发动机",
+      "task_type": "",
+      "remark": "",
+      "tools": [],
+      "materials": [],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": null,
+      "reminder_type": "一般提醒"
+    },
+    "979": {
+      "id": 979,
+      "task_code": "CSCA320-ZL-435-01-1-2",
+      "task_name": "一般目视检查发动机风扇区和附件齿轮箱(EWIS) — 2发",
+      "category": "发动机",
+      "task_type": "",
+      "remark": "",
+      "tools": [],
+      "materials": [],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": null,
+      "reminder_type": "一般提醒"
+    },
+    "980": {
+      "id": 980,
+      "task_code": "EOJC-A320-25-2020-032-A",
+      "task_name": "更换驾驶舱内的地毯",
+      "category": "电子",
+      "task_type": "EO分段",
+      "remark": "",
+      "tools": [],
+      "materials": [
+        {
+          "material_name": "驾驶舱地毯",
+          "part_number": "D2511185500200",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "驾驶舱地毯",
+          "part_number": "D2511185100100",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防咬合剂",
+          "part_number": "CA1000",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "地毯胶",
+          "part_number": "POLYKEN108",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": true,
+      "materials_confirmed": false,
+      "set_id": null,
+      "reminder_type": "一般提醒"
+    },
+    "981": {
+      "id": 981,
+      "task_code": "EOJC-CFM56-72-2025-007-S1",
+      "task_name": "孔探检查CFM56-5B发动机高压涡轮转子叶片",
+      "category": "特检",
+      "task_type": "EO分段",
+      "remark": "",
+      "tools": [],
+      "materials": [],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "set_id": null,
       "reminder_type": "一般提醒"
     }
@@ -13959,7 +14875,7 @@
     },
     "804": {
       "id": 804,
-      "name": "检查货舱门电子舱门间隙",
+      "name": "检查货舱门电子舱门接近传感器间隙",
       "description": "",
       "category": "机体",
       "tools": [
@@ -14594,13 +15510,6 @@
       "category": "发动机",
       "tools": [
         {
-          "device_name": "充门工具箱",
-          "part_number": "",
-          "quantity": "1",
-          "remark": "",
-          "usage_type": "必须使用"
-        },
-        {
           "device_name": "V2500专用PB管路渗漏检查工具",
           "part_number": "PN-SCZZ-03-1078-A",
           "quantity": "1",
@@ -14885,7 +15794,7 @@
     },
     "939": {
       "id": 939,
-      "name": "VBV系统检查和时控",
+      "name": "VBV系统部件时控",
       "description": "数据未完善",
       "category": "发动机",
       "tools": [
@@ -14930,6 +15839,13 @@
           "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
+        },
+        {
+          "device_name": "28号注油枪",
+          "part_number": "自编号Z1006-28",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
         }
       ],
       "materials": [
@@ -14956,14 +15872,14 @@
         },
         {
           "material_name": "放气活门和主滚珠丝杆作动组件",
-          "part_number": "",
+          "part_number": "121666-13",
           "quantity": "按需",
           "remark": "",
           "usage_type": "必须使用"
         },
         {
           "material_name": "VBV主柔性轴",
-          "part_number": "",
+          "part_number": "121762-3",
           "quantity": "按需",
           "remark": "",
           "usage_type": "必须使用"
@@ -15018,13 +15934,6 @@
           "usage_type": "必须使用"
         },
         {
-          "material_name": "凡士林",
-          "part_number": "VV-P-236",
-          "quantity": "1",
-          "remark": "优先使用开封航化",
-          "usage_type": "必须使用"
-        },
-        {
           "material_name": "化学品",
           "part_number": "BRISAL-OX 50-855",
           "quantity": "1",
@@ -15033,6 +15942,291 @@
         }
       ],
       "tools_confirmed": false,
+      "materials_confirmed": false
+    },
+    "949": {
+      "id": 949,
+      "name": "检查QAD张紧螺栓力矩-双发CFM",
+      "description": "",
+      "category": "发动机",
+      "tools": [
+        {
+          "device_name": "表盘式力矩",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "电子游标卡尺",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "materials": [],
+      "tools_confirmed": false,
+      "materials_confirmed": true
+    },
+    "954": {
+      "id": 954,
+      "name": "纯水清洗发动机气路 — 单发（CFMB）",
+      "description": "",
+      "category": "发动机",
+      "tools": [],
+      "materials": [],
+      "tools_confirmed": true,
+      "materials_confirmed": true
+    },
+    "958": {
+      "id": 958,
+      "name": "检查电气主碎屑检测器(EMCD)是否有微粒-双发(CFMB)",
+      "description": "",
+      "category": "发动机",
+      "tools": [],
+      "materials": [
+        {
+          "material_name": "发动机主磁堵胶圈",
+          "part_number": "J221P018",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": true,
+      "materials_confirmed": false
+    },
+    "963": {
+      "id": 963,
+      "name": "启动机排放和补充滑油系统 — 双发（CFMB）",
+      "description": "",
+      "category": "发动机",
+      "tools": [],
+      "materials": [
+        {
+          "material_name": "启动机快卸堵头胶圈",
+          "part_number": "M83485-1-012",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "启动机磁堵胶圈",
+          "part_number": "S3225-008",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": true,
+      "materials_confirmed": false
+    },
+    "965": {
+      "id": 965,
+      "name": "功能检查前起落架扭矩杆间隙过大",
+      "description": "",
+      "category": "机体",
+      "tools": [
+        {
+          "device_name": "游标卡尺",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "塞尺",
+          "part_number": "SC-2",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "materials": [
+        {
+          "material_name": "防咬合剂",
+          "part_number": "MOLYKOTE DX",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "清洗剂",
+          "part_number": "RH-P-680-20L",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防咬合剂",
+          "part_number": "MOLYKOTE 111",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": false,
+      "materials_confirmed": false
+    },
+    "972": {
+      "id": 972,
+      "name": "主金属屑检测器远程指示的操作检查 — 单发(CFMB)",
+      "description": "",
+      "category": "发动机",
+      "tools": [
+        {
+          "device_name": "兆欧表",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "materials": [],
+      "tools_confirmed": false,
+      "materials_confirmed": true
+    },
+    "973": {
+      "id": 973,
+      "name": "VBV系统目视检查和润滑",
+      "description": "",
+      "category": "发动机",
+      "tools": [
+        {
+          "device_name": "VBV门保持工具",
+          "part_number": "856A2664G01-FZC",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "VBV开关工具",
+          "part_number": "856A2501G01",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "VBV拆装工具",
+          "part_number": "856A3114G01",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "注油嘴（VBV）",
+          "part_number": "自编号Z4001-12",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "套筒1/4孔3/16六方杆",
+          "part_number": "自编号T7057-26",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "电动工具",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "28号注油枪",
+          "part_number": "自编号Z1006-28",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "materials": [
+        {
+          "material_name": "防咬合剂",
+          "part_number": "NYCOGREASEGNGA47",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "28号油脂",
+          "part_number": "MOBILGREASE28",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "异丙醇",
+          "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "放气活门和滚珠丝杆作动组件",
+          "part_number": "121664-8",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "VBV辅助柔性轴",
+          "part_number": "121762-4",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "放气活门和主滚珠丝杆作动组件",
+          "part_number": "121666-13",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "VBV主柔性轴",
+          "part_number": "121762-3",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        }
+      ],
+      "tools_confirmed": false,
+      "materials_confirmed": false
+    },
+    "977": {
+      "id": 977,
+      "name": "更换单个点火电嘴– 单发(CFMB)",
+      "description": "",
+      "category": "发动机",
+      "tools": [],
+      "materials": [
+        {
+          "material_name": "点火电嘴",
+          "part_number": "518888-1",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "封圈",
+          "part_number": "9048156",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防咬合剂",
+          "part_number": "NYCOGREASEGNGA47",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": true,
       "materials_confirmed": false
     }
   },
