@@ -1,19 +1,17 @@
 # Changelog
 
-## [3.2.0] - 2026-07-28
+## [3.2.0] - 2026-07-30
 
 ### Added
-- 虚拟环境自动检测（app.py启动时自动切换venv）
-- 日志功能测试（test_card_logs.py）
-- 工作包功能测试（test_work_packages.py）
-- 双文件存储测试（test_dual_file.py）
-- 日志清理测试（test_log_cleanup.py）
+- UI交互增强：拖拽上传、滚动加载、toast提示、全局loader、hover效果
+- 工卡保存后postMessage通知父页面标绿
+- pre-commit钩子（ruff + ruff-format）+ CONTRIBUTING.md代码规范
+- 定检工卡数据更新（组套#954/#977分配、新增工卡#972/#973、物资录入）
 
 ### Changed
-- 数据库拆分为核心文件+运行时文件（json_store.py双文件读写）
-- .gitignore忽略运行时文件（reqman_db_runtime.json）
-- 启动脚本简化（start.bat/start.sh）
-- 测试覆盖从138提升至169
+- 149个ruff错误全部修复
+- 数据库拆分为核心文件+运行时文件
+- 启动文件自动检测虚拟环境
 
 ### Fixed
 - 虚拟环境未激活时Flask导入失败
