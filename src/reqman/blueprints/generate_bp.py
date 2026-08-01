@@ -1,7 +1,8 @@
 """生成需求单蓝图 — 预览 + 下载 Excel"""
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from flask import Blueprint, current_app, flash, redirect, render_template, request, send_file
 
@@ -57,7 +58,7 @@ def _ensure_package_matched(pkg_data):
     matched[:] = still_matched
     new_cards = unconfirmed + new_cards
 
-    now_str = datetime.now(timezone.utc).strftime("%Y.%m.%d %H:%M")
+    now_str = datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y.%m.%d %H:%M")
     pkg_data["matched"] = matched
     pkg_data["new_cards"] = new_cards
     pkg_data["cancelled"] = cancelled
@@ -156,7 +157,7 @@ def _handle_generate_post(pkg_data: dict, package_id: str):
                                      aircraft_info.get("package", "")),
         "description": request.form.get("description",
                                          aircraft_info.get("description", "")),
-        "date": request.form.get("date", datetime.now(timezone.utc).strftime("%Y.%m.%d")),
+        "date": request.form.get("date", datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y.%m.%d")),
         "conditions": conditions,
         "spare_items": spare_items,
     }
@@ -291,5 +292,5 @@ def _handle_generate_preview(pkg_data: dict, package_id: str):
                            spare_groups=_group_by_category(spare_preview),
                            routine_count=routine_count,
                            other_count=other_count,
-                           now=datetime.now(timezone.utc),
+                           now=datetime.now(ZoneInfo("Asia/Shanghai")),
                            categories=CATEGORIES)

@@ -132,6 +132,7 @@ src/reqman/
 - Python 3.10+
 - Flask 3.1+
 - openpyxl
+- tzdata（北京时间时区支持）
 - pytest（169测试用例）
 
 ## 环境变量

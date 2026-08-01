@@ -137,6 +137,13 @@ function watchTable(tableId, checkbox) {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
+    // 编辑页面初始状态：如果checkbox已勾选，添加禁止编辑红框
+    if (document.getElementById("confirmNoTools").checked) {
+        document.getElementById("toolSection").classList.add("section-disabled");
+    }
+    if (document.getElementById("confirmNoMats").checked) {
+        document.getElementById("matSection").classList.add("section-disabled");
+    }
     watchTable("toolTable", confirmNoTools);
     watchTable("matTable", confirmNoMats);
 });
@@ -161,7 +168,7 @@ function addRow(type) {
         tr.innerHTML = '<td><input type="text" class="form-control form-control-sm" name="mat_name[]" placeholder="航材名称"></td>' +
             '<td><input type="text" class="form-control form-control-sm" name="mat_pn[]"></td>' +
             '<td><input type="text" class="form-control form-control-sm" name="mat_qty[]" value="1"></td>' +
-            '<td><input type="text" class="form-control form-control-sm" name="mat_remark[]"></td>' +
+            '<td><input type="text" class="form-control form-control-sm" name="mat_remark[]" list="remark-options-new"><datalist id="remark-options-new"><option value="优先使用开封航化"></datalist></td>' +
             '<td><select class="form-select form-select-sm" name="mat_type[]">' + usageTypes.map(function(u){return '<option value="'+u+'">'+u+'</option>';}).join('') + '</select></td>' +
             '<td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest(\'tr\').remove()">&times;</button></td>';
     }
@@ -193,32 +200,5 @@ document.getElementById("cardForm").addEventListener("submit", function(e) {
         return false;
     }
 });
-// 如果是从其他页面 window.open() 打开的，保存成功后自动关闭
-if (window.opener) {
-    document.getElementById("cardForm").addEventListener("submit", function(e) {
-        e.preventDefault();
-        var form = this;
-        var formData = new FormData(form);
-        var cardId = '{{ item.id if item else "" }}';
-        var url = cardId ? '/card/' + cardId + '/edit' : '/card/new';
-        
-        fetch(url, {
-            method: 'POST',
-            body: formData
-        }).then(function(resp) {
-            if (resp.ok) {
-                window.opener && window.opener.postMessage({
-                    type: 'cardSaved',
-                    taskCode: document.querySelector('[name="task_code"]').value
-                }, '*');
-                window.close();
-            } else {
-                form.submit();
-            }
-        }).catch(function() {
-            form.submit();
-        });
-    });
-}
 </script>
 {% endblock %}

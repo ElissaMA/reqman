@@ -15,6 +15,7 @@ import shutil
 import threading
 import uuid
 from typing import ClassVar
+from zoneinfo import ZoneInfo
 
 from ..config import CATEGORIES
 
@@ -217,7 +218,7 @@ class JsonStore:
                  target_id: int, target_identifier: str, target_name: str,
                  changes: list) -> dict:
         """添加变更日志到 db（调用方需持有 _lock）"""
-        from datetime import datetime, timezone
+        from datetime import datetime
         log_id = db.setdefault("card_log_next_id", 1)
         db["card_log_next_id"] = log_id + 1
         log_entry = {
@@ -228,7 +229,7 @@ class JsonStore:
             "target_identifier": target_identifier,
             "target_name": target_name,
             "changes": changes,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(ZoneInfo("Asia/Shanghai")).isoformat(),
         }
         db.setdefault("card_logs", []).append(log_entry)
         return log_entry

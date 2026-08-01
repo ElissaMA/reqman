@@ -1,8 +1,9 @@
 """pytest 测试配置文件 — Fixtures & 测试数据工厂"""
 
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -65,7 +66,7 @@ def prefilled_service(prefilled_store: JsonStore) -> CardService:
 
 def _ts() -> str:
     """返回当前时间戳字符串"""
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(ZoneInfo("Asia/Shanghai")).isoformat()
 
 
 def make_card(**overrides: Any) -> dict:

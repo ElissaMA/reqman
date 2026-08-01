@@ -3,7 +3,8 @@
 import logging
 import os
 import tempfile
-from datetime import date, datetime, timezone
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 
 from flask import Blueprint, current_app, flash, redirect, render_template, request
 
@@ -42,7 +43,7 @@ def _classify_package(wp):
     wp_date = _parse_wp_date(wp.get("date", ""))
     if not wp_date:
         return "normal"
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(ZoneInfo("Asia/Shanghai")).date()
     diff = (wp_date - today).days
     if diff < -2:
         return "expired"
@@ -80,7 +81,7 @@ def upload():
     work_packages = store.get_work_packages()
 
     # 自动删除过期>2天的工作包，并标记状态
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(ZoneInfo("Asia/Shanghai")).date()
     filtered = []
     for wp in work_packages:
         wp_date = _parse_wp_date(wp.get("date", ""))
@@ -139,7 +140,7 @@ def _handle_upload_post():
     package_data = {
         "reg": aircraft_info.get("reg", ""),
         "description": aircraft_info.get("description", ""),
-        "date": aircraft_info.get("date", datetime.now(timezone.utc).strftime("%Y.%m.%d")),
+        "date": aircraft_info.get("date", datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y.%m.%d")),
         "aircraft_info": aircraft_info,
         "matched": [],
         "new_cards": [],
@@ -171,7 +172,7 @@ def package_rematch(package_id):
     svc = current_app.extensions['card_service']
     matched, new_cards, cancelled = match_work_package_items(all_items, store, svc)
 
-    now_str = datetime.now(timezone.utc).strftime("%Y.%m.%d %H:%M")
+    now_str = datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y.%m.%d %H:%M")
     pkg_data["matched"] = matched
     pkg_data["new_cards"] = new_cards
     pkg_data["cancelled"] = cancelled

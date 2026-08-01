@@ -99,11 +99,11 @@
         <tbody>
             {% if materials %}
             {% for m in materials %}
-            {{ material_row(m.material_name, m.part_number, m.quantity, m.remark, m.usage_type, usage_types, editable, show_delete) }}
+            {{ material_row(m.material_name, m.part_number, m.quantity, m.remark, m.usage_type, usage_types, editable, show_delete, loop.index0) }}
             {% endfor %}
             {% else %}
             {% if editable %}
-            {{ material_row("", "", "1", "", "必须使用", usage_types, editable, show_delete) }}
+            {{ material_row("", "", "1", "", "必须使用", usage_types, editable, show_delete, 0) }}
             {% else %}
             <tr><td colspan="6" class="text-muted text-center py-2">无</td></tr>
             {% endif %}
@@ -114,7 +114,7 @@
 {% endmacro %}
 
 
-{% macro material_row(material_name, part_number, quantity, remark, usage_type, usage_types, editable=true, show_delete=true) %}
+{% macro material_row(material_name, part_number, quantity, remark, usage_type, usage_types, editable=true, show_delete=true, index=0) %}
 <tr>
     <td>
         {% if editable %}
@@ -140,7 +140,11 @@
     </td>
     <td>
         {% if editable %}
-        <input type="text" class="form-control form-control-sm" name="mat_remark[]" value="{{ remark }}">
+        <input type="text" class="form-control form-control-sm" name="mat_remark[]"
+               value="{{ remark }}" list="remark-options-{{ index }}">
+        <datalist id="remark-options-{{ index }}">
+            <option value="优先使用开封航化">
+        </datalist>
         {% else %}
         {{ remark }}
         {% endif %}
