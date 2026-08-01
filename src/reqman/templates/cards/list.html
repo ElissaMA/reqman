@@ -83,6 +83,26 @@ function showDetail(id) {
         + '<div class="col-md-2"><label class="form-label small">类型</label><div>' + (d.task_type || '-') + '</div></div>'
         + '</div>';
     h += '<div class="mb-3"><label class="form-label small">所属工卡组</label><div>' + (d.set_name || '-') + '</div></div>';
+    // 工具确认状态 - 三态显示
+    var toolStatus = '未确认';
+    if (d.tools && d.tools.length > 0) {
+        toolStatus = '否';
+    } else if (d.tools_confirmed) {
+        toolStatus = '是';
+    }
+
+    // 航材确认状态 - 三态显示
+    var matStatus = '未确认';
+    if (d.materials && d.materials.length > 0) {
+        matStatus = '否';
+    } else if (d.materials_confirmed) {
+        matStatus = '是';
+    }
+
+    h += '<div class="row g-3 mb-3">'
+       + '<div class="col-md-6"><label class="form-label small">确认无工具</label><div>' + toolStatus + '</div></div>'
+       + '<div class="col-md-6"><label class="form-label small">确认无航材</label><div>' + matStatus + '</div></div>'
+       + '</div>';
     if (d.tools && d.tools.length) {
         h += '<label class="form-label small fw-bold">工具清单</label>'
            + '<table class="table table-bordered table-sm mb-3"><thead><tr><th>设备名称</th><th>件号</th><th>数量</th><th>备注</th><th>使用类型</th></tr></thead><tbody>';

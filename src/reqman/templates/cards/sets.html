@@ -74,8 +74,9 @@ function showSetDetail(id) {
     var d = setData.find(function(s) { return s.id === id; });
     if (!d) return;
     var h = '<div class="row g-3 mb-3">'
-        + '<div class="col-md-6"><label class="form-label small">名称</label><div><strong>' + (d.name || '') + '</strong></div></div>'
-        + '<div class="col-md-6"><label class="form-label small">说明</label><div>' + (d.description || '-') + '</div></div>'
+        + '<div class="col-md-4"><label class="form-label small">名称</label><div><strong>' + (d.name || '') + '</strong></div></div>'
+        + '<div class="col-md-4"><label class="form-label small">专业</label><div>' + (d.category || '-') + '</div></div>'
+        + '<div class="col-md-4"><label class="form-label small">说明</label><div>' + (d.description || '-') + '</div></div>'
         + '</div>';
 
     // 组内工卡
