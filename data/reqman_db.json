@@ -792,8 +792,8 @@
       "tools": [],
       "materials": [],
       "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "40": {
@@ -806,8 +806,8 @@
       "tools": [],
       "materials": [],
       "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "41": {
@@ -3906,8 +3906,8 @@
       "tools": [],
       "materials": [],
       "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "105": {
@@ -4132,10 +4132,39 @@
       "task_type": "",
       "remark": "",
       "tools": [],
-      "materials": [],
-      "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "materials": [
+        {
+          "material_name": "封圈",
+          "part_number": "AS3208-08",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "封圈",
+          "part_number": "AS3209-153",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "滤芯",
+          "part_number": "QA06249",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "滤纸",
+          "part_number": "WHATMAN NO.42",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "set_id": 989,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "117": {
@@ -4146,10 +4175,39 @@
       "task_type": "",
       "remark": "",
       "tools": [],
-      "materials": [],
-      "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "materials": [
+        {
+          "material_name": "封圈",
+          "part_number": "AS3208-08",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "封圈",
+          "part_number": "AS3209-153",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "滤芯",
+          "part_number": "QA06249",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "滤纸",
+          "part_number": "WHATMAN NO.42",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "set_id": 989,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "118": {
@@ -4160,10 +4218,39 @@
       "task_type": "",
       "remark": "",
       "tools": [],
-      "materials": [],
-      "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "materials": [
+        {
+          "material_name": "封圈",
+          "part_number": "AS3208-08",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "封圈",
+          "part_number": "AS3209-153",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "滤芯",
+          "part_number": "QA06249",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "滤纸",
+          "part_number": "WHATMAN NO.42",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "set_id": 989,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "119": {
@@ -11744,14 +11831,14 @@
       "id": 868,
       "task_code": "CSCA320-724000-I1-1-1",
       "task_name": "孔探检查燃烧室内部和高压涡轮第1级导向叶片-1发（IAE)",
-      "category": "发动机",
+      "category": "特检",
       "task_type": "",
       "remark": "",
       "tools": [],
       "materials": [],
       "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "869": {
@@ -11778,8 +11865,8 @@
       "tools": [],
       "materials": [],
       "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "871": {
@@ -14698,6 +14785,207 @@
       "materials_confirmed": true,
       "set_id": null,
       "reminder_type": "一般提醒"
+    },
+    "982": {
+      "id": 982,
+      "task_code": "CSCA320-783200-03-1-1",
+      "task_name": "一般目视检查C涵道铰链接头和周围结构-1发(IAE)",
+      "category": "发动机",
+      "task_type": "",
+      "remark": "",
+      "tools": [],
+      "materials": [],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": null,
+      "reminder_type": "一般提醒"
+    },
+    "983": {
+      "id": 983,
+      "task_code": "CSCA320-731000-I1-1-1",
+      "task_name": "拆卸，检查主燃油滤污染状况并更换主燃油滤-1发（IAE)",
+      "category": "发动机",
+      "task_type": "",
+      "remark": "",
+      "tools": [],
+      "materials": [
+        {
+          "material_name": "燃油滤芯",
+          "part_number": "QA07301",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "燃油滤口盖胶圈",
+          "part_number": "0F25-014",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "燃油滤放油堵头胶圈",
+          "part_number": "0F25-021",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": 988,
+      "reminder_type": "一般提醒"
+    },
+    "984": {
+      "id": 984,
+      "task_code": "CSCA320-731000-I1-1-1A",
+      "task_name": "拆卸燃油滤芯-1发（IAE)",
+      "category": "发动机",
+      "task_type": "",
+      "remark": "",
+      "tools": [],
+      "materials": [
+        {
+          "material_name": "燃油滤芯",
+          "part_number": "QA07301",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "燃油滤口盖胶圈",
+          "part_number": "0F25-014",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "燃油滤放油堵头胶圈",
+          "part_number": "0F25-021",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": 988,
+      "reminder_type": "一般提醒"
+    },
+    "985": {
+      "id": 985,
+      "task_code": "CSCA320-731000-I1-1-1C",
+      "task_name": "安装燃油滤-1发（IAE)",
+      "category": "发动机",
+      "task_type": "",
+      "remark": "",
+      "tools": [],
+      "materials": [
+        {
+          "material_name": "燃油滤芯",
+          "part_number": "QA07301",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "燃油滤口盖胶圈",
+          "part_number": "0F25-014",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "燃油滤放油堵头胶圈",
+          "part_number": "0F25-021",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": 988,
+      "reminder_type": "一般提醒"
+    },
+    "986": {
+      "id": 986,
+      "task_code": "CSCA320-792000-I3-1-1B",
+      "task_name": "检查滑油滤-压力油滤-1发（IAE）",
+      "category": "发动机",
+      "task_type": "",
+      "remark": "",
+      "tools": [],
+      "materials": [
+        {
+          "material_name": "封圈",
+          "part_number": "AS3208-08",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "封圈",
+          "part_number": "AS3209-153",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "滤芯",
+          "part_number": "QA06249",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "滤纸",
+          "part_number": "WHATMAN NO.42",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": 989,
+      "reminder_type": "一般提醒"
+    },
+    "987": {
+      "id": 987,
+      "task_code": "CSCA320-731000-I1-1-1B",
+      "task_name": "目视检查燃油滤芯-1发（IAE）",
+      "category": "发动机",
+      "task_type": "",
+      "remark": "",
+      "tools": [],
+      "materials": [
+        {
+          "material_name": "燃油滤芯",
+          "part_number": "QA07301",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "燃油滤口盖胶圈",
+          "part_number": "0F25-014",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "燃油滤放油堵头胶圈",
+          "part_number": "0F25-021",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": 988,
+      "reminder_type": "一般提醒"
     }
   },
   "card_sets": {
@@ -16231,6 +16519,77 @@
           "part_number": "NYCOGREASEGNGA47",
           "quantity": "1",
           "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": true,
+      "materials_confirmed": false
+    },
+    "988": {
+      "id": 988,
+      "name": "拆卸，检查主燃油滤污染状况并更换主燃油滤-单发（IAE)",
+      "description": "",
+      "category": "发动机",
+      "tools": [],
+      "materials": [
+        {
+          "material_name": "燃油滤芯",
+          "part_number": "QA07301",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "燃油滤口盖胶圈",
+          "part_number": "0F25-014",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "燃油滤放油堵头胶圈",
+          "part_number": "0F25-021",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": true,
+      "materials_confirmed": false
+    },
+    "989": {
+      "id": 989,
+      "name": "拆除检查并更换新的或干净的压力滑油滤-单发（IAE）",
+      "description": "",
+      "category": "发动机",
+      "tools": [],
+      "materials": [
+        {
+          "material_name": "封圈",
+          "part_number": "AS3208-08",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "封圈",
+          "part_number": "AS3209-153",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "滤芯",
+          "part_number": "QA06249",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "滤纸",
+          "part_number": "WHATMAN NO.42",
+          "quantity": "1",
+          "remark": "",
           "usage_type": "必须使用"
         }
       ],
