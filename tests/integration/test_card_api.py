@@ -261,6 +261,7 @@ class TestCardSetAPI:
             "name": "集成测试组",
             "description": "由集成测试创建",
             "category": "发动机",
+            "card_codes[]": ["A320-TEST-001", "A320-TEST-002"],
             "confirm_no_tools": "1",
             "confirm_no_mats": "1",
         }, headers=ajax_headers)

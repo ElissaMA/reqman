@@ -19,7 +19,8 @@
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small">专业</label>
-                    <select class="form-select form-select-sm" name="category">
+                    <select class="form-select form-select-sm" name="category" required>
+                        <option value="">请选择专业</option>
                         {% for c in categories %}
                         <option value="{{ c }}" {{ 'selected' if set_item and set_item.category == c }}>{{ c }}</option>
                         {% endfor %}
@@ -305,6 +306,11 @@ function addRow(type) {
 
 // Submit validation
 document.getElementById("setForm").addEventListener("submit", function(e) {
+    if (selectedCards.length < 2) {
+        e.preventDefault();
+        alert("工卡组至少需要2个工卡");
+        return false;
+    }
     var toolTbody = document.querySelector("#toolTable tbody");
     var matTbody = document.querySelector("#matTable tbody");
     var toolHasContent = false, matHasContent = false;
@@ -340,6 +346,10 @@ document.getElementById("setForm").addEventListener("submit", function(e) {
 if (window.opener) {
     document.getElementById("setForm").addEventListener("submit", function(e) {
         e.preventDefault();
+        if (selectedCards.length < 2) {
+            alert("工卡组至少需要2个工卡");
+            return;
+        }
         var form = this;
         var formData = new FormData(form);
         var setId = '{{ set_item.id if set_item else "" }}';

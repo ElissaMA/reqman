@@ -44,6 +44,11 @@ def prefilled_store(json_store: JsonStore) -> JsonStore:
               category="发动机",
               task_type="A",
               remark="")
+    store.add(task_code="A320-TEST-002",
+              task_name="测试工卡二",
+              category="机体",
+              task_type="A",
+              remark="")
 
     return store
 

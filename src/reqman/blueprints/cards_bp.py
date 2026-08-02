@@ -65,6 +65,18 @@ def _parse_and_validate_tools_mats(redirect_url):
     return tools, mats, tools_confirmed, materials_confirmed, None
 
 
+def _validate_required(fields, redirect_url):
+    """校验必填字段，fields 为 [(值, 字段名)] 列表。返回错误响应或 None。"""
+    for value, label in fields:
+        if not value:
+            msg = f"{label}不能为空"
+            if _is_ajax():
+                return jsonify({"success": False, "message": msg})
+            flash(msg, "error")
+            return redirect(redirect_url)
+    return None
+
+
 @cards_bp.route("/card/new", methods=["GET", "POST"])
 def card_new():
     """新增工卡"""
@@ -77,12 +89,17 @@ def card_new():
                 flash("工卡号不能为空", "error")
                 return redirect("/card/new")
 
+            task_name = request.form.get("task_name", "").strip()
+            err_resp = _validate_required([(task_name, "工卡名称")], "/card/new")
+            if err_resp:
+                return err_resp
+
             tools, mats, tools_confirmed, materials_confirmed, err = _parse_and_validate_tools_mats("/card/new")
             if err:
                 return err
             current_app.extensions['card_service'].add_card(
                 task_code=task_code,
-                task_name=request.form.get("task_name", ""),
+                task_name=task_name,
                 category=request.form.get("category", "机体"),
                 task_type=request.form.get("task_type", ""),
                 remark=request.form.get("remark", ""),
@@ -134,13 +151,17 @@ def card_edit(card_id):
 
     if request.method == "POST":
         try:
+            task_name = request.form.get("task_name", "").strip()
+            err_resp = _validate_required([(task_name, "工卡名称")], f"/card/{card_id}/edit")
+            if err_resp:
+                return err_resp
             tools, mats, tools_confirmed, materials_confirmed, err = _parse_and_validate_tools_mats(f"/card/{card_id}/edit")
             if err:
                 return err
             current_app.extensions['card_service'].update_card(
                 card_id,
                 task_code=request.form.get("task_code", item["task_code"]),
-                task_name=request.form.get("task_name", ""),
+                task_name=task_name,
                 category=request.form.get("category", "机体"),
                 task_type=request.form.get("task_type", ""),
                 remark=request.form.get("remark", ""),
@@ -262,14 +283,24 @@ def card_set_new():
     """新增工卡组"""
     if request.method == "POST":
         try:
+            category = request.form.get("category", "").strip()
+            card_codes = request.form.getlist("card_codes[]")
+            err_resp = _validate_required([(category, "专业")], "/card/sets/new")
+            if err_resp:
+                return err_resp
+            if len(card_codes) < 2:
+                msg = "工卡组至少需要2个工卡"
+                if _is_ajax():
+                    return jsonify({"success": False, "message": msg})
+                flash(msg, "error")
+                return redirect("/card/sets/new")
             tools, mats, tools_confirmed, materials_confirmed, err = _parse_and_validate_tools_mats("/card/sets/new")
             if err:
                 return err
-            card_codes = request.form.getlist("card_codes[]")
             current_app.extensions['card_service'].add_card_set(
                 name=request.form.get("name", ""),
                 description=request.form.get("description", ""),
-                category=request.form.get("category", "机体"),
+                category=category,
                 card_codes=card_codes,
                 tools=tools,
                 materials=mats,
@@ -313,15 +344,25 @@ def card_set_edit(set_id):
 
     if request.method == "POST":
         try:
+            category = request.form.get("category", "").strip()
+            card_codes = request.form.getlist("card_codes[]")
+            err_resp = _validate_required([(category, "专业")], f"/card/sets/{set_id}/edit")
+            if err_resp:
+                return err_resp
+            if len(card_codes) < 2:
+                msg = "工卡组至少需要2个工卡"
+                if _is_ajax():
+                    return jsonify({"success": False, "message": msg})
+                flash(msg, "error")
+                return redirect(f"/card/sets/{set_id}/edit")
             tools, mats, tools_confirmed, materials_confirmed, err = _parse_and_validate_tools_mats(f"/card/sets/{set_id}/edit")
             if err:
                 return err
-            card_codes = request.form.getlist("card_codes[]")
             current_app.extensions['card_service'].update_card_set(
                 set_id,
                 name=request.form.get("name", s.get("name", "")),
                 description=request.form.get("description", ""),
-                category=request.form.get("category", s.get("category", "机体")),
+                category=category,
                 card_codes=card_codes,
                 tools=tools,
                 materials=mats,
