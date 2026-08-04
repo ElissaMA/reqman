@@ -308,6 +308,8 @@ class CardService:
                 item["db_id"] = db_card["id"]
                 item["set_id"] = db_card["set_id"]
                 item["set_duplicate"] = True
+                item["category"] = db_card.get("category", item.get("category"))
+                item["task_type"] = db_card.get("task_type", item.get("task_type"))
                 matched.append(item)
                 remove_idx.append(i)
         for idx in reversed(remove_idx):

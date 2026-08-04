@@ -37,12 +37,15 @@ def match_work_package_items(all_items, store, svc):
                 item["db_id"] = db_card["id"]
                 item["task_name"] = db_card.get("task_name", "")
                 item["category"] = db_card.get("category", "")
+                item["task_type"] = db_card.get("task_type", "")
                 item["unconfirmed"] = True
                 new_cards.append(item)
             else:
                 item["status"] = "matched"
                 item["db_id"] = db_card["id"]
                 item["set_id"] = db_card.get("set_id")
+                item["category"] = db_card.get("category", item.get("category"))
+                item["task_type"] = db_card.get("task_type", item.get("task_type"))
                 item["tools"] = tools
                 item["materials"] = mats
                 matched.append(item)

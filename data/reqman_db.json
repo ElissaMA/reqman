@@ -1,19 +1,5 @@
 {
   "cards": {
-    "3": {
-      "id": 3,
-      "task_code": "TEST-MULTI-001",
-      "task_name": "Multi-window test card",
-      "category": "电子",
-      "task_type": "A",
-      "remark": "",
-      "tools": [],
-      "materials": [],
-      "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
-      "reminder_type": "一般提醒"
-    },
     "4": {
       "id": 4,
       "task_code": "CSCA320-200435-01-1-1",
@@ -184,7 +170,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "13": {
       "id": 13,
@@ -198,7 +185,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "14": {
       "id": 14,
@@ -212,7 +200,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "15": {
       "id": 15,
@@ -226,7 +215,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "16": {
       "id": 16,
@@ -282,7 +272,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "20": {
       "id": 20,
@@ -296,7 +287,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "21": {
       "id": 21,
@@ -310,7 +302,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "22": {
       "id": 22,
@@ -324,7 +317,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "23": {
       "id": 23,
@@ -338,7 +332,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "24": {
       "id": 24,
@@ -352,7 +347,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "25": {
       "id": 25,
@@ -366,7 +362,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "26": {
       "id": 26,
@@ -380,7 +377,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "27": {
       "id": 27,
@@ -678,9 +676,17 @@
       "task_type": "",
       "remark": "",
       "tools": [],
-      "materials": [],
+      "materials": [
+        {
+          "material_name": "清洁剂",
+          "part_number": "TURCO 5948 DPM",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        }
+      ],
       "set_id": null,
-      "tools_confirmed": false,
+      "tools_confirmed": true,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
     },
@@ -738,7 +744,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "36": {
       "id": 36,
@@ -752,7 +759,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "37": {
       "id": 37,
@@ -766,7 +774,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "38": {
       "id": 38,
@@ -780,7 +789,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "39": {
       "id": 39,
@@ -850,7 +860,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "44": {
       "id": 44,
@@ -864,7 +875,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "45": {
       "id": 45,
@@ -878,7 +890,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "46": {
       "id": 46,
@@ -892,7 +905,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "47": {
       "id": 47,
@@ -934,7 +948,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "50": {
       "id": 50,
@@ -948,7 +963,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "51": {
       "id": 51,
@@ -962,7 +978,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "52": {
       "id": 52,
@@ -976,7 +993,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "53": {
       "id": 53,
@@ -1898,7 +1916,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "61": {
       "id": 61,
@@ -1912,7 +1931,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "62": {
       "id": 62,
@@ -2244,7 +2264,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "80": {
       "id": 80,
@@ -2258,7 +2279,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "81": {
       "id": 81,
@@ -2272,7 +2294,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "82": {
       "id": 82,
@@ -2286,7 +2309,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "83": {
       "id": 83,
@@ -3852,7 +3876,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "101": {
       "id": 101,
@@ -3866,7 +3891,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "102": {
       "id": 102,
@@ -3880,7 +3906,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "103": {
       "id": 103,
@@ -3894,7 +3921,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "104": {
       "id": 104,
@@ -3994,7 +4022,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "108": {
       "id": 108,
@@ -4008,7 +4037,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "109": {
       "id": 109,
@@ -4050,7 +4080,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "112": {
       "id": 112,
@@ -4064,7 +4095,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "113": {
       "id": 113,
@@ -4261,10 +4293,39 @@
       "task_type": "",
       "remark": "",
       "tools": [],
-      "materials": [],
-      "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "materials": [
+        {
+          "material_name": "封圈",
+          "part_number": "AS3208-08",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "封圈",
+          "part_number": "AS3209-153",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "滤芯",
+          "part_number": "QA06249",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "滤纸",
+          "part_number": "WHATMAN NO.42",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "set_id": 989,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "120": {
@@ -4275,10 +4336,39 @@
       "task_type": "",
       "remark": "",
       "tools": [],
-      "materials": [],
-      "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "materials": [
+        {
+          "material_name": "封圈",
+          "part_number": "AS3208-08",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "封圈",
+          "part_number": "AS3209-153",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "滤芯",
+          "part_number": "QA06249",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "滤纸",
+          "part_number": "WHATMAN NO.42",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "set_id": 989,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "121": {
@@ -4289,10 +4379,39 @@
       "task_type": "",
       "remark": "",
       "tools": [],
-      "materials": [],
-      "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "materials": [
+        {
+          "material_name": "封圈",
+          "part_number": "AS3208-08",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "封圈",
+          "part_number": "AS3209-153",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "滤芯",
+          "part_number": "QA06249",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "滤纸",
+          "part_number": "WHATMAN NO.42",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "set_id": 989,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "122": {
@@ -4378,13 +4497,13 @@
       "task_code": "EOJC-A320-29-2019-005-A",
       "task_name": "一般目视检查1发吊挂区域液压管安装卡子、特氟龙衬套和液压管的磨损情况",
       "category": "发动机",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
       "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "128": {
@@ -4392,13 +4511,13 @@
       "task_code": "EOJC-A320-29-2019-005-C",
       "task_name": "一般目视检查2发吊挂区域液压管安装卡子、特氟龙衬套和液压管的磨损情况",
       "category": "发动机",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
       "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "129": {
@@ -4476,7 +4595,7 @@
       "task_code": "EOJC-A320-29-2022-006-A",
       "task_name": "一般目视检查左发吊挂区域液压油箱增压管路、卡子和衬套的磨损情况",
       "category": "发动机",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -4518,7 +4637,7 @@
       "task_code": "EOJC-A320-29-2024-003-A",
       "task_name": "吊挂区域高压管衬套改装",
       "category": "发动机",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -4532,7 +4651,7 @@
       "task_code": "EOJC-A320-30-2021-001-A",
       "task_name": "定期检查V2500发动机防冰管路是否松动-1发",
       "category": "发动机",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -4546,7 +4665,7 @@
       "task_code": "EOJC-A320-30-2021-001-B",
       "task_name": "定期检查V2500发动机防冰管路是否松动-2发",
       "category": "发动机",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -4560,7 +4679,7 @@
       "task_code": "EOJC-A320-36-2022-001-A",
       "task_name": "7170HM感应管区域磨损检查（1发）",
       "category": "发动机",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [
@@ -4610,7 +4729,7 @@
       "task_code": "EOJC-A320-36-2022-001-B",
       "task_name": "7170HM感应管区域磨损检查（2发）",
       "category": "发动机",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -4638,7 +4757,7 @@
       "task_code": "EOJC-A320-54-2025-002-A",
       "task_name": "吊挂后部固定整流罩详细目视检查",
       "category": "发动机",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -4694,7 +4813,7 @@
       "task_code": "EOJC-A320-71-2021-005-S",
       "task_name": "CFM56-5B预防发动机空中停车的重要目视检查",
       "category": "发动机",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -4751,7 +4870,7 @@
       "task_code": "EOJC-A320-71-2021-008-S",
       "task_name": "V2500发动机预防发动机空中停车的重要目视检查",
       "category": "发动机",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -4765,7 +4884,7 @@
       "task_code": "EOJC-A320-73-2025-003-S",
       "task_name": "定期检查FCOC和IDG FCOC燃油渗漏情况",
       "category": "发动机",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [
@@ -4822,7 +4941,7 @@
       "task_code": "EOJC-A320-78-2020-009-B",
       "task_name": "检查右发反推阻流门连杆及其衬套",
       "category": "发动机",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -4836,7 +4955,7 @@
       "task_code": "EOJC-A320-78-2023-003-A",
       "task_name": "检查左侧发动机反推系统（CFM56-5B）",
       "category": "发动机",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -4850,7 +4969,7 @@
       "task_code": "EOJC-A320-78-2023-003-B",
       "task_name": "检查右侧发动机反推系统（CFM56-5B）",
       "category": "发动机",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -4892,7 +5011,7 @@
       "task_code": "EOJC-CFM56-72-2025-025-S",
       "task_name": "检查CFM56–5B发动机风扇机匣前消音板紧固件",
       "category": "发动机",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -5160,7 +5279,7 @@
         },
         {
           "material_name": "防咬合剂",
-          "part_number": "MOLYKOTEP37",
+          "part_number": "MOLYKOTE P37",
           "quantity": "1",
           "remark": "优先使用开封航化",
           "usage_type": "必须使用"
@@ -5218,7 +5337,7 @@
       "task_code": "EOJCA320-2017-146-A",
       "task_name": "IAE发动机吊挂后固定整流罩内部结构检查",
       "category": "发动机",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -5239,7 +5358,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "165": {
       "id": 165,
@@ -5297,7 +5417,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "168": {
       "id": 168,
@@ -5427,7 +5548,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "171": {
       "id": 171,
@@ -5441,7 +5563,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "172": {
       "id": 172,
@@ -5455,7 +5578,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "173": {
       "id": 173,
@@ -5469,7 +5593,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "174": {
       "id": 174,
@@ -5483,7 +5608,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "175": {
       "id": 175,
@@ -5497,7 +5623,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "176": {
       "id": 176,
@@ -5511,7 +5638,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "177": {
       "id": 177,
@@ -5525,7 +5653,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "178": {
       "id": 178,
@@ -5671,7 +5800,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "182": {
       "id": 182,
@@ -5685,7 +5815,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "183": {
       "id": 183,
@@ -5699,7 +5830,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "184": {
       "id": 184,
@@ -5713,7 +5845,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "185": {
       "id": 185,
@@ -5727,7 +5860,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "186": {
       "id": 186,
@@ -5741,7 +5875,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "187": {
       "id": 187,
@@ -5755,7 +5890,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "188": {
       "id": 188,
@@ -5813,7 +5949,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "190": {
       "id": 190,
@@ -5869,7 +6006,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "194": {
       "id": 194,
@@ -6058,7 +6196,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "200": {
       "id": 200,
@@ -6072,7 +6211,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "201": {
       "id": 201,
@@ -6086,7 +6226,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "202": {
       "id": 202,
@@ -6100,7 +6241,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "203": {
       "id": 203,
@@ -6200,7 +6342,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "208": {
       "id": 208,
@@ -6235,7 +6378,7 @@
       "task_code": "EOJC-A320-21-2023-007-A",
       "task_name": "A320飞机ACM检查",
       "category": "机体",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [
         {
@@ -6279,7 +6422,7 @@
       "task_code": "EOJC-A320-25-2020-026-A",
       "task_name": "加强检查客舱内湿区",
       "category": "机体",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [
         {
@@ -6315,7 +6458,7 @@
       "task_code": "EOJC-A320-27-2025-010-A",
       "task_name": "对A320系列飞机执行升降舵伺服控制振荡检査",
       "category": "机体",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -6329,7 +6472,7 @@
       "task_code": "EOJC-A320-29-2020-001-A",
       "task_name": "一般目视检查黄系统电动泵高压液压管支架（PN:D9357060320000）的损伤情况",
       "category": "机体",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -6343,7 +6486,7 @@
       "task_code": "EOJC-A320-29-2020-002-A",
       "task_name": "详细目视检查液压系统渗漏情况",
       "category": "机体",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [
         {
@@ -6365,7 +6508,7 @@
       "task_code": "EOJC-A320-29-2022-004-A",
       "task_name": "A320系列飞机液压系统渗漏检查",
       "category": "机体",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [
         {
@@ -6387,7 +6530,7 @@
       "task_code": "EOJC-A320-32-2021-002-A",
       "task_name": "重复性检查和清洁A320系列飞机主起落架解锁作动筒",
       "category": "机体",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [
         {
@@ -6417,7 +6560,7 @@
       "task_code": "EOJC-A320-32-2021-005-A",
       "task_name": "检查A320系列飞机前起落架左右随动舱门作动筒连杆的安装状态",
       "category": "机体",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -6431,7 +6574,7 @@
       "task_code": "EOJC-A320-32-2021-018-A",
       "task_name": "重复性检查和清洁A320系列飞机起落架导静电桩",
       "category": "机体",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [
         {
@@ -6475,7 +6618,7 @@
       "task_code": "EOJC-A320-32-2024-035-A",
       "task_name": "重复性检查A320系列老旧飞机刹车区域液压软管状态",
       "category": "机体",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -6517,7 +6660,7 @@
       "task_code": "EOJC-A320-38-2021-002-A",
       "task_name": "清洗污水箱",
       "category": "机体",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -6531,7 +6674,7 @@
       "task_code": "EOJC-A320-38-2024-001-A",
       "task_name": "目视检查厕所内水加热器腐蚀情况",
       "category": "机体",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -6559,7 +6702,7 @@
       "task_code": "EOJC-A320-52-2023-001-A",
       "task_name": "对主起落架固定式整流罩组件的详细检查",
       "category": "机体",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [
@@ -6617,7 +6760,7 @@
       "task_code": "EOJC-A320-52-2023-003-A",
       "task_name": "对货舱门人工选择阀选择手柄安装紧固状态进行检查",
       "category": "机体",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -6631,7 +6774,7 @@
       "task_code": "EOJC-A320-52-2024-003-A",
       "task_name": "对登机门密封胶条的详细目视检查",
       "category": "机体",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -6645,7 +6788,7 @@
       "task_code": "EOJC-A320-52-2024-004-A",
       "task_name": "对货舱门密封条进行详细目视检查",
       "category": "机体",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -6687,7 +6830,7 @@
       "task_code": "EOJC-A320-53-2021-018-A",
       "task_name": "A320系列飞机污水面板及周围区域的详细目视检查",
       "category": "机体",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -6701,7 +6844,7 @@
       "task_code": "EOJC-A320-53-2022-004-A",
       "task_name": "目视检查货舱及货舱内部部件",
       "category": "机体",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [
@@ -6723,7 +6866,7 @@
       "task_code": "EOJC-A320-53-2025-012-A",
       "task_name": "对A320系列飞机的前/后货舱门槛下表面进行目视检查",
       "category": "机体",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [
@@ -6745,7 +6888,7 @@
       "task_code": "EOJC-A320-57-2020-002-A",
       "task_name": "检查飞机副翼盖板（575KB和675KB）防磨胶条",
       "category": "机体",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -6803,7 +6946,7 @@
       "task_code": "EOJC-A320-57-2024-004-A",
       "task_name": "检查主起落架5号肋接耳",
       "category": "机体",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -6817,7 +6960,7 @@
       "task_code": "EOJC-A320-57-2024-008-A",
       "task_name": "详细目视检查A320系列飞机大翼下表面前缘和后缘接近面板",
       "category": "机体",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -6880,7 +7023,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "245": {
       "id": 245,
@@ -6894,7 +7038,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "246": {
       "id": 246,
@@ -6908,7 +7053,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "247": {
       "id": 247,
@@ -6922,7 +7068,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "248": {
       "id": 248,
@@ -6936,7 +7083,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "249": {
       "id": 249,
@@ -6964,7 +7112,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "251": {
       "id": 251,
@@ -7000,7 +7149,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "253": {
       "id": 253,
@@ -7028,7 +7178,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "255": {
       "id": 255,
@@ -7083,8 +7234,8 @@
       "tools": [],
       "materials": [],
       "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "258": {
@@ -7121,7 +7272,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "260": {
       "id": 260,
@@ -7135,7 +7287,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "261": {
       "id": 261,
@@ -7171,7 +7324,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "263": {
       "id": 263,
@@ -7185,7 +7339,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "264": {
       "id": 264,
@@ -7199,7 +7354,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "265": {
       "id": 265,
@@ -7213,7 +7369,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "266": {
       "id": 266,
@@ -7227,7 +7384,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "267": {
       "id": 267,
@@ -7353,7 +7511,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "272": {
       "id": 272,
@@ -7367,7 +7526,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "273": {
       "id": 273,
@@ -7381,7 +7541,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "274": {
       "id": 274,
@@ -7395,7 +7556,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "275": {
       "id": 275,
@@ -7409,7 +7571,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "276": {
       "id": 276,
@@ -7423,7 +7586,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "277": {
       "id": 277,
@@ -7437,7 +7601,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "278": {
       "id": 278,
@@ -7451,7 +7616,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "279": {
       "id": 279,
@@ -7465,7 +7631,8 @@
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "reminder_type": "一般提醒"
+      "reminder_type": "一般提醒",
+      "status": "未确认"
     },
     "280": {
       "id": 280,
@@ -7658,7 +7825,7 @@
       "task_code": "EOJC-A320-24-2024-005-A",
       "task_name": "读取GCU的TSD数据",
       "category": "电子",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -7708,13 +7875,13 @@
       "task_code": "EOJC-A320-25-2020-014-A",
       "task_name": "对前、左右和后电子舱内的设备架接水盘进行目视检查",
       "category": "电子",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
       "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "289": {
@@ -7750,7 +7917,7 @@
       "task_code": "EOJC-A320-25-2024-022-A",
       "task_name": "对驾驶舱和客舱设备进行检查并视情更换",
       "category": "电子",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [
@@ -7807,7 +7974,7 @@
       "task_code": "EOJC-A320-25-2026-002-A",
       "task_name": "对驾驶舱座椅进行定期检查",
       "category": "电子",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -7872,7 +8039,7 @@
       "task_code": "EOJC-A320-30-2025-001-A",
       "task_name": "重复性检查A320系列飞机驾驶舱左、右滑窗加温线束磨损情况",
       "category": "电子",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -7886,7 +8053,7 @@
       "task_code": "EOJC-A320-30-2025-004-A",
       "task_name": "测量A320系列飞机迎角传感器加热元件的电流值",
       "category": "电子",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [
         {
@@ -7915,7 +8082,7 @@
       "task_code": "EOJC-A320-32-2024-016-A",
       "task_name": "飞机停留刹车操作测试",
       "category": "电子",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -7929,7 +8096,7 @@
       "task_code": "EOJC-A320-34-2020-002-A",
       "task_name": "检查UTAS AOA(PN 0861ED)的O型封圈",
       "category": "电子",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -7965,7 +8132,7 @@
       "task_code": "EOJC-A320-56-2020-002-B",
       "task_name": "详细目视检查前风挡气象封严",
       "category": "电子",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [
@@ -7987,7 +8154,7 @@
       "task_code": "EOJC-A320-56-2024-002-A",
       "task_name": "详细目视检查前风挡气象封严",
       "category": "电子",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [
@@ -8031,7 +8198,7 @@
       "task_code": "EOJC-A320-92-2021-001-B",
       "task_name": "定期检查电插座/电插头：1276VC/1276VCA、1278VC/1278VCA，及其插针和线束状况",
       "category": "电子",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [
         {
@@ -8207,7 +8374,7 @@
       "task_code": "EOJC-CFM56-72-2020-001-S1",
       "task_name": "重复孔探检查CFM56-5B发动机高压压气机1、4、8级转子叶片状况",
       "category": "特检",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -8220,8 +8387,8 @@
       "id": 316,
       "task_code": "EOJC-CFM56-72-2022-002-S1",
       "task_name": "孔探检查HPC三级可调静子叶片后部挂钩封严状态",
-      "category": "特检",
-      "task_type": "",
+      "category": "发动机",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [
         {
@@ -8299,7 +8466,7 @@
       "task_code": "EOJC-V2500-72-2025-035-S",
       "task_name": "孔探V2500发动机高压涡轮一级及高压涡轮二级转子叶片",
       "category": "特检",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -8355,7 +8522,7 @@
       "task_code": "EOJC-A320-11-2019-001-A",
       "task_name": "定期检查A320系列飞机外部标记和标牌",
       "category": "支援",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -8369,7 +8536,7 @@
       "task_code": "EOJC-A320-11-2019-001-B",
       "task_name": "定期检查A320系列飞机内部标记和标牌",
       "category": "电子",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -8411,7 +8578,7 @@
       "task_code": "EOJC-A320-25-2021-022-A",
       "task_name": "对厨房工作台面及水槽密封胶状态进行检查并修复",
       "category": "支援",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -8425,7 +8592,7 @@
       "task_code": "EOJC-A320-25-2023-020-A",
       "task_name": "A320客舱定期维护检查单",
       "category": "支援",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -8439,7 +8606,7 @@
       "task_code": "EOJC-A320-25-2025-007-A",
       "task_name": "检查客舱内应急出口旅客座椅椅垫使用状态",
       "category": "支援",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -9249,7 +9416,7 @@
       "id": 748,
       "task_code": "CSCA320-383200-01-1-X",
       "task_name": "清洁洗手池排水活门的滤芯",
-      "category": "发动机",
+      "category": "机体",
       "task_type": "",
       "remark": "",
       "tools": [],
@@ -9637,7 +9804,7 @@
       "id": 764,
       "task_code": "CSCA320-ZL-123-02-1-X",
       "task_name": "一般目视检查前起落架轮舱(EWIS)",
-      "category": "发动机",
+      "category": "机体",
       "task_type": "",
       "remark": "",
       "tools": [],
@@ -10019,7 +10186,7 @@
       "id": 788,
       "task_code": "CSCA320-272400-01-1-X",
       "task_name": "用单个液压系统操作测试方向舵伺服控制器",
-      "category": "发动机",
+      "category": "电子",
       "task_type": "",
       "remark": "",
       "tools": [],
@@ -10083,7 +10250,7 @@
       "id": 792,
       "task_code": "CSCA320-ZL-831-01-1-X",
       "task_name": "一般目视检查前后旅客/机组门（包括机身门框上的门止动块和门密封、外表面）(EWIS)",
-      "category": "发动机",
+      "category": "机体",
       "task_type": "",
       "remark": "",
       "tools": [],
@@ -11944,7 +12111,7 @@
       "task_code": "EOJC-V2500-72-2025-077-S",
       "task_name": "孔探V2500发动机高压涡轮一级转子叶片",
       "category": "特检",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -12566,7 +12733,7 @@
       "task_code": "EOJC-A320-36-2020-001-A",
       "task_name": "对引气交输阀进行目视检查、润滑和操作检查",
       "category": "机体",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [
         {
@@ -12652,7 +12819,7 @@
       "task_code": "EOJC-A320-72-2023-002-S",
       "task_name": "孔探检查PW1100发动机高压压气机8级",
       "category": "特检",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -12852,7 +13019,7 @@
       "task_code": "EOJC-A320-32-2020-017-S1",
       "task_name": "重复性检查A320飞机主起落架减震支柱内筒镜面划痕情况",
       "category": "机体",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [
         {
@@ -12966,7 +13133,7 @@
       "task_code": "EOJC-V2500-72-2025-090-S",
       "task_name": "孔探检查V2500发动机高压压气机三级转子凸台",
       "category": "特检",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -12980,7 +13147,7 @@
       "task_code": "EOJC-V2500-72-2025-058-S",
       "task_name": "孔探V2500发动机高压涡轮二级转子叶片",
       "category": "特检",
-      "task_type": "",
+      "task_type": "EO分段",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -14987,31 +15154,74 @@
       "set_id": 988,
       "reminder_type": "一般提醒"
     },
-    "990": {
-      "id": 990,
-      "task_code": "A320-TEST-001",
-      "task_name": "测试工卡",
+    "992": {
+      "id": 992,
+      "task_code": "CSCA320-792000-I3-1-2B",
+      "task_name": "检查滑油滤-压力油滤-2发（IAE）",
       "category": "发动机",
-      "task_type": "A",
+      "task_type": "",
+      "remark": "",
+      "tools": [],
+      "materials": [
+        {
+          "material_name": "封圈",
+          "part_number": "AS3208-08",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "封圈",
+          "part_number": "AS3209-153",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "滤芯",
+          "part_number": "QA06249",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "滤纸",
+          "part_number": "WHATMAN NO.42",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": 989,
+      "reminder_type": "一般提醒"
+    },
+    "993": {
+      "id": 993,
+      "task_code": "CSCA320-212643-09-1-X",
+      "task_name": "操作检查NRV的自由移动",
+      "category": "电子",
+      "task_type": "",
       "remark": "",
       "tools": [],
       "materials": [],
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "set_id": null,
       "reminder_type": "一般提醒"
     },
-    "991": {
-      "id": 991,
-      "task_code": "A320-TEST-002",
-      "task_name": "测试工卡二",
-      "category": "机体",
-      "task_type": "A",
+    "994": {
+      "id": 994,
+      "task_code": "CSCA320-75ZB05-01-4-X",
+      "task_name": "更换VBV系统主柔性轴（CFM）",
+      "category": "发动机",
+      "task_type": "",
       "remark": "",
       "tools": [],
       "materials": [],
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "set_id": null,
       "reminder_type": "一般提醒"
     }
