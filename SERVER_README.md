@@ -99,24 +99,73 @@ bash scripts/db.sh clean 28
 
 ## 5. 代码更新方式
 
-### 方式一：通过 reqman 部署包更新（推荐）
+### 标准更新流程（备份 → 替换源码 → 重装依赖 → 重启 → 验证）
+
+#### 步骤 1：备份（推荐）
+
+```bash
+cd /root/workspace/reqman
+
+# 备份数据库（更新前防止意外）
+bash scripts/db.sh backup
+
+# 备份当前源码（便于回滚）
+mkdir -p /root/workspace/backups
+cp -r src /root/workspace/backups/src_$(date +%Y%m%d_%H%M%S)
+```
+
+#### 步骤 2：替换源码
+
+**方式一：通过 reqman 部署包更新（推荐）**
 
 ```bash
 # 1. 本地更新 reqman/ 内的源码文件
-# 2. 上传到服务器
+# 2. 上传到服务器（源码 + 依赖清单）
 scp -r reqman/src/ root@8.137.15.167:/root/workspace/reqman/
-# 3. 重启服务
-ssh root@8.137.15.167 "systemctl restart reqman"
+scp reqman/requirements.txt root@8.137.15.167:/root/workspace/reqman/
+# 3. 脚本有变化时一并上传
+scp reqman/scripts/*.sh root@8.137.15.167:/root/workspace/reqman/scripts/
 ```
 
-### 方式二：SSH 直接更新
+**方式二：SSH 直接更新**
 
 ```bash
 ssh root@8.137.15.167
 cd /root/workspace/reqman
-# 编辑代码后重启
-systemctl restart reqman
+# 编辑代码（例如 vim src/reqman/app.py）
 ```
+
+#### 步骤 3：重装依赖（requirements.txt 有变化时）
+
+```bash
+cd /root/workspace/reqman
+./venv/bin/pip install -r requirements.txt
+```
+
+#### 步骤 4：重启服务
+
+```bash
+systemctl restart reqman
+systemctl status reqman    # 确认状态为 active (running)
+```
+
+#### 步骤 5：验证
+
+```bash
+# 1. 本机接口连通性检查
+curl -s -o /dev/null -w "HTTP %{http_code}\n" http://127.0.0.1:5001/
+
+# 2. 日志无异常
+journalctl -u reqman -n 50
+
+# 3. 浏览器访问 http://8.137.15.167 确认功能正常
+
+# 4. 如 Nginx 配置有变化，重载
+nginx -t && systemctl reload nginx
+```
+
+> **回滚**：更新失败时，用步骤 1 的源码备份还原 `src/`，必要时 `bash scripts/db.sh restore` 恢复数据库，最后 `systemctl restart reqman`。
+
 
 ---
 
