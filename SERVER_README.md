@@ -14,38 +14,17 @@
 ### 架构图
 
 ```
-┌─────────────────────────────────────────────────┐
-│            Ubuntu 22.04 LTS (阿里云)            │
-│                                                 │
-│  ┌───────────────────────────────────────────┐  │
-│  │  Nginx（80端口，反向代理 + 安全头）        │  │
-│  │  config/nginx-reqman.conf                 │  │
-│  └──────────────────┬────────────────────────┘  │
-│                     │ 127.0.0.1:5001            │
-│  ┌──────────────────▼────────────────────────┐  │
-│  │  Gunicorn（4 workers × 2 threads）        │  │
-│  │  systemd 服务：reqman.service             │  │
-│  └──────────────────┬────────────────────────┘  │
-│                     │                           │
-│  ┌──────────────────▼────────────────────────┐  │
-│  │  Flask 应用（src/reqman）                 │  │
-│  │  create_app() 工厂                        │  │
-│  └──────────────────┬────────────────────────┘  │
-│                     │                           │
-│  ┌──────────────────▼────────────────────────┐  │
-│  │  data/reqman_db.json        核心数据       │  │
-│  │  data/reqman_db_runtime.json 运行时数据    │  │
-│  │  output/                    需求单 Excel   │  │
-│  └───────────────────────────────────────────┘  │
-│                                                 │
-│  ┌──────────────┐   ┌─────────────────────┐     │
-│  │ db.sh        │   │ cron（每周六 02:00）│     │
-│  │ (备份/恢复)  │   │ 自动备份            │     │
-│  └──────────────┘   └─────────────────────┘     │
-└─────────────────────────────────────────────────┘
-         ↕
-   用户浏览器（HTTP → 80 → Nginx → 5001 → Flask）
+用户 → http://服务器IP:80 (Nginx)
+          ↓ 反向代理
+      http://127.0.0.1:5001 (Gunicorn 4w×2t)
+          ↓
+      Flask应用 → data/reqman_db.json
 ```
+
+**技术栈：**
+- 运行时：Python 3.11 + Gunicorn (4 workers × 2 threads)
+- 反向代理：Nginx (80端口)
+- 进程管理：systemd
 
 ---
 
@@ -207,7 +186,20 @@ curl -s -o /dev/null -w "%{http_code}" http://localhost:5001/
 
 ---
 
-## 7. 常见问题
+## 7. 验证清单
+
+部署完成后，逐项验证：
+
+- [ ] 服务运行中：`systemctl status reqman`
+- [ ] 应用端口可达：`curl -s -o /dev/null -w "%{http_code}" http://localhost:5001/`
+- [ ] HTTP 响应码 2xx/3xx
+- [ ] 数据持久化：重启后数据不丢失
+- [ ] 备份脚本正常：`bash scripts/db.sh backup`
+- [ ] cron 自动备份已配置：`crontab -l | grep db.sh`
+
+---
+
+## 8. 常见问题
 
 ### Q: 服务无法启动，端口被占用
 
@@ -264,7 +256,7 @@ du -sh /root/workspace/reqman/data/backups/
 
 ---
 
-## 8. 环境变量配置
+## 9. 环境变量配置
 
 编辑 `/root/workspace/reqman/.env`：
 
@@ -272,18 +264,3 @@ du -sh /root/workspace/reqman/data/backups/
 # 修改业务参数后重启服务
 systemctl restart reqman
 ```
-
----
-
-## 9. 验证清单
-
-部署完成后逐项检查：
-
-- [ ] systemd 服务运行中：`systemctl status reqman` 显示 `active (running)`
-- [ ] 应用后端可达：`curl -s -o /dev/null -w "%{http_code}" http://localhost:5001/` 返回 200
-- [ ] 对外访问正常：浏览器打开 `http://8.137.15.167` 页面正常加载
-- [ ] Nginx 配置语法：`nginx -t` 无报错
-- [ ] 数据持久化：`systemctl restart reqman` 后数据不丢失
-- [ ] 备份脚本正常：`bash scripts/db.sh backup` 生成 gzip 备份
-- [ ] cron 自动备份已配置：`crontab -l | grep db.sh` 存在 `0 2 * * 6`
-- [ ] 日志无异常：`journalctl -u reqman -n 50` 无 ERROR/TRACEBACK
