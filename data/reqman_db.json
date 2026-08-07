@@ -4625,8 +4625,73 @@
       "category": "发动机",
       "task_type": "EO分段",
       "remark": "",
-      "tools": [],
-      "materials": [],
+      "tools": [
+        {
+          "device_name": "毫欧表",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "materials": [
+        {
+          "material_name": "压力开关",
+          "part_number": "450-1-3100-00",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "卡子",
+          "part_number": "50-1-4032",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "胶圈",
+          "part_number": "NAS1612-10A",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "粘接胶",
+          "part_number": "PR1828B1/2",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "隔膜剂",
+          "part_number": "QZ-5111",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "粘接胶",
+          "part_number": "MC-216M B-2",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防腐剂",
+          "part_number": "CA1000",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "清洁剂",
+          "part_number": "TURCO 5948 DPM",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        }
+      ],
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
@@ -5368,7 +5433,15 @@
       "category": "机体",
       "task_type": "",
       "remark": "",
-      "tools": [],
+      "tools": [
+        {
+          "device_name": "数显扭力解刀",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
       "materials": [
         {
           "material_name": "再循环气滤",
@@ -5390,7 +5463,15 @@
       "category": "机体",
       "task_type": "",
       "remark": "",
-      "tools": [],
+      "tools": [
+        {
+          "device_name": "数显扭力解刀",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
       "materials": [
         {
           "material_name": "再循环气滤",
@@ -6605,11 +6686,11 @@
           "part_number": "ABS5334A02R",
           "quantity": "1",
           "remark": "",
-          "usage_type": "必须使用"
+          "usage_type": "检查有问题领用"
         }
       ],
       "set_id": null,
-      "tools_confirmed": false,
+      "tools_confirmed": true,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
     },
@@ -6818,10 +6899,18 @@
       "category": "机体",
       "task_type": "EO分段",
       "remark": "",
-      "tools": [],
+      "tools": [
+        {
+          "device_name": "数显扭力解刀",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
       "materials": [],
       "set_id": null,
-      "tools_confirmed": true,
+      "tools_confirmed": false,
       "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
@@ -7891,10 +7980,18 @@
       "category": "电子",
       "task_type": "EO分段",
       "remark": "",
-      "tools": [],
+      "tools": [
+        {
+          "device_name": "数显扭力解刀",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
       "materials": [],
       "set_id": null,
-      "tools_confirmed": true,
+      "tools_confirmed": false,
       "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
@@ -13645,7 +13742,15 @@
       "category": "机体",
       "task_type": "",
       "remark": "",
-      "tools": [],
+      "tools": [
+        {
+          "device_name": "数显扭力解刀",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
       "materials": [
         {
           "material_name": "再循环气滤",
@@ -15224,6 +15329,62 @@
       "materials_confirmed": true,
       "set_id": null,
       "reminder_type": "一般提醒"
+    },
+    "995": {
+      "id": 995,
+      "task_code": "EOJC-PW1100G-72-2026-016-S",
+      "task_name": "孔探检查PW1100发动机吊挂余油管DR121堵塞情况",
+      "category": "发动机",
+      "task_type": "EO分段",
+      "remark": "",
+      "tools": [],
+      "materials": [],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": null,
+      "reminder_type": "一般提醒"
+    },
+    "996": {
+      "id": 996,
+      "task_code": "CSCA320-31ZB00-00-1-C",
+      "task_name": "DFDR操作测试",
+      "category": "电子",
+      "task_type": "",
+      "remark": "",
+      "tools": [],
+      "materials": [],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": null,
+      "reminder_type": "一般提醒"
+    },
+    "997": {
+      "id": 997,
+      "task_code": "CSCA320-31ZB00-00-1-CA",
+      "task_name": "DFDR操作测试",
+      "category": "电子",
+      "task_type": "",
+      "remark": "",
+      "tools": [],
+      "materials": [],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": null,
+      "reminder_type": "一般提醒"
+    },
+    "998": {
+      "id": 998,
+      "task_code": "CSCA320-351000-08-1-X",
+      "task_name": "ECAM上氧气瓶容量与瓶上压力表比较的功能检查",
+      "category": "电子",
+      "task_type": "",
+      "remark": "",
+      "tools": [],
+      "materials": [],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": null,
+      "reminder_type": "一般提醒"
     }
   },
   "card_sets": {
@@ -16313,7 +16474,15 @@
       "name": "报废再循环系统的滤芯",
       "description": "",
       "category": "机体",
-      "tools": [],
+      "tools": [
+        {
+          "device_name": "数显扭力解刀",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
       "materials": [
         {
           "material_name": "再循环气滤",
@@ -16323,7 +16492,7 @@
           "usage_type": "必须使用"
         }
       ],
-      "tools_confirmed": true,
+      "tools_confirmed": false,
       "materials_confirmed": false
     },
     "939": {
