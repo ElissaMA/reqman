@@ -12,7 +12,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-BACKUP_DIR="${PROJECT_DIR}/backups"
+BACKUP_DIR="${PROJECT_DIR}/data/backups"
 DB_FILE="${PROJECT_DIR}/data/reqman_db.json"
 KEEP_DAYS=28  # 默认保留4周
 

@@ -6,6 +6,7 @@
 - 服务就绪后自动打开浏览器
 """
 
+import atexit
 import os
 import platform
 import sys
@@ -115,6 +116,28 @@ def wait_and_open(port):
             pass
         time.sleep(0.5)
     print(f"[提示] 服务启动超时，请手动访问 http://127.0.0.1:{port}")
+
+
+def _cleanup_local_bak():
+    """本地开发退出时清理 json_store 自动生成的 .bak 临时备份。
+
+    仅 Windows 桌面开发环境执行；服务器（gunicorn 直接加载 create_app 工厂）
+    不经过本入口，且保留 .bak 用于崩溃恢复。
+    """
+    if platform.system() != "Windows":
+        return
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    for name in ("reqman_db.json.bak", "reqman_db_runtime.json.bak"):
+        bak_path = os.path.join(project_root, "data", name)
+        try:
+            if os.path.exists(bak_path):
+                os.remove(bak_path)
+        except OSError:
+            pass
+
+
+# 本地开发退出时关闭自动备份（.bak），避免遗留临时备份文件
+atexit.register(_cleanup_local_bak)
 
 
 app = create_app()
