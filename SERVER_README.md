@@ -99,72 +99,50 @@ bash scripts/db.sh clean 28
 
 ## 5. 代码更新方式
 
-### 标准更新流程（备份 → 替换源码 → 重装依赖 → 重启 → 验证）
-
-#### 步骤 1：备份（推荐）
+### 更新前准备
 
 ```bash
-cd /root/workspace/reqman
-
-# 备份数据库（更新前防止意外）
-bash scripts/db.sh backup
-
-# 备份当前源码（便于回滚）
-mkdir -p /root/workspace/backups
-cp -r src /root/workspace/backups/src_$(date +%Y%m%d_%H%M%S)
+# 备份数据库（推荐）
+cp -r data data.bak.$(date +%Y%m%d)
 ```
 
-#### 步骤 2：替换源码
+### 步骤1：替换源码
 
-**方式一：通过 reqman 部署包更新（推荐）**
+将新代码上传或解压覆盖 `/root/workspace/reqman/src/` 目录。
+
+**注意：** 保留 `data/`、`.env`、`venv/` 等运行时文件，切勿覆盖。
+
+### 步骤2：重新安装包（关键步骤）
+
+由于项目以 editable 模式安装，若仅修改了 Python 源码且未变更依赖/入口点，无需重装。
+
+但若涉及以下任一情况，**必须执行重装**：
+- `pyproject.toml` 或 `requirements.txt` 有变更
+- 新增/删除了模块、蓝图、模板目录结构
+- 入口函数 `create_app()` 所在文件路径变化
 
 ```bash
-# 1. 本地更新 reqman/ 内的源码文件
-# 2. 上传到服务器（源码 + 依赖清单）
-scp -r reqman/src/ root@8.137.15.167:/root/workspace/reqman/
-scp reqman/requirements.txt root@8.137.15.167:/root/workspace/reqman/
-# 3. 脚本有变化时一并上传
-scp reqman/scripts/*.sh root@8.137.15.167:/root/workspace/reqman/scripts/
+cd /root/workspace/reqman && ./venv/bin/pip install -e .
 ```
 
-**方式二：SSH 直接更新**
+### 步骤3：重启服务
 
 ```bash
-ssh root@8.137.15.167
-cd /root/workspace/reqman
-# 编辑代码（例如 vim src/reqman/app.py）
+sudo systemctl restart reqman
 ```
 
-#### 步骤 3：重装依赖（requirements.txt 有变化时）
+### 步骤4：验证
 
 ```bash
-cd /root/workspace/reqman
-./venv/bin/pip install -r requirements.txt
+# 确认服务状态
+systemctl status reqman --no-pager | head -10
+
+# 确认应用响应
+curl -s -o /dev/null -w "%{http_code}" http://localhost:5001/
+# 返回 2xx/3xx 表示正常
 ```
 
-#### 步骤 4：重启服务
-
-```bash
-systemctl restart reqman
-systemctl status reqman    # 确认状态为 active (running)
-```
-
-#### 步骤 5：验证
-
-```bash
-# 1. 本机接口连通性检查
-curl -s -o /dev/null -w "HTTP %{http_code}\n" http://127.0.0.1:5001/
-
-# 2. 日志无异常
-journalctl -u reqman -n 50
-
-# 3. 浏览器访问 http://8.137.15.167 确认功能正常
-
-# 4. 如 Nginx 配置有变化，重载
-nginx -t && systemctl reload nginx
-```
-
-> **回滚**：更新失败时，用步骤 1 的源码备份还原 `src/`，必要时 `bash scripts/db.sh restore` 恢复数据库，最后 `systemctl restart reqman`。
+> **注意：** `data/` 目录存放运行时数据库 JSON，`.env` 含敏感配置，更新代码时切勿覆盖这两个位置。
 
 
 ---
