@@ -7,9 +7,12 @@
 """
 
 import atexit
+import gzip
 import os
 import platform
 import sys
+from datetime import datetime, timedelta
+from pathlib import Path
 
 
 def _ensure_venv():
@@ -118,29 +121,39 @@ def wait_and_open(port):
     print(f"[提示] 服务启动超时，请手动访问 http://127.0.0.1:{port}")
 
 
-def _cleanup_local_bak():
-    """本地开发退出时清理 json_store 自动生成的 .bak 临时备份。
-
-    仅 Windows 桌面开发环境执行；服务器（gunicorn 直接加载 create_app 工厂）
-    不经过本入口，且保留 .bak 用于崩溃恢复。
-    """
-    if platform.system() != "Windows":
-        return
-    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    for name in ("reqman_db.json.bak", "reqman_db_runtime.json.bak"):
-        bak_path = os.path.join(project_root, "data", name)
-        try:
-            if os.path.exists(bak_path):
-                os.remove(bak_path)
-        except OSError:
-            pass
-
-
-# 本地开发退出时关闭自动备份（.bak），避免遗留临时备份文件
-atexit.register(_cleanup_local_bak)
-
-
 app = create_app()
+
+
+def _backup_on_exit():
+    """应用关闭时自动备份数据库"""
+    try:
+        db_file = Path("data/reqman_db.json")
+        if not db_file.exists():
+            return
+
+        backup_dir = Path("data/backups")
+        backup_dir.mkdir(exist_ok=True)
+
+        # 生成带时间戳的备份文件名
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_file = backup_dir / f"reqman_db_{timestamp}.json.gz"
+
+        # 压缩备份
+        with open(db_file, 'rb') as f_in:
+            with gzip.open(backup_file, 'wb') as f_out:
+                f_out.write(f_in.read())
+
+        # 清理28天前的备份
+        cutoff = datetime.now() - timedelta(days=28)
+        for f in backup_dir.glob("reqman_db_*.json.gz"):
+            if f.stat().st_mtime < cutoff.timestamp():
+                f.unlink()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"关闭备份失败: {e}")
+
+
+atexit.register(_backup_on_exit)
 
 if __name__ == "__main__":
     port = 5001
