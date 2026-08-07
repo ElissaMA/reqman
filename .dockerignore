@@ -1,0 +1,58 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+dist/
+build/
+*.egg
+
+# 虚拟环境
+venv/
+.venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 测试
+tests/
+htmlcov/
+.coverage
+.pytest_cache/
+.coverage.*
+
+# 开发临时文件
+tmp_*.py
+tmp_*.txt
+tmp_*.json
+
+# 文档（不需要打包进镜像）
+*.md
+LICENSE
+CHANGELOG.md
+DEPLOYMENT.md
+DATABASE_MIGRATION.md
+
+# 脚本（不需要打包进镜像）
+scripts/
+
+# Docker（避免嵌套）
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# 环境变量（通过 volume 挂载）
+.env
+.env.*
+!.env.example
+
+# 编辑器配置
+.editorconfig

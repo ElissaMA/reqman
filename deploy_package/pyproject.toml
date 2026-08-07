@@ -1,0 +1,49 @@
+[project]
+name = "inspection-demand-system"
+version = "3.2.0"
+description = "飞机定检需求单管理系统，工卡匹配与需求单自动生成工具"
+requires-python = ">=3.10"
+dependencies = [
+    "flask>=3.1.0",
+    "openpyxl>=3.1.0",
+    "python-dotenv>=1.0.0",
+    "tzdata>=2024.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=5.0.0",
+    "ruff>=0.5.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-v --tb=short --strict-markers -m 'not slow' --cov=reqman --cov-report=term-missing --cov-report=html"
+markers = [
+    "slow: 标记运行时间较长的测试（性能测试、大数据量测试），默认跳过",
+    "integration: 标记集成测试和端到端测试",
+    "unit: 标记单元测试（默认）",
+]
+
+[tool.coverage.run]
+source = ["reqman"]
+omit = ["*/tests/*", "*/__pycache__/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "pass",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+exclude = ["tests*", "agent*"]

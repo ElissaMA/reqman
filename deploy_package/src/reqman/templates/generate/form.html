@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+{% import "macros/list_macros.html" as list %}
+{% block title %}生成需求单 - 定检需求单管理{% endblock %}
+{% block content %}
+<style>
+/* 表格行高统一 */
+.table td, .table th {
+    vertical-align: middle;
+    text-align: center;
+    height: 30px;
+    padding: 0.25rem;
+}
+.table th {
+    height: 60px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: bold;
+}
+</style>
+
+{% if not has_data %}
+<div class="card text-center py-5">
+    <div class="card-body">
+        <div class="empty-state-icon" style="font-size:64px;">&#x1F4CB;</div>
+        <h5 class="mt-3 text-muted">请先上传工作清单</h5>
+        <p class="text-muted">上传例行清单和其他清单后，系统将匹配数据库并生成需求单预览。</p>
+        <a href="/upload" class="btn btn-primary btn-sm px-4 mt-2">去上传工作清单</a>
+    </div>
+</div>
+{% else %}
+
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">生成需求单</h5>
+        <span class="badge bg-secondary">{{ package_id }}</span>
+    </div>
+</div>
+
+<form method="POST" action="/generate" id="generateForm">
+    <input type="hidden" name="package_id" value="{{ package_id }}">
+
+    <!-- ===== ① 表单信息 ===== -->
+    <div class="card mb-3">
+        <div class="card-header">&#x2460; 表单信息</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label small">机号</label>
+                    <input type="text" class="form-control form-control-sm" name="reg"
+                           value="{{ aircraft_info.reg }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">机型</label>
+                    <input type="text" class="form-control form-control-sm" name="aircraft_type"
+                           value="{{ aircraft_info.type }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">日期</label>
+                    <input type="text" class="form-control form-control-sm" name="date"
+                           value="{{ aircraft_info.date or now.strftime('%Y.%m.%d') }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">定检描述</label>
+                    <input type="text" class="form-control form-control-sm" name="description"
+                           value="{{ aircraft_info.description }}">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== ② 运行条件 ===== -->
+    <div class="card mb-3">
+        <div class="card-header">&#x2461; 定检运行条件（手动填写）</div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width:25%">项目</th>
+                            <th style="width:15%">项目需求</th>
+                            <th style="width:25%">备注</th>
+                            <th style="width:30%">负责</th>
+                            <th style="width:5%">MCC落实情况反馈</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in range(conditions|length) %}
+                        <tr>
+                            <td>{{ conditions[i] }}</td>
+                            <td>
+                                <select class="form-select form-select-sm" name="cond_{{ i }}_req">
+                                    <option value="需要" {{ 'selected' if i < 2 }}>需要</option>
+                                    <option value="不需要" {{ 'selected' if i >= 2 }}>不需要</option>
+                                </select>
+                            </td>
+                            <td><input type="text" class="form-control form-control-sm"
+                                       name="cond_{{ i }}_remark" placeholder="备注"
+                                       value="{% if i == 1 %}优先514/513，若不是，请通知{% endif %}"></td>
+                            <td><input type="text" class="form-control form-control-sm"
+                                       name="cond_{{ i }}_resp" value="{% if i == 0 %}MCC总控、维修支援中队负责{% else %}MCC负责{% endif %}" placeholder="负责方"></td>
+                            <td class="text-muted bg-light"></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== ⑤ 新工卡 ===== -->
+    <div class="card mb-3">
+        <div class="card-header">&#x2464; 新工卡（未匹配数据库 + 工卡数据未完善）</div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm mb-0">
+                    <thead>
+                        <tr><th>工卡号</th><th>工卡名称</th><th>专业</th><th>类别</th><th>操作</th></tr>
+                    </thead>
+                    <tbody>
+                        {% if new_cards %}
+                        {% for card in new_cards %}
+                        <tr data-task-code="{{ card.task_code }}">
+                            <td><code>{{ card.task_code }}</code></td>
+                            <td>{{ card.task_name }}{% if card.unconfirmed %}<span class="badge bg-warning text-dark ms-1">未确认</span>{% endif %}</td>
+                            <td>{{ card.category }}</td>
+                            <td>{{ card.task_type or '-' }}</td>
+                            <td>
+                                {% if card.unconfirmed %}
+                                <a href="javascript:void(0)" onclick="markAndOpen('{{ card.task_code }}', '/card/{{ card.db_id }}/edit')" class="btn btn-outline-warning btn-sm py-0">编辑工卡</a>
+                                {% else %}
+                                <a href="javascript:void(0)" onclick="markAndOpen('{{ card.task_code }}', '/card/new?task_code={{ card.task_code }}&task_name={{ card.task_name }}&category={{ card.category }}&task_type={{ card.task_type }}')" class="btn btn-outline-primary btn-sm py-0">新增工卡</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% else %}
+                        <tr><td colspan="5" class="text-center text-muted py-3">无新工卡或未完善数据</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ===== ③ 工具区预览 ===== -->
+    <div class="card mb-3">
+        <div class="card-header">&#x2462; 工具区预览（自动匹配）</div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width:7%">定检专业<br>（工具）</th>
+                            <th style="width:14%">设备名称</th>
+                            <th style="width:11%">件号</th>
+                            <th style="width:28%">工作名称</th>
+                            <th style="width:5%">数量</th>
+                            <th style="width:16%">备注</th>
+                            <th style="width:6%">库存<br>情况</th>
+                            <th style="width:7%">区域<br>放行</th>
+                            <th style="width:6%">工具房<br>确认</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if tool_groups %}
+                        {% for cat, items in tool_groups %}
+                        {% for t in items %}
+                        <tr>
+                            {% if loop.first %}
+                            <td rowspan="{{ items|length }}" class="text-center fw-bold align-middle">{{ cat }}</td>
+                            {% endif %}
+                            <td>{{ t.device_name }}</td>
+                            <td>{{ t.part_number }}</td>
+                            <td>{% if t.set_name %}{{ t.set_name }}{% else %}{{ t.task_name[:40] }}{% if t.task_name|length > 40 %}...{% endif %}{% endif %}</td>
+                            <td>{{ t.quantity }}</td>
+                            <td>{{ t.remark }}</td>
+                            <td class="bg-light text-center small"></td>
+                            <td class="bg-light text-center small"></td>
+                            <td class="bg-light text-center small"></td>
+                        </tr>
+                        {% endfor %}
+                        {% endfor %}
+                        {% else %}
+                        <tr><td colspan="9" class="text-center text-muted py-3">无"必须使用"工具数据</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== ④ 航材区预览 ===== -->
+    <div class="card mb-3">
+        <div class="card-header">&#x2463; 航材区预览（自动匹配）</div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width:7%">定检专业<br>（航材）</th>
+                            <th style="width:14%">航材名称</th>
+                            <th style="width:11%">件号</th>
+                            <th style="width:28%">工作名称</th>
+                            <th style="width:5%">数量</th>
+                            <th style="width:16%">备注</th>
+                            <th style="width:6%">库存<br>情况</th>
+                            <th style="width:7%">区域<br>放行</th>
+                            <th style="width:6%">MCC<br>调配反馈</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if mat_groups %}
+                        {% for cat, items in mat_groups %}
+                        {% for m in items %}
+                        <tr>
+                            {% if loop.first %}
+                            <td rowspan="{{ items|length }}" class="text-center fw-bold align-middle">{{ cat }}</td>
+                            {% endif %}
+                            <td>{{ m.material_name }}</td>
+                            <td>{{ m.part_number }}</td>
+                            <td>{% if m.set_name %}{{ m.set_name }}{% else %}{{ m.task_name[:40] }}{% if m.task_name|length > 40 %}...{% endif %}{% endif %}</td>
+                            <td>{{ m.quantity }}</td>
+                            <td>{{ m.remark }}</td>
+                            <td class="bg-light text-center small"></td>
+                            <td class="bg-light text-center small"></td>
+                            <td class="bg-light text-center small"></td>
+                        </tr>
+                        {% endfor %}
+                        {% endfor %}
+                        {% else %}
+                        <tr><td colspan="9" class="text-center text-muted py-3">无"必须使用"航材数据</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+
+
+    <!-- ===== ⑦ 备用工具航材 ===== -->
+    <div class="card mb-3">
+        <div class="card-header">&#x2466; 备用工具航材预览</div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width:7%">定检专业<br>（备用）</th>
+                            <th style="width:14%">航材名称</th>
+                            <th style="width:11%">件号</th>
+                            <th style="width:28%">工作名称</th>
+                            <th style="width:5%">数量</th>
+                            <th style="width:16%">备注</th>
+                            <th style="width:6%">库存<br>情况</th>
+                            <th style="width:7%">调配<br>数量</th>
+                            <th style="width:6%">MCC<br>调配反馈</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if spare_groups %}
+                        {% for cat, items in spare_groups %}
+                        {% for s in items %}
+                        <tr>
+                            {% if loop.first %}
+                            <td rowspan="{{ items|length }}" class="text-center fw-bold align-middle">{{ cat }}</td>
+                            {% endif %}
+                            <td>{{ s.material_name or s.device_name or '' }}</td>
+                            <td>{{ s.part_number }}</td>
+                            <td>{{ s.task_name or '' }}</td>
+                            <td>{{ s.quantity }}</td>
+                            <td>{{ s.remark or '检查有问题领用' }}</td>
+                            <td class="bg-light text-center small"></td>
+                            <td class="bg-light text-center small"></td>
+                            <td class="bg-light text-center small"></td>
+                        </tr>
+                        {% endfor %}
+                        {% endfor %}
+                        {% else %}
+                        {% for cat in categories %}
+                        <tr><td class="text-center fw-bold align-middle">{{ cat }}</td><td class="text-muted">(暂无)</td><td class="bg-light"></td><td class="bg-light"></td><td class="bg-light"></td><td class="bg-light"></td><td class="bg-light"></td><td class="bg-light"></td><td class="bg-light"></td></tr>
+                        {% endfor %}
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="text-center mb-4">
+        <button type="submit" class="btn btn-primary btn-sm px-4"
+                onclick="return confirm('确认生成并下载需求单？')">✅ 确认生成并下载</button>
+    </div>
+</form>
+
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+var newCardCount = {{ new_cards|length if new_cards else 0 }};
+function confirmGen() {
+    if (newCardCount > 0) {
+        return confirm('还有 ' + newCardCount + ' 个新工卡/未完善工卡未录入，是否继续导出下载？');
+    }
+    return confirm('确认生成并下载需求单？');
+}
+
+function markAndOpen(taskCode, url) {
+    // 点击即标黄
+    var row = document.querySelector('tr[data-task-code="' + taskCode + '"]');
+    if (row) row.style.backgroundColor = '#fff3cd';
+    // 打开编辑窗口
+    window.open(url, '_blank', 'width=900,height=700');
+}
+</script>
+{% endblock %}
+
+
+

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% import "macros/list_macros.html" as list %}
+{% block title %}飞机信息 - 定检需求单管理{% endblock %}
+{% block content %}
+
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">飞机信息 <span class="badge bg-secondary ms-2">{{ aircraft_list|length }}</span></h5>
+        <a href="/card/aircraft/new" class="btn btn-primary btn-sm">+ 新增飞机</a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" id="acTable">
+                <thead>
+                    {{ list.filter_row([('搜索飞机号...','fReg'),('搜索机型...','fModel'),('搜索发动机...','fEngine'),('','_'),('','_'),('搜索APU...','fAPU'),('','_')]) }}
+                    <tr>
+                        <th style="width:12%" class="sortable" data-col="0" onclick="AppFilter.sort(document.getElementById('acTable'),0)">飞机号 <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
+                        <th style="width:18%" class="sortable" data-col="1" onclick="AppFilter.sort(document.getElementById('acTable'),1)">机型 <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
+                        <th style="width:18%" class="sortable" data-col="2" onclick="AppFilter.sort(document.getElementById('acTable'),2)">发动机 <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
+                        <th style="width:12%" class="sortable" data-col="3" onclick="AppFilter.sort(document.getElementById('acTable'),3)">FSN <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
+                        <th style="width:12%" class="sortable" data-col="4" onclick="AppFilter.sort(document.getElementById('acTable'),4)">MSN <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
+                        <th style="width:18%" class="sortable" data-col="5" onclick="AppFilter.sort(document.getElementById('acTable'),5)">APU <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
+                        <th style="width:120px" class="text-center">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% if aircraft_list %}
+                {% for ac in aircraft_list %}
+                    <tr>
+                        <td><strong>{{ ac.reg }}</strong></td>
+                        <td>{{ ac.model or '-' }}</td>
+                        <td>{{ ac.engine or '-' }}</td>
+                        <td>{{ ac.fsn or '-' }}</td>
+                        <td>{{ ac.msn or '-' }}</td>
+                        <td>{{ ac.apu or '-' }}</td>
+                        <td>
+                            <a href="javascript:void(0)" onclick="window.open('/card/aircraft/{{ ac.id }}/edit', '_blank', 'width=900,height=700')" class="btn btn-outline-primary btn-sm py-0">编辑</a>
+                            <form method="POST" action="/card/aircraft/{{ ac.id }}/delete" style="display:inline" onsubmit="return confirm('确认删除？')">
+                                <button class="btn btn-outline-danger btn-sm py-0">删除</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                {% else %}
+                    {{ list.empty_state('暂无飞机信息，点击右上角新增', '/card/aircraft', '新增飞机', colspan=7) }}
+                {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
