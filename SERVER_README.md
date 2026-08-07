@@ -17,7 +17,7 @@
 
 ```bash
 # 一键部署（首次）
-cd deploy_package
+cd reqman
 bash scripts/deploy.sh
 ```
 
@@ -99,12 +99,12 @@ bash scripts/db.sh clean 28
 
 ## 5. 代码更新方式
 
-### 方式一：通过 deploy_package 更新（推荐）
+### 方式一：通过 reqman 部署包更新（推荐）
 
 ```bash
-# 1. 本地更新 deploy_package/ 内的源码文件
+# 1. 本地更新 reqman/ 内的源码文件
 # 2. 上传到服务器
-scp -r deploy_package/src/ root@8.137.15.167:/root/workspace/reqman/
+scp -r reqman/src/ root@8.137.15.167:/root/workspace/reqman/
 # 3. 重启服务
 ssh root@8.137.15.167 "systemctl restart reqman"
 ```
