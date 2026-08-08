@@ -127,9 +127,9 @@
                             <td>{{ card.task_type or '-' }}</td>
                             <td>
                                 {% if card.unconfirmed %}
-                                <a href="javascript:void(0)" onclick="markAndOpen('{{ card.task_code }}', '/card/{{ card.db_id }}/edit')" class="btn btn-outline-warning btn-sm py-0">编辑工卡</a>
+                                <a href="javascript:void(0)" onclick="window.open('/card/{{ card.db_id }}/edit', '_blank', 'width=900,height=700')" class="btn btn-outline-warning btn-sm py-0">编辑工卡</a>
                                 {% else %}
-                                <a href="javascript:void(0)" onclick="markAndOpen('{{ card.task_code }}', '/card/new?task_code={{ card.task_code }}&task_name={{ card.task_name }}&category={{ card.category }}&task_type={{ card.task_type }}')" class="btn btn-outline-primary btn-sm py-0">新增工卡</a>
+                                <a href="javascript:void(0)" onclick="window.open('/card/new?task_code={{ card.task_code }}&task_name={{ card.task_name }}&category={{ card.category }}&task_type={{ card.task_type }}', '_blank', 'width=900,height=700')" class="btn btn-outline-primary btn-sm py-0">新增工卡</a>
                                 {% endif %}
                             </td>
                         </tr>
@@ -307,14 +307,6 @@ function confirmGen() {
         return confirm('还有 ' + newCardCount + ' 个新工卡/未完善工卡未录入，是否继续导出下载？');
     }
     return confirm('确认生成并下载需求单？');
-}
-
-function markAndOpen(taskCode, url) {
-    // 点击即标黄
-    var row = document.querySelector('tr[data-task-code="' + taskCode + '"]');
-    if (row) row.style.backgroundColor = '#fff3cd';
-    // 打开编辑窗口
-    window.open(url, '_blank', 'width=900,height=700');
 }
 </script>
 {% endblock %}
