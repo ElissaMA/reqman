@@ -61,10 +61,17 @@
 | H | 区域放行 | 区域放行 | 调配数量 |
 | I | 工具房确认 | MCC调配反馈 | MCC调配反馈 |
 
+## 开发环境
+
+```bash
+pip install -e ".[dev]"
+cp .env.example .env
+```
+
 ## 快速开始
 
 ```bash
-# 安装依赖
+# 安装依赖（开发模式，editable 安装）
 pip install -e ".[dev]"
 
 # 启动（自动检测虚拟环境）
@@ -74,19 +81,6 @@ python src/reqman/app.py
 ```
 
 访问 http://127.0.0.1:5001
-
-## 项目结构
-
-```
-src/reqman/
-├── app.py              # 启动入口（自动检测venv）
-├── config.py           # 环境变量配置
-├── blueprints/         # 路由蓝图
-├── services/           # 业务逻辑
-├── models/             # 数据存储（双文件JSON）
-├── templates/          # Jinja2模板
-└── utils/              # 工具函数
-```
 
 ## UI视觉与交互规范
 
@@ -115,12 +109,6 @@ src/reqman/
 ### 适配规范
 适配PC主流分辨率，页面自适应缩放，表单、表格、按钮布局稳定。
 
-## 数据存储
-
-双文件JSON存储：
-- `data/reqman_db.json` — 核心数据（工卡/工卡组/飞机），Git追踪
-- `data/reqman_db_runtime.json` — 运行时数据（工作包/日志），Git忽略
-
 ## 非功能需求
 
 - **性能**：轻量化启动，数据读写、Excel导入导出响应迅速，批量处理稳定
@@ -134,15 +122,6 @@ src/reqman/
 - openpyxl
 - tzdata（北京时间时区支持）
 - pytest（169测试用例）
-
-## 环境变量
-
-| 变量 | 默认值 | 说明 |
-|------|--------|------|
-| SERVER_HOST | 127.0.0.1 | 服务地址 |
-| SERVER_PORT | 5001 | 服务端口 |
-| DB_FILE | data/reqman_db.json | 核心数据库 |
-| TEMPLATE_FILE | assets/demand_template.xlsx | Excel模板 |
 
 ## 版本迭代规划
 
