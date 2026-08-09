@@ -13,6 +13,7 @@ import platform
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 
 def _ensure_venv():
@@ -135,20 +136,19 @@ def _backup_on_exit():
         backup_dir.mkdir(exist_ok=True)
 
         # 生成带时间戳的备份文件名
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y%m%d_%H%M%S")
         backup_file = backup_dir / f"reqman_db_{timestamp}.json.gz"
 
         # 压缩备份
-        with open(db_file, 'rb') as f_in:
-            with gzip.open(backup_file, 'wb') as f_out:
-                f_out.write(f_in.read())
+        with open(db_file, 'rb') as f_in, gzip.open(backup_file, 'wb') as f_out:
+            f_out.write(f_in.read())
 
         # 清理28天前的备份
-        cutoff = datetime.now() - timedelta(days=28)
+        cutoff = datetime.now(ZoneInfo("Asia/Shanghai")) - timedelta(days=28)
         for f in backup_dir.glob("reqman_db_*.json.gz"):
             if f.stat().st_mtime < cutoff.timestamp():
                 f.unlink()
-    except Exception as e:
+    except OSError as e:
         import logging
         logging.getLogger(__name__).warning(f"关闭备份失败: {e}")
 
