@@ -441,6 +441,8 @@ def aircraft_new():
     try:
         reg = request.form.get("reg", "").strip()
         if not reg:
+            if _is_ajax():
+                return jsonify({"success": False, "message": "机号不能为空"})
             flash("机号不能为空", "error")
             return redirect("/card/aircraft")
 
@@ -452,13 +454,19 @@ def aircraft_new():
             msn=request.form.get("msn", ""),
             apu=request.form.get("apu", ""),
         )
+        if _is_ajax():
+            return jsonify({"success": True, "message": "飞机信息新增成功"})
         flash("飞机信息新增成功", "success")
         return redirect("/card/aircraft")
 
     except ServiceError as e:
+        if _is_ajax():
+            return jsonify({"success": False, "message": e.message})
         flash(e.message, "error")
     except Exception:
         logger.exception("新增飞机信息失败")
+        if _is_ajax():
+            return jsonify({"success": False, "message": "服务器错误"})
         flash("服务器错误", "error")
 
     return redirect("/card/aircraft")
@@ -489,13 +497,19 @@ def aircraft_edit(aircraft_id):
             msn=request.form.get("msn", ""),
             apu=request.form.get("apu", ""),
         )
+        if _is_ajax():
+            return jsonify({"success": True, "message": "飞机信息更新成功"})
         flash("飞机信息更新成功", "success")
         return redirect("/card/aircraft")
 
     except ServiceError as e:
+        if _is_ajax():
+            return jsonify({"success": False, "message": e.message})
         flash(e.message, "error")
     except Exception:
         logger.exception("更新飞机信息失败")
+        if _is_ajax():
+            return jsonify({"success": False, "message": "服务器错误"})
         flash("服务器错误", "error")
 
     return redirect("/card/aircraft")
@@ -506,10 +520,16 @@ def aircraft_delete(aircraft_id):
     """删除飞机信息"""
     try:
         current_app.extensions['card_service'].delete_aircraft(aircraft_id)
+        if _is_ajax():
+            return jsonify({"success": True, "message": "飞机信息已删除"})
         flash("飞机信息已删除", "success")
     except ServiceError as e:
+        if _is_ajax():
+            return jsonify({"success": False, "message": e.message})
         flash(e.message, "error")
     except Exception:
         logger.exception("删除飞机信息失败")
+        if _is_ajax():
+            return jsonify({"success": False, "message": "服务器错误"})
         flash("服务器错误", "error")
     return redirect("/card/aircraft")

@@ -52,8 +52,6 @@ _EMPTY_DB = {
 # 运行时数据（不纳入 Git 追踪）的键列表
 _RUNTIME_KEYS = {
     "work_packages",
-    "card_logs",
-    "card_log_next_id",
     "next_id",
     "code_index",
     "next_ac_id",
@@ -61,7 +59,7 @@ _RUNTIME_KEYS = {
 
 
 class JsonStore:
-    """双文件 JSON 存储：核心数据（飞机/工卡/工卡组）+ 运行时数据（工作包/日志）
+    """双文件 JSON 存储：核心数据（飞机/工卡/工卡组/日志）+ 运行时数据（工作包/计数器）
 
     核心数据默认受 Git 追踪，运行时数据（_RUNTIME_KEYS）写入独立文件，
     应在 .gitignore 中忽略运行时文件。

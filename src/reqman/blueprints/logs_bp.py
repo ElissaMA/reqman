@@ -4,7 +4,7 @@ import logging
 
 from flask import Blueprint, current_app, flash, redirect, render_template, request
 
-from ..utils.error_handlers import ServerError, _wants_json
+from ..utils.error_handlers import _wants_json
 from ..utils.response import api_error, api_success
 
 logger = logging.getLogger(__name__)
@@ -24,6 +24,10 @@ TARGET_TYPE_LABELS = {
     "set": "工卡组",
     "aircraft": "飞机信息",
 }
+
+# 分页配置
+PAGE_SIZE_OPTIONS = (10, 20, 50, 100)
+DEFAULT_PAGE_SIZE = 20
 
 # 字段中文标签（用于展示变更内容）
 FIELD_LABELS = {
@@ -65,7 +69,7 @@ def _build_filtered_logs(args: dict) -> list:
     service = _get_service()
     if not service:
         return []
-    logs = list(service.store.get_logs())
+    logs = list(service.store.get_logs(limit=None))
 
     # 按操作类型筛选
     operation = args.get("operation", "").strip()
@@ -97,31 +101,74 @@ def _build_filtered_logs(args: dict) -> list:
 
 @bp.route("/logs")
 def list_logs():
-    """操作日志列表 - 全量传前端做客户端筛选"""
+    """操作日志列表 - 服务端筛选 + 分页"""
+    args = {
+        "operation": request.args.get("operation", "").strip(),
+        "target_type": request.args.get("target_type", "").strip(),
+        "keyword": request.args.get("keyword", "").strip(),
+        "date_from": request.args.get("date_from", "").strip(),
+    }
+    page, page_size = _parse_page_args(request.args)
     try:
-        service = _get_service()
-        if not service:
-            raise ServerError("服务不可用")
-        all_logs = list(service.get_logs())
-        # 按时间倒序
-        all_logs.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
-
-        return render_template("cards/logs.html",
-                               logs=all_logs,
-                               total=len(all_logs),
-                               operation_labels=OPERATION_LABELS,
-                               target_type_labels=TARGET_TYPE_LABELS,
-                               field_labels=FIELD_LABELS,
-                               format_changes=_format_changes)
+        filtered = _build_filtered_logs(args)
+        total = len(filtered)
     except Exception:
         logger.exception("获取操作日志失败")
         flash("加载操作日志失败", "error")
-        return render_template("cards/logs.html",
-                               logs=[], total=0,
-                               operation_labels=OPERATION_LABELS,
-                               target_type_labels=TARGET_TYPE_LABELS,
-                               field_labels=FIELD_LABELS,
-                               format_changes=_format_changes)
+        filtered, total = [], 0
+
+    total_pages = max(1, (total + page_size - 1) // page_size)
+    page = min(page, total_pages)
+    # 展示序号：全列表全局编号（1..total），跨页连续
+    for i, log in enumerate(filtered, 1):
+        log["display_id"] = i
+    start = (page - 1) * page_size
+    page_logs = filtered[start:start + page_size]
+
+    return render_template("cards/logs.html",
+                           logs=page_logs,
+                           total=total,
+                           page=page,
+                           page_size=page_size,
+                           total_pages=total_pages,
+                           page_window=_build_page_window(page, total_pages),
+                           page_size_options=PAGE_SIZE_OPTIONS,
+                           filters=args,
+                           operation_labels=OPERATION_LABELS,
+                           target_type_labels=TARGET_TYPE_LABELS,
+                           field_labels=FIELD_LABELS,
+                           format_changes=_format_changes)
+
+
+def _parse_page_args(args) -> tuple[int, int]:
+    """解析页码与每页条数（非法值回落默认）"""
+    page = 1
+    if str(args.get("page", "")).isdigit():
+        page = max(1, int(args["page"]))
+    page_size = DEFAULT_PAGE_SIZE
+    raw_ps = args.get("page_size", "")
+    if str(raw_ps).isdigit() and int(raw_ps) in PAGE_SIZE_OPTIONS:
+        page_size = int(raw_ps)
+    return page, page_size
+
+
+def _build_page_window(page: int, total_pages: int, window: int = 5) -> list:
+    """生成分页按钮序列，None 表示省略号"""
+    if total_pages <= 1:
+        return [1]
+    if total_pages <= window + 2:
+        return list(range(1, total_pages + 1))
+    pages = [1]
+    start = max(2, page - window // 2)
+    end = min(total_pages - 1, start + window - 1)
+    start = max(2, end - window + 1)
+    if start > 2:
+        pages.append(None)
+    pages.extend(range(start, end + 1))
+    if end < total_pages - 1:
+        pages.append(None)
+    pages.append(total_pages)
+    return pages
 
 
 @bp.route("/logs/delete", methods=["POST"])

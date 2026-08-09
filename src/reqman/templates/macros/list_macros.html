@@ -11,14 +11,18 @@
 </tr>
 {% endmacro %}
 
-{# 统一空状态：居中图标 + 文案 + 可选引导按钮 #}
-{% macro empty_state(msg, action_url='', action_label='', colspan=1) %}
+{# 统一空状态：居中图标 + 文案 + 可选引导按钮（open_modal=True 时按钮以弹窗打开） #}
+{% macro empty_state(msg, action_url='', action_label='', colspan=1, open_modal=False) %}
 <tr>
     <td colspan="{{ colspan }}" class="text-center py-4 text-muted">
-        <div style="font-size:40px;color:#c0c8d4">&#x1F4CB;</div>
+        <div class="empty-state-icon">&#x1F4CB;</div>
         <p class="mt-2 mb-0">{{ msg }}</p>
         {% if action_url and action_label %}
-        <a href="{{ action_url }}" class="btn btn-primary btn-sm mt-2">{{ action_label }}</a>
+            {% if open_modal %}
+            <a href="javascript:void(0)" onclick="ListUI.openEditor('{{ action_url }}')" class="btn btn-primary btn-sm mt-2">{{ action_label }}</a>
+            {% else %}
+            <a href="{{ action_url }}" class="btn btn-primary btn-sm mt-2">{{ action_label }}</a>
+            {% endif %}
         {% endif %}
     </td>
 </tr>

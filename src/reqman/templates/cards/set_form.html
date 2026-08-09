@@ -304,11 +304,11 @@ function addRow(type) {
     tbody.appendChild(tr);
 }
 
-// Submit validation
+// Submit: 校验 + 弹窗场景AJAX提交（自动关闭并通知父页刷新）
 document.getElementById("setForm").addEventListener("submit", function(e) {
     if (selectedCards.length < 2) {
         e.preventDefault();
-        alert("工卡组至少需要2个工卡");
+        window.showToast("工卡组至少需要2个工卡", 'warning');
         return false;
     }
     var toolTbody = document.querySelector("#toolTable tbody");
@@ -334,44 +334,46 @@ document.getElementById("setForm").addEventListener("submit", function(e) {
     }
     if (!toolHasContent && !confirmNoTools.checked) {
         e.preventDefault();
-        alert("请添加工具或确认无工具");
+        window.showToast("请添加工具或确认无工具", 'warning');
         return false;
     }
     if (!matHasContent && !confirmNoMats.checked) {
         e.preventDefault();
-        alert("请添加航材或确认无航材");
+        window.showToast("请添加航材或确认无航材", 'warning');
         return false;
     }
-});// 如果是从其他页面 window.open() 打开的，保存成功后自动关闭
-if (window.opener) {
-    document.getElementById("setForm").addEventListener("submit", function(e) {
+
+    // 弹窗场景（从列表页 window.open() 打开）：AJAX提交，成功后自动关闭并通知父页刷新
+    if (window.opener) {
         e.preventDefault();
-        if (selectedCards.length < 2) {
-            alert("工卡组至少需要2个工卡");
-            return;
-        }
         var form = this;
         var formData = new FormData(form);
         var setId = '{{ set_item.id if set_item else "" }}';
         var url = setId ? '/card/sets/' + setId + '/edit' : '/card/sets/new';
-        
+
+        window.showLoader();
         fetch(url, {
             method: 'POST',
-            body: formData
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
         }).then(function(resp) {
-            if (resp.ok) {
-                window.opener && window.opener.postMessage({
-                    type: 'cardSetSaved',
-                    setId: setId
-                }, '*');
+            return resp.json();
+        }).then(function(d) {
+            window.hideLoader();
+            if (d && d.success) {
+                if (window.opener && !window.opener.closed) {
+                    window.opener.postMessage({ type: 'cardSetSaved', setId: setId, scrollY: window.opener.scrollY }, '*');
+                }
                 window.close();
             } else {
-                form.submit();
+                window.showToast((d && d.message) || '保存失败', 'error');
             }
         }).catch(function() {
+            window.hideLoader();
             form.submit();
         });
-    });
-}
+        return false;
+    }
+});
 </script>
 {% endblock %}

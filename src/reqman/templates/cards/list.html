@@ -6,7 +6,7 @@
 <div class="card mb-3">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">工卡信息 <span class="badge bg-secondary ms-2">{{ items|length }}</span></h5>
-        <a href="/card/new" class="btn btn-primary btn-sm">+ 新增工卡</a>
+        <a href="javascript:void(0)" onclick="ListUI.openEditor('/card/new')" class="btn btn-primary btn-sm">+ 新增工卡</a>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -38,15 +38,13 @@
                         <td class="text-center">{{ item.tools|length }}</td>
                         <td class="text-center">{{ item.materials|length }}</td>
                         <td onclick="event.stopPropagation()">
-                            <a href="javascript:void(0)" onclick="window.open('/card/{{ item.id }}/edit', '_blank', 'width=900,height=700')" class="btn btn-outline-primary btn-sm py-0">编辑</a>
-                            <form method="POST" action="/card/{{ item.id }}/delete" style="display:inline" onsubmit="return confirm('确认删除？')">
-                                <button type="submit" class="btn btn-outline-danger btn-sm py-0">删除</button>
-                            </form>
+                            <a href="javascript:void(0)" onclick="ListUI.openEditor('/card/{{ item.id }}/edit')" class="btn btn-outline-primary btn-sm py-0">编辑</a>
+                            <button type="button" onclick="ListUI.del('/card/{{ item.id }}/delete','确认删除工卡 {{ item.task_code }}？')" class="btn btn-outline-danger btn-sm py-0">删除</button>
                         </td>
                     </tr>
                 {% endfor %}
                 {% else %}
-                    {{ list.empty_state('暂无工卡数据，点击右上角新增', '/card/new', '新增工卡', colspan=8) }}
+                    {{ list.empty_state('暂无工卡数据，点击右上角新增', '/card/new', '新增工卡', colspan=8, open_modal=True) }}
                 {% endif %}
                 </tbody>
             </table>

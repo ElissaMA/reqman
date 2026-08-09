@@ -285,6 +285,84 @@ window.AppFilter = (function () {
     return { filter: filter, sort: sort };
 })();
 </script>
+
+{# 统一列表页UI工具：弹窗打开、AJAX删除、状态保留（搜索/滚动） #}
+<script>
+window.ListUI = (function() {
+    var KEY = 'reqmanListState';
+
+    // 保存当前页面搜索状态到 sessionStorage
+    function saveState() {
+        var state = { scrollTop: window.scrollY || 0, filters: {} };
+        document.querySelectorAll('.filter-row input').forEach(function(inp) {
+            state.filters[inp.id] = inp.value;
+        });
+        try { sessionStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+    }
+
+    // 恢复搜索状态并重新应用过滤
+    function restoreState() {
+        try {
+            var raw = sessionStorage.getItem(KEY);
+            if (!raw) return;
+            var state = JSON.parse(raw);
+            Object.keys(state.filters || {}).forEach(function(id) {
+                var inp = document.getElementById(id);
+                if (inp) inp.value = state.filters[id];
+            });
+            document.querySelectorAll('.filter-row input').forEach(function(inp) {
+                if (inp.value) window.AppFilter && window.AppFilter.filter(inp.id);
+            });
+            if (state.scrollTop) window.scrollTo(0, state.scrollTop);
+        } catch (e) {}
+    }
+
+    // 统一打开编辑/新增窗口
+    function openEditor(url) {
+        window.open(url, '_blank', 'width=900,height=700');
+    }
+
+    // AJAX 删除：confirm + fetch + 成功后保留状态刷新
+    function del(url, confirmMsg) {
+        if (!window.confirm(confirmMsg || '确认删除？')) return;
+        window.showLoader();
+        fetch(url, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            window.hideLoader();
+            if (d && d.success) {
+                window.showToast(d.message || '删除成功', 'success');
+                saveState();
+                window.location.reload();
+            } else {
+                window.showToast((d && d.message) || '删除失败', 'error');
+            }
+        }).catch(function() {
+            window.hideLoader();
+            window.showToast('删除失败', 'error');
+        });
+    }
+
+    // 监听子窗口保存成功消息 → 保存状态并刷新
+    window.addEventListener('message', function(e) {
+        var d = e.data;
+        if (d && d.type && /Saved$/.test(d.type)) {
+            saveState();
+            window.location.reload();
+        }
+    });
+
+    // 页面加载时恢复状态
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', restoreState);
+    } else {
+        restoreState();
+    }
+
+    return { openEditor: openEditor, del: del, saveState: saveState, restoreState: restoreState };
+})();
+</script>
 {% block scripts %}{% endblock %}
 
 <div class="toast-container" id="toastContainer"></div>

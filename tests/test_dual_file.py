@@ -58,11 +58,11 @@ class TestDualFileStorage:
         assert "work_packages" in data
 
     def test_runtime_keys_classification(self):
-        """运行时键列表正确分类"""
+        """运行时键列表正确分类（card_logs 已迁移到核心数据）"""
         from reqman.models.json_store import _RUNTIME_KEYS
         assert "work_packages" in _RUNTIME_KEYS
-        assert "card_logs" in _RUNTIME_KEYS
-        assert "card_log_next_id" in _RUNTIME_KEYS
+        assert "card_logs" not in _RUNTIME_KEYS
+        assert "card_log_next_id" not in _RUNTIME_KEYS
         assert "next_id" in _RUNTIME_KEYS
         assert "code_index" in _RUNTIME_KEYS
         assert "cards" not in _RUNTIME_KEYS

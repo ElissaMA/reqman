@@ -42,9 +42,9 @@
                            value="{{ ac.apu if ac else "" }}">
                 </div>
             </div>
-            <div class="d-flex gap-2">
-                <button type="submit" class="btn btn-primary btn-sm">保存</button>
+            <div class="d-flex justify-content-between">
                 <a href="/card/aircraft" class="btn btn-outline-secondary btn-sm">取消</a>
+                <button type="submit" class="btn btn-primary btn-sm px-4">保存</button>
             </div>
         </form>
     </div>
@@ -54,7 +54,7 @@
 
 {% block scripts %}
 <script>
-// 如果是从其他页面 window.open() 打开的，保存成功后自动关闭
+// 如果是从其他页面 window.open() 打开的，AJAX提交成功后自动关闭并通知父页刷新
 if (window.opener) {
     document.getElementById("acForm").addEventListener("submit", function(e) {
         e.preventDefault();
@@ -63,17 +63,26 @@ if (window.opener) {
         var acId = '{{ ac.id if ac else "" }}';
         var url = acId ? '/card/aircraft/' + acId + '/edit' : '/card/aircraft/new';
 
+        window.showLoader();
         fetch(url, {
             method: 'POST',
-            body: formData
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
         }).then(function(resp) {
-            if (resp.ok) {
+            return resp.json();
+        }).then(function(d) {
+            window.hideLoader();
+            if (d && d.success) {
+                if (window.opener && !window.opener.closed) {
+                    window.opener.postMessage({ type: 'aircraftSaved' }, '*');
+                }
                 window.close();
             } else {
-                form.submit();
+                window.showToast((d && d.message) || '保存失败', 'error');
             }
         }).catch(function() {
-            form.submit();
+            window.hideLoader();
+            window.showToast('提交失败，请重试', 'error');
         });
     });
 }

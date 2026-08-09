@@ -192,12 +192,44 @@ document.getElementById("cardForm").addEventListener("submit", function(e) {
     }
     if (!toolHasContent && !confirmNoTools.checked) {
         e.preventDefault();
-        alert("请添加工具或确认无工具");
+        window.showToast("请添加工具或确认无工具", 'warning');
         return false;
     }
     if (!matHasContent && !confirmNoMats.checked) {
         e.preventDefault();
-        alert("请添加航材或确认无航材");
+        window.showToast("请添加航材或确认无航材", 'warning');
+        return false;
+    }
+
+    // 从列表页 window.open() 打开时：AJAX提交，成功后自动关闭并通知父页刷新
+    if (window.opener) {
+        e.preventDefault();
+        var form = this;
+        var formData = new FormData(form);
+        var cardId = '{{ card.id if card else "" }}';
+        var url = cardId ? '/card/' + cardId + '/edit' : '/card/new';
+
+        window.showLoader();
+        fetch(url, {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        }).then(function(resp) {
+            return resp.json();
+        }).then(function(d) {
+            window.hideLoader();
+            if (d && d.success) {
+                if (window.opener && !window.opener.closed) {
+                    window.opener.postMessage({ type: 'cardSaved', cardId: cardId }, '*');
+                }
+                window.close();
+            } else {
+                window.showToast((d && d.message) || '保存失败', 'error');
+            }
+        }).catch(function() {
+            window.hideLoader();
+            window.showToast('提交失败，请重试', 'error');
+        });
         return false;
     }
 });

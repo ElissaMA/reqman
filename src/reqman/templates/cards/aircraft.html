@@ -6,7 +6,7 @@
 <div class="card mb-3">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">飞机信息 <span class="badge bg-secondary ms-2">{{ aircraft_list|length }}</span></h5>
-        <a href="/card/aircraft/new" class="btn btn-primary btn-sm">+ 新增飞机</a>
+        <a href="javascript:void(0)" onclick="ListUI.openEditor('/card/aircraft/new')" class="btn btn-primary btn-sm">+ 新增飞机</a>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -26,23 +26,21 @@
                 <tbody>
                 {% if aircraft_list %}
                 {% for ac in aircraft_list %}
-                    <tr>
+                    <tr onclick="showAcDetail({{ ac.id }})" style="cursor:pointer">
                         <td><strong>{{ ac.reg }}</strong></td>
                         <td>{{ ac.model or '-' }}</td>
                         <td>{{ ac.engine or '-' }}</td>
                         <td>{{ ac.fsn or '-' }}</td>
                         <td>{{ ac.msn or '-' }}</td>
                         <td>{{ ac.apu or '-' }}</td>
-                        <td>
-                            <a href="javascript:void(0)" onclick="window.open('/card/aircraft/{{ ac.id }}/edit', '_blank', 'width=900,height=700')" class="btn btn-outline-primary btn-sm py-0">编辑</a>
-                            <form method="POST" action="/card/aircraft/{{ ac.id }}/delete" style="display:inline" onsubmit="return confirm('确认删除？')">
-                                <button class="btn btn-outline-danger btn-sm py-0">删除</button>
-                            </form>
+                        <td onclick="event.stopPropagation()">
+                            <a href="javascript:void(0)" onclick="ListUI.openEditor('/card/aircraft/{{ ac.id }}/edit')" class="btn btn-outline-primary btn-sm py-0">编辑</a>
+                            <button type="button" onclick="ListUI.del('/card/aircraft/{{ ac.id }}/delete','确认删除飞机 {{ ac.reg }}？')" class="btn btn-outline-danger btn-sm py-0">删除</button>
                         </td>
                     </tr>
                 {% endfor %}
                 {% else %}
-                    {{ list.empty_state('暂无飞机信息，点击右上角新增', '/card/aircraft', '新增飞机', colspan=7) }}
+                    {{ list.empty_state('暂无飞机信息，点击右上角新增', '/card/aircraft/new', '新增飞机', colspan=7, open_modal=True) }}
                 {% endif %}
                 </tbody>
             </table>
@@ -50,4 +48,43 @@
     </div>
 </div>
 
+<div class="modal fade" id="acDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title">飞机信息详情</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="acDetailContent"><p class="text-muted">点击行加载...</p></div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">关闭</button>
+        </div>
+    </div></div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+var acData = [{% for ac in aircraft_list %}{{ ac|tojson }}{% if not loop.last %},{% endif %}{% endfor %}];
+
+function showAcDetail(id) {
+    var d = acData.find(function(ac) { return ac.id === id; });
+    if (!d) return;
+    var rows = [
+        ['飞机号', d.reg || '-'],
+        ['机型', d.model || '-'],
+        ['发动机', d.engine || '-'],
+        ['FSN', d.fsn || '-'],
+        ['MSN', d.msn || '-'],
+        ['APU', d.apu || '-']
+    ];
+    var h = '<table class="table table-bordered table-sm mb-0"><tbody>';
+    rows.forEach(function(r) {
+        h += '<tr><th style="width:120px">' + r[0] + '</th><td>' + r[1] + '</td></tr>';
+    });
+    h += '</tbody></table>';
+    document.getElementById('acDetailContent').innerHTML = h;
+    new bootstrap.Modal(document.getElementById('acDetailModal')).show();
+}
+</script>
 {% endblock %}
