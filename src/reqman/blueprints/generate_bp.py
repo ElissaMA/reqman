@@ -143,7 +143,7 @@ def _handle_generate_post(pkg_data: dict, package_id: str):
             spare_items.append({
                 "material_name": name,
                 "part_number": pns[i].strip() if i < len(pns) else "",
-                "quantity": qties[i].strip() if i < len(qties) else "1",
+                "quantity": qties[i].strip() if i < len(qties) else "",
                 "remark": rems[i].strip() if i < len(rems) else "",
                 "applicant": applicants[i].strip() if i < len(applicants) else "",
             })

@@ -83,7 +83,7 @@ def _write_category_block_min_rows(ws, start_row, items, min_rows,
     """
     grouped = {}
     for item in items:
-        grouped.setdefault(item.get("category", "电子"), []).append(item)
+        grouped.setdefault(item["category"], []).append(item)
     
     row = start_row
     for cat in ["发动机", "机体", "电子"]:
@@ -108,7 +108,7 @@ def _write_category_block_min_rows(ws, start_row, items, min_rows,
                 set_cell(ws, row, 2, item.get(name_key, ""), font=DATA_14, alignment=DATA_ALIGN_CENTER)
                 set_cell(ws, row, 3, item.get("part_number", ""), font=DATA_14, alignment=DATA_ALIGN_CENTER)
                 set_cell(ws, row, 4, item.get("set_name", "") or item.get(task_key, ""), font=DATA_14, alignment=DATA_ALIGN_CENTER)
-                set_cell(ws, row, 5, item.get("quantity", "1"), font=DATA_14, alignment=DATA_ALIGN_CENTER)
+                set_cell(ws, row, 5, item.get("quantity", ""), font=DATA_14, alignment=DATA_ALIGN_CENTER)
                 set_cell(ws, row, 6, remark, font=DATA_14, alignment=DATA_ALIGN_CENTER)
                 # 写入空数据（库存等列留空，将来填充）
                 for bc in range(7, COLS + 1):

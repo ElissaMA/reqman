@@ -120,7 +120,7 @@ function watchTable(tableId, checkbox) {
         if (tbody) {
             var hasVal = false;
             tbody.querySelectorAll("input[type=text]").forEach(function(inp) {
-                if (inp.value.trim()) hasVal = true;
+                if (!isBlank(inp.value)) hasVal = true;
             });
             if (hasVal) checkbox.checked = false;
         }
@@ -130,7 +130,7 @@ function watchTable(tableId, checkbox) {
         if (!tbody || tbody.children.length === 0) return;
         var hasVal = false;
         tbody.querySelectorAll("input[type=text]").forEach(function(inp) {
-            if (inp.value.trim()) hasVal = true;
+            if (!isBlank(inp.value)) hasVal = true;
         });
         if (hasVal) checkbox.checked = false;
     });
@@ -161,14 +161,14 @@ function addRow(type) {
     if (type == "tool") {
         tr.innerHTML = '<td><input type="text" class="form-control form-control-sm" name="tool_name[]" placeholder="设备名称"></td>' +
             '<td><input type="text" class="form-control form-control-sm" name="tool_pn[]"></td>' +
-            '<td><input type="text" class="form-control form-control-sm" name="tool_qty[]" value="1"></td>' +
+            '<td><input type="text" class="form-control form-control-sm" name="tool_qty[]"></td>' +
             '<td><input type="text" class="form-control form-control-sm" name="tool_remark[]"></td>' +
             '<td><select class="form-select form-select-sm" name="tool_type[]">' + usageTypes.map(function(u){return '<option value="'+u+'">'+u+'</option>';}).join('') + '</select></td>' +
             '<td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest(\'tr\').remove()">&times;</button></td>';
     } else {
         tr.innerHTML = '<td><input type="text" class="form-control form-control-sm" name="mat_name[]" placeholder="航材名称"></td>' +
             '<td><input type="text" class="form-control form-control-sm" name="mat_pn[]"></td>' +
-            '<td><input type="text" class="form-control form-control-sm" name="mat_qty[]" value="1"></td>' +
+            '<td><input type="text" class="form-control form-control-sm" name="mat_qty[]"></td>' +
             '<td><input type="text" class="form-control form-control-sm" name="mat_remark[]" list="remark-options-new"><datalist id="remark-options-new"><option value="优先使用开封航化"></datalist></td>' +
             '<td><select class="form-select form-select-sm" name="mat_type[]">' + usageTypes.map(function(u){return '<option value="'+u+'">'+u+'</option>';}).join('') + '</select></td>' +
             '<td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest(\'tr\').remove()">&times;</button></td>';
@@ -176,7 +176,13 @@ function addRow(type) {
     tbody.appendChild(tr);
 }
 
-// 逐行校验：名称空但其他有值 → 缺少名称；名称有值但件号/数量(排除默认1)/备注全空 → 半空不完整
+// 空值判断：null/undefined/空串/纯空白/不可见字符（全角空格、零宽、BOM） → true
+function isBlank(s) {
+    if (s === null || s === undefined) return true;
+    return /^[\s\u00a0\u3000\u200b\u200c\u200d\u200e\u200f\u2028\u2029\u202f\u205f\u2060\ufeff]*$/.test(String(s));
+}
+
+// 逐行校验：名称空但其他有值 → 缺少名称
 function findRowIssue(tbody, label) {
     if (!tbody) return null;
     var rows = tbody.querySelectorAll("tr");
@@ -190,21 +196,30 @@ function findRowIssue(tbody, label) {
         var pnVal = pn ? pn.value.trim() : "";
         var qtyVal = qty ? qty.value.trim() : "";
         var remarkVal = remark ? remark.value.trim() : "";
-        var qtyReal = (qtyVal !== "" && qtyVal !== "1"); // qty 默认值 "1" 不视为实质内容
-        var hasOther = (pnVal !== "" || qtyReal || remarkVal !== "");
-        if (nameVal === "" && hasOther) {
+        var qtyReal = !isBlank(qtyVal);
+        var hasOther = (!isBlank(pnVal) || qtyReal || !isBlank(remarkVal));
+        if (isBlank(nameVal) && hasOther) {
             return label + "第" + (i + 1) + "行缺少名称（件号/数量/备注已有值），请补全名称或删除该行";
-        }
-        if (nameVal !== "" && !hasOther) {
-            return label + "第" + (i + 1) + "行不完整（仅填写名称），请补全件号/数量/备注";
         }
     }
     return null;
 }
 
 document.getElementById("cardForm").addEventListener("submit", function(e) {
+    var code = document.querySelector('input[name=task_code]');
+    if (code && isBlank(code.value)) {
+        e.preventDefault();
+        window.safeToast("工卡号不能为空", 'warning');
+        return false;
+    }
+    var name = document.querySelector('input[name=task_name]');
+    if (name && isBlank(name.value)) {
+        e.preventDefault();
+        window.safeToast("工卡名称不能为空", 'warning');
+        return false;
+    }
     var category = document.querySelector('select[name=category]');
-    if (category && !category.value.trim()) {
+    if (category && isBlank(category.value)) {
         e.preventDefault();
         window.safeToast("专业不能为空", 'warning');
         return false;
@@ -226,12 +241,12 @@ document.getElementById("cardForm").addEventListener("submit", function(e) {
     }
     if (toolTbody) {
         toolTbody.querySelectorAll("input[type=text]").forEach(function(inp) {
-            if (inp.value.trim()) toolHasContent = true;
+            if (!isBlank(inp.value)) toolHasContent = true;
         });
     }
     if (matTbody) {
         matTbody.querySelectorAll("input[type=text]").forEach(function(inp) {
-            if (inp.value.trim()) matHasContent = true;
+            if (!isBlank(inp.value)) matHasContent = true;
         });
     }
     if (!toolHasContent && !confirmNoTools.checked) {

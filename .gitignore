@@ -76,3 +76,8 @@ env/
 *.swo
 .DS_Store
 Thumbs.db
+
+# ===== 临时/冗余工作目录 =====
+.opxltmp/
+.workbuddy/
+uv.lock

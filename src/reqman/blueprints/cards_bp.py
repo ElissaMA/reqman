@@ -6,6 +6,8 @@ from flask import Blueprint, current_app, flash, jsonify, redirect, render_templ
 
 from ..config import CATEGORIES, TASK_TYPES, USAGE_TYPES
 from ..services.card_service import ServiceError
+from ..utils.error_handlers import ValidationError
+from ..utils.validators import validate_required
 
 logger = logging.getLogger(__name__)
 
@@ -60,34 +62,14 @@ def _parse_and_validate_tools_mats(redirect_url):
     return tools, materials, tools_confirmed, materials_confirmed, None
 
 
-def _validate_required(fields, redirect_url):
-    """校验必填字段，fields 为 [(值, 字段名)] 列表。返回错误响应或 None。"""
-    for value, label in fields:
-        if not value:
-            msg = f"{label}不能为空"
-            if _is_ajax():
-                return jsonify({"success": False, "message": msg})
-            flash(msg, "error")
-            return redirect(redirect_url)
-    return None
-
-
 @cards_bp.route("/card/new", methods=["GET", "POST"])
 def card_new():
     """新增工卡"""
     if request.method == "POST":
         try:
-            task_code = request.form.get("task_code", "").strip()
-            if not task_code:
-                if _is_ajax():
-                    return jsonify({"success": False, "message": "工卡号不能为空"})
-                flash("工卡号不能为空", "error")
-                return redirect("/card/new")
+            task_code = validate_required(request.form, "task_code", "工卡号")
 
-            task_name = request.form.get("task_name", "").strip()
-            err_resp = _validate_required([(task_name, "工卡名称")], "/card/new")
-            if err_resp:
-                return err_resp
+            task_name = validate_required(request.form, "task_name", "工卡名称")
 
             tools, materials, tools_confirmed, materials_confirmed, err = _parse_and_validate_tools_mats("/card/new")
             if err:
@@ -95,7 +77,7 @@ def card_new():
             current_app.extensions['card_service'].add_card(
                 task_code=task_code,
                 task_name=task_name,
-                category=request.form.get("category", "机体"),
+                category=validate_required(request.form, "category", "专业"),
                 task_type=request.form.get("task_type", ""),
                 remark=request.form.get("remark", ""),
                 tools=tools,
@@ -108,7 +90,7 @@ def card_new():
             flash("工卡新增成功", "success")
             return redirect("/card/list")
 
-        except ServiceError as e:
+        except (ServiceError, ValidationError) as e:
             if _is_ajax():
                 return jsonify({"success": False, "message": e.message})
             flash(e.message, "error")
@@ -146,10 +128,7 @@ def card_edit(card_id):
 
     if request.method == "POST":
         try:
-            task_name = request.form.get("task_name", "").strip()
-            err_resp = _validate_required([(task_name, "工卡名称")], f"/card/{card_id}/edit")
-            if err_resp:
-                return err_resp
+            task_name = validate_required(request.form, "task_name", "工卡名称")
             tools, materials, tools_confirmed, materials_confirmed, err = _parse_and_validate_tools_mats(f"/card/{card_id}/edit")
             if err:
                 return err
@@ -157,7 +136,7 @@ def card_edit(card_id):
                 card_id,
                 task_code=request.form.get("task_code", card["task_code"]),
                 task_name=task_name,
-                category=request.form.get("category", "机体"),
+                category=validate_required(request.form, "category", "专业"),
                 task_type=request.form.get("task_type", ""),
                 remark=request.form.get("remark", ""),
                 tools=tools,
@@ -170,7 +149,7 @@ def card_edit(card_id):
             flash("工卡更新成功", "success")
             return redirect("/card/list")
 
-        except ServiceError as e:
+        except (ServiceError, ValidationError) as e:
             if _is_ajax():
                 return jsonify({"success": False, "message": e.message})
             flash(e.message, "error")
@@ -279,11 +258,8 @@ def card_set_new():
     """新增工卡组"""
     if request.method == "POST":
         try:
-            category = request.form.get("category", "").strip()
+            category = validate_required(request.form, "category", "专业")
             card_codes = request.form.getlist("card_codes[]")
-            err_resp = _validate_required([(category, "专业")], "/card/sets/new")
-            if err_resp:
-                return err_resp
             if len(card_codes) < 2:
                 msg = "工卡组至少需要2个工卡"
                 if _is_ajax():
@@ -307,7 +283,7 @@ def card_set_new():
                 return jsonify({"success": True, "message": "工卡组新增成功"})
             flash("工卡组新增成功，工具/航材已同步至所有子工卡", "success")
             return redirect("/card/sets")
-        except ServiceError as e:
+        except (ServiceError, ValidationError) as e:
             if _is_ajax():
                 return jsonify({"success": False, "message": e.message})
             flash(e.message, "error")
@@ -338,11 +314,8 @@ def card_set_edit(set_id):
 
     if request.method == "POST":
         try:
-            category = request.form.get("category", "").strip()
+            category = validate_required(request.form, "category", "专业")
             card_codes = request.form.getlist("card_codes[]")
-            err_resp = _validate_required([(category, "专业")], f"/card/sets/{set_id}/edit")
-            if err_resp:
-                return err_resp
             if len(card_codes) < 2:
                 msg = "工卡组至少需要2个工卡"
                 if _is_ajax():
@@ -367,7 +340,7 @@ def card_set_edit(set_id):
                 return jsonify({"success": True, "message": "工卡组更新成功"})
             flash("工卡组更新成功，工具/航材已同步至所有子工卡", "success")
             return redirect("/card/sets")
-        except ServiceError as e:
+        except (ServiceError, ValidationError) as e:
             if _is_ajax():
                 return jsonify({"success": False, "message": e.message})
             flash(e.message, "error")
@@ -431,12 +404,7 @@ def aircraft_new():
         return render_template("cards/aircraft_form.html", ac=None, edit_mode=False)
 
     try:
-        reg = request.form.get("reg", "").strip()
-        if not reg:
-            if _is_ajax():
-                return jsonify({"success": False, "message": "机号不能为空"})
-            flash("机号不能为空", "error")
-            return redirect("/card/aircraft")
+        reg = validate_required(request.form, "reg", "机号")
 
         current_app.extensions['card_service'].add_aircraft(
             reg=reg,
@@ -451,7 +419,7 @@ def aircraft_new():
         flash("飞机信息新增成功", "success")
         return redirect("/card/aircraft")
 
-    except ServiceError as e:
+    except (ServiceError, ValidationError) as e:
         if _is_ajax():
             return jsonify({"success": False, "message": e.message})
         flash(e.message, "error")
@@ -494,7 +462,7 @@ def aircraft_edit(aircraft_id):
         flash("飞机信息更新成功", "success")
         return redirect("/card/aircraft")
 
-    except ServiceError as e:
+    except (ServiceError, ValidationError) as e:
         if _is_ajax():
             return jsonify({"success": False, "message": e.message})
         flash(e.message, "error")

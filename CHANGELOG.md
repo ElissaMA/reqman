@@ -1,5 +1,19 @@
 # Changelog
 
+## [3.2.4] - Unreleased
+### Fixed
+- 空值校验统一：全角空格/零宽字符/BOM 等不可见字符视为空值（validators.py 新增 is_blank/clean_text）
+- 必填校验统一走 validate_required（删除 cards_bp._validate_required），工卡新增/编辑补专业必填
+- 工具/航材行名称必填，件号/数量/备注可选（删除"仅填写名称"误拦截）
+- 使用类型为空时兜底"必须使用"
+- 新增工具/航材行数量默认值取消（默认空白），空数量存空且 Excel 数量列输出空
+- 工卡组已选工卡恒渲染（loadAllCards 重构），≥2 工卡判断基于完整已选工卡
+- 移除 form_generator category 分组兜底，严格要求数据含 category
+
+### Changed
+- 依赖源统一：pyproject.toml 为唯一依赖源，删除 requirements.txt / requirements-dev.txt（dev 依赖并入 [dev] extra，补充 pytest-playwright>=0.5.0）
+- deploy.sh 改用 `pip install -e .` 安装
+
 ## [3.2.3] - 2026-08-12
 ### Fixed
 - toast 全局不可见（Bootstrap .toast:not(.show) display:none 覆盖自定义样式）

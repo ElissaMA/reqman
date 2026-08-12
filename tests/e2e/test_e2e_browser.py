@@ -123,7 +123,8 @@ def test_validation_toasts(page, server_base):
     assert "专业不能为空" in t1, f"空专业toast不符: {t1!r}"
     popup1.close()
 
-    # 场景2：半空行（仅填工具名称）→ toast 行不完整
+    # 场景2：半空行（名称空但有件号）→ toast "缺少名称"
+    # 注：新规格删除"仅填写名称"拦截（名称是必需字段，其他可选），故本场景改为验证"缺少名称"方向
     with page.expect_popup() as pi2:
         page.click("a[onclick*='/card/new']")
     popup2 = pi2.value
@@ -134,11 +135,11 @@ def test_validation_toasts(page, server_base):
     popup2.select_option("select[name=category]", label="发动机")
     popup2.select_option("select[name=task_type]", "A")
     popup2.click("button[onclick*=\"addRow('tool')\"]")
-    popup2.locator("#toolTable tbody input[name='tool_name[]']").last.fill("仅名称工具")
+    popup2.locator("#toolTable tbody input[name='tool_pn[]']").last.fill("PN-001")
     popup2.click("button[type=submit]")
     popup2.wait_for_selector("#toastContainer .toast", timeout=5000)
     t2 = popup2.locator("#toastContainer .toast").last.inner_text()
-    assert ("不完整" in t2) or ("半空" in t2), f"半空行toast不符: {t2!r}"
+    assert "缺少名称" in t2, f"半空行toast不符: {t2!r}"
     popup2.close()
 
     # 场景3：未勾选确认无工具 → toast "请添加工具或确认无工具"
@@ -210,4 +211,42 @@ def test_logs_pagination_ui(page, server_base):
     page.wait_for_load_state("load")
     new_id = page.locator(".log-table tbody tr").first.locator("td").first.inner_text()
     assert new_id != first_id, "翻页后首行日志未变化"
+
+
+# ---------- 8. 3.2.4：数量无默认（新增行数量为空） ----------
+def test_qty_no_default_new_row(page, server_base):
+    """新增工具行：数量输入框无默认值（3.2.4，不再默认"1"）。"""
+    page.goto(server_base + "/card/new")
+    page.wait_for_selector("input[name=task_code]")
+    page.click("button[onclick*=\"addRow('tool')\"]")
+    qty = page.locator("#toolTable tbody input[name='tool_qty[]']").last
+    page.wait_for_selector("#toolTable tbody input[name='tool_qty[]']")
+    assert qty.input_value() == "", f"新增行数量应有默认值(空)，实际: {qty.input_value()!r}"
+
+
+# ---------- 9. 3.2.4：工卡组已选工卡恒渲染 ----------
+def test_set_form_selected_persist(page, server_base):
+    """工卡组新增页：勾选工卡后，清空搜索/搜索不匹配词 → 已选工卡恒显示且保持勾选（3.2.4）。"""
+    page.goto(server_base + "/card/sets/new")
+    page.wait_for_selector("#cardSearch")
+
+    # 搜索并勾选第一张工卡
+    search = page.locator("#cardSearch")
+    search.fill("CSC")
+    page.wait_for_selector("#cardTableBody input[name='card_codes[]']", timeout=5000)
+    cb = page.locator("#cardTableBody input[name='card_codes[]']").first
+    cb.check()
+    code = cb.get_attribute("value")
+    assert code, "勾选的工卡缺少value"
+
+    # 场景A：清空搜索 → 已选工卡仍显示且保持勾选
+    search.fill("")
+    page.wait_for_selector(f"#cardTableBody input[value=\"{code}\"]", timeout=5000)
+    assert page.locator(f"#cardTableBody input[value=\"{code}\"]").is_checked(), "清空搜索后已选卡未保持勾选"
+
+    # 场景B：搜索不匹配词 → 已选工卡仍显示（unmatchedSelected 补充）
+    search.fill("ZZZZ-不存在的卡")
+    page.wait_for_timeout(500)
+    assert page.locator(f"#cardTableBody input[value=\"{code}\"]").count() == 1, "搜索不匹配词后已选卡消失"
+    assert page.locator(f"#cardTableBody input[value=\"{code}\"]").is_checked(), "搜索不匹配词后已选卡未保持勾选"
 

@@ -58,6 +58,18 @@ def browser_type_launch_args(browser_type_launch_args):
     """有头模式（headless=False），E2E_HEADLESS=1 可切无头。"""
     return {**browser_type_launch_args, "headless": os.getenv("E2E_HEADLESS", "0") == "0"}
 
+@pytest.fixture()
+def page(context, request):
+    """自定义 page：提高导航/操作超时（慢CDN兜底），避免 flaky goto 超时。
+
+    bootstrap CDN 偶发加载慢会阻塞 load 事件导致默认 30s 导航超时（环境网络问题，非应用缺陷）。
+    """
+    page = context.new_page()
+    page.set_default_navigation_timeout(90000)
+    page.set_default_timeout(90000)
+    yield page
+    page.close()
+
 
 @pytest.fixture(scope="session")
 def flask_server(tmp_path_factory):

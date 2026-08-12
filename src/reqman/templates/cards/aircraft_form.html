@@ -54,10 +54,30 @@
 
 {% block scripts %}
 <script>
+// 空值判断：null/undefined/空串/纯空白/不可见字符（全角空格、零宽、BOM） → true
+function isBlank(s) {
+    if (s === null || s === undefined) return true;
+    return /^[\s\u00a0\u3000\u200b\u200c\u200d\u200e\u200f\u2028\u2029\u202f\u205f\u2060\ufeff]*$/.test(String(s));
+}
+
+document.getElementById("acForm").addEventListener("submit", function(e) {
+    var reg = document.querySelector('input[name=reg]');
+    if (reg && isBlank(reg.value)) {
+        e.preventDefault();
+        window.safeToast("机号不能为空", 'warning');
+        return false;
+    }
+});
+
 // 如果是从其他页面 window.open() 打开的，AJAX提交成功后自动关闭并通知父页刷新
 if (window.opener) {
     document.getElementById("acForm").addEventListener("submit", function(e) {
         e.preventDefault();
+        var reg = document.querySelector('input[name=reg]');
+        if (reg && isBlank(reg.value)) {
+            window.safeToast("机号不能为空", 'warning');
+            return false;
+        }
         var form = this;
         var formData = new FormData(form);
         var acId = '{{ ac.id if ac else "" }}';

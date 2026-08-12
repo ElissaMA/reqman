@@ -204,9 +204,68 @@ class TestToolMaterialParsing:
         assert tools[1]["part_number"] == "PN-002"
         assert tools[1]["quantity"] == "3"
 
+    # ---------- 3.2.4：数量无默认（空存空，不再默认"1"） ----------
+
+    def test_quantity_empty_when_missing(self):
+        """未填数量 → 存空字符串（不默认"1"）"""
+        tools, _mats = self._call(tool_names=["扳手"])
+        assert tools[0]["quantity"] == ""
+
+    def test_quantity_empty_when_blank(self):
+        """数量为空白/不可见字符 → 存空字符串"""
+        for blank in ("", "  ", "\u3000", "\u200b"):
+            form = _make_form(tool_name=["扳手"], tool_qty=[blank])
+            tools, _mats = CardService.parse_tools_mats(form)
+            assert tools[0]["quantity"] == "", f"blank={blank!r} 应存空"
+
+    def test_quantity_trimmed(self):
+        """数量两侧空白被清理"""
+        form = _make_form(tool_name=["扳手"], tool_qty=[" 5 "])
+        tools, _mats = CardService.parse_tools_mats(form)
+        assert tools[0]["quantity"] == "5"
+
+    def test_quantity_empty_material(self):
+        """航材数量同样空存空"""
+        _tools, mats = self._call(mat_names=["垫片"])
+        assert mats[0]["quantity"] == ""
+
     def test_empty_names_skipped(self):
         tools, _mats = self._call(tool_names=["扳手", "", "螺丝刀", "  "])
         assert len(tools) == 2  # 空字符串和纯空格被跳过
+
+    # ---------- 任务 #019ff49b：不可见字符（零宽/全角空格）处理 ----------
+
+    @pytest.mark.parametrize("invisible", ["\u200b", "\u200c", "\u200d", "\ufeff", "\u3000"])
+    def test_usage_type_invisible_falls_back(self, invisible):
+        """usage_type 为零宽/全角等不可见字符 → 兜底为"必须使用" """
+        form = _make_form(tool_name=["扳手"], tool_type=[invisible])
+        tools, _mats = CardService.parse_tools_mats(form)
+        assert tools[0]["usage_type"] == "必须使用"
+
+    def test_usage_type_blank_falls_back(self):
+        """usage_type 纯空白 → 兜底为"必须使用"（与空值一致）"""
+        form = _make_form(tool_name=["扳手"], tool_type=["   "])
+        tools, _mats = CardService.parse_tools_mats(form)
+        assert tools[0]["usage_type"] == "必须使用"
+
+    def test_usage_type_normal_kept(self):
+        form = _make_form(tool_name=["扳手"], tool_type=["工具房"])
+        tools, _mats = CardService.parse_tools_mats(form)
+        assert tools[0]["usage_type"] == "工具房"
+
+    @pytest.mark.parametrize("invisible", ["\u200b", "\u3000", "\ufeff"])
+    def test_half_empty_name_invisible_raises(self, invisible):
+        """名称是不可见字符但件号/数量等有值 → 半空行必须拒绝"""
+        form = _make_form(tool_name=[invisible], tool_pn=["PN-001"], tool_qty=["1"])
+        with pytest.raises(ServiceError, match="缺少名称"):
+            CardService.parse_tools_mats(form)
+
+    @pytest.mark.parametrize("invisible", ["\u200b", "\u3000", "\ufeff"])
+    def test_invisible_name_only_skipped(self, invisible):
+        """名称是不可见字符且其他字段全空 → 视为空行跳过，不产生幽灵数据"""
+        form = _make_form(tool_name=[invisible])
+        tools, _mats = CardService.parse_tools_mats(form)
+        assert tools == []
 
 
 def _make_form(**fields):

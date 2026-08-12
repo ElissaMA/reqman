@@ -168,6 +168,7 @@ class TestEditCard:
         """AJAX 编辑工卡成功"""
         resp = prefilled_client.post(self._edit_url(1), data={
             "task_name": "发动机检查(更新)",
+            "category": "发动机",
             "task_type": "B",
             "confirm_no_tools": "1",
             "confirm_no_mats": "1",
@@ -180,6 +181,7 @@ class TestEditCard:
         """AJAX 编辑时更新工具航材"""
         resp = prefilled_client.post(self._edit_url(1), data={
             "task_name": "带工具的工卡",
+            "category": "发动机",
             "tool_name[]": ["新工具"],
             "tool_pn[]": ["NT-001"],
             "tool_qty[]": ["1"],
@@ -202,6 +204,7 @@ class TestEditCard:
         """编辑时确认无工具航材"""
         resp = prefilled_client.post(self._edit_url(1), data={
             "task_name": "无工具航材",
+            "category": "发动机",
             "confirm_no_tools": "1",
             "confirm_no_mats": "1",
         }, headers=ajax_headers)

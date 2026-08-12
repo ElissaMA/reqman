@@ -12,6 +12,7 @@ from __future__ import annotations
 import logging
 
 from ..models.json_store import JsonStore
+from ..utils.validators import clean_text, is_blank
 
 logger = logging.getLogger(__name__)
 
@@ -58,12 +59,12 @@ class CardService:
             types = form.getlist(fields[4])
 
             for i, name in enumerate(names):
-                name = name.strip()
-                if not name:
+                name = clean_text(name)
+                if is_blank(name):
                     # 半空行严格校验：名称空但其他字段有值 → 抛错（静默跳过会丢失数据）
                     has_partial = False
                     for field_list in (pns, qties, rems, types):
-                        if i < len(field_list) and field_list[i].strip():
+                        if i < len(field_list) and not is_blank(field_list[i]):
                             has_partial = True
                             break
                     if has_partial:
@@ -74,9 +75,9 @@ class CardService:
                 item = {
                     name_key: name,
                     "part_number": (pns[i].strip() if i < len(pns) else ""),
-                    "quantity": (qties[i].strip() if i < len(qties) else "1"),
+                    "quantity": (clean_text(qties[i]) if i < len(qties) else ""),
                     "remark": (rems[i].strip() if i < len(rems) else ""),
-                    "usage_type": (types[i].strip() if i < len(types) else "必须使用"),
+                    "usage_type": (clean_text(types[i]) if i < len(types) else "") or "必须使用",
                 }
 
                 (tools if prefix == "tool" else materials).append(item)
@@ -93,7 +94,7 @@ class CardService:
                  tools_confirmed: bool = False,
                  materials_confirmed: bool = False) -> dict:
         """新增工卡。code 重复时抛出 ServiceError"""
-        if not task_code.strip():
+        if is_blank(task_code):
             raise ServiceError("工卡号不能为空", "task_code")
 
         card = self.store.add(task_code.strip(), task_name.strip(),
@@ -140,7 +141,7 @@ class CardService:
                      tools_confirmed: bool = False,
                      materials_confirmed: bool = False) -> dict:
         """新增工卡组。所有组内工卡地位平等，共享工具/航材需求"""
-        if not name.strip():
+        if is_blank(name):
             raise ServiceError("工卡组名称不能为空", "name")
 
         set = self.store.add_set(name.strip(), description.strip(),
@@ -237,7 +238,7 @@ class CardService:
     def add_aircraft(self, reg: str, model: str = "",
                      engine: str = "", fsn: str = "", msn: str = "", apu: str = "") -> dict:
         """新增飞机。机号不能为空"""
-        if not reg.strip():
+        if is_blank(reg):
             raise ServiceError("机号不能为空", "reg")
         return self.store.add_aircraft(
             reg.strip(), model.strip(), engine.strip(),

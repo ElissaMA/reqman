@@ -270,7 +270,7 @@ git branch -d feature/xxx
 │   └── db.sh               # 数据库管理
 ├── venv/                   # Python 虚拟环境
 ├── .env                    # 环境变量
-└── requirements.txt        # Python 依赖
+└── pyproject.toml          # Python 依赖（唯一依赖源）
 ```
 
 ---

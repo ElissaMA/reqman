@@ -68,7 +68,7 @@ fi
 # ---------- 5. 安装 Python 依赖 ----------
 log "[5/10] 安装 Python 依赖..."
 ./venv/bin/pip install --upgrade pip -q
-./venv/bin/pip install -r requirements.txt -q
+./venv/bin/pip install -e . -q
 ./venv/bin/pip install gunicorn -q
 log "  依赖安装完成"
 
