@@ -167,14 +167,17 @@ if __name__ == "__main__":
 
     threading.Thread(target=wait_and_open, args=(port,), daemon=True).start()
 
+    # debug 跟随配置（开发模式 FLASK_ENV=development 时开启，模板自动重载）
+    debug = app.config.get("DEBUG", False)
+
     try:
-        app.run(debug=False, host="127.0.0.1", port=port)
+        app.run(debug=debug, host="127.0.0.1", port=port)
     except OSError as e:
         if "address already in use" in str(e).lower() or "权限" in str(e):
             print(f"[错误] 端口 {port} 仍被占用，尝试使用端口 {port + 1}...")
             port += 1
             try:
-                app.run(debug=False, host="127.0.0.1", port=port)
+                app.run(debug=debug, host="127.0.0.1", port=port)
             except OSError as e2:
                 print(f"[错误] 无法启动服务: {e2}")
                 sys.exit(1)

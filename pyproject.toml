@@ -1,6 +1,6 @@
 [project]
 name = "inspection-demand-system"
-version = "3.2.2"
+version = "3.2.3"
 description = "飞机定检需求单管理系统，工卡匹配与需求单自动生成工具"
 requires-python = ">=3.10"
 dependencies = [
@@ -25,6 +25,7 @@ markers = [
     "slow: 标记运行时间较长的测试（性能测试、大数据量测试），默认跳过",
     "integration: 标记集成测试和端到端测试",
     "unit: 标记单元测试（默认）",
+    "e2e: 有头浏览器端到端测试（playwright）",
 ]
 
 [tool.coverage.run]

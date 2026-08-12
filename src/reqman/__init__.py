@@ -3,7 +3,7 @@
 import logging
 import time
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 
 from .config import BASE_DIR, DB_FILE, MAX_CONTENT_LENGTH, SECRET_KEY
 from .utils.openpyxl_patch import apply_patches
@@ -131,6 +131,17 @@ def create_app():
 
     # 请求日志中间（增强版）
     app.wsgi_app = RequestLogMiddleware(app.wsgi_app)
+
+    # 全局 no-cache：确保浏览器始终加载最新页面/JS（静态文件除外）
+    @app.after_request
+    def add_no_cache_headers(response):
+        if not response.headers.get("Cache-Control") and \
+           not (response.mimetype in ("text/css", "application/javascript") or
+                request.path.startswith("/static/")):
+            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        return response
 
     logger.info("应用初始化完成")
     return app

@@ -19,7 +19,7 @@
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small">专业</label>
-                    <select class="form-select form-select-sm" name="category" required>
+                    <select class="form-select form-select-sm" name="category">
                         <option value="">请选择专业</option>
                         {% for c in categories %}
                         <option value="{{ c }}" {{ 'selected' if set and set.category == c }}>{{ c }}</option>
@@ -304,15 +304,59 @@ function addRow(type) {
     tbody.appendChild(tr);
 }
 
+// 逐行校验：名称空但其他有值 → 缺少名称；名称有值但件号/数量(排除默认1)/备注全空 → 半空不完整
+function findRowIssue(tbody, label) {
+    if (!tbody) return null;
+    var rows = tbody.querySelectorAll("tr");
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        var name = row.querySelector("input[name$='_name[]']");
+        var pn = row.querySelector("input[name$='_pn[]']");
+        var qty = row.querySelector("input[name$='_qty[]']");
+        var remark = row.querySelector("input[name$='_remark[]']");
+        var nameVal = name ? name.value.trim() : "";
+        var pnVal = pn ? pn.value.trim() : "";
+        var qtyVal = qty ? qty.value.trim() : "";
+        var remarkVal = remark ? remark.value.trim() : "";
+        var qtyReal = (qtyVal !== "" && qtyVal !== "1"); // qty 默认值 "1" 不视为实质内容
+        var hasOther = (pnVal !== "" || qtyReal || remarkVal !== "");
+        if (nameVal === "" && hasOther) {
+            return label + "第" + (i + 1) + "行缺少名称（件号/数量/备注已有值），请补全名称或删除该行";
+        }
+        if (nameVal !== "" && !hasOther) {
+            return label + "第" + (i + 1) + "行不完整（仅填写名称），请补全件号/数量/备注";
+        }
+    }
+    return null;
+}
+
 // Submit: 校验 + 弹窗场景AJAX提交（自动关闭并通知父页刷新）
 document.getElementById("setForm").addEventListener("submit", function(e) {
+    var category = document.querySelector('select[name=category]');
+    if (category && !category.value.trim()) {
+        e.preventDefault();
+        window.safeToast("专业不能为空", 'warning');
+        return false;
+    }
     if (selectedCards.length < 2) {
         e.preventDefault();
-        window.showToast("工卡组至少需要2个工卡", 'warning');
+        window.safeToast("工卡组至少需要2个工卡", 'warning');
         return false;
     }
     var toolTbody = document.querySelector("#toolTable tbody");
     var matTbody = document.querySelector("#matTable tbody");
+    var toolIssue = findRowIssue(toolTbody, "工具");
+    if (toolIssue) {
+        e.preventDefault();
+        window.safeToast(toolIssue, 'warning');
+        return false;
+    }
+    var matIssue = findRowIssue(matTbody, "航材");
+    if (matIssue) {
+        e.preventDefault();
+        window.safeToast(matIssue, 'warning');
+        return false;
+    }
     var toolHasContent = false, matHasContent = false;
     if (toolTbody) {
         toolTbody.querySelectorAll("input[type=text]").forEach(function(inp) {
@@ -334,12 +378,12 @@ document.getElementById("setForm").addEventListener("submit", function(e) {
     }
     if (!toolHasContent && !confirmNoTools.checked) {
         e.preventDefault();
-        window.showToast("请添加工具或确认无工具", 'warning');
+        window.safeToast("请添加工具或确认无工具", 'warning');
         return false;
     }
     if (!matHasContent && !confirmNoMats.checked) {
         e.preventDefault();
-        window.showToast("请添加航材或确认无航材", 'warning');
+        window.safeToast("请添加航材或确认无航材", 'warning');
         return false;
     }
 
@@ -361,12 +405,13 @@ document.getElementById("setForm").addEventListener("submit", function(e) {
         }).then(function(d) {
             window.hideLoader();
             if (d && d.success) {
+                window.safeToast('保存成功', 'success');
                 if (window.opener && !window.opener.closed) {
                     window.opener.postMessage({ type: 'cardSetSaved', set_id: set_id, scrollY: window.opener.scrollY }, '*');
                 }
-                window.close();
+                setTimeout(function() { window.close(); }, 800);
             } else {
-                window.showToast((d && d.message) || '保存失败', 'error');
+                window.safeToast((d && d.message) || '保存失败', 'error');
             }
         }).catch(function() {
             window.hideLoader();

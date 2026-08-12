@@ -60,6 +60,15 @@ class CardService:
             for i, name in enumerate(names):
                 name = name.strip()
                 if not name:
+                    # 半空行严格校验：名称空但其他字段有值 → 抛错（静默跳过会丢失数据）
+                    has_partial = False
+                    for field_list in (pns, qties, rems, types):
+                        if i < len(field_list) and field_list[i].strip():
+                            has_partial = True
+                            break
+                    if has_partial:
+                        label = "工具" if prefix == "tool" else "航材"
+                        raise ServiceError(f"{label}第{i + 1}行缺少名称（件号/数量/备注等已有值），请补全名称或删除该行", f"{prefix}_name")
                     continue
 
                 item = {

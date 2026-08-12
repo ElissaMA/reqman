@@ -87,7 +87,7 @@
             gap: 8px;
             pointer-events: none;
         }
-        .toast {
+        .toast-container .toast {
             padding: 12px 20px;
             border-radius: 8px;
             color: #fff;
@@ -100,10 +100,10 @@
             align-items: center;
             gap: 8px;
         }
-        .toast.success { background: #2e7d32; }
-        .toast.error { background: #c62828; }
-        .toast.info { background: #1565c0; }
-        .toast.warning { background: #e65100; }
+        .toast-container .toast.success { background: #2e7d32; }
+        .toast-container .toast.error { background: #c62828; }
+        .toast-container .toast.info { background: #1565c0; }
+        .toast-container .toast.warning { background: #e65100; }
         @keyframes toastIn {
             from { opacity: 0; transform: translateX(40px); }
             to { opacity: 1; transform: translateX(0); }
@@ -227,13 +227,35 @@
         container.appendChild(toast);
         setTimeout(function() { toast.remove(); }, 4000);
     };
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-    {% for category, message in messages %}
-    showToast({{ message|tojson }}, {{ ('success' if category == 'success' else 'error' if category == 'error' else 'info')|tojson }});
-    {% endfor %}
-    {% endif %}
-    {% endwith %}
+    // safeToast 兜底：showToast 异常（如容器缺失/JS 版本不匹配）时降级 alert，绝不静默失败
+    window.safeToast = function(message, type) {
+        try {
+            if (typeof window.showToast === 'function' && document.getElementById('toastContainer')) {
+                window.showToast(message, type);
+            } else {
+                window.alert(message);
+            }
+        } catch (e) {
+            window.alert(message);
+        }
+    };
+    // flash 时序修复：toastContainer 位于 body 末尾，须等 DOM 就绪后再渲染 flash
+    window.renderFlashes = function() {
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        safeToast({{ message|tojson }}, {{ ('success' if category == 'success' else 'error' if category == 'error' else 'info')|tojson }});
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+    };
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            window.renderFlashes();
+        });
+    } else {
+        window.renderFlashes();
+    }
 </script>
 
 {# 公共列表筛选/排序：供各列表页复用 #}

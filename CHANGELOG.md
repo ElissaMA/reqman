@@ -1,5 +1,22 @@
 # Changelog
 
+## [3.2.3] - 2026-08-12
+### Fixed
+- toast 全局不可见（Bootstrap .toast:not(.show) display:none 覆盖自定义样式）
+- flash 提示时序 Bug（renderFlashes + DOMContentLoaded）
+- 保存成功无反馈（toast + 延时关闭弹窗）
+- 0工具/航材幽灵输入行
+- 半空行静默丢弃（严格校验抛错）
+- category 原生 required 拦截校验提示
+### Added
+- pytest-playwright 有头浏览器 E2E 测试（tests/e2e/）
+- Flask 全局 no-cache 响应头
+- safeToast 兜底（alert 降级）
+- app.py debug 跟随 FLASK_ENV 配置
+### Changed
+- 测试流程与版本规则写入 agent.md（第13/14条）
+- 新增 requirements-dev.txt
+
 ## [3.2.2] - 2026-08-11
 ### Changed
 - 模板变量命名统一（card/set/ac/log）

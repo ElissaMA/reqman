@@ -18,12 +18,8 @@
             {% for t in tools %}
             {{ tool_row(t.device_name, t.part_number, t.quantity, t.remark, t.usage_type, usage_types, editable, show_delete, loop.index0) }}
             {% endfor %}
-            {% else %}
-            {% if editable %}
-            {{ tool_row("", "", "1", "", "必须使用", usage_types, editable, show_delete, 0) }}
-            {% else %}
+            {% elif not editable %}
             <tr><td colspan="6" class="text-muted text-center py-2">无</td></tr>
-            {% endif %}
             {% endif %}
         </tbody>
     </table>
@@ -101,12 +97,8 @@
             {% for m in materials %}
             {{ material_row(m.material_name, m.part_number, m.quantity, m.remark, m.usage_type, usage_types, editable, show_delete, loop.index0) }}
             {% endfor %}
-            {% else %}
-            {% if editable %}
-            {{ material_row("", "", "1", "", "必须使用", usage_types, editable, show_delete, 0) }}
-            {% else %}
+            {% elif not editable %}
             <tr><td colspan="6" class="text-muted text-center py-2">无</td></tr>
-            {% endif %}
             {% endif %}
         </tbody>
     </table>

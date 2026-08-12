@@ -73,16 +73,17 @@ if (window.opener) {
         }).then(function(d) {
             window.hideLoader();
             if (d && d.success) {
+                window.safeToast('保存成功', 'success');
                 if (window.opener && !window.opener.closed) {
                     window.opener.postMessage({ type: 'aircraftSaved' }, '*');
                 }
-                window.close();
+                setTimeout(function() { window.close(); }, 800);
             } else {
-                window.showToast((d && d.message) || '保存失败', 'error');
+                window.safeToast((d && d.message) || '保存失败', 'error');
             }
         }).catch(function() {
             window.hideLoader();
-            window.showToast('提交失败，请重试', 'error');
+            window.safeToast('提交失败，请重试', 'error');
         });
     });
 }
