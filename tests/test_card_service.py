@@ -112,6 +112,80 @@ class TestCardSetManagement:
         assert len(card_service.list_card_sets()) == 2
 
 
+class TestSetConfirmedSync:
+    """sync_set_to_cards：工卡组 tools_confirmed/materials_confirmed 同步到子卡"""
+
+    def _add_set_with_cards(self, svc, confirmed_t=False, confirmed_m=False,
+                            tools=None, materials=None):
+        """创建2张卡 + 1个含它们的工卡组，返回 (set_id, [card_ids])"""
+        c1 = svc.add_card("SYNC-001", "同步卡1", "发动机", "A", "")
+        c2 = svc.add_card("SYNC-002", "同步卡2", "发动机", "A", "")
+        r = svc.add_card_set(name="同步组", description="", category="发动机",
+                             card_codes=["SYNC-001", "SYNC-002"],
+                             tools=tools, materials=materials,
+                             tools_confirmed=confirmed_t,
+                             materials_confirmed=confirmed_m)
+        return r["id"], [c1["id"], c2["id"]]
+
+    def test_new_set_syncs_confirmed_to_cards(self, card_service):
+        """新建工卡组：tools/materials_confirmed=True 同步到组内所有子卡"""
+        _set_id, card_ids = self._add_set_with_cards(
+            card_service, confirmed_t=True, confirmed_m=True)
+        for cid in card_ids:
+            card = card_service.get_card(cid)
+            assert card["tools_confirmed"] is True
+            assert card["materials_confirmed"] is True
+
+    def test_new_set_default_confirmed_false(self, card_service):
+        """新建工卡组：默认 confirmed=False，子卡同步为 False"""
+        _set_id, card_ids = self._add_set_with_cards(card_service)
+        for cid in card_ids:
+            card = card_service.get_card(cid)
+            assert card["tools_confirmed"] is False
+            assert card["materials_confirmed"] is False
+
+    def test_new_set_syncs_tools_materials(self, card_service):
+        """新建工卡组：tools/materials 列表同步到组内子卡"""
+        tools = [{"device_name": "扳手", "part_number": "W-001"}]
+        materials = [{"material_name": "密封胶", "part_number": "M-001"}]
+        _set_id, card_ids = self._add_set_with_cards(
+            card_service, tools=tools, materials=materials)
+        for cid in card_ids:
+            card = card_service.get_card(cid)
+            assert card["tools"] == tools
+            assert card["materials"] == materials
+
+    def test_update_set_syncs_confirmed_to_cards(self, card_service):
+        """编辑工卡组：修改 tools/materials_confirmed 后子卡同步更新"""
+        set_id, card_ids = self._add_set_with_cards(card_service)
+        card_service.update_card_set(set_id, tools_confirmed=True,
+                                     materials_confirmed=True)
+        for cid in card_ids:
+            card = card_service.get_card(cid)
+            assert card["tools_confirmed"] is True
+            assert card["materials_confirmed"] is True
+
+    def test_update_set_keep_confirmed_when_not_changed(self, card_service):
+        """编辑工卡组：不传 confirmed（None）时子卡保持原值"""
+        set_id, card_ids = self._add_set_with_cards(
+            card_service, confirmed_t=True, confirmed_m=True)
+        card_service.update_card_set(set_id, name="改名")  # 不动 confirmed
+        for cid in card_ids:
+            card = card_service.get_card(cid)
+            assert card["tools_confirmed"] is True
+            assert card["materials_confirmed"] is True
+
+    def test_sync_does_not_affect_cards_outside_set(self, card_service):
+        """同步不影响组外卡（set_id 不匹配）"""
+        outside = card_service.add_card("SYNC-OUT-001", "组外卡", "发动机", "A", "")
+        card_service.add_card_set(name="空组", description="", category="发动机",
+                                  card_codes=[], tools_confirmed=True,
+                                  materials_confirmed=True)
+        card = card_service.get_card(outside["id"])
+        assert card["tools_confirmed"] is False
+        assert card["materials_confirmed"] is False
+
+
 class TestAircraftManagement:
     def test_add_aircraft(self, card_service):
         r = card_service.add_aircraft(reg="B-1234", model="A320", engine="CFM56",

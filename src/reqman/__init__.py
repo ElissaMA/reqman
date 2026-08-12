@@ -1,4 +1,4 @@
-"""定检需求单管理系统 V3 — Flask 应用工厂"""
+"""定检需求单管理系统 — Flask 应用工厂"""
 
 import logging
 import time

@@ -540,10 +540,14 @@ class JsonStore:
                 return
             tools = set.get("tools", [])
             materials = set.get("materials", [])
+            tools_confirmed = set.get("tools_confirmed", False)
+            materials_confirmed = set.get("materials_confirmed", False)
             for card in db.get("cards", {}).values():
                 if card.get("set_id") == set_id:
                     card["tools"] = list(tools)
                     card["materials"] = list(materials)
+                    card["tools_confirmed"] = tools_confirmed
+                    card["materials_confirmed"] = materials_confirmed
             self._write(db)
 
     # ---------- 日志查询 ----------
