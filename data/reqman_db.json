@@ -1958,8 +1958,8 @@
       "tools": [],
       "materials": [],
       "set_id": 954,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "64": {
@@ -1981,7 +1981,7 @@
       "materials": [],
       "set_id": 715,
       "tools_confirmed": false,
-      "materials_confirmed": false,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "65": {
@@ -2003,7 +2003,7 @@
       "materials": [],
       "set_id": 715,
       "tools_confirmed": false,
-      "materials_confirmed": false,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "66": {
@@ -2025,7 +2025,7 @@
       "materials": [],
       "set_id": 715,
       "tools_confirmed": false,
-      "materials_confirmed": false,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "67": {
@@ -2047,7 +2047,7 @@
       "materials": [],
       "set_id": 715,
       "tools_confirmed": false,
-      "materials_confirmed": false,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "68": {
@@ -2069,7 +2069,7 @@
       "materials": [],
       "set_id": 715,
       "tools_confirmed": false,
-      "materials_confirmed": false,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "69": {
@@ -2091,7 +2091,7 @@
       "materials": [],
       "set_id": 715,
       "tools_confirmed": false,
-      "materials_confirmed": false,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "70": {
@@ -2113,7 +2113,7 @@
       "materials": [],
       "set_id": 715,
       "tools_confirmed": false,
-      "materials_confirmed": false,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "71": {
@@ -2135,7 +2135,7 @@
       "materials": [],
       "set_id": 715,
       "tools_confirmed": false,
-      "materials_confirmed": false,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "72": {
@@ -2157,7 +2157,7 @@
       "materials": [],
       "set_id": 715,
       "tools_confirmed": false,
-      "materials_confirmed": false,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "73": {
@@ -2179,7 +2179,7 @@
       "materials": [],
       "set_id": 715,
       "tools_confirmed": false,
-      "materials_confirmed": false,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "74": {
@@ -2380,7 +2380,7 @@
         }
       ],
       "set_id": 977,
-      "tools_confirmed": false,
+      "tools_confirmed": true,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
     },
@@ -2416,7 +2416,7 @@
         }
       ],
       "set_id": 977,
-      "tools_confirmed": false,
+      "tools_confirmed": true,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
     },
@@ -2452,7 +2452,7 @@
         }
       ],
       "set_id": 977,
-      "tools_confirmed": false,
+      "tools_confirmed": true,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
     },
@@ -3970,7 +3970,7 @@
         }
       ],
       "set_id": 882,
-      "tools_confirmed": false,
+      "tools_confirmed": true,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
     },
@@ -4006,7 +4006,7 @@
         }
       ],
       "set_id": 882,
-      "tools_confirmed": false,
+      "tools_confirmed": true,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
     },
@@ -4153,7 +4153,7 @@
       "materials": [],
       "set_id": 972,
       "tools_confirmed": false,
-      "materials_confirmed": false,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "116": {
@@ -6107,7 +6107,7 @@
         },
         {
           "device_name": "塞尺",
-          "part_number": "",
+          "part_number": "SC-2",
           "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
@@ -6158,7 +6158,7 @@
         },
         {
           "device_name": "塞尺",
-          "part_number": "",
+          "part_number": "SC-2",
           "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
@@ -6210,7 +6210,7 @@
         }
       ],
       "set_id": 803,
-      "tools_confirmed": false,
+      "tools_confirmed": true,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
     },
@@ -6381,14 +6381,14 @@
           "material_name": "异丙醇",
           "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
           "quantity": "1",
-          "remark": "优先使用开封航化",
+          "remark": "优先使用二次航化",
           "usage_type": "必须使用"
         },
         {
           "material_name": "防腐剂",
           "part_number": "AV30",
           "quantity": "1",
-          "remark": "优先使用开封航化",
+          "remark": "优先使用二次航化",
           "usage_type": "必须使用"
         }
       ],
@@ -8935,7 +8935,7 @@
       "materials": [],
       "set_id": 715,
       "tools_confirmed": false,
-      "materials_confirmed": false,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "716": {
@@ -8957,7 +8957,7 @@
       "materials": [],
       "set_id": 715,
       "tools_confirmed": false,
-      "materials_confirmed": false,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "718": {
@@ -9070,7 +9070,7 @@
         }
       ],
       "set_id": 726,
-      "tools_confirmed": false,
+      "tools_confirmed": true,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
     },
@@ -9157,7 +9157,7 @@
         }
       ],
       "set_id": 726,
-      "tools_confirmed": false,
+      "tools_confirmed": true,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
     },
@@ -9477,7 +9477,7 @@
         }
       ],
       "set_id": 803,
-      "tools_confirmed": false,
+      "tools_confirmed": true,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
     },
@@ -9765,14 +9765,14 @@
           "material_name": "异丙醇",
           "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
           "quantity": "1",
-          "remark": "优先使用开封航化",
+          "remark": "优先使用二次航化",
           "usage_type": "必须使用"
         },
         {
           "material_name": "防腐剂",
           "part_number": "AV30",
           "quantity": "1",
-          "remark": "优先使用开封航化",
+          "remark": "优先使用二次航化",
           "usage_type": "必须使用"
         }
       ],
@@ -9809,14 +9809,14 @@
           "material_name": "异丙醇",
           "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
           "quantity": "1",
-          "remark": "优先使用开封航化",
+          "remark": "优先使用二次航化",
           "usage_type": "必须使用"
         },
         {
           "material_name": "防腐剂",
           "part_number": "AV30",
           "quantity": "1",
-          "remark": "优先使用开封航化",
+          "remark": "优先使用二次航化",
           "usage_type": "必须使用"
         }
       ],
@@ -9893,7 +9893,7 @@
         }
       ],
       "set_id": 803,
-      "tools_confirmed": false,
+      "tools_confirmed": true,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
     },
@@ -10326,7 +10326,7 @@
       "materials": [],
       "set_id": 867,
       "tools_confirmed": false,
-      "materials_confirmed": false,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "791": {
@@ -10483,7 +10483,7 @@
         }
       ],
       "set_id": 726,
-      "tools_confirmed": false,
+      "tools_confirmed": true,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
     },
@@ -10765,7 +10765,7 @@
         }
       ],
       "set_id": 814,
-      "tools_confirmed": false,
+      "tools_confirmed": true,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
     },
@@ -10787,7 +10787,7 @@
         }
       ],
       "set_id": 814,
-      "tools_confirmed": false,
+      "tools_confirmed": true,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
     },
@@ -11038,7 +11038,7 @@
       "materials": [],
       "set_id": 825,
       "tools_confirmed": false,
-      "materials_confirmed": false,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "824": {
@@ -11060,7 +11060,7 @@
       "materials": [],
       "set_id": 825,
       "tools_confirmed": false,
-      "materials_confirmed": false,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "826": {
@@ -11109,7 +11109,7 @@
         }
       ],
       "set_id": 879,
-      "tools_confirmed": false,
+      "tools_confirmed": true,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
     },
@@ -11145,7 +11145,7 @@
         }
       ],
       "set_id": 879,
-      "tools_confirmed": false,
+      "tools_confirmed": true,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
     },
@@ -11167,7 +11167,7 @@
         }
       ],
       "set_id": 896,
-      "tools_confirmed": false,
+      "tools_confirmed": true,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
     },
@@ -11189,7 +11189,7 @@
         }
       ],
       "set_id": 896,
-      "tools_confirmed": false,
+      "tools_confirmed": true,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
     },
@@ -11309,7 +11309,7 @@
         }
       ],
       "set_id": 840,
-      "tools_confirmed": false,
+      "tools_confirmed": true,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
     },
@@ -11345,7 +11345,7 @@
         }
       ],
       "set_id": 840,
-      "tools_confirmed": false,
+      "tools_confirmed": true,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
     },
@@ -11845,7 +11845,7 @@
         }
       ],
       "set_id": 853,
-      "tools_confirmed": false,
+      "tools_confirmed": true,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
     },
@@ -11881,7 +11881,7 @@
         }
       ],
       "set_id": 853,
-      "tools_confirmed": false,
+      "tools_confirmed": true,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
     },
@@ -12088,7 +12088,7 @@
       "materials": [],
       "set_id": 867,
       "tools_confirmed": false,
-      "materials_confirmed": false,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "868": {
@@ -14733,14 +14733,14 @@
           "material_name": "异丙醇",
           "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
           "quantity": "1",
-          "remark": "优先使用开封航化",
+          "remark": "优先使用二次航化",
           "usage_type": "必须使用"
         },
         {
           "material_name": "防腐剂",
           "part_number": "AV30",
           "quantity": "1",
-          "remark": "优先使用开封航化",
+          "remark": "优先使用二次航化",
           "usage_type": "必须使用"
         }
       ],
@@ -14777,14 +14777,14 @@
           "material_name": "异丙醇",
           "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
           "quantity": "1",
-          "remark": "优先使用开封航化",
+          "remark": "优先使用二次航化",
           "usage_type": "必须使用"
         },
         {
           "material_name": "防腐剂",
           "part_number": "AV30",
           "quantity": "1",
-          "remark": "优先使用开封航化",
+          "remark": "优先使用二次航化",
           "usage_type": "必须使用"
         }
       ],
@@ -14821,14 +14821,14 @@
           "material_name": "异丙醇",
           "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
           "quantity": "1",
-          "remark": "优先使用开封航化",
+          "remark": "优先使用二次航化",
           "usage_type": "必须使用"
         },
         {
           "material_name": "防腐剂",
           "part_number": "AV30",
           "quantity": "1",
-          "remark": "优先使用开封航化",
+          "remark": "优先使用二次航化",
           "usage_type": "必须使用"
         }
       ],
@@ -14865,14 +14865,14 @@
           "material_name": "异丙醇",
           "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
           "quantity": "1",
-          "remark": "优先使用开封航化",
+          "remark": "优先使用二次航化",
           "usage_type": "必须使用"
         },
         {
           "material_name": "防腐剂",
           "part_number": "AV30",
           "quantity": "1",
-          "remark": "优先使用开封航化",
+          "remark": "优先使用二次航化",
           "usage_type": "必须使用"
         }
       ],
