@@ -31,22 +31,22 @@ def _ensure_package_matched(pkg_data):
         return pkg_data
 
     store = _get_store()
-    svc = current_app.extensions['card_service']
+    service = current_app.extensions['card_service']
 
     all_items = pkg_data.get("all_items", [])
-    matched, new_cards, cancelled = match_work_package_items(all_items, store, svc)
+    matched, new_cards, cancelled = match_work_package_items(all_items, store, service)
 
     # 后处理：空工具+空航材+未确认的工卡从已匹配移入新工卡区域
     unconfirmed = []
     still_matched = []
     for item in matched:
-        db_card = store.find_by_code(item["task_code"])
-        if db_card:
-            tools = db_card.get("tools", [])
-            mats = db_card.get("materials", [])
-            tools_ok = db_card.get("tools_confirmed", False)
-            mats_ok = db_card.get("materials_confirmed", False)
-            if (not tools) and (not mats) and (not tools_ok) and (not mats_ok):
+        card = store.find_by_code(item["task_code"])
+        if card:
+            tools = card.get("tools", [])
+            materials = card.get("materials", [])
+            tools_ok = card.get("tools_confirmed", False)
+            materials_ok = card.get("materials_confirmed", False)
+            if (not tools) and (not materials) and (not tools_ok) and (not materials_ok):
                 item["status"] = "new"
                 item["unconfirmed"] = True
                 item["reason"] = "工具航材未完善"
@@ -106,11 +106,11 @@ def _dedup_matched(matched):
     """按 set_id 去重，每组只取第一条"""
     seen = set()
     for item in matched:
-        sid = item.get("set_id")
-        if sid:
-            if sid in seen:
+        set_id = item.get("set_id")
+        if set_id:
+            if set_id in seen:
                 continue
-            seen.add(sid)
+            seen.add(set_id)
         yield item
 
 
@@ -163,27 +163,27 @@ def _handle_generate_post(pkg_data: dict, package_id: str):
     }
 
     # 组装匹配数据（按set_id去重，同组只输出一套工具/航材）
-    matched_tools, matched_mats, spare_auto = [], [], []
+    matched_tools, matched_materials, spare_auto = [], [], []
 
     for item in _dedup_matched(pkg_data.get("matched", [])):
         task_name = item.get("task_name", "")
-        cat = item.get("category", "")
+        category = item.get("category", "")
         set_name = item.get("set_name", "")
 
         for t in item.get("tools", []):
-            matched_tools.append({**t, "category": cat, "task_name": task_name, "set_name": set_name})
+            matched_tools.append({**t, "category": category, "task_name": task_name, "set_name": set_name})
 
         for m in item.get("materials", []):
-            entry = {**m, "category": cat, "task_name": task_name, "set_name": set_name}
+            entry = {**m, "category": category, "task_name": task_name, "set_name": set_name}
             if m.get("usage_type") in ["", "必须使用"]:
-                matched_mats.append(entry)
+                matched_materials.append(entry)
             else:
                 spare_auto.append(entry)
 
     new_cards = pkg_data.get("new_cards", [])
     parsed_data = {
         "matched_tools": matched_tools,
-        "matched_materials": matched_mats,
+        "matched_materials": matched_materials,
         "spare_auto": spare_auto,
         "new_cards": new_cards,
     }
@@ -224,17 +224,6 @@ def _handle_generate_preview(pkg_data: dict, package_id: str):
     aircraft_info = pkg_data.get("aircraft_info", {})
     matched = pkg_data.get("matched", [])
     new_cards = pkg_data.get("new_cards", [])
-    cancelled = pkg_data.get("cancelled", [])
-    routine_count = pkg_data.get("routine_count", 0)
-    other_count = pkg_data.get("other_count", 0)
-
-    # 按set_id分组构建matched_sets
-    set_groups = {}
-    for item in matched:
-        sid = item.get("set_id")
-        if sid:
-            group = set_groups.setdefault(sid, {"set_name": item.get("set_name", ""), "cards": []})
-            group["cards"].append(item)
 
     # 分类排序权重
     cat_order = {"发动机": 0, "机体": 1, "电子": 2}
@@ -243,15 +232,15 @@ def _handle_generate_preview(pkg_data: dict, package_id: str):
     tool_preview, mat_preview, spare_preview = [], [], []
 
     for item in _dedup_matched(matched):
-        cat = item.get("category", "")
+        category = item.get("category", "")
         task_name = item.get("task_name", "")
         set_name = item.get("set_name", "")
 
         for t in item.get("tools", []):
-            tool_preview.append({**t, "category": cat, "task_name": task_name, "set_name": set_name})
+            tool_preview.append({**t, "category": category, "task_name": task_name, "set_name": set_name})
 
         for m in item.get("materials", []):
-            entry = {**m, "category": cat, "task_name": task_name, "set_name": set_name}
+            entry = {**m, "category": category, "task_name": task_name, "set_name": set_name}
             if m.get("usage_type") in ["", "必须使用"]:
                 mat_preview.append(entry)
             else:
@@ -261,36 +250,22 @@ def _handle_generate_preview(pkg_data: dict, package_id: str):
     for lst in [tool_preview, mat_preview, spare_preview]:
         lst.sort(key=lambda x: cat_order.get(x.get("category", ""), 99))
 
-    def _active_cats(lst):
-        return [c for c in CATEGORIES
-                if any(t.get("category") == c for t in lst)]
-
     def _group_by_category(lst):
         """按专业分组，返回 [(category, [items])]"""
         grouped = {}
         for item in lst:
-            cat = item.get("category", "")
-            grouped.setdefault(cat, []).append(item)
-        return [(cat, grouped[cat]) for cat in CATEGORIES if cat in grouped]
+            category = item.get("category", "")
+            grouped.setdefault(category, []).append(item)
+        return [(category, grouped[category]) for category in CATEGORIES if category in grouped]
 
     return render_template("generate/form.html",
                            has_data=True,
                            package_id=package_id,
                            aircraft_info=aircraft_info,
-                           tool_preview=tool_preview,
-                           material_preview=mat_preview,
-                           spare_auto=spare_preview,
                            new_cards=new_cards,
-                           cancelled=cancelled,
-                           matched_sets=set_groups,
                            conditions=CONDITIONS,
-                           tool_cats=_active_cats(tool_preview),
-                           mat_cats=_active_cats(mat_preview),
-                           spare_cats=_active_cats(spare_preview),
                            tool_groups=_group_by_category(tool_preview),
                            mat_groups=_group_by_category(mat_preview),
                            spare_groups=_group_by_category(spare_preview),
-                           routine_count=routine_count,
-                           other_count=other_count,
                            now=datetime.now(ZoneInfo("Asia/Shanghai")),
                            categories=CATEGORIES)

@@ -68,18 +68,18 @@
                     </tr>
                 </thead>
                 <tbody>
-                {% for l in logs %}
-                    {% set op_badge = {'add': 'bg-success', 'update': 'bg-primary', 'delete': 'bg-danger'}.get(l.operation, 'bg-secondary') %}
-                    {% set tt_badge = {'card': 'bg-info text-dark', 'set': 'bg-warning text-dark', 'aircraft': 'bg-secondary'}.get(l.target_type, 'bg-light text-dark') %}
-                    {% set changes = l.changes or [] %}
+                {% for log in logs %}
+                    {% set op_badge = {'add': 'bg-success', 'update': 'bg-primary', 'delete': 'bg-danger'}.get(log.operation, 'bg-secondary') %}
+                    {% set tt_badge = {'card': 'bg-info text-dark', 'set': 'bg-warning text-dark', 'aircraft': 'bg-secondary'}.get(log.target_type, 'bg-light text-dark') %}
+                    {% set changes = log.changes or [] %}
                     <tr>
-                        <td class="text-muted small">{{ l.display_id }}</td>
-                        <td class="text-muted small">{{ l.id }}</td>
-                        <td class="small" title="{{ l.timestamp or '' }}">{{ (l.timestamp or '')[:19] }}</td>
-                        <td><span class="badge {{ op_badge }}">{{ operation_labels.get(l.operation, l.operation) }}</span></td>
-                        <td><span class="badge {{ tt_badge }}">{{ target_type_labels.get(l.target_type, l.target_type) }}</span></td>
-                        <td><code class="small">{{ l.target_identifier or '' }}</code></td>
-                        <td class="small">{{ l.target_name or '' }}</td>
+                        <td class="text-muted small">{{ log.display_id }}</td>
+                        <td class="text-muted small">{{ log.id }}</td>
+                        <td class="small" title="{{ log.timestamp or '' }}">{{ (log.timestamp or '')[:19] }}</td>
+                        <td><span class="badge {{ op_badge }}">{{ operation_labels.get(log.operation, log.operation) }}</span></td>
+                        <td><span class="badge {{ tt_badge }}">{{ target_type_labels.get(log.target_type, log.target_type) }}</span></td>
+                        <td><code class="small">{{ log.target_identifier or '' }}</code></td>
+                        <td class="small">{{ log.target_name or '' }}</td>
                         <td class="small" style="max-width:350px">
                         {% if changes %}
                             {% set first = changes[0] %}

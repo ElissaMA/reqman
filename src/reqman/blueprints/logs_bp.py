@@ -74,25 +74,25 @@ def _build_filtered_logs(args: dict) -> list:
     # 按操作类型筛选
     operation = args.get("operation", "").strip()
     if operation:
-        logs = [l for l in logs if l.get("operation") == operation]
+        logs = [log for log in logs if log.get("operation") == operation]
 
     # 按目标类型筛选
     target_type = args.get("target_type", "").strip()
     if target_type:
-        logs = [l for l in logs if l.get("target_type") == target_type]
+        logs = [log for log in logs if log.get("target_type") == target_type]
 
     # 按关键词搜索（目标标识/目标名称）
     keyword = args.get("keyword", "").strip()
     if keyword:
         kw = keyword.lower()
-        logs = [l for l in logs if kw in (l.get("target_identifier") or "").lower() or kw in (l.get("target_name") or "").lower()]
+        logs = [log for log in logs if kw in (log.get("target_identifier") or "").lower() or kw in (log.get("target_name") or "").lower()]
 
     # 按日期筛选
     date_from = args.get("date_from", "").strip()
     if date_from:
-        logs = [l for l in logs if (l.get("timestamp") or "")[:10] >= date_from]
+        logs = [log for log in logs if (log.get("timestamp") or "")[:10] >= date_from]
 
-    logs.sort(key=lambda l: l.get("timestamp", ""), reverse=True)
+    logs.sort(key=lambda log: log.get("timestamp", ""), reverse=True)
     return logs
 
 
@@ -123,10 +123,10 @@ def list_logs():
     for i, log in enumerate(filtered, 1):
         log["display_id"] = i
     start = (page - 1) * page_size
-    page_logs = filtered[start:start + page_size]
+    logs = filtered[start:start + page_size]
 
     return render_template("cards/logs.html",
-                           logs=page_logs,
+                           logs=logs,
                            total=total,
                            page=page,
                            page_size=page_size,
@@ -190,7 +190,7 @@ def delete_logs():
         return redirect(request.headers.get("Referer", "/"))
 
     try:
-        count = service.delete_logs([int(lid) for lid in log_ids if lid.isdigit()])
+        count = service.delete_logs([int(log_id) for log_id in log_ids if log_id.isdigit()])
     except Exception as e:
         logger.exception("删除日志失败")
         if _wants_json():

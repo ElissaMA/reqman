@@ -5,7 +5,7 @@
 
 <div class="card mb-3">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">飞机信息 <span class="badge bg-secondary ms-2">{{ aircraft_list|length }}</span></h5>
+        <h5 class="mb-0">飞机信息 <span class="badge bg-secondary ms-2">{{ ac_list|length }}</span></h5>
         <a href="javascript:void(0)" onclick="ListUI.openEditor('/card/aircraft/new')" class="btn btn-primary btn-sm">+ 新增飞机</a>
     </div>
     <div class="card-body p-0">
@@ -24,8 +24,8 @@
                     </tr>
                 </thead>
                 <tbody>
-                {% if aircraft_list %}
-                {% for ac in aircraft_list %}
+                {% if ac_list %}
+                {% for ac in ac_list %}
                     <tr onclick="showAcDetail({{ ac.id }})" style="cursor:pointer">
                         <td><strong>{{ ac.reg }}</strong></td>
                         <td>{{ ac.model or '-' }}</td>
@@ -65,10 +65,10 @@
 
 {% block scripts %}
 <script>
-var acData = [{% for ac in aircraft_list %}{{ ac|tojson }}{% if not loop.last %},{% endif %}{% endfor %}];
+var ac_list = [{% for ac in ac_list %}{{ ac|tojson }}{% if not loop.last %},{% endif %}{% endfor %}];
 
 function showAcDetail(id) {
-    var d = acData.find(function(ac) { return ac.id === id; });
+    var d = ac_list.find(function(ac) { return ac.id === id; });
     if (!d) return;
     var rows = [
         ['飞机号', d.reg || '-'],

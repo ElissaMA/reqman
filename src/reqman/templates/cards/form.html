@@ -16,19 +16,19 @@
                 <div class="col-md-4">
                     <label class="form-label small">工卡号 <span class="text-danger">*</span></label>
                     <input type="text" class="form-control form-control-sm" name="task_code"
-                           value="{{ item.task_code if item else prefill_code if prefill_code else "" }}" required>
+                           value="{{ card.task_code if card else prefill_code if prefill_code else "" }}" required>
                 </div>
                 <div class="col-md-5">
                     <label class="form-label small">工卡描述</label>
                     <input type="text" class="form-control form-control-sm" name="task_name"
-                           value="{{ item.task_name if item else prefill_name if prefill_name else "" }}" required>
+                           value="{{ card.task_name if card else prefill_name if prefill_name else "" }}" required>
                 </div>
                 <div class="col-md-1">
                     <label class="form-label small">专业</label>
                     <select class="form-select form-select-sm" name="category" required>
                         <option value="">请选择专业</option>
                         {% for c in categories %}
-                        <option value="{{ c }}" {{ "selected" if (item and item.category == c) or (prefill_category and prefill_category == c) }}>{{ c }}</option>
+                        <option value="{{ c }}" {{ "selected" if (card and card.category == c) or (prefill_category and prefill_category == c) }}>{{ c }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -38,7 +38,7 @@
                         <option value="">请选择类型</option>
                         {% for t in task_types %}
                         {% if t %}
-                        <option value="{{ t }}" {{ "selected" if (item and item.task_type == t) or (prefill_task_type and prefill_task_type == t) }}>{{ t }}</option>
+                        <option value="{{ t }}" {{ "selected" if (card and card.task_type == t) or (prefill_task_type and prefill_task_type == t) }}>{{ t }}</option>
                         {% endif %}
                         {% endfor %}
                     </select>
@@ -59,7 +59,7 @@
             <div class="mb-2">
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="confirmNoTools" name="confirm_no_tools" value="1"
-                           {{ "checked" if item and item.tools_confirmed else "" }}>
+                           {{ "checked" if card and card.tools_confirmed else "" }}>
                     <label class="form-check-label small text-muted" for="confirmNoTools">
                         确认无工具
                     </label>
@@ -80,7 +80,7 @@
             <div class="mb-2">
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="confirmNoMats" name="confirm_no_mats" value="1"
-                           {{ "checked" if item and item.materials_confirmed else "" }}>
+                           {{ "checked" if card and card.materials_confirmed else "" }}>
                     <label class="form-check-label small text-muted" for="confirmNoMats">
                         确认无航材
                     </label>

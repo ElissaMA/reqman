@@ -9,7 +9,6 @@
         <a href="javascript:void(0)" onclick="ListUI.openEditor('/card/sets/new')" class="btn btn-primary btn-sm">+ 新增工卡组</a>
     </div>
     <div class="card-body p-0">
-    <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover mb-0" id="setTable">
                 <thead>
@@ -24,19 +23,19 @@
                     </tr>
                 </thead>
                 <tbody>
-                {% if set_data %}
-                {% for s in set_data %}
-                    {% set blink = (not s.tools or s.tools|length == 0) and not s.tools_confirmed
-                                   or (not s.materials or s.materials|length == 0) and not s.materials_confirmed %}
-                    <tr onclick="showSetDetail({{ s.id }})" style="cursor:pointer" class="{{ 'blink-warn' if blink }}">
-                        <td><strong>{{ s.name }}</strong></td>
-                        <td>{{ s.category or '-' }}</td>
-                        <td class="text-center">{{ card_counts.get(s.id, 0) }}</td>
-                        <td class="text-center">{{ s.tools|length }}</td>
-                        <td class="text-center">{{ s.materials|length }}</td>
+                {% if sets %}
+                {% for set in sets %}
+                    {% set blink = (not set.tools or set.tools|length == 0) and not set.tools_confirmed
+                                   or (not set.materials or set.materials|length == 0) and not set.materials_confirmed %}
+                    <tr onclick="showSetDetail({{ set.id }})" style="cursor:pointer" class="{{ 'blink-warn' if blink }}">
+                        <td><strong>{{ set.name }}</strong></td>
+                        <td>{{ set.category or '-' }}</td>
+                        <td class="text-center">{{ card_counts.get(set.id, 0) }}</td>
+                        <td class="text-center">{{ set.tools|length }}</td>
+                        <td class="text-center">{{ set.materials|length }}</td>
                         <td class="text-center" onclick="event.stopPropagation()">
-                            <a href="javascript:void(0)" onclick="ListUI.openEditor('/card/sets/{{ s.id }}/edit')" class="btn btn-outline-primary btn-sm py-0">编辑</a>
-                            <button type="button" onclick="ListUI.del('/card/sets/{{ s.id }}/delete','确认删除工卡组 {{ s.name }}？关联工卡将解除绑定。')" class="btn btn-outline-danger btn-sm py-0">删除</button>
+                            <a href="javascript:void(0)" onclick="ListUI.openEditor('/card/sets/{{ set.id }}/edit')" class="btn btn-outline-primary btn-sm py-0">编辑</a>
+                            <button type="button" onclick="ListUI.del('/card/sets/{{ set.id }}/delete','确认删除工卡组 {{ set.name }}？关联工卡将解除绑定。')" class="btn btn-outline-danger btn-sm py-0">删除</button>
                         </td>
                     </tr>
                 {% endfor %}
@@ -47,7 +46,6 @@
             </table>
         </div>
     </div>
-</div>
 </div>
 
 <div class="modal fade" id="setDetailModal" tabindex="-1">
@@ -67,10 +65,10 @@
 
 {% block scripts %}
 <script>
-var setData = [{% for s in set_data %}{{ s|tojson }}{% if not loop.last %},{% endif %}{% endfor %}];
+var sets = [{% for set in sets %}{{ set|tojson }}{% if not loop.last %},{% endif %}{% endfor %}];
 
 function showSetDetail(id) {
-    var d = setData.find(function(s) { return s.id === id; });
+    var d = sets.find(function(set) { return set.id === id; });
     if (!d) return;
     var h = '<div class="row g-3 mb-3">'
         + '<div class="col-md-4"><label class="form-label small">名称</label><div><strong>' + (d.name || '') + '</strong></div></div>'

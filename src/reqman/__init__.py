@@ -3,7 +3,7 @@
 import logging
 import time
 
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify
 
 from .config import BASE_DIR, DB_FILE, MAX_CONTENT_LENGTH, SECRET_KEY
 from .utils.openpyxl_patch import apply_patches
@@ -124,12 +124,6 @@ def create_app():
     def api_spec():
         from .api_docs import get_openapi_spec
         return jsonify(get_openapi_spec())
-
-    # API 文档说明页（简易 HTML）
-    @app.route("/api/docs")
-    def api_docs_page():
-        from .api_docs import ENDPOINTS
-        return render_template("api_docs.html", endpoint_groups=ENDPOINTS)
 
     # 统一错误处理（支持 JSON 和 HTML 两种模式）
     from .utils.error_handlers import register_error_handlers

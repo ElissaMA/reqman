@@ -20,23 +20,18 @@ def card_list():
     try:
         search = request.args.get("search", "").strip()
         category = request.args.get("category", "").strip()
-        items = current_app.extensions['card_service'].list_cards(search=search, category=category)
-        all_sets = current_app.extensions['card_service'].list_card_sets()
-        set_map = {s["id"]: s.get("name", "") for s in all_sets}
-        for item in items:
-            sid = item.get("set_id")
-            item["set_name"] = set_map.get(sid, "") if sid else ""
+        cards = current_app.extensions['card_service'].list_cards(search=search, category=category)
+        sets = current_app.extensions['card_service'].list_card_sets()
+        set_map = {set["id"]: set.get("name", "") for set in sets}
+        for card in cards:
+            set_id = card.get("set_id")
+            card["set_name"] = set_map.get(set_id, "") if set_id else ""
         return render_template("cards/list.html",
-                               items=items,
-                               search=search,
-                               category=category,
-                               categories=CATEGORIES)
+                               cards=cards)
     except Exception:
         logger.exception("获取工卡列表失败")
         flash("加载工卡列表失败，请稍后重试", "error")
-        return render_template("cards/list.html", items=[],
-                               search="", category="",
-                               categories=CATEGORIES)
+        return render_template("cards/list.html", cards=[])
 
 
 def _is_ajax():
@@ -45,9 +40,9 @@ def _is_ajax():
 
 def _parse_and_validate_tools_mats(redirect_url):
     """解析并验证工具/航材，失败时返回 (None, None, None, None, error_response)。"""
-    tools, mats = current_app.extensions['card_service'].parse_tools_mats(request.form)
+    tools, materials = current_app.extensions['card_service'].parse_tools_mats(request.form)
     tools_confirmed = (not tools) and bool(request.form.get("confirm_no_tools"))
-    materials_confirmed = (not mats) and bool(request.form.get("confirm_no_mats"))
+    materials_confirmed = (not materials) and bool(request.form.get("confirm_no_mats"))
 
     if not tools and not tools_confirmed:
         msg = "请添加工具或确认无工具"
@@ -55,14 +50,14 @@ def _parse_and_validate_tools_mats(redirect_url):
             return None, None, None, None, jsonify({"success": False, "message": msg})
         flash(msg, "error")
         return None, None, None, None, redirect(redirect_url)
-    if not mats and not materials_confirmed:
+    if not materials and not materials_confirmed:
         msg = "请添加航材或确认无航材"
         if _is_ajax():
             return None, None, None, None, jsonify({"success": False, "message": msg})
         flash(msg, "error")
         return None, None, None, None, redirect(redirect_url)
 
-    return tools, mats, tools_confirmed, materials_confirmed, None
+    return tools, materials, tools_confirmed, materials_confirmed, None
 
 
 def _validate_required(fields, redirect_url):
@@ -94,7 +89,7 @@ def card_new():
             if err_resp:
                 return err_resp
 
-            tools, mats, tools_confirmed, materials_confirmed, err = _parse_and_validate_tools_mats("/card/new")
+            tools, materials, tools_confirmed, materials_confirmed, err = _parse_and_validate_tools_mats("/card/new")
             if err:
                 return err
             current_app.extensions['card_service'].add_card(
@@ -104,7 +99,7 @@ def card_new():
                 task_type=request.form.get("task_type", ""),
                 remark=request.form.get("remark", ""),
                 tools=tools,
-                materials=mats,
+                materials=materials,
                 tools_confirmed=tools_confirmed,
                 materials_confirmed=materials_confirmed,
             )
@@ -130,7 +125,7 @@ def card_new():
     prefill_category = request.args.get("category", "")
     prefill_task_type = request.args.get("task_type", "")
     return render_template("cards/form.html",
-                           item=None, tools=[], materials=[],
+                           card=None, tools=[], materials=[],
                            categories=CATEGORIES, task_types=TASK_TYPES,
                            usage_types=USAGE_TYPES, edit_mode=False,
                            prefill_code=prefill_code, prefill_name=prefill_name,
@@ -141,11 +136,11 @@ def card_new():
 def card_edit(card_id):
     """编辑工卡"""
     try:
-        item = current_app.extensions['card_service'].get_card(card_id)
+        card = current_app.extensions['card_service'].get_card(card_id)
     except (ServiceError, KeyError):
-        item = None
+        card = None
 
-    if not item:
+    if not card:
         flash("工卡不存在", "error")
         return redirect("/card/list")
 
@@ -155,18 +150,18 @@ def card_edit(card_id):
             err_resp = _validate_required([(task_name, "工卡名称")], f"/card/{card_id}/edit")
             if err_resp:
                 return err_resp
-            tools, mats, tools_confirmed, materials_confirmed, err = _parse_and_validate_tools_mats(f"/card/{card_id}/edit")
+            tools, materials, tools_confirmed, materials_confirmed, err = _parse_and_validate_tools_mats(f"/card/{card_id}/edit")
             if err:
                 return err
             current_app.extensions['card_service'].update_card(
                 card_id,
-                task_code=request.form.get("task_code", item["task_code"]),
+                task_code=request.form.get("task_code", card["task_code"]),
                 task_name=task_name,
                 category=request.form.get("category", "机体"),
                 task_type=request.form.get("task_type", ""),
                 remark=request.form.get("remark", ""),
                 tools=tools,
-                materials=mats,
+                materials=materials,
                 tools_confirmed=tools_confirmed,
                 materials_confirmed=materials_confirmed,
             )
@@ -186,14 +181,15 @@ def card_edit(card_id):
             flash("服务器错误，请稍后重试", "error")
 
     return render_template("cards/form.html",
-                           item=item,
-                           tools=item.get("tools", []),
-                           materials=item.get("materials", []),
+                           card=card,
+                           tools=card.get("tools", []),
+                           materials=card.get("materials", []),
                            categories=CATEGORIES,
                            task_types=TASK_TYPES,
                            usage_types=USAGE_TYPES,
                            edit_mode=True,
-                           prefill_code="", prefill_name="")
+                           prefill_code="", prefill_name="",
+                           prefill_category="", prefill_task_type="")
 
 
 @cards_bp.route("/card/<int:card_id>/delete", methods=["POST"])
@@ -220,10 +216,10 @@ def card_delete(card_id):
 def card_detail(card_id):
     """工卡详情 (AJAX)"""
     try:
-        item = current_app.extensions['card_service'].get_card(card_id)
-        if not item:
+        card = current_app.extensions['card_service'].get_card(card_id)
+        if not card:
             return jsonify({"error": "not found"}), 404
-        return jsonify(item)
+        return jsonify(card)
     except Exception:
         logger.exception("获取工卡详情失败")
         return jsonify({"error": "server error"}), 500
@@ -234,13 +230,13 @@ def card_detail(card_id):
 def card_list_json():
     """工卡列表 JSON（供 set_form.html 搜索用）"""
     try:
-        items = current_app.extensions['card_service'].list_cards()
+        cards = current_app.extensions['card_service'].list_cards()
         return jsonify([{
                     "id": c["id"],
             "task_code": c["task_code"],
             "task_name": c["task_name"],
             "category": c["category"],
-        } for c in items])
+        } for c in cards])
     except Exception:
         logger.exception("获取工卡列表 JSON 失败")
         return jsonify([])
@@ -251,31 +247,31 @@ def card_list_json():
 def card_sets():
     """工卡组列表"""
     try:
-        sets = current_app.extensions['card_service'].list_card_sets()
+        set_list = current_app.extensions['card_service'].list_card_sets()
         card_counts = {}
-        set_data = []
-        for s in sets:
-            cards = current_app.extensions['card_service'].get_cards_in_set(s["id"])
-            card_counts[s["id"]] = len(cards)
-            set_data.append({
-                "id": s["id"], "name": s["name"],
-                "description": s.get("description", ""),
-                "category": s.get("category", ""),
-                "tools": s.get("tools", []),
-                "materials": s.get("materials", []),
-                "tools_confirmed": s.get("tools_confirmed", False),
-                "materials_confirmed": s.get("materials_confirmed", False),
+        sets = []
+        for set in set_list:
+            cards = current_app.extensions['card_service'].get_cards_in_set(set["id"])
+            card_counts[set["id"]] = len(cards)
+            sets.append({
+                "id": set["id"], "name": set["name"],
+                "description": set.get("description", ""),
+                "category": set.get("category", ""),
+                "tools": set.get("tools", []),
+                "materials": set.get("materials", []),
+                "tools_confirmed": set.get("tools_confirmed", False),
+                "materials_confirmed": set.get("materials_confirmed", False),
                 "cards": [{"task_code": cd["task_code"],
                             "task_name": cd.get("task_name", "")}
                            for cd in cards]
             })
         return render_template("cards/sets.html", sets=sets,
-                               card_counts=card_counts, set_data=set_data)
+                               card_counts=card_counts)
     except Exception:
         logger.exception("获取工卡组列表失败")
         flash("加载失败", "error")
         return render_template("cards/sets.html", sets=[],
-                               card_counts={}, set_data=[])
+                               card_counts={})
 
 
 @cards_bp.route("/card/sets/new", methods=["GET", "POST"])
@@ -294,7 +290,7 @@ def card_set_new():
                     return jsonify({"success": False, "message": msg})
                 flash(msg, "error")
                 return redirect("/card/sets/new")
-            tools, mats, tools_confirmed, materials_confirmed, err = _parse_and_validate_tools_mats("/card/sets/new")
+            tools, materials, tools_confirmed, materials_confirmed, err = _parse_and_validate_tools_mats("/card/sets/new")
             if err:
                 return err
             current_app.extensions['card_service'].add_card_set(
@@ -303,7 +299,7 @@ def card_set_new():
                 category=category,
                 card_codes=card_codes,
                 tools=tools,
-                materials=mats,
+                materials=materials,
                 tools_confirmed=tools_confirmed,
                 materials_confirmed=materials_confirmed,
             )
@@ -321,11 +317,9 @@ def card_set_new():
                 return jsonify({"success": False, "message": "服务器错误"})
             flash("服务器错误", "error")
 
-    all_cards = current_app.extensions['card_service'].list_cards()
     return render_template("cards/set_form.html",
-                           set_item=None,
+                           set=None,
                            set_card_codes=[],
-                           all_cards=all_cards,
                            categories=CATEGORIES,
                            usage_types=USAGE_TYPES)
 
@@ -334,11 +328,11 @@ def card_set_new():
 def card_set_edit(set_id):
     """编辑工卡组"""
     try:
-        s = current_app.extensions['card_service'].get_card_set(set_id)
+        set = current_app.extensions['card_service'].get_card_set(set_id)
     except (ServiceError, KeyError):
-        s = None
+        set = None
 
-    if not s:
+    if not set:
         flash("工卡组不存在", "error")
         return redirect("/card/sets")
 
@@ -355,17 +349,17 @@ def card_set_edit(set_id):
                     return jsonify({"success": False, "message": msg})
                 flash(msg, "error")
                 return redirect(f"/card/sets/{set_id}/edit")
-            tools, mats, tools_confirmed, materials_confirmed, err = _parse_and_validate_tools_mats(f"/card/sets/{set_id}/edit")
+            tools, materials, tools_confirmed, materials_confirmed, err = _parse_and_validate_tools_mats(f"/card/sets/{set_id}/edit")
             if err:
                 return err
             current_app.extensions['card_service'].update_card_set(
                 set_id,
-                name=request.form.get("name", s.get("name", "")),
+                name=request.form.get("name", set.get("name", "")),
                 description=request.form.get("description", ""),
                 category=category,
                 card_codes=card_codes,
                 tools=tools,
-                materials=mats,
+                materials=materials,
                 tools_confirmed=tools_confirmed,
                 materials_confirmed=materials_confirmed,
             )
@@ -383,12 +377,10 @@ def card_set_edit(set_id):
                 return jsonify({"success": False, "message": "服务器错误"})
             flash("服务器错误", "error")
 
-    all_cards = current_app.extensions['card_service'].list_cards()
     cards_in_set = current_app.extensions['card_service'].get_cards_in_set(set_id)
     set_card_codes = [{"code": c["task_code"], "name": c.get("task_name", "")} for c in cards_in_set]
     return render_template("cards/set_form.html",
-                           set_item=s,
-                           all_cards=all_cards,
+                           set=set,
                            set_card_codes=set_card_codes,
                            categories=CATEGORIES,
                            usage_types=USAGE_TYPES)
@@ -422,14 +414,14 @@ def card_set_delete(set_id):
 def aircraft_list():
     """飞机信息列表"""
     try:
-        aircraft_list = current_app.extensions['card_service'].list_aircraft()
+        ac_list = current_app.extensions['card_service'].list_aircraft()
         return render_template("cards/aircraft.html",
-                               aircraft_list=aircraft_list)
+                               ac_list=ac_list)
     except Exception:
         logger.exception("获取飞机信息列表失败")
         flash("加载飞机信息失败", "error")
         return render_template("cards/aircraft.html",
-                               aircraft_list=[])
+                               ac_list=[])
 
 
 @cards_bp.route("/card/aircraft/new", methods=["GET", "POST"])

@@ -250,11 +250,11 @@ def _write_new_work_row(ws, start_row, new_cards, sub_cards=None):
     ws.cell(row=row, column=1).font = BOLD_16
     texts = []
     if sub_cards:
-        for c in sub_cards:
-            texts.append(f'{c.get("task_code","")} {c.get("task_name","")}（工卡组子卡）')
+        for card in sub_cards:
+            texts.append(f'{card.get("task_code","")} {card.get("task_name","")}（工卡组子卡）')
     if new_cards:
-        for c in new_cards:
-            texts.append(f'{c.get("task_code","")} {c.get("task_name","")}（未匹配）')
+        for card in new_cards:
+            texts.append(f'{card.get("task_code","")} {card.get("task_name","")}（未匹配）')
     if texts:
         set_cell(ws, row, 2, "; ".join(texts), FULL_MEDIUM, alignment=WRAP_VERTICAL)
         ws.cell(row=row, column=2).font = Font(name="SimSun", size=16, bold=True, color="FF0000")

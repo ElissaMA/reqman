@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.2.2] - 2026-08-11
+### Changed
+- 模板变量命名统一（card/set/ac/log）
+- 修复 form.html 编辑URL bug（cardId 引用未定义变量，编辑提交错误指向 /card/new）
+### Added
+- /api/spec JSON 接口保留，/api/docs 移除（原500）
+### Fixed
+- sets.html 重复 div 结构
+- generate_bp 死变量清理
+
 ## [3.2.0] - 2026-07-30
 
 ### Added

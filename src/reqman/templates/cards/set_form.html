@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% import "macros/tables.html" as tables %}
-{% block title %}{{ "编辑工卡组" if set_item else "新增工卡组" }} - 定检需求单管理{% endblock %}
+{% block title %}{{ "编辑工卡组" if set else "新增工卡组" }} - 定检需求单管理{% endblock %}
 {% block content %}
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h5 class="mb-0">{{ "编辑工卡组" if set_item else "新增工卡组" }}</h5>
+    <h5 class="mb-0">{{ "编辑工卡组" if set else "新增工卡组" }}</h5>
     <a href="/card/sets" class="btn btn-outline-secondary btn-sm">&larr; 返回</a>
 </div>
 
@@ -15,21 +15,21 @@
                 <div class="col-md-4">
                     <label class="form-label small">名称 <span class="text-danger">*</span></label>
                     <input type="text" class="form-control form-control-sm" name="name"
-                           value="{{ set_item.name if set_item else "" }}" required>
+                           value="{{ set.name if set else "" }}" required>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small">专业</label>
                     <select class="form-select form-select-sm" name="category" required>
                         <option value="">请选择专业</option>
                         {% for c in categories %}
-                        <option value="{{ c }}" {{ 'selected' if set_item and set_item.category == c }}>{{ c }}</option>
+                        <option value="{{ c }}" {{ 'selected' if set and set.category == c }}>{{ c }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label small">说明</label>
                     <input type="text" class="form-control form-control-sm" name="description"
-                           value="{{ set_item.description if set_item else "" }}">
+                           value="{{ set.description if set else "" }}">
                 </div>
             </div>
 
@@ -86,13 +86,13 @@
                     <button type="button" class="btn btn-outline-success btn-sm"
                             onclick="addRow('tool')">+ 新增工具</button>
                 </div>
-                {{ tables.tool_table(set_item.tools if set_item else [], usage_types, editable=true, show_delete=true) }}
+                {{ tables.tool_table(set.tools if set else [], usage_types, editable=true, show_delete=true) }}
             </div>
             </div>
             <div class="mb-2">
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="confirmNoTools" name="confirm_no_tools" value="1"
-                           {{ "checked" if set_item and set_item.tools_confirmed else "" }}>
+                           {{ "checked" if set and set.tools_confirmed else "" }}>
                     <label class="form-check-label small text-muted" for="confirmNoTools">
                         确认无工具
                     </label>
@@ -107,13 +107,13 @@
                     <button type="button" class="btn btn-outline-success btn-sm"
                             onclick="addRow('mat')">+ 新增航材</button>
                 </div>
-                {{ tables.material_table(set_item.materials if set_item else [], usage_types, editable=true, show_delete=true) }}
+                {{ tables.material_table(set.materials if set else [], usage_types, editable=true, show_delete=true) }}
             </div>
             </div>
             <div class="mb-2">
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="confirmNoMats" name="confirm_no_mats" value="1"
-                           {{ "checked" if set_item and set_item.materials_confirmed else "" }}>
+                           {{ "checked" if set and set.materials_confirmed else "" }}>
                     <label class="form-check-label small text-muted" for="confirmNoMats">
                         确认无航材
                     </label>
@@ -348,8 +348,8 @@ document.getElementById("setForm").addEventListener("submit", function(e) {
         e.preventDefault();
         var form = this;
         var formData = new FormData(form);
-        var setId = '{{ set_item.id if set_item else "" }}';
-        var url = setId ? '/card/sets/' + setId + '/edit' : '/card/sets/new';
+        var set_id = '{{ set.id if set else "" }}';
+        var url = set_id ? '/card/sets/' + set_id + '/edit' : '/card/sets/new';
 
         window.showLoader();
         fetch(url, {
@@ -362,7 +362,7 @@ document.getElementById("setForm").addEventListener("submit", function(e) {
             window.hideLoader();
             if (d && d.success) {
                 if (window.opener && !window.opener.closed) {
-                    window.opener.postMessage({ type: 'cardSetSaved', setId: setId, scrollY: window.opener.scrollY }, '*');
+                    window.opener.postMessage({ type: 'cardSetSaved', set_id: set_id, scrollY: window.opener.scrollY }, '*');
                 }
                 window.close();
             } else {

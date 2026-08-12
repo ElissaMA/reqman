@@ -41,7 +41,7 @@ class CardService:
         - tool_name[] / tool_pn[] / tool_qty[] / tool_remark[] / tool_type[]
         - mat_name[] / mat_pn[] / mat_qty[] / mat_remark[] / mat_type[]
         """
-        tools, mats = [], []
+        tools, materials = [], []
 
         for prefix, name_key, fields in [
             ("tool", "device_name", ["tool_name[]", "tool_pn[]", "tool_qty[]", "tool_remark[]", "tool_type[]"]),
@@ -70,9 +70,9 @@ class CardService:
                     "usage_type": (types[i].strip() if i < len(types) else "必须使用"),
                 }
 
-                (tools if prefix == "tool" else mats).append(item)
+                (tools if prefix == "tool" else materials).append(item)
 
-        return tools, mats
+        return tools, materials
 
     # ---------- 工卡 ----------
 
@@ -134,8 +134,8 @@ class CardService:
         if not name.strip():
             raise ServiceError("工卡组名称不能为空", "name")
 
-        s = self.store.add_set(name.strip(), description.strip(),
-                               category)
+        set = self.store.add_set(name.strip(), description.strip(),
+                                 category)
 
         updates = {}
         if tools:
@@ -145,13 +145,13 @@ class CardService:
         updates["tools_confirmed"] = tools_confirmed
         updates["materials_confirmed"] = materials_confirmed
         if updates:
-            self.store.update_set(s["id"], **updates)
+            self.store.update_set(set["id"], **updates)
 
         if card_codes:
-            self._assign_cards_to_set(s["id"], card_codes)
-        self.store.sync_set_to_cards(s["id"])
+            self._assign_cards_to_set(set["id"], card_codes)
+        self.store.sync_set_to_cards(set["id"])
 
-        return self.store.get_set(s["id"])
+        return self.store.get_set(set["id"])
 
     def update_card_set(self, set_id: int, name: str = "",
                          description: str = "",
@@ -162,8 +162,8 @@ class CardService:
                          tools_confirmed: bool | None = None,
                          materials_confirmed: bool | None = None) -> dict:
         """更新工卡组，保存后自动同步工具/航材"""
-        s = self.store.get_set(set_id)
-        if s is None:
+        set = self.store.get_set(set_id)
+        if set is None:
             raise ServiceError("工卡组不存在", "set_id")
 
         updates = {}
@@ -194,11 +194,11 @@ class CardService:
     def _assign_cards_to_set(self, set_id: int, card_codes: list[str]):
         """将指定工卡关联到工卡组，同时解除不再属于此组的工卡"""
         all_cards = self.store.get_all()
-        code_set = set(card_codes)
+        codes = set(card_codes)
 
         for card in all_cards:
             code = card["task_code"]
-            if code in code_set:
+            if code in codes:
                 if card.get("set_id") != set_id:
                     self.store.update(card["id"], set_id=set_id)
             elif card.get("set_id") == set_id:
@@ -252,33 +252,33 @@ class CardService:
         for item in matched[:]:
             set_id = item.get("set_id")
             if not set_id:
-                db_card = self.store.find_by_code(item["task_code"])
-                if db_card and db_card.get("set_id"):
-                    set_id = db_card["set_id"]
+                card = self.store.find_by_code(item["task_code"])
+                if card and card.get("set_id"):
+                    set_id = card["set_id"]
             if not set_id:
                 continue
             item["set_id"] = set_id
-            card_set = self.store.get_set(set_id)
-            if not card_set:
+            set = self.store.get_set(set_id)
+            if not set:
                 continue
-            shared_tools = card_set.get("tools", [])
-            shared_mats = card_set.get("materials", [])
-            set_name = card_set.get("name", "")
-            self._merge_item_resources(item, shared_tools, shared_mats)
+            shared_tools = set.get("tools", [])
+            shared_materials = set.get("materials", [])
+            set_name = set.get("name", "")
+            self._merge_item_resources(item, shared_tools, shared_materials)
             item["set_name"] = set_name
             for other in all_items:
                 if other.get("set_id") == set_id and other is not item:
                     if other.get("status") != "matched":
                         other["status"] = "matched"
                         other["db_id"] = item.get("db_id")
-                    self._merge_item_resources(other, shared_tools, shared_mats)
+                    self._merge_item_resources(other, shared_tools, shared_materials)
                     other["set_name"] = set_name
                     if other in new_cards:
                         new_cards.remove(other)
                         matched.append(other)
 
     @staticmethod
-    def _merge_item_resources(item: dict, shared_tools: list, shared_mats: list) -> None:
+    def _merge_item_resources(item: dict, shared_tools: list, shared_materials: list) -> None:
         """合并工卡自身工具/航材与工卡组共用工具/航材，组共用部分在前"""
         existing_tools = item.get("tools", [])
         merged_tools = list(shared_tools)
@@ -290,7 +290,7 @@ class CardService:
         item["tools"] = merged_tools
 
         existing_mats = item.get("materials", [])
-        merged_mats = list(shared_mats)
+        merged_mats = list(shared_materials)
         existing_mat_names = {m.get("material_name", "") for m in merged_mats}
         for m in existing_mats:
             if m.get("material_name", "") and m["material_name"] not in existing_mat_names:
@@ -302,14 +302,14 @@ class CardService:
         """识别新工卡中属于既有工卡组的项目，归入已匹配"""
         remove_idx = []
         for i, item in enumerate(new_cards):
-            db_card = self.store.find_by_code(item.get("task_code", ""))
-            if db_card and db_card.get("set_id"):
+            card = self.store.find_by_code(item.get("task_code", ""))
+            if card and card.get("set_id"):
                 item["status"] = "matched"
-                item["db_id"] = db_card["id"]
-                item["set_id"] = db_card["set_id"]
+                item["db_id"] = card["id"]
+                item["set_id"] = card["set_id"]
                 item["set_duplicate"] = True
-                item["category"] = db_card.get("category", item.get("category"))
-                item["task_type"] = db_card.get("task_type", item.get("task_type"))
+                item["category"] = card.get("category", item.get("category"))
+                item["task_type"] = card.get("task_type", item.get("task_type"))
                 matched.append(item)
                 remove_idx.append(i)
         for idx in reversed(remove_idx):
@@ -334,5 +334,5 @@ class CardService:
     def get_logs_by_ids(self, log_ids: list[int]) -> list[dict]:
         """根据 ID 列表查询日志"""
         all_logs = self.store.get_logs()
-        id_set = set(log_ids)
-        return [l for l in all_logs if l.get("id") in id_set]
+        log_ids_set = set(log_ids)
+        return [log for log in all_logs if log.get("id") in log_ids_set]

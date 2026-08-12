@@ -192,8 +192,8 @@ class JsonStore:
     def _rebuild_index(self, db: dict) -> None:
         """重建编码索引"""
         db["code_index"] = {}
-        for cid, card in db.get("cards", {}).items():
-            db["code_index"][card["task_code"]] = int(cid)
+        for card_id, card in db.get("cards", {}).items():
+            db["code_index"][card["task_code"]] = int(card_id)
 
     # ---------- 日志辅助方法 ----------
 
@@ -219,7 +219,7 @@ class JsonStore:
         from datetime import datetime
         log_id = db.setdefault("card_log_next_id", 1)
         db["card_log_next_id"] = log_id + 1
-        log_entry = {
+        log = {
             "id": log_id,
             "operation": operation,
             "target_type": target_type,
@@ -229,8 +229,8 @@ class JsonStore:
             "changes": changes,
             "timestamp": datetime.now(ZoneInfo("Asia/Shanghai")).isoformat(),
         }
-        db.setdefault("card_logs", []).append(log_entry)
-        return log_entry
+        db.setdefault("card_logs", []).append(log)
+        return log
 
     # ---------- 工卡 CRUD ----------
 
@@ -239,18 +239,18 @@ class JsonStore:
         cards = list(db.get("cards", {}).values())
 
         if search:
-            s = search.lower()
+            keyword = search.lower()
             cards = [
-                c for c in cards
-                if s in c["task_code"].lower() or s in c.get("task_name", "").lower()
+                card for card in cards
+                if keyword in card["task_code"].lower() or keyword in card.get("task_name", "").lower()
             ]
 
         if category:
-            cards = [c for c in cards if c.get("category") == category]
+            cards = [card for card in cards if card.get("category") == category]
 
         # 按 专业 → 工卡号 排序
-        cat_order = {c: i for i, c in enumerate(CATEGORIES)}
-        cards.sort(key=lambda c: (cat_order.get(c.get("category"), 99), c["task_code"]))
+        cat_order = {cat: i for i, cat in enumerate(CATEGORIES)}
+        cards.sort(key=lambda card: (cat_order.get(card.get("category"), 99), card["task_code"]))
         return cards
 
     def get(self, card_id: int) -> dict | None:
@@ -260,10 +260,10 @@ class JsonStore:
 
     def find_by_code(self, code: str) -> dict | None:
         db = self._read()
-        cid = db.get("code_index", {}).get(code)
-        if cid is None:
+        card_id = db.get("code_index", {}).get(code)
+        if card_id is None:
             return None
-        card = db.get("cards", {}).get(str(cid))
+        card = db.get("cards", {}).get(str(card_id))
         return self._norm(card, "card") if card else None
 
     def add(self, task_code: str, task_name: str = "",
@@ -349,22 +349,22 @@ class JsonStore:
 
     def get_all_sets(self) -> list[dict]:
         db = self._read()
-        sets = [self._norm(s, "set") for s in db.get("card_sets", {}).values()]
-        sets.sort(key=lambda s: s.get("name", ""))
+        sets = [self._norm(set, "set") for set in db.get("card_sets", {}).values()]
+        sets.sort(key=lambda set: set.get("name", ""))
         return sets
 
     def get_set(self, set_id: int) -> dict | None:
         db = self._read()
-        s = db.get("card_sets", {}).get(str(set_id))
-        return self._norm(s, "set") if s else None
+        set = db.get("card_sets", {}).get(str(set_id))
+        return self._norm(set, "set") if set else None
 
     def add_set(self, name: str, description: str = "",
                 category: str = "机体") -> dict:
         with self._lock:
             db = self._read()
-            sid = self._next_id(db)
-            s = {
-                "id": sid,
+            set_id = self._next_id(db)
+            set = {
+                "id": set_id,
                 "name": name,
                 "description": description,
                 "category": category,
@@ -373,29 +373,29 @@ class JsonStore:
                 "tools_confirmed": False,
                 "materials_confirmed": False,
             }
-            db.setdefault("card_sets", {})[str(sid)] = s
-            self._add_log(db, "add", "set", sid, name, name, [])
+            db.setdefault("card_sets", {})[str(set_id)] = set
+            self._add_log(db, "add", "set", set_id, name, name, [])
             self._write(db)
-            return dict(s)
+            return dict(set)
 
     def update_set(self, set_id: int, **kwargs) -> dict | None:
         with self._lock:
             db = self._read()
-            s = db.get("card_sets", {}).get(str(set_id))
-            if s is None:
+            set = db.get("card_sets", {}).get(str(set_id))
+            if set is None:
                 return None
 
-            old_s = dict(s)  # 变更前快照
+            old_set = dict(set)  # 变更前快照
             for key in ("name", "description", "category", "tools",
                          "materials", "tools_confirmed", "materials_confirmed"):
                 if key in kwargs and kwargs[key] is not None:
-                    s[key] = kwargs[key]
+                    set[key] = kwargs[key]
 
-            changes = self._detect_changes(old_s, s, self._SET_FIELDS)
+            changes = self._detect_changes(old_set, set, self._SET_FIELDS)
             self._add_log(db, "update", "set", set_id,
-                          s.get("name", ""), s.get("name", ""), changes)
+                          set.get("name", ""), set.get("name", ""), changes)
             self._write(db)
-            return dict(s)
+            return dict(set)
 
     def delete_set(self, set_id: int) -> bool:
         with self._lock:
@@ -408,26 +408,26 @@ class JsonStore:
                 if card.get("set_id") == set_id:
                     card["set_id"] = None
 
-            s = db["card_sets"].pop(str(set_id))
+            set = db["card_sets"].pop(str(set_id))
             self._add_log(db, "delete", "set", set_id,
-                          s.get("name", ""), s.get("name", ""), [])
+                          set.get("name", ""), set.get("name", ""), [])
             self._write(db)
             return True
 
     def get_cards_in_set(self, set_id: int) -> list[dict]:
         db = self._read()
         return [
-            self._norm(c, "card") for c in db.get("cards", {}).values()
-            if c.get("set_id") == set_id
+            self._norm(card, "card") for card in db.get("cards", {}).values()
+            if card.get("set_id") == set_id
         ]
 
     # ---------- 飞机信息 CRUD ----------
 
     def get_all_aircraft(self) -> list[dict]:
         db = self._read()
-        aircraft = list(db.get("aircraft", {}).values())
-        aircraft.sort(key=lambda a: a.get("reg", ""))
-        return [self._norm(a, "aircraft") for a in aircraft]
+        ac_list = list(db.get("aircraft", {}).values())
+        ac_list.sort(key=lambda ac: ac.get("reg", ""))
+        return [self._norm(ac, "aircraft") for ac in ac_list]
 
     def get_aircraft(self, aircraft_id: int) -> dict | None:
         db = self._read()
@@ -435,18 +435,18 @@ class JsonStore:
         return self._norm(ac, "aircraft") if ac else None
 
     def find_aircraft_by_reg(self, reg: str):
-        for a in self._read().get("aircraft", {}).values():
-            if a.get("reg") == reg:
-                return self._norm(a, "aircraft")
+        for ac in self._read().get("aircraft", {}).values():
+            if ac.get("reg") == reg:
+                return self._norm(ac, "aircraft")
         return None
 
     def add_aircraft(self, reg: str, model: str = "",
                      engine: str = "", fsn: str = "", msn: str = "", apu: str = "") -> dict:
         with self._lock:
             db = self._read()
-            ac_id = self._next_id(db)
+            aircraft_id = self._next_id(db)
             ac = {
-                "id": ac_id,
+                "id": aircraft_id,
                 "reg": reg,
                 "model": model,
                 "engine": engine,
@@ -454,8 +454,8 @@ class JsonStore:
                 "msn": msn,
                 "apu": apu,
             }
-            db.setdefault("aircraft", {})[str(ac_id)] = ac
-            self._add_log(db, "add", "aircraft", ac_id, reg, model, [])
+            db.setdefault("aircraft", {})[str(aircraft_id)] = ac
+            self._add_log(db, "add", "aircraft", aircraft_id, reg, model, [])
             self._write(db)
             return self._norm(ac, "aircraft")
 
@@ -535,11 +535,11 @@ class JsonStore:
         """将工卡组的工具/航材同步到组内所有卡，主工卡保留原数据但加 set_id"""
         with self._lock:
             db = self._read()
-            s = db.get("card_sets", {}).get(str(set_id))
-            if not s:
+            set = db.get("card_sets", {}).get(str(set_id))
+            if not set:
                 return
-            tools = s.get("tools", [])
-            materials = s.get("materials", [])
+            tools = set.get("tools", [])
+            materials = set.get("materials", [])
             for card in db.get("cards", {}).values():
                 if card.get("set_id") == set_id:
                     card["tools"] = list(tools)
@@ -555,14 +555,14 @@ class JsonStore:
         db = self._read()
         logs = list(db.get("card_logs", []))
         if operation:
-            logs = [l for l in logs if l.get("operation") == operation]
+            logs = [log for log in logs if log.get("operation") == operation]
         if target_type:
-            logs = [l for l in logs if l.get("target_type") == target_type]
+            logs = [log for log in logs if log.get("target_type") == target_type]
         if start_date:
-            logs = [l for l in logs if l.get("timestamp", "") >= start_date]
+            logs = [log for log in logs if log.get("timestamp", "") >= start_date]
         if end_date:
-            logs = [l for l in logs if l.get("timestamp", "") <= end_date]
-        logs.sort(key=lambda l: l.get("timestamp", ""), reverse=True)
+            logs = [log for log in logs if log.get("timestamp", "") <= end_date]
+        logs.sort(key=lambda log: log.get("timestamp", ""), reverse=True)
         return logs[:limit]
 
     def delete_logs(self, log_ids: list[int]) -> int:
@@ -570,8 +570,8 @@ class JsonStore:
         with self._lock:
             db = self._read()
             logs = db.get("card_logs", [])
-            id_set = set(log_ids)
-            new_logs = [l for l in logs if l.get("id") not in id_set]
+            log_ids_set = set(log_ids)
+            new_logs = [log for log in logs if log.get("id") not in log_ids_set]
             deleted = len(logs) - len(new_logs)
             if deleted:
                 db["card_logs"] = new_logs
@@ -586,7 +586,7 @@ class JsonStore:
             if len(logs) <= max_count:
                 return 0
             # 按时间降序排列，保留前max_count条
-            logs.sort(key=lambda l: l.get("timestamp", ""), reverse=True)
+            logs.sort(key=lambda log: log.get("timestamp", ""), reverse=True)
             deleted_count = len(logs) - max_count
             db["card_logs"] = logs[:max_count]
             self._write(db)

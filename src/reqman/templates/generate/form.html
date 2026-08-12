@@ -165,11 +165,11 @@
                     </thead>
                     <tbody>
                         {% if tool_groups %}
-                        {% for cat, items in tool_groups %}
+                        {% for category, items in tool_groups %}
                         {% for t in items %}
                         <tr>
                             {% if loop.first %}
-                            <td rowspan="{{ items|length }}" class="text-center fw-bold align-middle">{{ cat }}</td>
+                            <td rowspan="{{ items|length }}" class="text-center fw-bold align-middle">{{ category }}</td>
                             {% endif %}
                             <td>{{ t.device_name }}</td>
                             <td>{{ t.part_number }}</td>
@@ -212,11 +212,11 @@
                     </thead>
                     <tbody>
                         {% if mat_groups %}
-                        {% for cat, items in mat_groups %}
+                        {% for category, items in mat_groups %}
                         {% for m in items %}
                         <tr>
                             {% if loop.first %}
-                            <td rowspan="{{ items|length }}" class="text-center fw-bold align-middle">{{ cat }}</td>
+                            <td rowspan="{{ items|length }}" class="text-center fw-bold align-middle">{{ category }}</td>
                             {% endif %}
                             <td>{{ m.material_name }}</td>
                             <td>{{ m.part_number }}</td>
@@ -262,11 +262,11 @@
                     </thead>
                     <tbody>
                         {% if spare_groups %}
-                        {% for cat, items in spare_groups %}
+                        {% for category, items in spare_groups %}
                         {% for s in items %}
                         <tr>
                             {% if loop.first %}
-                            <td rowspan="{{ items|length }}" class="text-center fw-bold align-middle">{{ cat }}</td>
+                            <td rowspan="{{ items|length }}" class="text-center fw-bold align-middle">{{ category }}</td>
                             {% endif %}
                             <td>{{ s.material_name or s.device_name or '' }}</td>
                             <td>{{ s.part_number }}</td>
@@ -280,8 +280,8 @@
                         {% endfor %}
                         {% endfor %}
                         {% else %}
-                        {% for cat in categories %}
-                        <tr><td class="text-center fw-bold align-middle">{{ cat }}</td><td class="text-muted">(暂无)</td><td class="bg-light"></td><td class="bg-light"></td><td class="bg-light"></td><td class="bg-light"></td><td class="bg-light"></td><td class="bg-light"></td><td class="bg-light"></td></tr>
+                        {% for category in categories %}
+                        <tr><td class="text-center fw-bold align-middle">{{ category }}</td><td class="text-muted">(暂无)</td><td class="bg-light"></td><td class="bg-light"></td><td class="bg-light"></td><td class="bg-light"></td><td class="bg-light"></td><td class="bg-light"></td><td class="bg-light"></td></tr>
                         {% endfor %}
                         {% endif %}
                     </tbody>

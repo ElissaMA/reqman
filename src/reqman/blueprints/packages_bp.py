@@ -169,8 +169,8 @@ def package_rematch(package_id):
         raise NotFoundError("工作包不存在")
 
     all_items = pkg_data.get("all_items", [])
-    svc = current_app.extensions['card_service']
-    matched, new_cards, cancelled = match_work_package_items(all_items, store, svc)
+    service = current_app.extensions['card_service']
+    matched, new_cards, cancelled = match_work_package_items(all_items, store, service)
 
     now_str = datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y.%m.%d %H:%M")
     pkg_data["matched"] = matched
