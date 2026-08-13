@@ -186,6 +186,70 @@ class TestSetConfirmedSync:
         assert card["materials_confirmed"] is False
 
 
+class TestSetCategorySync:
+    """sync_set_to_cards：工卡组 category 同步到子卡"""
+
+    def _add_set_with_cards(self, svc, category="发动机"):
+        """创建2张卡 + 1个含它们的工卡组，返回 (set_id, [card_ids])"""
+        c1 = svc.add_card("CAT-001", "分类卡1", "机体", "A", "")
+        c2 = svc.add_card("CAT-002", "分类卡2", "机体", "A", "")
+        r = svc.add_card_set(name="分类组", description="", category=category,
+                             card_codes=["CAT-001", "CAT-002"])
+        return r["id"], [c1["id"], c2["id"]]
+
+    def test_new_set_syncs_category_to_cards(self, card_service):
+        """新建工卡组：category 同步到组内所有子卡（覆盖子卡原分类）"""
+        _set_id, card_ids = self._add_set_with_cards(card_service, category="电子")
+        for cid in card_ids:
+            card = card_service.get_card(cid)
+            assert card["category"] == "电子"
+
+    def test_new_set_default_category_synced(self, card_service):
+        """新建工卡组：add_card_set 默认 category='机体' 同步到子卡"""
+        c1 = card_service.add_card("CAT-DEF-001", "默认卡1", "发动机", "A", "")
+        c2 = card_service.add_card("CAT-DEF-002", "默认卡2", "发动机", "A", "")
+        r = card_service.add_card_set(name="默认组", description="",
+                                      card_codes=["CAT-DEF-001", "CAT-DEF-002"])
+        assert r["category"] == "机体"
+        for cid in [c1["id"], c2["id"]]:
+            card = card_service.get_card(cid)
+            assert card["category"] == "机体"  # 默认分类覆盖子卡原分类
+
+    def test_update_set_syncs_category_to_cards(self, card_service):
+        """编辑工卡组：修改 category 后子卡同步更新"""
+        set_id, card_ids = self._add_set_with_cards(card_service, category="电子")
+        card_service.update_card_set(set_id, category="发动机")
+        for cid in card_ids:
+            card = card_service.get_card(cid)
+            assert card["category"] == "发动机"
+
+    def test_update_set_keep_category_when_not_changed(self, card_service):
+        """编辑工卡组：不传 category（空串）时子卡保持原值"""
+        set_id, card_ids = self._add_set_with_cards(card_service, category="电子")
+        card_service.update_card_set(set_id, name="改名")  # 不动 category
+        for cid in card_ids:
+            card = card_service.get_card(cid)
+            assert card["category"] == "电子"
+
+    def test_update_set_other_fields_keep_category(self, card_service):
+        """编辑工卡组：只改工具/航材不动 category，子卡分类保持"""
+        set_id, card_ids = self._add_set_with_cards(card_service, category="电子")
+        tools = [{"device_name": "扳手", "part_number": "W-001"}]
+        card_service.update_card_set(set_id, tools=tools)
+        for cid in card_ids:
+            card = card_service.get_card(cid)
+            assert card["category"] == "电子"
+            assert card["tools"] == tools
+
+    def test_sync_category_does_not_affect_cards_outside_set(self, card_service):
+        """category 同步不影响组外卡（set_id 不匹配）"""
+        outside = card_service.add_card("CAT-OUT-001", "组外卡", "机体", "A", "")
+        card_service.add_card_set(name="空组", description="", category="电子",
+                                  card_codes=[])
+        card = card_service.get_card(outside["id"])
+        assert card["category"] == "机体"
+
+
 class TestAircraftManagement:
     def test_add_aircraft(self, card_service):
         r = card_service.add_aircraft(reg="B-1234", model="A320", engine="CFM56",

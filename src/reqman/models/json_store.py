@@ -532,18 +532,20 @@ class JsonStore:
     # ---------- 工卡组同步 ----------
 
     def sync_set_to_cards(self, set_id: int) -> None:
-        """将工卡组的工具/航材同步到组内所有卡，主工卡保留原数据但加 set_id"""
+        """将工卡组的分类/工具/航材同步到组内所有卡，主工卡保留原数据但加 set_id"""
         with self._lock:
             db = self._read()
             set = db.get("card_sets", {}).get(str(set_id))
             if not set:
                 return
+            category = set.get("category", "")
             tools = set.get("tools", [])
             materials = set.get("materials", [])
             tools_confirmed = set.get("tools_confirmed", False)
             materials_confirmed = set.get("materials_confirmed", False)
             for card in db.get("cards", {}).values():
                 if card.get("set_id") == set_id:
+                    card["category"] = category
                     card["tools"] = list(tools)
                     card["materials"] = list(materials)
                     card["tools_confirmed"] = tools_confirmed
