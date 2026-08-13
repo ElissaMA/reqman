@@ -65,7 +65,6 @@
 
 ```bash
 pip install -e ".[dev]"
-cp .env.example .env
 ```
 
 ## 快速开始
@@ -121,7 +120,7 @@ python src/reqman/app.py
 - Flask 3.1+
 - openpyxl
 - tzdata（北京时间时区支持）
-- pytest（169测试用例）
+- pytest
 
 ## 版本迭代规划
 

@@ -15337,10 +15337,33 @@
       "category": "发动机",
       "task_type": "EO分段",
       "remark": "",
-      "tools": [],
-      "materials": [],
-      "tools_confirmed": true,
-      "materials_confirmed": true,
+      "tools": [
+        {
+          "device_name": "2.8mm便携式孔探设备",
+          "part_number": "DF28HKC",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "DR121管路冲洗工具PW1100",
+          "part_number": "PWA212548",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "materials": [
+        {
+          "material_name": "防咬合剂",
+          "part_number": "MOLYKOTE P37",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": false,
+      "materials_confirmed": false,
       "set_id": null,
       "reminder_type": "一般提醒"
     },
@@ -16774,7 +16797,7 @@
     },
     "972": {
       "id": 972,
-      "name": "主金属屑检测器远程指示的操作检查 — 单发(CFMB)",
+      "name": "主金属屑检测器远程指示的操作检查 — (CFMB)",
       "description": "",
       "category": "发动机",
       "tools": [
@@ -18213,6 +18236,118 @@
     }
   },
   "card_logs": [
+    {
+      "id": 268,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 995,
+      "target_identifier": "EOJC-PW1100G-72-2026-016-S",
+      "target_name": "孔探检查PW1100发动机吊挂余油管DR121堵塞情况",
+      "changes": [
+        {
+          "field": "tools",
+          "old": [],
+          "new": [
+            {
+              "device_name": "2.8mm便携式孔探设备",
+              "part_number": "DF28HKC",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "DR121管路冲洗工具PW1100",
+              "part_number": "PWA212548",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "field": "materials",
+          "old": [],
+          "new": [
+            {
+              "material_name": "防咬合剂",
+              "part_number": "MOLYKOTE P37",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "field": "tools_confirmed",
+          "old": true,
+          "new": false
+        },
+        {
+          "field": "materials_confirmed",
+          "old": true,
+          "new": false
+        }
+      ],
+      "timestamp": "2026-08-13T08:45:46.027242+08:00"
+    },
+    {
+      "id": 267,
+      "operation": "update",
+      "target_type": "set",
+      "target_id": 972,
+      "target_identifier": "主金属屑检测器远程指示的操作检查 — (CFMB)",
+      "target_name": "主金属屑检测器远程指示的操作检查 — (CFMB)",
+      "changes": [
+        {
+          "field": "name",
+          "old": "主金属屑检测器远程指示的操作检查 — 单发(CFMB)",
+          "new": "主金属屑检测器远程指示的操作检查 — (CFMB)"
+        }
+      ],
+      "timestamp": "2026-08-13T08:44:33.788697+08:00"
+    },
+    {
+      "id": 266,
+      "operation": "update",
+      "target_type": "set",
+      "target_id": 867,
+      "target_identifier": "清洁皮托管",
+      "target_name": "清洁皮托管",
+      "changes": [
+        {
+          "field": "category",
+          "old": "发动机",
+          "new": "电子"
+        }
+      ],
+      "timestamp": "2026-08-13T08:43:33.785583+08:00"
+    },
+    {
+      "id": 265,
+      "operation": "update",
+      "target_type": "set",
+      "target_id": 867,
+      "target_identifier": "清洁皮托管",
+      "target_name": "清洁皮托管",
+      "changes": [
+        {
+          "field": "category",
+          "old": "电子",
+          "new": "发动机"
+        }
+      ],
+      "timestamp": "2026-08-13T08:43:26.363816+08:00"
+    },
+    {
+      "id": 264,
+      "operation": "update",
+      "target_type": "set",
+      "target_id": 867,
+      "target_identifier": "清洁皮托管",
+      "target_name": "清洁皮托管",
+      "changes": [],
+      "timestamp": "2026-08-13T08:42:39.857440+08:00"
+    },
     {
       "id": 263,
       "operation": "update",
@@ -23232,93 +23367,7 @@
         }
       ],
       "timestamp": "2026-07-29T14:08:08.930180+00:00"
-    },
-    {
-      "id": 68,
-      "operation": "update",
-      "target_type": "card",
-      "target_id": 62,
-      "target_identifier": "CSCA320-72ZB16-01-2-1A",
-      "target_name": "发动机清洗要求-1发 （CFMB）",
-      "changes": [
-        {
-          "field": "set_id",
-          "old": null,
-          "new": 954
-        }
-      ],
-      "timestamp": "2026-07-29T14:08:08.830538+00:00"
-    },
-    {
-      "id": 67,
-      "operation": "update",
-      "target_type": "set",
-      "target_id": 954,
-      "target_identifier": "纯水清洗发动机气路 — 单发（CFMB）",
-      "target_name": "纯水清洗发动机气路 — 单发（CFMB）",
-      "changes": [
-        {
-          "field": "tools",
-          "old": [],
-          "new": [
-            {
-              "device_name": "充门工具箱",
-              "part_number": "",
-              "quantity": "1",
-              "remark": "",
-              "usage_type": "必须使用"
-            }
-          ]
-        },
-        {
-          "field": "materials_confirmed",
-          "old": false,
-          "new": true
-        }
-      ],
-      "timestamp": "2026-07-29T14:08:08.726392+00:00"
-    },
-    {
-      "id": 66,
-      "operation": "add",
-      "target_type": "set",
-      "target_id": 954,
-      "target_identifier": "纯水清洗发动机气路 — 单发（CFMB）",
-      "target_name": "纯水清洗发动机气路 — 单发（CFMB）",
-      "changes": [],
-      "timestamp": "2026-07-29T14:08:08.605404+00:00"
-    },
-    {
-      "id": 65,
-      "operation": "update",
-      "target_type": "card",
-      "target_id": 953,
-      "target_identifier": "CSCA320-72ZB16-01-2-1C",
-      "target_name": "纯水清洗发动机气路 — 1发（CFMB）",
-      "changes": [
-        {
-          "field": "tools_confirmed",
-          "old": false,
-          "new": true
-        },
-        {
-          "field": "materials_confirmed",
-          "old": false,
-          "new": true
-        }
-      ],
-      "timestamp": "2026-07-29T14:06:34.035716+00:00"
-    },
-    {
-      "id": 64,
-      "operation": "add",
-      "target_type": "card",
-      "target_id": 953,
-      "target_identifier": "CSCA320-72ZB16-01-2-1C",
-      "target_name": "纯水清洗发动机气路 — 1发（CFMB）",
-      "changes": [],
-      "timestamp": "2026-07-29T14:06:33.937148+00:00"
     }
   ],
-  "card_log_next_id": 264
+  "card_log_next_id": 269
 }

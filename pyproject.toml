@@ -5,6 +5,7 @@ description = "飞机定检需求单管理系统，工卡匹配与需求单自�
 requires-python = ">=3.10"
 dependencies = [
     "flask>=3.1.0",
+    "gunicorn>=21.2.0",
     "openpyxl>=3.1.0",
     "python-dotenv>=1.0.0",
     "tzdata>=2024.1",
