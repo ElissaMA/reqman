@@ -60,3 +60,59 @@ class TestWriteCategoryBlockMinRows:
         assert ws.cell(row=2, column=1).value == "机体"
         assert ws.cell(row=3, column=1).value == "电子"
         assert ws.cell(row=3, column=5).value == "2"
+
+
+class TestExcelRemarkDisplay:
+    """备注显示统一：Excel 中"检查有问题领用"用中文逗号拼接备注"""
+
+    def _run(self, items, **kw):
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        _write_category_block_min_rows(
+            ws, 1, items, min_rows=1,
+            name_key="device_name", task_key="task_name", **kw,
+        )
+        return ws
+
+    def test_check_issue_with_remark_chinese_comma(self):
+        """有问题领用+备注 → '检查有问题领用，备注'（中文逗号分隔）"""
+        ws = self._run([{
+            "category": "发动机", "device_name": "扳手", "part_number": "",
+            "quantity": "", "remark": "已磨损",
+            "usage_type": "检查有问题领用",
+        }])
+        assert ws.cell(row=1, column=6).value == "检查有问题领用，已磨损"
+
+    def test_check_issue_empty_remark_only_type(self):
+        """有问题领用+空备注 → 只显示'检查有问题领用'"""
+        ws = self._run([{
+            "category": "发动机", "device_name": "扳手", "part_number": "",
+            "quantity": "", "remark": "",
+            "usage_type": "检查有问题领用",
+        }])
+        assert ws.cell(row=1, column=6).value == "检查有问题领用"
+
+    def test_must_use_only_remark(self):
+        """必须使用 → 只显示备注（不加类型前缀）"""
+        ws = self._run([{
+            "category": "发动机", "device_name": "扳手", "part_number": "",
+            "quantity": "", "remark": "随机携带",
+            "usage_type": "必须使用",
+        }])
+        assert ws.cell(row=1, column=6).value == "随机携带"
+
+    def test_no_usage_type_only_remark(self):
+        """无 usage_type → 只显示备注"""
+        ws = self._run([{
+            "category": "发动机", "device_name": "扳手", "part_number": "",
+            "quantity": "", "remark": "备用",
+        }])
+        assert ws.cell(row=1, column=6).value == "备用"
+
+    def test_no_usage_type_empty_remark_blank(self):
+        """无 usage_type 且无备注 → 空"""
+        ws = self._run([{
+            "category": "发动机", "device_name": "扳手", "part_number": "",
+            "quantity": "", "remark": "",
+        }])
+        assert ws.cell(row=1, column=6).value in (None, "")

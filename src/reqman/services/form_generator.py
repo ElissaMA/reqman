@@ -102,7 +102,7 @@ def _write_category_block_min_rows(ws, start_row, items, min_rows,
             for item in cat_items:
                 remark = item.get("remark", "")
                 if item.get("usage_type") == "检查有问题领用":
-                    remark = "检查有问题领用" + ("; " + remark if remark else "")
+                    remark = "检查有问题领用" + ("，" + remark if remark else "")
 
                 set_cell(ws, row, 1, cat, font=DATA_14, alignment=DATA_ALIGN_CENTER)
                 set_cell(ws, row, 2, item.get(name_key, ""), font=DATA_14, alignment=DATA_ALIGN_CENTER)

@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% import "macros/list_macros.html" as list %}
+{% macro remark_display(item) %}{% set rt = item.get('usage_type', '') %}{% set rm = item.get('remark', '') %}{% if rt == '检查有问题领用' %}检查有问题领用{% if rm %}，{{ rm }}{% endif %}{% else %}{{ rm }}{% endif %}{% endmacro %}
 {% block title %}生成需求单 - 定检需求单管理{% endblock %}
 {% block content %}
 <style>
@@ -175,7 +176,7 @@
                             <td>{{ t.part_number }}</td>
                             <td>{% if t.set_name %}{{ t.set_name }}{% else %}{{ t.task_name[:40] }}{% if t.task_name|length > 40 %}...{% endif %}{% endif %}</td>
                             <td>{{ t.quantity }}</td>
-                            <td>{{ t.remark }}</td>
+                            <td>{{ remark_display(t) }}</td>
                             <td class="bg-light text-center small"></td>
                             <td class="bg-light text-center small"></td>
                             <td class="bg-light text-center small"></td>
@@ -222,7 +223,7 @@
                             <td>{{ m.part_number }}</td>
                             <td>{% if m.set_name %}{{ m.set_name }}{% else %}{{ m.task_name[:40] }}{% if m.task_name|length > 40 %}...{% endif %}{% endif %}</td>
                             <td>{{ m.quantity }}</td>
-                            <td>{{ m.remark }}</td>
+                            <td>{{ remark_display(m) }}</td>
                             <td class="bg-light text-center small"></td>
                             <td class="bg-light text-center small"></td>
                             <td class="bg-light text-center small"></td>
@@ -272,7 +273,7 @@
                             <td>{{ s.part_number }}</td>
                             <td>{{ s.task_name or '' }}</td>
                             <td>{{ s.quantity }}</td>
-                            <td>{{ s.remark or '检查有问题领用' }}</td>
+                            <td>{{ remark_display(s) }}</td>
                             <td class="bg-light text-center small"></td>
                             <td class="bg-light text-center small"></td>
                             <td class="bg-light text-center small"></td>
