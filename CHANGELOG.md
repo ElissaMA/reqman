@@ -1,6 +1,9 @@
 # Changelog
 
 ## [3.2.5] - Unreleased
+### Changed
+- agent.md 精简重构为九章工作区规范（工作区/分支/协作/提交/任务/沟通/测试/版本/数据保护）
+
 ### Fixed
 - 修复 start.bat 启动乱码（UTF-8 BOM + CRLF + chcp 65001），消除"需求单管理系统不是内部或外部命令"报错
 - 新增 .gitattributes 规范行结束符（*.bat=crlf / *.sh、*.py 等=lf），防止 core.autocrlf 污染
