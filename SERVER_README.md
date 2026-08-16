@@ -148,6 +148,9 @@ git push origin main
 # 4. 服务器拉取最新代码
 cd /root/workspace/reqman && git pull origin main
 
+# 4.1 更新依赖（新功能可能引入新依赖，幂等安全）
+./venv/bin/pip install -e .
+
 # 5. 重启服务
 sudo systemctl restart reqman
 
@@ -247,6 +250,7 @@ git branch -d feature/xxx
 - **feature 分支不直接推送到服务器**，必须合并到 main 后才推送
 - **合并前确保 dev 分支测试通过**
 - **合并后切回 dev 继续开发**
+- **合并到 main 推送到服务器后，服务器拉取代码需同步更新依赖**（`./venv/bin/pip install -e .`，见 §5.2 步骤 4.1），新功能可能引入新依赖，否则会导致服务 502
 
 
 ---

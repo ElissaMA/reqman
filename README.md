@@ -143,6 +143,7 @@ python src/reqman/app.py
 - Python 3.10+
 - Flask 3.1+
 - openpyxl
+- httpx（AMRO 库存查询 HTTP 客户端）
 - tzdata（北京时间时区支持）
 - pytest
 
