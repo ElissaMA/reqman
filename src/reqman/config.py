@@ -54,6 +54,8 @@ AMRO_COOKIE_FILE: Path = BASE_DIR / os.getenv("AMRO_COOKIE_FILE", "data/cookie/a
 AMRO_MAX_CONCURRENT: int = int(os.getenv("AMRO_MAX_CONCURRENT", "10"))
 AMRO_SESSION_TTL: int = int(os.getenv("AMRO_SESSION_TTL", "7200"))  # 2 小时
 AMRO_LOGIN_VERSION: str = os.getenv("AMRO_LOGIN_VERSION", "1")
+# 登录脚本 ZIP 注入的公网地址（服务器部署建议配置，保证多用户下载的 ZIP 注入地址一致可达；未配置回退当前访问地址）
+AMRO_PUBLIC_URL: str = os.getenv("AMRO_PUBLIC_URL", "").rstrip("/")
 
 # 库存查询输出暂存目录（gitignore 已忽略）
 OUTPUT_DIR: Path = BASE_DIR / os.getenv("OUTPUT_DIR", "output")

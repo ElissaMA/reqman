@@ -103,6 +103,32 @@ class TestSetupPackage:
         assert any("start_login.bat" in n for n in names)
         assert any("README" in n for n in names)
 
+    def _py_source(self, resp) -> str:
+        zf = zipfile.ZipFile(io.BytesIO(resp.data))
+        return zf.read("amro_login.py").decode("utf-8")
+
+    def test_injects_fallback_host_url(self, client, monkeypatch):
+        """未配置 AMRO_PUBLIC_URL → 回退当前访问地址（host_url）。"""
+        import reqman.blueprints.inventory_bp as bp_mod
+        monkeypatch.setattr(bp_mod, "AMRO_PUBLIC_URL", "")
+        resp = client.get("/inventory/setup-package")
+        assert resp.status_code == 200
+        src = self._py_source(resp)
+        assert 'SERVER_URL = "http://localhost"' in src
+        assert 'UPLOAD_URL = "http://localhost/inventory/login/upload"' in src
+        assert "trust_env=False" in src
+
+    def test_injects_configured_public_url(self, client, monkeypatch):
+        """配置 AMRO_PUBLIC_URL → 注入配置的公网地址。"""
+        import reqman.blueprints.inventory_bp as bp_mod
+        monkeypatch.setattr(bp_mod, "AMRO_PUBLIC_URL", "http://8.137.15.167")
+        resp = client.get("/inventory/setup-package")
+        assert resp.status_code == 200
+        src = self._py_source(resp)
+        assert 'SERVER_URL = "http://8.137.15.167"' in src
+        assert 'UPLOAD_URL = "http://8.137.15.167/inventory/login/upload"' in src
+        assert "trust_env=False" in src
+
 
 class TestCheckConfig:
     def test_rejects_wrong_content(self, client):

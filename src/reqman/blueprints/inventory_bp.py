@@ -10,7 +10,7 @@ from pathlib import Path
 
 from flask import Blueprint, current_app, render_template, request, send_file
 
-from ..config import AMRO_LOGIN_VERSION, OUTPUT_DIR
+from ..config import AMRO_LOGIN_VERSION, AMRO_PUBLIC_URL, OUTPUT_DIR
 from ..utils.error_handlers import ValidationError
 from ..utils.response import api_error, api_success
 
@@ -64,8 +64,8 @@ def session_status():
 
 @inventory_bp.route("/inventory/setup-package", methods=["GET"])
 def setup_package():
-    """动态生成登录脚本配置包 ZIP（注入当前服务器地址）。"""
-    server_url = request.host_url.rstrip("/")
+    """动态生成登录脚本配置包 ZIP（注入配置的公网地址，未配置回退当前访问地址）。"""
+    server_url = AMRO_PUBLIC_URL or request.host_url.rstrip("/")
     py_source = _login_py_template(server_url)
     bat_source = _login_bat_template(server_url)
     readme_source = (
@@ -236,8 +236,14 @@ def _login_py_template(server_url: str) -> str:
         '            cookies = await ctx.cookies()\n'
         '            names = {c["name"] for c in cookies}\n'
         '            if "JSESSIONID" in names:\n'
-        '                async with httpx.AsyncClient(verify=True, timeout=15) as client:\n'
-        '                    await client.post(UPLOAD_URL, data={"cookies": json.dumps(cookies, ensure_ascii=False)})\n'
+        '                try:\n'
+        '                    async with httpx.AsyncClient(verify=True, timeout=15, trust_env=False) as client:\n'
+        '                        resp = await client.post(UPLOAD_URL, data={"cookies": json.dumps(cookies, ensure_ascii=False)})\n'
+        '                        resp.raise_for_status()\n'
+        '                except Exception:\n'
+        '                    print(f"无法连接需求单系统（{UPLOAD_URL}），请检查网络后重新运行登录脚本")\n'
+        '                    await browser.close()\n'
+        '                    return\n'
         '                print(MSG_P3)\n'
         '                print("✅ 登录成功，请回到网页开始查询")\n'
         '                await browser.close()\n'

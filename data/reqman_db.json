@@ -830,8 +830,8 @@
       "tools": [],
       "materials": [],
       "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "42": {
@@ -844,8 +844,8 @@
       "tools": [],
       "materials": [],
       "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "43": {
@@ -2512,6 +2512,13 @@
           "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
+        },
+        {
+          "device_name": "电子秤",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
         }
       ],
       "materials": [
@@ -2626,6 +2633,13 @@
           "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
+        },
+        {
+          "device_name": "电子秤",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
         }
       ],
       "materials": [
@@ -2737,6 +2751,13 @@
         {
           "device_name": "28号注油枪",
           "part_number": "自编号Z1006-28",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "电子秤",
+          "part_number": "",
           "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
@@ -3010,6 +3031,13 @@
           "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
+        },
+        {
+          "device_name": "电子秤",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
         }
       ],
       "materials": [
@@ -3121,6 +3149,13 @@
         {
           "device_name": "28号注油枪",
           "part_number": "自编号Z1006-28",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "电子秤",
+          "part_number": "",
           "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
@@ -3238,6 +3273,13 @@
           "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
+        },
+        {
+          "device_name": "电子秤",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
         }
       ],
       "materials": [
@@ -3352,6 +3394,13 @@
           "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
+        },
+        {
+          "device_name": "电子秤",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
         }
       ],
       "materials": [
@@ -3463,6 +3512,13 @@
         {
           "device_name": "28号注油枪",
           "part_number": "自编号Z1006-28",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "电子秤",
+          "part_number": "",
           "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
@@ -4797,9 +4853,45 @@
       "task_type": "EO分段",
       "remark": "",
       "tools": [],
-      "materials": [],
+      "materials": [
+        {
+          "material_name": "管子",
+          "part_number": "D3611020500000",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "管子",
+          "part_number": "D3611022800000",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "卡子",
+          "part_number": "NSA5516C06ND",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "卡子",
+          "part_number": "NSA935807C06",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "引气管路",
+          "part_number": "D3611023000000",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        }
+      ],
       "set_id": null,
-      "tools_confirmed": false,
+      "tools_confirmed": true,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
     },
@@ -7306,11 +7398,19 @@
       "category": "电子",
       "task_type": "",
       "remark": "",
-      "tools": [],
+      "tools": [
+        {
+          "device_name": "塞尺",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
       "materials": [],
       "set_id": null,
       "tools_confirmed": false,
-      "materials_confirmed": false,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "257": {
@@ -9182,8 +9282,52 @@
       "category": "发动机",
       "task_type": "",
       "remark": "",
-      "tools": [],
-      "materials": [],
+      "tools": [
+        {
+          "device_name": "APU燃油排放工具",
+          "part_number": "98A28007570000",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "清洗支架",
+          "part_number": "98A49007625001",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "materials": [
+        {
+          "material_name": "清洗剂",
+          "part_number": "ZOK27",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "凡士林",
+          "part_number": "VV-P-236",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "保险丝",
+          "part_number": "MS20995C32",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "胶圈",
+          "part_number": "AS3209-009",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
       "set_id": null,
       "tools_confirmed": false,
       "materials_confirmed": false,
@@ -10353,8 +10497,8 @@
       "tools": [],
       "materials": [],
       "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "793": {
@@ -14058,6 +14202,13 @@
           "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
+        },
+        {
+          "device_name": "电子秤",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
         }
       ],
       "materials": [
@@ -14442,6 +14593,13 @@
         {
           "device_name": "28号注油枪",
           "part_number": "自编号Z1006-28",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "电子秤",
+          "part_number": "",
           "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
@@ -15570,6 +15728,192 @@
       ],
       "materials": [],
       "tools_confirmed": false,
+      "materials_confirmed": true,
+      "set_id": null,
+      "reminder_type": "一般提醒"
+    },
+    "1005": {
+      "id": 1005,
+      "task_code": "DP1000005933",
+      "task_name": "副驾位风挡上部中间层分层，分层内有气泡，不影响视线（分层最宽处距离边缘50MM，不影响视线）",
+      "category": "电子",
+      "task_type": "DP项目",
+      "remark": "",
+      "tools": [],
+      "materials": [],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": null,
+      "reminder_type": "一般提醒"
+    },
+    "1006": {
+      "id": 1006,
+      "task_code": "CSCA320-361143-01-1-2",
+      "task_name": "拆卸风扇空气阀恒温控制器的滤子用于清洁-2发",
+      "category": "发动机",
+      "task_type": "",
+      "remark": "",
+      "tools": [
+        {
+          "device_name": "引气系统风扇阀清洁工具A320",
+          "part_number": "98D36109003000",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "电动打螺钉工具",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "materials": [
+        {
+          "material_name": "垫圈",
+          "part_number": "S4165",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "高温润滑脂",
+          "part_number": "C5A",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "滤芯",
+          "part_number": "398-84",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "锁线",
+          "part_number": "MS9226-02",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "风扇阀恒温器",
+          "part_number": "342B050000",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "风扇阀恒温器组件胶圈",
+          "part_number": "NSA8203-128",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": false,
+      "materials_confirmed": false,
+      "set_id": 913,
+      "reminder_type": "一般提醒"
+    },
+    "1007": {
+      "id": 1007,
+      "task_code": "CSCA320-712111-01-1-1",
+      "task_name": "详细检查发动机前吊点 — 1发 （CFMB）",
+      "category": "发动机",
+      "task_type": "",
+      "remark": "",
+      "tools": [],
+      "materials": [],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": null,
+      "reminder_type": "一般提醒"
+    },
+    "1008": {
+      "id": 1008,
+      "task_code": "CSCA320-792000-C7-1-1",
+      "task_name": "检查前后油槽,AGB 和TGB 回油滤网 — 1发（CFMB）",
+      "category": "发动机",
+      "task_type": "A",
+      "remark": "",
+      "tools": [],
+      "materials": [
+        {
+          "material_name": "胶圈",
+          "part_number": "J221P916",
+          "quantity": "4",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "备用胶圈",
+          "part_number": "301-806-101-0",
+          "quantity": "4",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "环保清洁剂",
+          "part_number": "TURCO P-D-680",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": true,
+      "materials_confirmed": false,
+      "set_id": null,
+      "reminder_type": "一般提醒"
+    },
+    "1009": {
+      "id": 1009,
+      "task_code": "CSCA320-792000-C7-1-2",
+      "task_name": "检查前后油槽,AGB 和TGB 回油滤网 — 2发（CFMB）",
+      "category": "发动机",
+      "task_type": "A",
+      "remark": "",
+      "tools": [],
+      "materials": [
+        {
+          "material_name": "胶圈",
+          "part_number": "J221P916",
+          "quantity": "4",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "备用胶圈",
+          "part_number": "301-806-101-0",
+          "quantity": "4",
+          "remark": "",
+          "usage_type": "检查有问题领用"
+        },
+        {
+          "material_name": "环保清洁剂",
+          "part_number": "TURCO P-D-680",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": true,
+      "materials_confirmed": false,
+      "set_id": null,
+      "reminder_type": "一般提醒"
+    },
+    "1010": {
+      "id": 1010,
+      "task_code": "EOJC-CFM56-72-2025-009-S",
+      "task_name": "孔探检查CFM56-5B发动机高压涡轮转子叶片",
+      "category": "特检",
+      "task_type": "EO分段",
+      "remark": "",
+      "tools": [],
+      "materials": [],
+      "tools_confirmed": true,
       "materials_confirmed": true,
       "set_id": null,
       "reminder_type": "一般提醒"
@@ -17032,6 +17376,13 @@
           "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
+        },
+        {
+          "device_name": "电子秤",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
         }
       ],
       "materials": [
@@ -18401,6 +18752,882 @@
     }
   },
   "card_logs": [
+    {
+      "id": 319,
+      "operation": "update",
+      "target_type": "set",
+      "target_id": 973,
+      "target_identifier": "VBV系统目视检查和润滑",
+      "target_name": "VBV系统目视检查和润滑",
+      "changes": [
+        {
+          "field": "tools",
+          "old": [
+            {
+              "device_name": "VBV门保持工具",
+              "part_number": "856A2664G01-FZC",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "VBV开关工具",
+              "part_number": "856A2501G01",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "VBV拆装工具",
+              "part_number": "856A3114G01",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "注油嘴（VBV）",
+              "part_number": "自编号Z4001-12",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "套筒1/4孔3/16六方杆",
+              "part_number": "自编号T7057-26",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "电动工具",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "28号注油枪",
+              "part_number": "自编号Z1006-28",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "new": [
+            {
+              "device_name": "VBV门保持工具",
+              "part_number": "856A2664G01-FZC",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "VBV开关工具",
+              "part_number": "856A2501G01",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "VBV拆装工具",
+              "part_number": "856A3114G01",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "注油嘴（VBV）",
+              "part_number": "自编号Z4001-12",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "套筒1/4孔3/16六方杆",
+              "part_number": "自编号T7057-26",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "电动工具",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "28号注油枪",
+              "part_number": "自编号Z1006-28",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "电子秤",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ]
+        }
+      ],
+      "timestamp": "2026-08-16T12:08:10.836041+08:00"
+    },
+    {
+      "id": 318,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 41,
+      "target_identifier": "CSCA320-711300-C2-1-1",
+      "target_name": "检查风扇包皮锁定设备的保持组件",
+      "changes": [],
+      "timestamp": "2026-08-16T11:41:44.688123+08:00"
+    },
+    {
+      "id": 317,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 1010,
+      "target_identifier": "EOJC-CFM56-72-2025-009-S",
+      "target_name": "孔探检查CFM56-5B发动机高压涡轮转子叶片",
+      "changes": [
+        {
+          "field": "tools_confirmed",
+          "old": false,
+          "new": true
+        },
+        {
+          "field": "materials_confirmed",
+          "old": false,
+          "new": true
+        }
+      ],
+      "timestamp": "2026-08-16T11:41:17.646038+08:00"
+    },
+    {
+      "id": 316,
+      "operation": "add",
+      "target_type": "card",
+      "target_id": 1010,
+      "target_identifier": "EOJC-CFM56-72-2025-009-S",
+      "target_name": "孔探检查CFM56-5B发动机高压涡轮转子叶片",
+      "changes": [],
+      "timestamp": "2026-08-16T11:41:17.558841+08:00"
+    },
+    {
+      "id": 315,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 256,
+      "target_identifier": "CSCA320-274000-03-1-X",
+      "target_name": "测试水平安定面作动筒阻尼保护装置",
+      "changes": [
+        {
+          "field": "tools",
+          "old": [],
+          "new": [
+            {
+              "device_name": "塞尺",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "field": "materials_confirmed",
+          "old": false,
+          "new": true
+        }
+      ],
+      "timestamp": "2026-08-16T11:40:49.176152+08:00"
+    },
+    {
+      "id": 314,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 1009,
+      "target_identifier": "CSCA320-792000-C7-1-2",
+      "target_name": "检查前后油槽,AGB 和TGB 回油滤网 — 2发（CFMB）",
+      "changes": [
+        {
+          "field": "materials",
+          "old": [],
+          "new": [
+            {
+              "material_name": "胶圈",
+              "part_number": "J221P916",
+              "quantity": "4",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "备用胶圈",
+              "part_number": "301-806-101-0",
+              "quantity": "4",
+              "remark": "",
+              "usage_type": "检查有问题领用"
+            },
+            {
+              "material_name": "环保清洁剂",
+              "part_number": "TURCO P-D-680",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "field": "materials_confirmed",
+          "old": true,
+          "new": false
+        }
+      ],
+      "timestamp": "2026-08-16T11:34:16.273285+08:00"
+    },
+    {
+      "id": 313,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 1008,
+      "target_identifier": "CSCA320-792000-C7-1-1",
+      "target_name": "检查前后油槽,AGB 和TGB 回油滤网 — 1发（CFMB）",
+      "changes": [
+        {
+          "field": "materials",
+          "old": [],
+          "new": [
+            {
+              "material_name": "胶圈",
+              "part_number": "J221P916",
+              "quantity": "4",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "备用胶圈",
+              "part_number": "301-806-101-0",
+              "quantity": "4",
+              "remark": "",
+              "usage_type": "检查有问题领用"
+            },
+            {
+              "material_name": "环保清洁剂",
+              "part_number": "TURCO P-D-680",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "field": "materials_confirmed",
+          "old": true,
+          "new": false
+        }
+      ],
+      "timestamp": "2026-08-16T11:32:14.255871+08:00"
+    },
+    {
+      "id": 312,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 1009,
+      "target_identifier": "CSCA320-792000-C7-1-2",
+      "target_name": "检查前后油槽,AGB 和TGB 回油滤网 — 2发（CFMB）",
+      "changes": [
+        {
+          "field": "tools_confirmed",
+          "old": false,
+          "new": true
+        },
+        {
+          "field": "materials_confirmed",
+          "old": false,
+          "new": true
+        }
+      ],
+      "timestamp": "2026-08-16T11:13:34.360368+08:00"
+    },
+    {
+      "id": 311,
+      "operation": "add",
+      "target_type": "card",
+      "target_id": 1009,
+      "target_identifier": "CSCA320-792000-C7-1-2",
+      "target_name": "检查前后油槽,AGB 和TGB 回油滤网 — 2发（CFMB）",
+      "changes": [],
+      "timestamp": "2026-08-16T11:13:34.239651+08:00"
+    },
+    {
+      "id": 310,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 1008,
+      "target_identifier": "CSCA320-792000-C7-1-1",
+      "target_name": "检查前后油槽,AGB 和TGB 回油滤网 — 1发（CFMB）",
+      "changes": [
+        {
+          "field": "tools_confirmed",
+          "old": false,
+          "new": true
+        },
+        {
+          "field": "materials_confirmed",
+          "old": false,
+          "new": true
+        }
+      ],
+      "timestamp": "2026-08-16T11:13:06.094289+08:00"
+    },
+    {
+      "id": 309,
+      "operation": "add",
+      "target_type": "card",
+      "target_id": 1008,
+      "target_identifier": "CSCA320-792000-C7-1-1",
+      "target_name": "检查前后油槽,AGB 和TGB 回油滤网 — 1发（CFMB）",
+      "changes": [],
+      "timestamp": "2026-08-16T11:13:06.003425+08:00"
+    },
+    {
+      "id": 308,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 1007,
+      "target_identifier": "CSCA320-712111-01-1-1",
+      "target_name": "详细检查发动机前吊点 — 1发 （CFMB）",
+      "changes": [
+        {
+          "field": "tools_confirmed",
+          "old": false,
+          "new": true
+        },
+        {
+          "field": "materials_confirmed",
+          "old": false,
+          "new": true
+        }
+      ],
+      "timestamp": "2026-08-16T11:03:15.709859+08:00"
+    },
+    {
+      "id": 307,
+      "operation": "add",
+      "target_type": "card",
+      "target_id": 1007,
+      "target_identifier": "CSCA320-712111-01-1-1",
+      "target_name": "详细检查发动机前吊点 — 1发 （CFMB）",
+      "changes": [],
+      "timestamp": "2026-08-16T11:03:15.619685+08:00"
+    },
+    {
+      "id": 306,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 42,
+      "target_identifier": "CSCA320-711300-C2-1-2",
+      "target_name": "详细检查风扇整流罩锁定保持器-2发(CFMB)",
+      "changes": [
+        {
+          "field": "tools_confirmed",
+          "old": false,
+          "new": true
+        },
+        {
+          "field": "materials_confirmed",
+          "old": false,
+          "new": true
+        }
+      ],
+      "timestamp": "2026-08-16T11:02:11.845862+08:00"
+    },
+    {
+      "id": 305,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 41,
+      "target_identifier": "CSCA320-711300-C2-1-1",
+      "target_name": "检查风扇包皮锁定设备的保持组件",
+      "changes": [],
+      "timestamp": "2026-08-16T11:01:56.558745+08:00"
+    },
+    {
+      "id": 304,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 41,
+      "target_identifier": "CSCA320-711300-C2-1-1",
+      "target_name": "检查风扇包皮锁定设备的保持组件",
+      "changes": [
+        {
+          "field": "tools_confirmed",
+          "old": false,
+          "new": true
+        },
+        {
+          "field": "materials_confirmed",
+          "old": false,
+          "new": true
+        }
+      ],
+      "timestamp": "2026-08-16T11:00:23.377064+08:00"
+    },
+    {
+      "id": 303,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 728,
+      "target_identifier": "CSCA320-49ZB00-00-1-X",
+      "target_name": "用APU清洗设备APU压缩机清洗（PN:98A49007625001）(APS 3200)",
+      "changes": [
+        {
+          "field": "materials",
+          "old": [
+            {
+              "material_name": "清洗剂",
+              "part_number": "ZOK27",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "凡士林",
+              "part_number": "VV-P-236",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "保险丝",
+              "part_number": "MS20995C32",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "胶圈",
+              "part_number": "M83248-1-009",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "new": [
+            {
+              "material_name": "清洗剂",
+              "part_number": "ZOK27",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "凡士林",
+              "part_number": "VV-P-236",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "保险丝",
+              "part_number": "MS20995C32",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "胶圈",
+              "part_number": "AS3209-009",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ]
+        }
+      ],
+      "timestamp": "2026-08-16T10:19:52.229032+08:00"
+    },
+    {
+      "id": 302,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 728,
+      "target_identifier": "CSCA320-49ZB00-00-1-X",
+      "target_name": "用APU清洗设备APU压缩机清洗（PN:98A49007625001）(APS 3200)",
+      "changes": [
+        {
+          "field": "tools",
+          "old": [],
+          "new": [
+            {
+              "device_name": "APU燃油排放工具",
+              "part_number": "98A28007570000",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "清洗支架",
+              "part_number": "98A49007625001",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "field": "materials",
+          "old": [],
+          "new": [
+            {
+              "material_name": "清洗剂",
+              "part_number": "ZOK27",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "凡士林",
+              "part_number": "VV-P-236",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "保险丝",
+              "part_number": "MS20995C32",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "胶圈",
+              "part_number": "M83248-1-009",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ]
+        }
+      ],
+      "timestamp": "2026-08-14T11:09:01.728972+08:00"
+    },
+    {
+      "id": 301,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 29,
+      "target_identifier": "CSCA320-361143-01-1-2A",
+      "target_name": "拆卸风扇空气阀恒温控制器的滤子-2发",
+      "changes": [
+        {
+          "field": "set_id",
+          "old": null,
+          "new": 913
+        }
+      ],
+      "timestamp": "2026-08-14T10:30:18.160528+08:00"
+    },
+    {
+      "id": 300,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 1006,
+      "target_identifier": "CSCA320-361143-01-1-2",
+      "target_name": "拆卸风扇空气阀恒温控制器的滤子用于清洁-2发",
+      "changes": [
+        {
+          "field": "set_id",
+          "old": null,
+          "new": 913
+        }
+      ],
+      "timestamp": "2026-08-14T10:30:18.076841+08:00"
+    },
+    {
+      "id": 299,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 27,
+      "target_identifier": "CSCA320-361143-01-1-1A",
+      "target_name": "拆卸风扇空气阀恒温控制器的滤子-1发",
+      "changes": [
+        {
+          "field": "set_id",
+          "old": null,
+          "new": 913
+        }
+      ],
+      "timestamp": "2026-08-14T10:30:17.994476+08:00"
+    },
+    {
+      "id": 298,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 912,
+      "target_identifier": "CSCA320-361143-01-1-1",
+      "target_name": "拆卸风扇空气阀恒温控制器的滤子用于清洁-1发",
+      "changes": [
+        {
+          "field": "set_id",
+          "old": null,
+          "new": 913
+        }
+      ],
+      "timestamp": "2026-08-14T10:30:17.909558+08:00"
+    },
+    {
+      "id": 297,
+      "operation": "update",
+      "target_type": "set",
+      "target_id": 913,
+      "target_identifier": "拆卸风扇空气阀恒温控制器的滤子用于清洁",
+      "target_name": "拆卸风扇空气阀恒温控制器的滤子用于清洁",
+      "changes": [],
+      "timestamp": "2026-08-14T10:30:17.764168+08:00"
+    },
+    {
+      "id": 296,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 141,
+      "target_identifier": "EOJC-A320-36-2022-001-B",
+      "target_name": "7170HM感应管区域磨损检查（2发）",
+      "changes": [
+        {
+          "field": "materials",
+          "old": [],
+          "new": [
+            {
+              "material_name": "管子",
+              "part_number": "D3611020500000",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "检查有问题领用"
+            },
+            {
+              "material_name": "管子",
+              "part_number": "D3611022800000",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "检查有问题领用"
+            },
+            {
+              "material_name": "卡子",
+              "part_number": "NSA5516C06ND",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "检查有问题领用"
+            },
+            {
+              "material_name": "卡子",
+              "part_number": "NSA935807C06",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "检查有问题领用"
+            },
+            {
+              "material_name": "引气管路",
+              "part_number": "D3611023000000",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "检查有问题领用"
+            }
+          ]
+        },
+        {
+          "field": "tools_confirmed",
+          "old": false,
+          "new": true
+        }
+      ],
+      "timestamp": "2026-08-14T10:29:43.384520+08:00"
+    },
+    {
+      "id": 295,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 1006,
+      "target_identifier": "CSCA320-361143-01-1-2",
+      "target_name": "拆卸风扇空气阀恒温控制器的滤子用于清洁-2发",
+      "changes": [
+        {
+          "field": "tools_confirmed",
+          "old": false,
+          "new": true
+        },
+        {
+          "field": "materials_confirmed",
+          "old": false,
+          "new": true
+        }
+      ],
+      "timestamp": "2026-08-14T10:29:35.559814+08:00"
+    },
+    {
+      "id": 294,
+      "operation": "add",
+      "target_type": "card",
+      "target_id": 1006,
+      "target_identifier": "CSCA320-361143-01-1-2",
+      "target_name": "拆卸风扇空气阀恒温控制器的滤子用于清洁-2发",
+      "changes": [],
+      "timestamp": "2026-08-14T10:29:35.479569+08:00"
+    },
+    {
+      "id": 293,
+      "operation": "update",
+      "target_type": "set",
+      "target_id": 913,
+      "target_identifier": "拆卸风扇空气阀恒温控制器的滤子用于清洁",
+      "target_name": "拆卸风扇空气阀恒温控制器的滤子用于清洁",
+      "changes": [],
+      "timestamp": "2026-08-14T10:23:24.325711+08:00"
+    },
+    {
+      "id": 292,
+      "operation": "delete",
+      "target_type": "set",
+      "target_id": 1004,
+      "target_identifier": "拆卸风扇空气阀恒温控制器的滤子用于清洁-2发",
+      "target_name": "拆卸风扇空气阀恒温控制器的滤子用于清洁-2发",
+      "changes": [],
+      "timestamp": "2026-08-14T10:12:32.952948+08:00"
+    },
+    {
+      "id": 291,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 792,
+      "target_identifier": "CSCA320-ZL-831-01-1-X",
+      "target_name": "一般目视检查前后旅客/机组门（包括机身门框上的门止动块和门密封、外表面）(EWIS)",
+      "changes": [
+        {
+          "field": "tools_confirmed",
+          "old": false,
+          "new": true
+        },
+        {
+          "field": "materials_confirmed",
+          "old": false,
+          "new": true
+        }
+      ],
+      "timestamp": "2026-08-14T10:08:54.198808+08:00"
+    },
+    {
+      "id": 290,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 1005,
+      "target_identifier": "DP1000005933",
+      "target_name": "副驾位风挡上部中间层分层，分层内有气泡，不影响视线（分层最宽处距离边缘50MM，不影响视线）",
+      "changes": [
+        {
+          "field": "tools_confirmed",
+          "old": false,
+          "new": true
+        },
+        {
+          "field": "materials_confirmed",
+          "old": false,
+          "new": true
+        }
+      ],
+      "timestamp": "2026-08-14T10:08:32.375801+08:00"
+    },
+    {
+      "id": 289,
+      "operation": "add",
+      "target_type": "card",
+      "target_id": 1005,
+      "target_identifier": "DP1000005933",
+      "target_name": "副驾位风挡上部中间层分层，分层内有气泡，不影响视线（分层最宽处距离边缘50MM，不影响视线）",
+      "changes": [],
+      "timestamp": "2026-08-14T10:08:32.290937+08:00"
+    },
+    {
+      "id": 288,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 29,
+      "target_identifier": "CSCA320-361143-01-1-2A",
+      "target_name": "拆卸风扇空气阀恒温控制器的滤子-2发",
+      "changes": [
+        {
+          "field": "set_id",
+          "old": 913,
+          "new": 1004
+        }
+      ],
+      "timestamp": "2026-08-14T10:06:33.004812+08:00"
+    },
+    {
+      "id": 287,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 27,
+      "target_identifier": "CSCA320-361143-01-1-1A",
+      "target_name": "拆卸风扇空气阀恒温控制器的滤子-1发",
+      "changes": [
+        {
+          "field": "set_id",
+          "old": 913,
+          "new": 1004
+        }
+      ],
+      "timestamp": "2026-08-14T10:06:32.922713+08:00"
+    },
+    {
+      "id": 286,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 912,
+      "target_identifier": "CSCA320-361143-01-1-1",
+      "target_name": "拆卸风扇空气阀恒温控制器的滤子用于清洁-1发",
+      "changes": [
+        {
+          "field": "set_id",
+          "old": 913,
+          "new": 1004
+        }
+      ],
+      "timestamp": "2026-08-14T10:06:32.840776+08:00"
+    },
+    {
+      "id": 285,
+      "operation": "update",
+      "target_type": "set",
+      "target_id": 1004,
+      "target_identifier": "拆卸风扇空气阀恒温控制器的滤子用于清洁-2发",
+      "target_name": "拆卸风扇空气阀恒温控制器的滤子用于清洁-2发",
+      "changes": [
+        {
+          "field": "tools_confirmed",
+          "old": false,
+          "new": true
+        },
+        {
+          "field": "materials_confirmed",
+          "old": false,
+          "new": true
+        }
+      ],
+      "timestamp": "2026-08-14T10:06:32.698631+08:00"
+    },
+    {
+      "id": 284,
+      "operation": "add",
+      "target_type": "set",
+      "target_id": 1004,
+      "target_identifier": "拆卸风扇空气阀恒温控制器的滤子用于清洁-2发",
+      "target_name": "拆卸风扇空气阀恒温控制器的滤子用于清洁-2发",
+      "changes": [],
+      "timestamp": "2026-08-14T10:06:32.610344+08:00"
+    },
     {
       "id": 283,
       "operation": "update",
@@ -23005,650 +24232,7 @@
         }
       ],
       "timestamp": "2026-07-29T14:44:18.593828+00:00"
-    },
-    {
-      "id": 119,
-      "operation": "update",
-      "target_type": "card",
-      "target_id": 969,
-      "target_identifier": "CSCA320-52ZB71-02-1-C",
-      "target_name": "调节电子舱门822接近传感器",
-      "changes": [
-        {
-          "field": "set_id",
-          "old": null,
-          "new": 804
-        }
-      ],
-      "timestamp": "2026-07-29T14:43:51.127107+00:00"
-    },
-    {
-      "id": 118,
-      "operation": "update",
-      "target_type": "card",
-      "target_id": 968,
-      "target_identifier": "CSCA320-52ZB71-02-1-B",
-      "target_name": "调节电子舱门811,812 和 824接近传感器",
-      "changes": [
-        {
-          "field": "set_id",
-          "old": null,
-          "new": 804
-        }
-      ],
-      "timestamp": "2026-07-29T14:43:51.047553+00:00"
-    },
-    {
-      "id": 117,
-      "operation": "update",
-      "target_type": "card",
-      "target_id": 967,
-      "target_identifier": "CSCA320-52ZB71-02-1-A",
-      "target_name": "检查接近传感器",
-      "changes": [
-        {
-          "field": "set_id",
-          "old": null,
-          "new": 804
-        }
-      ],
-      "timestamp": "2026-07-29T14:43:50.959414+00:00"
-    },
-    {
-      "id": 116,
-      "operation": "update",
-      "target_type": "card",
-      "target_id": 966,
-      "target_identifier": "CSCA320-52ZB71-01-1-C",
-      "target_name": "调节货舱门门锁手柄的接近传感器",
-      "changes": [
-        {
-          "field": "set_id",
-          "old": null,
-          "new": 804
-        }
-      ],
-      "timestamp": "2026-07-29T14:43:50.858942+00:00"
-    },
-    {
-      "id": 115,
-      "operation": "update",
-      "target_type": "set",
-      "target_id": 804,
-      "target_identifier": "检查货舱门电子舱门接近传感器间隙",
-      "target_name": "检查货舱门电子舱门接近传感器间隙",
-      "changes": [
-        {
-          "field": "name",
-          "old": "检查货舱门电子舱门间隙",
-          "new": "检查货舱门电子舱门接近传感器间隙"
-        }
-      ],
-      "timestamp": "2026-07-29T14:43:50.743932+00:00"
-    },
-    {
-      "id": 114,
-      "operation": "update",
-      "target_type": "card",
-      "target_id": 969,
-      "target_identifier": "CSCA320-52ZB71-02-1-C",
-      "target_name": "调节电子舱门822接近传感器",
-      "changes": [
-        {
-          "field": "tools_confirmed",
-          "old": false,
-          "new": true
-        },
-        {
-          "field": "materials_confirmed",
-          "old": false,
-          "new": true
-        }
-      ],
-      "timestamp": "2026-07-29T14:39:07.964912+00:00"
-    },
-    {
-      "id": 113,
-      "operation": "add",
-      "target_type": "card",
-      "target_id": 969,
-      "target_identifier": "CSCA320-52ZB71-02-1-C",
-      "target_name": "调节电子舱门822接近传感器",
-      "changes": [],
-      "timestamp": "2026-07-29T14:39:07.867830+00:00"
-    },
-    {
-      "id": 112,
-      "operation": "update",
-      "target_type": "card",
-      "target_id": 968,
-      "target_identifier": "CSCA320-52ZB71-02-1-B",
-      "target_name": "调节电子舱门811,812 和 824接近传感器",
-      "changes": [
-        {
-          "field": "tools_confirmed",
-          "old": false,
-          "new": true
-        },
-        {
-          "field": "materials_confirmed",
-          "old": false,
-          "new": true
-        }
-      ],
-      "timestamp": "2026-07-29T14:39:00.209201+00:00"
-    },
-    {
-      "id": 111,
-      "operation": "add",
-      "target_type": "card",
-      "target_id": 968,
-      "target_identifier": "CSCA320-52ZB71-02-1-B",
-      "target_name": "调节电子舱门811,812 和 824接近传感器",
-      "changes": [],
-      "timestamp": "2026-07-29T14:39:00.086658+00:00"
-    },
-    {
-      "id": 110,
-      "operation": "update",
-      "target_type": "card",
-      "target_id": 967,
-      "target_identifier": "CSCA320-52ZB71-02-1-A",
-      "target_name": "检查接近传感器",
-      "changes": [
-        {
-          "field": "tools_confirmed",
-          "old": false,
-          "new": true
-        },
-        {
-          "field": "materials_confirmed",
-          "old": false,
-          "new": true
-        }
-      ],
-      "timestamp": "2026-07-29T14:38:43.991460+00:00"
-    },
-    {
-      "id": 109,
-      "operation": "add",
-      "target_type": "card",
-      "target_id": 967,
-      "target_identifier": "CSCA320-52ZB71-02-1-A",
-      "target_name": "检查接近传感器",
-      "changes": [],
-      "timestamp": "2026-07-29T14:38:43.891640+00:00"
-    },
-    {
-      "id": 108,
-      "operation": "update",
-      "target_type": "card",
-      "target_id": 966,
-      "target_identifier": "CSCA320-52ZB71-01-1-C",
-      "target_name": "调节货舱门门锁手柄的接近传感器",
-      "changes": [
-        {
-          "field": "tools_confirmed",
-          "old": false,
-          "new": true
-        },
-        {
-          "field": "materials_confirmed",
-          "old": false,
-          "new": true
-        }
-      ],
-      "timestamp": "2026-07-29T14:38:36.948370+00:00"
-    },
-    {
-      "id": 107,
-      "operation": "add",
-      "target_type": "card",
-      "target_id": 966,
-      "target_identifier": "CSCA320-52ZB71-01-1-C",
-      "target_name": "调节货舱门门锁手柄的接近传感器",
-      "changes": [],
-      "timestamp": "2026-07-29T14:38:36.850247+00:00"
-    },
-    {
-      "id": 106,
-      "operation": "update",
-      "target_type": "card",
-      "target_id": 195,
-      "target_identifier": "CSCA320-322127-01-1-X",
-      "target_name": "功能检查前起落架扭矩杆间隙过大",
-      "changes": [
-        {
-          "field": "set_id",
-          "old": null,
-          "new": 965
-        }
-      ],
-      "timestamp": "2026-07-29T14:38:22.853051+00:00"
-    },
-    {
-      "id": 105,
-      "operation": "update",
-      "target_type": "card",
-      "target_id": 194,
-      "target_identifier": "CSCA320-322127-01-1-A",
-      "target_name": "特别详细检查扭力杆中央铰链销",
-      "changes": [
-        {
-          "field": "set_id",
-          "old": null,
-          "new": 965
-        }
-      ],
-      "timestamp": "2026-07-29T14:38:22.754482+00:00"
-    },
-    {
-      "id": 104,
-      "operation": "update",
-      "target_type": "set",
-      "target_id": 965,
-      "target_identifier": "功能检查前起落架扭矩杆间隙过大",
-      "target_name": "功能检查前起落架扭矩杆间隙过大",
-      "changes": [
-        {
-          "field": "tools",
-          "old": [],
-          "new": [
-            {
-              "device_name": "游标卡尺",
-              "part_number": "",
-              "quantity": "1",
-              "remark": "",
-              "usage_type": "必须使用"
-            },
-            {
-              "device_name": "塞尺",
-              "part_number": "SC-2",
-              "quantity": "1",
-              "remark": "",
-              "usage_type": "必须使用"
-            }
-          ]
-        },
-        {
-          "field": "materials",
-          "old": [],
-          "new": [
-            {
-              "material_name": "防咬合剂",
-              "part_number": "MOLYKOTE DX",
-              "quantity": "1",
-              "remark": "优先使用开封航化",
-              "usage_type": "必须使用"
-            },
-            {
-              "material_name": "清洗剂",
-              "part_number": "RH-P-680-20L",
-              "quantity": "1",
-              "remark": "优先使用开封航化",
-              "usage_type": "必须使用"
-            },
-            {
-              "material_name": "防咬合剂",
-              "part_number": "MOLYKOTE 111",
-              "quantity": "1",
-              "remark": "优先使用开封航化",
-              "usage_type": "必须使用"
-            }
-          ]
-        }
-      ],
-      "timestamp": "2026-07-29T14:38:22.647846+00:00"
-    },
-    {
-      "id": 103,
-      "operation": "add",
-      "target_type": "set",
-      "target_id": 965,
-      "target_identifier": "功能检查前起落架扭矩杆间隙过大",
-      "target_name": "功能检查前起落架扭矩杆间隙过大",
-      "changes": [],
-      "timestamp": "2026-07-29T14:38:22.553975+00:00"
-    },
-    {
-      "id": 102,
-      "operation": "update",
-      "target_type": "card",
-      "target_id": 195,
-      "target_identifier": "CSCA320-322127-01-1-X",
-      "target_name": "功能检查前起落架扭矩杆间隙过大",
-      "changes": [
-        {
-          "field": "tools_confirmed",
-          "old": false,
-          "new": true
-        },
-        {
-          "field": "materials_confirmed",
-          "old": false,
-          "new": true
-        }
-      ],
-      "timestamp": "2026-07-29T14:34:16.452291+00:00"
-    },
-    {
-      "id": 101,
-      "operation": "update",
-      "target_type": "card",
-      "target_id": 194,
-      "target_identifier": "CSCA320-322127-01-1-A",
-      "target_name": "特别详细检查扭力杆中央铰链销",
-      "changes": [
-        {
-          "field": "tools_confirmed",
-          "old": false,
-          "new": true
-        },
-        {
-          "field": "materials_confirmed",
-          "old": false,
-          "new": true
-        }
-      ],
-      "timestamp": "2026-07-29T14:34:12.457621+00:00"
-    },
-    {
-      "id": 100,
-      "operation": "update",
-      "target_type": "card",
-      "target_id": 147,
-      "target_identifier": "EOJC-A320-71-2021-005-S",
-      "target_name": "CFM56-5B预防发动机空中停车的重要目视检查",
-      "changes": [
-        {
-          "field": "tools_confirmed",
-          "old": false,
-          "new": true
-        },
-        {
-          "field": "materials_confirmed",
-          "old": false,
-          "new": true
-        }
-      ],
-      "timestamp": "2026-07-29T14:33:29.011781+00:00"
-    },
-    {
-      "id": 99,
-      "operation": "update",
-      "target_type": "card",
-      "target_id": 144,
-      "target_identifier": "EOJC-A320-57-2025-002-A",
-      "target_name": "机翼吊挂插接接头区域套筒位移检查",
-      "changes": [
-        {
-          "field": "tools_confirmed",
-          "old": false,
-          "new": true
-        },
-        {
-          "field": "materials_confirmed",
-          "old": false,
-          "new": true
-        }
-      ],
-      "timestamp": "2026-07-29T14:33:20.074662+00:00"
-    },
-    {
-      "id": 98,
-      "operation": "update",
-      "target_type": "card",
-      "target_id": 964,
-      "target_identifier": "CSCA320-ZL-400-02-1-X",
-      "target_name": "一般目视检查动力装置,短舱和吊挂",
-      "changes": [
-        {
-          "field": "tools_confirmed",
-          "old": false,
-          "new": true
-        },
-        {
-          "field": "materials_confirmed",
-          "old": false,
-          "new": true
-        }
-      ],
-      "timestamp": "2026-07-29T14:33:11.711002+00:00"
-    },
-    {
-      "id": 97,
-      "operation": "add",
-      "target_type": "card",
-      "target_id": 964,
-      "target_identifier": "CSCA320-ZL-400-02-1-X",
-      "target_name": "一般目视检查动力装置,短舱和吊挂",
-      "changes": [],
-      "timestamp": "2026-07-29T14:33:11.596743+00:00"
-    },
-    {
-      "id": 96,
-      "operation": "update",
-      "target_type": "card",
-      "target_id": 962,
-      "target_identifier": "CSCA320-801110-C3-1-2",
-      "target_name": "启动机排放和补充滑油系统 — 2发（CFMB）",
-      "changes": [
-        {
-          "field": "set_id",
-          "old": null,
-          "new": 963
-        }
-      ],
-      "timestamp": "2026-07-29T14:33:02.772795+00:00"
-    },
-    {
-      "id": 95,
-      "operation": "update",
-      "target_type": "card",
-      "target_id": 945,
-      "target_identifier": "CSCA320-801110-C3-1-1",
-      "target_name": "启动机排放和补充滑油系统 — 1发（CFMB）",
-      "changes": [
-        {
-          "field": "set_id",
-          "old": null,
-          "new": 963
-        }
-      ],
-      "timestamp": "2026-07-29T14:33:02.670892+00:00"
-    },
-    {
-      "id": 94,
-      "operation": "update",
-      "target_type": "card",
-      "target_id": 961,
-      "target_identifier": "CSCA320-801110-C1-1-2",
-      "target_name": "检查磁堵-2发(CFMB)",
-      "changes": [
-        {
-          "field": "set_id",
-          "old": null,
-          "new": 963
-        }
-      ],
-      "timestamp": "2026-07-29T14:33:02.574434+00:00"
-    },
-    {
-      "id": 93,
-      "operation": "update",
-      "target_type": "card",
-      "target_id": 960,
-      "target_identifier": "CSCA320-801110-C1-1-1",
-      "target_name": "检查磁堵-1发(CFMB)",
-      "changes": [
-        {
-          "field": "set_id",
-          "old": null,
-          "new": 963
-        }
-      ],
-      "timestamp": "2026-07-29T14:33:02.489659+00:00"
-    },
-    {
-      "id": 92,
-      "operation": "update",
-      "target_type": "set",
-      "target_id": 963,
-      "target_identifier": "启动机排放和补充滑油系统 — 双发（CFMB）",
-      "target_name": "启动机排放和补充滑油系统 — 双发（CFMB）",
-      "changes": [
-        {
-          "field": "materials",
-          "old": [],
-          "new": [
-            {
-              "material_name": "启动机快卸堵头胶圈",
-              "part_number": "M83485-1-012",
-              "quantity": "2",
-              "remark": "",
-              "usage_type": "必须使用"
-            },
-            {
-              "material_name": "启动机磁堵胶圈",
-              "part_number": "S3225-008",
-              "quantity": "2",
-              "remark": "",
-              "usage_type": "必须使用"
-            }
-          ]
-        },
-        {
-          "field": "tools_confirmed",
-          "old": false,
-          "new": true
-        }
-      ],
-      "timestamp": "2026-07-29T14:33:02.396058+00:00"
-    },
-    {
-      "id": 91,
-      "operation": "add",
-      "target_type": "set",
-      "target_id": 963,
-      "target_identifier": "启动机排放和补充滑油系统 — 双发（CFMB）",
-      "target_name": "启动机排放和补充滑油系统 — 双发（CFMB）",
-      "changes": [],
-      "timestamp": "2026-07-29T14:33:02.286326+00:00"
-    },
-    {
-      "id": 90,
-      "operation": "update",
-      "target_type": "card",
-      "target_id": 962,
-      "target_identifier": "CSCA320-801110-C3-1-2",
-      "target_name": "启动机排放和补充滑油系统 — 2发（CFMB）",
-      "changes": [
-        {
-          "field": "tools_confirmed",
-          "old": false,
-          "new": true
-        },
-        {
-          "field": "materials_confirmed",
-          "old": false,
-          "new": true
-        }
-      ],
-      "timestamp": "2026-07-29T14:31:45.109843+00:00"
-    },
-    {
-      "id": 89,
-      "operation": "add",
-      "target_type": "card",
-      "target_id": 962,
-      "target_identifier": "CSCA320-801110-C3-1-2",
-      "target_name": "启动机排放和补充滑油系统 — 2发（CFMB）",
-      "changes": [],
-      "timestamp": "2026-07-29T14:31:45.017657+00:00"
-    },
-    {
-      "id": 88,
-      "operation": "update",
-      "target_type": "card",
-      "target_id": 961,
-      "target_identifier": "CSCA320-801110-C1-1-2",
-      "target_name": "检查磁堵-2发(CFMB)",
-      "changes": [
-        {
-          "field": "tools_confirmed",
-          "old": false,
-          "new": true
-        },
-        {
-          "field": "materials_confirmed",
-          "old": false,
-          "new": true
-        }
-      ],
-      "timestamp": "2026-07-29T14:31:39.196498+00:00"
-    },
-    {
-      "id": 87,
-      "operation": "add",
-      "target_type": "card",
-      "target_id": 961,
-      "target_identifier": "CSCA320-801110-C1-1-2",
-      "target_name": "检查磁堵-2发(CFMB)",
-      "changes": [],
-      "timestamp": "2026-07-29T14:31:39.094613+00:00"
-    },
-    {
-      "id": 86,
-      "operation": "update",
-      "target_type": "card",
-      "target_id": 960,
-      "target_identifier": "CSCA320-801110-C1-1-1",
-      "target_name": "检查磁堵-1发(CFMB)",
-      "changes": [
-        {
-          "field": "tools_confirmed",
-          "old": false,
-          "new": true
-        },
-        {
-          "field": "materials_confirmed",
-          "old": false,
-          "new": true
-        }
-      ],
-      "timestamp": "2026-07-29T14:31:33.457932+00:00"
-    },
-    {
-      "id": 85,
-      "operation": "add",
-      "target_type": "card",
-      "target_id": 960,
-      "target_identifier": "CSCA320-801110-C1-1-1",
-      "target_name": "检查磁堵-1发(CFMB)",
-      "changes": [],
-      "timestamp": "2026-07-29T14:31:33.347732+00:00"
-    },
-    {
-      "id": 84,
-      "operation": "update",
-      "target_type": "card",
-      "target_id": 959,
-      "target_identifier": "CSCA320-792000-C9-1-1",
-      "target_name": "主金属屑检测器远程指示的操作检查 — 1发(CFMB)",
-      "changes": [
-        {
-          "field": "tools_confirmed",
-          "old": false,
-          "new": true
-        },
-        {
-          "field": "materials_confirmed",
-          "old": false,
-          "new": true
-        }
-      ],
-      "timestamp": "2026-07-29T14:26:56.607788+00:00"
     }
   ],
-  "card_log_next_id": 284
+  "card_log_next_id": 320
 }

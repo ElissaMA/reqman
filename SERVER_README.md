@@ -367,6 +367,7 @@ systemctl restart reqman
 | `AMRO_MAX_CONCURRENT` | `10` | 库存查询最大并发数 |
 | `AMRO_SESSION_TTL` | `7200` | 登录凭证有效时长（秒），默认 2 小时 |
 | `AMRO_LOGIN_VERSION` | `1` | 登录脚本版本号 |
+| `AMRO_PUBLIC_URL` | 空 | 登录脚本 ZIP 注入的公网地址，如 `http://8.137.15.167`；服务器部署建议配置，保证多用户下载的 ZIP 注入地址一致可达；未配置回退当前访问地址 |
 
 ### 库存查询运维使用说明
 

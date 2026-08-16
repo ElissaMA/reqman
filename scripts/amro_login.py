@@ -30,8 +30,14 @@ async def main():
             cookies = await ctx.cookies()
             names = {c["name"] for c in cookies}
             if "JSESSIONID" in names:
-                async with httpx.AsyncClient(verify=True, timeout=15) as client:
-                    await client.post(UPLOAD_URL, data={"cookies": json.dumps(cookies, ensure_ascii=False)})
+                try:
+                    async with httpx.AsyncClient(verify=True, timeout=15, trust_env=False) as client:
+                        resp = await client.post(UPLOAD_URL, data={"cookies": json.dumps(cookies, ensure_ascii=False)})
+                        resp.raise_for_status()
+                except Exception:
+                    print(f"无法连接需求单系统（{UPLOAD_URL}），请检查网络后重新运行登录脚本")
+                    await browser.close()
+                    return
                 print(MSG_P3)
                 print("✅ 登录成功，请回到网页开始查询")
                 await browser.close()
