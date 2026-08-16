@@ -99,6 +99,7 @@ DB_BACKEND=json
 # AMRO 库存查询（默认值已在代码内，留空即用默认）
 # AMRO_API_URL=
 # AMRO_SESSION_TTL=7200
+# AMRO_PUBLIC_URL=http://8.137.15.167
 
 # 域名配置（获取证书后配置 HTTPS）
 DOMAIN_NAME=localhost
