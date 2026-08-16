@@ -40,9 +40,6 @@ async def main():
                     return
                 print(MSG_P3)
                 print("✅ 登录成功，请回到网页开始查询")
-                root = tk.Tk(); root.withdraw()
-                messagebox.showinfo("登录成功", "✅ 登录成功，本页面即将就绪。\n请回到网页开始查询")
-                root.destroy()
                 await browser.close()
                 return
             await asyncio.sleep(2)

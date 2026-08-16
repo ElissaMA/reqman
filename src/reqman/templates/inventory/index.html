@@ -19,14 +19,16 @@
         </div>
 
         <!-- ② 配置区 -->
-        <div class="d-flex flex-wrap gap-2 mb-3">
+        <div class="d-flex flex-wrap gap-2 mb-2">
             <button class="btn btn-primary btn-sm" id="setupPackageBtn" title="{{ messages.P10 }}">🛠 新建配置</button>
             <button class="btn btn-outline-secondary btn-sm" id="checkConfigBtn">🔍 检查配置</button>
             <button class="btn btn-outline-info btn-sm" id="guideBtn">❓ 使用指引</button>
         </div>
+        <p class="text-muted small mb-3">{{ messages.P10 }}</p>
         <input type="file" id="checkFile" accept=".py,.zip" style="display:none">
 
         <!-- ③ 查询区 -->
+        <div class="alert alert-warning py-2 px-3 small mb-2">{{ messages.P1 }}</div>
         <div class="row g-3">
             <div class="col-md-8">
                 <div class="upload-zone" id="zoneDemand" onclick="document.getElementById('demandFile').click()">
@@ -48,30 +50,6 @@
         </div>
         <div id="resultBox" class="mt-3"></div>
     </div>
-</div>
-
-<!-- ZIP 配置包下载确认 Modal -->
-<div class="modal fade" id="zipModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
-        <div class="modal-header"><h6 class="modal-title">⚠️ 下载确认</h6></div>
-        <div class="modal-body">即将下载登录脚本配置包（ZIP）。该配置包由本系统生成，包含登录脚本（可执行程序），请确认后下载，下载后解压并按指引运行。</div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
-            <button class="btn btn-primary btn-sm" id="zipConfirmBtn">确认下载</button>
-        </div>
-    </div></div>
-</div>
-
-<!-- P1 确认 Modal -->
-<div class="modal fade" id="p1Modal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
-        <div class="modal-header"><h6 class="modal-title">⚠️ 使用提示</h6></div>
-        <div class="modal-body">{{ messages.P1 }}</div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
-            <button class="btn btn-primary btn-sm" id="p1ConfirmBtn">确认</button>
-        </div>
-    </div></div>
 </div>
 
 <!-- 使用指引 Modal -->
@@ -155,12 +133,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('checkFile').click();
     });
     document.getElementById('setupPackageBtn').addEventListener('click', function() {
-        var zip = new bootstrap.Modal(document.getElementById('zipModal'));
-        document.getElementById('zipConfirmBtn').onclick = function() {
-            zip.hide();
-            window.location.href = '/inventory/setup-package';
-        };
-        zip.show();
+        window.location.href = '/inventory/setup-package';
     });
     document.getElementById('checkFile').addEventListener('change', function() {
         var f = this.files[0];
@@ -181,12 +154,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     document.getElementById('startQueryBtn').addEventListener('click', function() {
-        var p1 = new bootstrap.Modal(document.getElementById('p1Modal'));
-        document.getElementById('p1ConfirmBtn').onclick = function() {
-            p1.hide();
-            doQuery();
-        };
-        p1.show();
+        doQuery();
     });
 });
 

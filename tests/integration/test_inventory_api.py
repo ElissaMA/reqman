@@ -54,12 +54,10 @@ class TestInventoryPage:
         resp = client.get("/inventory")
         assert resp.status_code == 200
         html = resp.get_data(as_text=True)
-        # ZIP 配置包下载确认弹窗结构
-        assert 'id="zipModal"' in html
-        assert 'id="zipConfirmBtn"' in html
-        assert "确认下载" in html
-        # 「新建配置」为按钮（触发确认弹窗），非直接跳转链接
+        # 「新建配置」为按钮（直接跳转下载）
         assert 'id="setupPackageBtn"' in html
+        # P10 常驻提示存在
+        assert "下载配置包" in html
 
 
 class TestSession:
