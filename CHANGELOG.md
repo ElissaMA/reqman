@@ -19,6 +19,8 @@
 - 登录脚本修复：跳过系统代理直连（trust_env=False，修复系统代理拦截导致上传凭证失败）+ 上传地址可配置（AMRO_PUBLIC_URL，未配置回退当前访问地址）+ 上传失败友好提示（不裸抛 traceback）
 - 移除登录脚本成功弹窗（模态阻塞导致浏览器/窗口不自动关闭），恢复登录成功后浏览器自动关闭、脚本窗口自动隐藏
 - deploy.sh .env 模板补充 AMRO_PUBLIC_URL 配置项（供下次全新部署生成）
+- 查询页弹窗改常驻提示（P1 警示条 + 配置包下载提示），开始查询/下载配置不再弹确认
+- 文档同步：README 库存查询使用流程对齐最新交互；deploy.sh 配置项 GENERATED_DIR 更正为 OUTPUT_DIR（与 config.py 一致）
 
 ### Changed
 - 开发过程资产（docs/superpowers/ 设计文档与实现计划）移出 git 追踪（仅本地保留，不上传生产）

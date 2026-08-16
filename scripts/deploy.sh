@@ -87,7 +87,7 @@ SECRET_KEY=${SECRET}
 # 文件路径配置
 DB_FILE=./data/reqman_db.json
 TEMPLATE_FILE=./assets/demand_template.xlsx
-GENERATED_DIR=./output
+OUTPUT_DIR=./output
 
 # 业务枚举配置
 CATEGORIES=发动机,机体,电子,特检,支援
