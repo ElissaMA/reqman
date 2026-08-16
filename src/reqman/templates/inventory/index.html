@@ -140,9 +140,15 @@ function loadLatestOutput() {
         }).catch(function(){});
 }
 
+// U1 统一探活：DOMContentLoaded 首次兜底 + focus/visibilitychange 切回立即探活 + 10 分钟轮询
+document.addEventListener('DOMContentLoaded', refreshSession);
+window.addEventListener('focus', refreshSession);
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) refreshSession();
+});
+setInterval(refreshSession, 600000);
+
 document.addEventListener('DOMContentLoaded', function() {
-    refreshSession();
-    setInterval(refreshSession, 600000);
     loadLatestOutput();
 
     document.getElementById('checkConfigBtn').addEventListener('click', function() {

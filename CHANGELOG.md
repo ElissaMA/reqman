@@ -24,6 +24,8 @@
 - 后续方向更新：定检提醒单、工卡版本数据、飞机数据、更多数据查询
 - 服务器更新流程补充依赖安装步骤（venv/bin/pip install -e .），修复更新后因缺依赖导致 502 的根因
 - deploy.sh .env 模板补充 AMRO 可配置项注释；README 技术栈补充 httpx
+- 登录成功后查询页自动刷新登录状态（focus/visibilitychange 统一探活）
+- 登录脚本成功提示弹窗（本地/服务器模式均可见）
 
 ## [3.2.5] - Unreleased
 ### Changed
