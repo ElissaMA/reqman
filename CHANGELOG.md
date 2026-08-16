@@ -1,5 +1,26 @@
 # Changelog
 
+## [3.3.0] - Unreleased
+### Added
+- 库存查询功能：上传需求单 Excel 批量查询川航 AMRO 昆明库存，副本回填 G 列并标红/标黄
+- 通用连接器框架（services/connectors/）：AMRO 适配器 + 登录凭证临时缓存（TTL 2h 可配）
+- 登录脚本（scripts/）：uv 自举 + 国内高速源（阿里云 PyPI / npmmirror playwright），自动上传登录凭证
+- 库存查询页（/inventory）：新建配置 / 检查配置 / 登录状态探活 / 查询进度与结果
+- 统一提示文案集（P1–P12）
+
+### Fixed
+- 登录脚本首次安装改用 uv pip 装包（uv venv 无 pip，原 python -m pip install 失败），内核装沿用 python -m playwright
+- 登录脚本窗口控制：服务器模式自举最小化（防误关），本地模式保留窗口并提示登录未完成原因；登录成功追加"请回到网页开始查询"提示
+- 库存查询不落盘：上传文件走临时目录、副本内存生成（BytesIO）直接浏览器下载，服务器 output/ 目录无残留文件；统计信息经 X-Query-Stats 响应头返回
+- 查询响应头中文编码：X-Query-Stats 改默认 ensure_ascii 转义（HTTP 头仅允许 ASCII，原中文直接入头导致 UnicodeEncodeError、前端卡加载中）；前端查询增加 65s 超时兜底（AbortController + 自动结束加载中）
+- 登录状态真实探活：状态卡不再仅读缓存，实时调用 AMRO API 判定登录有效性（缓存+探活失败→提示重新登录），轮询间隔调整为 10 分钟
+- 输出文件保留原名（{原文件名}_库存已填_时间戳.xlsx），查询完成改手动下载按钮（暂存 output/ 不怕误关网页，上传新需求单自动清除旧暂存，仅匹配 *_库存已填_*.xlsx 不误删其他文件）
+- 补充 README/SERVER_README 库存查询与登录运维文档；「新建配置」ZIP 下载前增加安全确认弹窗
+
+### Changed
+- 开发过程资产（docs/superpowers/ 设计文档与实现计划）移出 git 追踪（仅本地保留，不上传生产）
+- 后续方向更新：定检提醒单、工卡版本数据、飞机数据、更多数据查询
+
 ## [3.2.5] - Unreleased
 ### Changed
 - agent.md 精简重构为九章工作区规范（工作区/分支/协作/提交/任务/沟通/测试/版本/数据保护）

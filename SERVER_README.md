@@ -1,6 +1,6 @@
 # 定检需求单管理系统 — 服务器运维手册
 
-> 版本：V3.2.5 | 目标环境：Ubuntu 22.04 LTS (阿里云)
+> 版本：V3.3.0 | 目标环境：Ubuntu 22.04 LTS (阿里云)
 
 ---
 
@@ -353,3 +353,30 @@ du -sh /root/workspace/reqman/data/backups/
 # 修改业务参数后重启服务
 systemctl restart reqman
 ```
+
+### AMRO 库存查询相关环境变量（可选）
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `AMRO_API_URL` | `https://me.sichuanair.com/api/v1/plugins/MM_PARTNUMBERCHAXUN_LIST` | AMRO 库存查询接口地址 |
+| `AMRO_COOKIE_FILE` | `data/cookie/amro_cookies.json` | 登录凭证临时缓存文件路径 |
+| `AMRO_MAX_CONCURRENT` | `10` | 库存查询最大并发数 |
+| `AMRO_SESSION_TTL` | `7200` | 登录凭证有效时长（秒），默认 2 小时 |
+| `AMRO_LOGIN_VERSION` | `1` | 登录脚本版本号 |
+
+### 库存查询运维使用说明
+
+**服务器端用户操作流程：**
+
+1. 登录系统打开「库存查询」页
+2. 点击「🛠 新建配置」下载配置包（ZIP）
+3. 在本机解压配置包，双击 `start_login.bat`（首次自动安装运行环境，国内高速源）
+4. 按提示关闭已登录的川航 AMRO 页面并确认，浏览器弹出登录页完成登录
+5. 登录脚本自动上传登录凭证到服务器，页面状态变为"登录有效"后即可查询
+6. 上传需求单 Excel → 开始查询 → 在结果栏点击「下载副本」保存输出文件
+
+**注意事项：**
+
+- 服务器无 GUI 弹浏览器，登录必须在用户本机完成；登录凭证由本机脚本自动上传，服务器不直接持有登录密码
+- 登录凭证一次性、临时缓存 2 小时（`AMRO_SESSION_TTL` 可调），过期后需重新运行登录脚本
+- 输出文件暂存服务器 `output/` 目录（gitignore 已忽略），用户通过页面「下载副本」获取；上传新需求单查询时自动清除旧的 `*_库存已填_*.xlsx` 暂存

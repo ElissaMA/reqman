@@ -5,7 +5,15 @@ import time
 
 from flask import Flask, jsonify, request
 
-from .config import BASE_DIR, DB_FILE, MAX_CONTENT_LENGTH, SECRET_KEY
+from .config import (
+    AMRO_COOKIE_FILE,
+    AMRO_MAX_CONCURRENT,
+    AMRO_SESSION_TTL,
+    BASE_DIR,
+    DB_FILE,
+    MAX_CONTENT_LENGTH,
+    SECRET_KEY,
+)
 from .utils.openpyxl_patch import apply_patches
 
 logging.basicConfig(
@@ -88,10 +96,16 @@ def create_app():
     # 依赖注入
     from .models.json_store import JsonStore
     from .services.card_service import CardService
+    from .services.connectors.session import LoginSessionStore
+    from .services.inventory_service import InventoryService
 
     app.extensions["store"] = JsonStore(str(DB_FILE))
     app.extensions["card_service"] = CardService(app.extensions["store"])
-    logger.info("依赖注入完成：store + card_service")
+    app.extensions["inventory_service"] = InventoryService(
+        LoginSessionStore(str(AMRO_COOKIE_FILE), ttl_seconds=AMRO_SESSION_TTL),
+        max_concurrent=AMRO_MAX_CONCURRENT,
+    )
+    logger.info("依赖注入完成：store + card_service + inventory_service")
 
     # 启动时清理日志（保留最新200条）
     try:
@@ -105,6 +119,7 @@ def create_app():
     # 蓝图
     from .blueprints.cards_bp import cards_bp
     from .blueprints.generate_bp import generate_bp
+    from .blueprints.inventory_bp import inventory_bp
     from .blueprints.logs_bp import bp as logs_bp
     from .blueprints.packages_bp import packages_bp
 
@@ -112,6 +127,7 @@ def create_app():
     app.register_blueprint(packages_bp)
     app.register_blueprint(generate_bp)
     app.register_blueprint(logs_bp)
+    app.register_blueprint(inventory_bp)
 
     # 根路由
     @app.route("/")

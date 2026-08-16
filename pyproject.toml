@@ -1,6 +1,6 @@
 [project]
 name = "inspection-demand-system"
-version = "3.2.5"
+version = "3.3.0"
 description = "飞机定检需求单管理系统，工卡匹配与需求单自动生成工具"
 requires-python = ">=3.10"
 dependencies = [
@@ -9,6 +9,7 @@ dependencies = [
     "openpyxl>=3.1.0",
     "python-dotenv>=1.0.0",
     "tzdata>=2024.1",
+    "httpx>=0.27",
 ]
 
 [project.optional-dependencies]

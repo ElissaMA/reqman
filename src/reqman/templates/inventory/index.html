@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+{% block title %}库存查询 - 定检需求单管理{% endblock %}
+{% block content %}
+<style>
+    .inventory-status { display:flex; align-items:center; gap:10px; padding:14px 16px; border-radius:10px; }
+    .inventory-status.ok { background:#e8f5e9; color:#2e7d32; }
+    .inventory-status.bad { background:#fdecea; color:#c62828; }
+</style>
+<div class="card mb-4">
+    <div class="card-header"><h5 class="mb-0">📦 库存查询</h5></div>
+    <div class="card-body">
+        <!-- ① 状态卡 -->
+        <div id="sessionCard" class="inventory-status bad mb-3">
+            <span id="sessionIcon">❌</span>
+            <div>
+                <div id="sessionMsg">{{ messages.P4 }}</div>
+                <div id="sessionWarn" style="display:none" class="small">{{ messages.P6 }}</div>
+            </div>
+        </div>
+
+        <!-- ② 配置区 -->
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            <button class="btn btn-primary btn-sm" id="setupPackageBtn" title="{{ messages.P10 }}">🛠 新建配置</button>
+            <button class="btn btn-outline-secondary btn-sm" id="checkConfigBtn">🔍 检查配置</button>
+            <button class="btn btn-outline-info btn-sm" id="guideBtn">❓ 使用指引</button>
+        </div>
+        <input type="file" id="checkFile" accept=".py,.zip" style="display:none">
+
+        <!-- ③ 查询区 -->
+        <div class="row g-3">
+            <div class="col-md-8">
+                <div class="upload-zone" id="zoneDemand" onclick="document.getElementById('demandFile').click()">
+                    <div class="icon">📋</div>
+                    <h6 class="mt-2">点击上传需求单 Excel</h6>
+                    <p class="text-muted small mb-0">支持 .xlsx（含航材区/备用区）</p>
+                    <input type="file" id="demandFile" name="file" accept=".xlsx" style="display:none"
+                           onchange="fileSelected(this,'zoneDemand')">
+                    <div class="file-name small text-success mt-2" style="display:none"></div>
+                </div>
+            </div>
+            <div class="col-md-4 d-flex align-items-center">
+                <button class="btn btn-success btn-sm px-4" id="startQueryBtn">▶ 开始查询</button>
+            </div>
+        </div>
+        <div id="progressBox" class="mt-3" style="display:none">
+            <div class="progress"><div class="progress-bar" id="queryProgress" style="width:0%"></div></div>
+            <p class="small text-muted mt-1" id="progressLabel">准备中...</p>
+        </div>
+        <div id="resultBox" class="mt-3"></div>
+    </div>
+</div>
+
+<!-- ZIP 配置包下载确认 Modal -->
+<div class="modal fade" id="zipModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+        <div class="modal-header"><h6 class="modal-title">⚠️ 下载确认</h6></div>
+        <div class="modal-body">即将下载登录脚本配置包（ZIP）。该配置包由本系统生成，包含登录脚本（可执行程序），请确认后下载，下载后解压并按指引运行。</div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+            <button class="btn btn-primary btn-sm" id="zipConfirmBtn">确认下载</button>
+        </div>
+    </div></div>
+</div>
+
+<!-- P1 确认 Modal -->
+<div class="modal fade" id="p1Modal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+        <div class="modal-header"><h6 class="modal-title">⚠️ 使用提示</h6></div>
+        <div class="modal-body">{{ messages.P1 }}</div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+            <button class="btn btn-primary btn-sm" id="p1ConfirmBtn">确认</button>
+        </div>
+    </div></div>
+</div>
+
+<!-- 使用指引 Modal -->
+<div class="modal fade" id="guideModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+        <div class="modal-header"><h6 class="modal-title">使用指引</h6></div>
+        <div class="modal-body">
+            <ol class="mb-0">
+                <li>点击「新建配置」下载配置包并解压</li>
+                <li>点击「检查配置」选择解压出的 amro_login.py 或配置包（ZIP）文件，校验通过后显示"配置正常"（版本与当前系统匹配）</li>
+                <li>双击其中 start_login.bat，确认提示后完成登录</li>
+                <li>页面状态变为"登录有效"后，上传需求单 Excel 并点击「开始查询」</li>
+            </ol>
+        </div>
+    </div></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const MSG = {{ messages | tojson }};
+var loginReady = false;
+
+function fileSelected(input, zoneId) {
+    var zone = document.getElementById(zoneId);
+    var name = input.files[0] ? input.files[0].name : '';
+    if (name) {
+        zone.classList.add('has-file');
+        zone.querySelector('.file-name').textContent = '✅ ' + name;
+        zone.querySelector('.file-name').style.display = 'block';
+    }
+}
+
+function refreshSession() {
+    fetch('/inventory/session', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function(r) { return r.json(); }).then(function(d) {
+            var data = d.data;
+            var card = document.getElementById('sessionCard');
+            var msg = document.getElementById('sessionMsg');
+            var warn = document.getElementById('sessionWarn');
+            msg.textContent = data.message;
+            if (data.ready) {
+                loginReady = true;
+                card.className = 'inventory-status ok mb-3';
+                document.getElementById('sessionIcon').textContent = '✅';
+                warn.style.display = 'block';
+            } else {
+                loginReady = false;
+                card.className = 'inventory-status bad mb-3';
+                document.getElementById('sessionIcon').textContent = '❌';
+                warn.style.display = 'none';
+            }
+        }).catch(function(){ window.safeToast('获取登录状态失败', 'error'); });
+}
+
+function loadLatestOutput() {
+    fetch('/inventory/latest-output', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function(r) { return r.json(); }).then(function(d) {
+            if (d.success && d.data && d.data.exists) {
+                document.getElementById('resultBox').innerHTML =
+                    '<div class="alert alert-success">' +
+                    '上次查询结果（暂存）：' + d.data.filename + '<br>' +
+                    '<a class="btn btn-primary btn-sm mt-2" href="/inventory/download?file=' +
+                    encodeURIComponent(d.data.filename) + '">⬇ 下载副本</a></div>';
+            }
+        }).catch(function(){});
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    refreshSession();
+    setInterval(refreshSession, 600000);
+    loadLatestOutput();
+
+    document.getElementById('checkConfigBtn').addEventListener('click', function() {
+        document.getElementById('checkFile').click();
+    });
+    document.getElementById('setupPackageBtn').addEventListener('click', function() {
+        var zip = new bootstrap.Modal(document.getElementById('zipModal'));
+        document.getElementById('zipConfirmBtn').onclick = function() {
+            zip.hide();
+            window.location.href = '/inventory/setup-package';
+        };
+        zip.show();
+    });
+    document.getElementById('checkFile').addEventListener('change', function() {
+        var f = this.files[0];
+        if (!f) return;
+        var fd = new FormData();
+        fd.append('file', f);
+        window.showLoader();
+        fetch('/inventory/check-config', { method: 'POST', body: fd,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function(r) { return r.json(); }).then(function(d) {
+                window.hideLoader();
+                window.safeToast(d.message, d.success ? 'success' : 'error');
+            }).catch(function(){ window.hideLoader(); window.safeToast('检查配置失败', 'error'); });
+        this.value = '';
+    });
+    document.getElementById('guideBtn').addEventListener('click', function() {
+        new bootstrap.Modal(document.getElementById('guideModal')).show();
+    });
+
+    document.getElementById('startQueryBtn').addEventListener('click', function() {
+        var p1 = new bootstrap.Modal(document.getElementById('p1Modal'));
+        document.getElementById('p1ConfirmBtn').onclick = function() {
+            p1.hide();
+            doQuery();
+        };
+        p1.show();
+    });
+});
+
+function renderResult(data) {
+    document.getElementById('resultBox').innerHTML =
+        '<div class="alert alert-success">' +
+        '查询完成：共 ' + data.total + ' 件号，成功 ' + data.success +
+        '，失败 ' + data.fail + '，标红 ' + data.shortage + '，标黄 ' + data.warning +
+        '。<br>文件名：' + data.filename + '<br>' +
+        '<a class="btn btn-primary btn-sm mt-2" href="/inventory/download?file=' +
+        encodeURIComponent(data.filename) + '">⬇ 下载副本</a></div>';
+}
+
+function doQuery() {
+    var input = document.getElementById('demandFile');
+    if (!input.files.length) { window.safeToast('请先选择需求单 Excel 文件', 'warning'); return; }
+    if (!loginReady) { window.safeToast(MSG.P4, 'warning'); return; }
+    var fd = new FormData();
+    fd.append('file', input.files[0]);
+    window.showLoader();
+    document.getElementById('progressBox').style.display = 'block';
+    document.getElementById('queryProgress').style.width = '0%';
+    // 超时兜底：65s 未返回则中止并结束"加载中"
+    var controller = new AbortController();
+    var timer = setTimeout(function() {
+        controller.abort();
+    }, 65000);
+    fetch('/inventory/query', { method: 'POST', body: fd,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        signal: controller.signal })
+        .then(function(resp) { return resp.json(); }).then(function(d) {
+            clearTimeout(timer);
+            window.hideLoader();
+            document.getElementById('progressBox').style.display = 'none';
+            if (d.success) {
+                renderResult(d.data);
+                window.safeToast(MSG.P9, 'success');
+            } else {
+                window.safeToast(d.message, 'error');
+            }
+        }).catch(function(e) {
+            clearTimeout(timer);
+            window.hideLoader();
+            document.getElementById('progressBox').style.display = 'none';
+            if (e && e.name === 'AbortError') {
+                window.safeToast('查询超时，请重试', 'error');
+            } else {
+                window.safeToast('查询失败', 'error');
+            }
+        });
+}
+</script>
+{% endblock %}

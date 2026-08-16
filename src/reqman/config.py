@@ -47,3 +47,17 @@ MAX_CONTENT_LENGTH: int = 16 * 1024 * 1024
 
 # 自动创建必要目录
 DB_FILE.parent.mkdir(parents=True, exist_ok=True)
+
+# ---------- AMRO 库存查询 ----------
+AMRO_API_URL: str = os.getenv("AMRO_API_URL", "https://me.sichuanair.com/api/v1/plugins/MM_PARTNUMBERCHAXUN_LIST")
+AMRO_COOKIE_FILE: Path = BASE_DIR / os.getenv("AMRO_COOKIE_FILE", "data/cookie/amro_cookies.json")
+AMRO_MAX_CONCURRENT: int = int(os.getenv("AMRO_MAX_CONCURRENT", "10"))
+AMRO_SESSION_TTL: int = int(os.getenv("AMRO_SESSION_TTL", "7200"))  # 2 小时
+AMRO_LOGIN_VERSION: str = os.getenv("AMRO_LOGIN_VERSION", "1")
+
+# 库存查询输出暂存目录（gitignore 已忽略）
+OUTPUT_DIR: Path = BASE_DIR / os.getenv("OUTPUT_DIR", "output")
+
+# 自动创建 cookie 目录
+AMRO_COOKIE_FILE.parent.mkdir(parents=True, exist_ok=True)
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)

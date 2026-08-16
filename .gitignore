@@ -64,6 +64,7 @@ data/*.json
 !data/reqman_db.json         # 核心数据（飞机/工卡/工卡组）继续追踪
 data/reqman_db_runtime.json  # 运行时数据（工作包/日志）不追踪
 data/backups/
+data/cookie/
 /reqman/
 output/
 .env
@@ -81,3 +82,6 @@ Thumbs.db
 .opxltmp/
 .workbuddy/
 uv.lock
+
+# ===== 开发过程资产（仅本地参考，不上传生产） =====
+docs/superpowers/
