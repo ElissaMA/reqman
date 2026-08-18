@@ -258,43 +258,52 @@ def _login_py_template(server_url: str) -> str:
 
 
 def _login_bat_template(server_url: str) -> str:
-    is_local = "127.0.0.1" in server_url or "localhost" in server_url
-
-    header = (
-        "@echo off\r\n"
+    return (
+        "\ufeff@echo off\r\n"
         "chcp 65001 >nul\r\n"
         "setlocal\r\n"
-        "cd /d %~dp0\r\n"
-    )
-    if not is_local:
-        # 服务器模式：自举最小化（安装与运行均在最小化窗口，防误关）
-        header += (
-            'if not "%1"=="min" (\r\n'
-            '    start "" /min cmd /c ""%~f0" min"\r\n'
-            "    exit /b\r\n"
-            ")\r\n"
-        )
-
-    setup = (
+        'cd /d "%~dp0"\r\n'
+        "set NO_PROXY=*\r\n"
+        "set HTTP_PROXY=\r\n"
+        "set HTTPS_PROXY=\r\n"
+        "set ALL_PROXY=\r\n"
         "set UV_DEFAULT_INDEX=https://mirrors.aliyun.com/pypi/simple/\r\n"
-        "set UV_PYTHON_INSTALL_MIRROR=https://mirrors.aliyun.com/python-release/\r\n"
+        "set UV_PYTHON_INSTALL_MIRROR=https://registry.npmmirror.com/-/binary/python-build-standalone/\r\n"
         "set PLAYWRIGHT_DOWNLOAD_HOST=https://registry.npmmirror.com/-/binary/playwright/\r\n"
-        "if not exist .runtime\\venv\\Scripts\\python.exe (\r\n"
+        "if not exist .runtime\\.installed (\r\n"
         "    echo [首次使用] 正在自动安装运行环境，请稍候...\r\n"
+        "    where python >nul 2>nul || (where py >nul 2>nul || goto :nopython)\r\n"
         "    where uv >nul 2>nul || (python -m pip install -q uv || py -m pip install -q uv)\r\n"
-        "    uv python install 3.11 || echo [警告] Python 安装失败\r\n"
+        "    if errorlevel 1 goto :fail\r\n"
+        "    uv python install 3.11\r\n"
+        "    if errorlevel 1 goto :fail\r\n"
         "    uv venv .runtime\\venv\r\n"
+        "    if errorlevel 1 goto :fail\r\n"
         "    uv pip install --python .runtime\\venv\\Scripts\\python.exe httpx playwright\r\n"
+        "    if errorlevel 1 goto :fail\r\n"
         "    .runtime\\venv\\Scripts\\python -m playwright install chromium\r\n"
+        "    if errorlevel 1 goto :fail\r\n"
+        "    echo done > .runtime\\.installed\r\n"
+        "    echo [安装完成] 运行环境就绪\r\n"
         ")\r\n"
+        ".runtime\\venv\\Scripts\\python amro_login.py\r\n"
+        "if errorlevel 1 (\r\n"
+        "    echo [登录未完成] 请查看上方错误信息，本窗口可安全关闭\r\n"
+        "    goto :done\r\n"
+        ")\r\n"
+        "echo [已完成登录] 本窗口可安全关闭\r\n"
+        "goto :done\r\n"
+        "\r\n"
+        ":nopython\r\n"
+        "echo [未检测到 Python] 请先安装 Python 3.11 后重新运行\r\n"
+        "pause\r\n"
+        "exit /b 1\r\n"
+        "\r\n"
+        ":fail\r\n"
+        "echo [安装失败] 请检查网络连接后重新运行，或手动安装运行环境\r\n"
+        "pause\r\n"
+        "exit /b 1\r\n"
+        "\r\n"
+        ":done\r\n"
+        "pause\r\n"
     )
-
-    if is_local:
-        run = (
-            ".runtime\\venv\\Scripts\\python amro_login.py\r\n"
-            "if errorlevel 1 ( echo [登录未完成] 请查看上方错误信息 && pause )\r\n"
-        )
-    else:
-        run = 'start "" /min cmd /c ""%~dp0.runtime\\venv\\Scripts\\python.exe" amro_login.py"\r\n'
-
-    return header + setup + run

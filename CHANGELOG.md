@@ -21,6 +21,8 @@
 - deploy.sh .env 模板补充 AMRO_PUBLIC_URL 配置项（供下次全新部署生成）
 - 查询页弹窗改常驻提示（P1 警示条 + 配置包下载提示），开始查询/下载配置不再弹确认
 - 文档同步：README 库存查询使用流程对齐最新交互；deploy.sh 配置项 GENERATED_DIR 更正为 OUTPUT_DIR（与 config.py 一致）
+- 登录启动窗口前台化：移除服务器模式 start /min 静默化（安装/运行全部前台，防中途误关闪退）；安装环境每步 if errorlevel 兜底跳 :fail 统一提示；所有窗口结尾无条件停留（[已完成登录] 本窗口可安全关闭 + pause），脚本补 UTF-8 BOM 消除中文误读
+- 登录脚本安装兼容性：cd 路径加引号防空格；UV_PYTHON_INSTALL_MIRROR 改 python-build-standalone 镜像（原 aliyun python-release 实测 404）；bat 统一豁免代理（NO_PROXY=* + 清空 HTTP/HTTPS/ALL_PROXY）；.runtime\.installed 标记防 venv 半成品跳过；登录失败区分 [登录未完成]（修复无条件显示已完成登录回归）+ 未检测到 Python 独立提示
 
 ### Changed
 - 开发过程资产（docs/superpowers/ 设计文档与实现计划）移出 git 追踪（仅本地保留，不上传生产）

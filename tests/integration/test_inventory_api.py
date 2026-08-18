@@ -101,6 +101,35 @@ class TestSetupPackage:
         assert any("start_login.bat" in n for n in names)
         assert any("README" in n for n in names)
 
+    def _bat_source(self, resp) -> str:
+        zf = zipfile.ZipFile(io.BytesIO(resp.data))
+        return zf.read("start_login.bat").decode("utf-8")
+
+    def test_bat_foreground_with_fail_done(self, client):
+        """ZIP 内 start_login.bat 前台运行（无 start /min）、含 :fail/:done 标签与 pause。"""
+        resp = client.get("/inventory/setup-package")
+        assert resp.status_code == 200
+        bat = self._bat_source(resp)
+        assert "start /min" not in bat
+        assert ":fail" in bat
+        assert ":done" in bat
+        assert "pause" in bat
+
+    def test_bat_install_compat(self, client):
+        """ZIP 内 start_login.bat 安装兼容性：引号 cd、新镜像、代理豁免、.installed 标记。"""
+        resp = client.get("/inventory/setup-package")
+        assert resp.status_code == 200
+        bat = self._bat_source(resp)
+        assert 'cd /d "%~dp0"' in bat
+        assert "python-build-standalone" in bat
+        assert "set NO_PROXY=*" in bat
+        assert "set HTTP_PROXY=" in bat
+        assert "set HTTPS_PROXY=" in bat
+        assert "set ALL_PROXY=" in bat
+        assert ".runtime\\.installed" in bat
+        assert ":nopython" in bat
+        assert "where uv >nul 2>nul || (python -m pip install -q uv || py -m pip install -q uv)" in bat
+
     def _py_source(self, resp) -> str:
         zf = zipfile.ZipFile(io.BytesIO(resp.data))
         return zf.read("amro_login.py").decode("utf-8")
