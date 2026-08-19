@@ -127,10 +127,12 @@ class TestSetupPackage:
         assert "set HTTPS_PROXY=" in bat
         assert "set ALL_PROXY=" in bat
         assert ".runtime\\.installed" not in bat
-        assert ":nopython" in bat
-        assert "python --version >nul 2>&1 || (py --version >nul 2>&1 || goto :nopython)" in bat
+        assert ":nopython" not in bat
+        assert "python --version >nul 2>&1 || (py --version >nul 2>&1 || goto :nopython)" not in bat
         assert "astral.sh/uv/install.ps1" in bat
+        assert "uv.agentsmirror.com" in bat
         assert "%USERPROFILE%\\.local\\bin\\uv.exe" in bat
+        assert '"%UV%" --version >nul 2>&1' in bat
         assert ".runtime\\venv\\Scripts\\python --version >nul 2>&1" in bat
 
     def _py_source(self, resp) -> str:

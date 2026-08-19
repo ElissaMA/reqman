@@ -21,14 +21,19 @@ goto :run
 
 :install
 echo [首次使用] 正在自动安装运行环境，请稍候...
-python --version >nul 2>&1 || (py --version >nul 2>&1 || goto :nopython)
 if exist "%USERPROFILE%\.local\bin\uv.exe" set "UV=%USERPROFILE%\.local\bin\uv.exe"
 if not defined UV where uv >nul 2>nul && set "UV=uv"
 if not defined UV (
     powershell -ExecutionPolicy Bypass -c "irm https://astral.sh/uv/install.ps1 | iex"
-    if errorlevel 1 goto :fail
+    if errorlevel 1 (
+        echo [备用源] 官方安装脚本不可达，改用 uv.agentsmirror.com 镜像下载 uv...
+        powershell -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri 'https://uv.agentsmirror.com/github/astral-sh/uv/releases/download/0.12.5/uv-x86_64-pc-windows-msvc.zip' -OutFile '%TEMP%\uv.zip'; Expand-Archive -Path '%TEMP%\uv.zip' -DestinationPath '%USERPROFILE%\.local' -Force"
+        if errorlevel 1 goto :fail
+    )
     set "UV=%USERPROFILE%\.local\bin\uv.exe"
 )
+"%UV%" --version >nul 2>&1
+if errorlevel 1 goto :fail
 "%UV%" python install 3.11
 if errorlevel 1 goto :fail
 "%UV%" venv .runtime\venv
@@ -48,10 +53,6 @@ if errorlevel 1 (
 echo [已完成登录] 本窗口可安全关闭
 goto :done
 
-:nopython
-echo [未检测到可用 Python] 本机未安装可用的 Python（Microsoft Store 存根不可用），请安装 Python 3.11 后重新运行
-pause
-exit /b 1
 
 :fail
 echo [安装失败] 可能是网络问题，请检查网络连接后重新运行，或手动安装运行环境

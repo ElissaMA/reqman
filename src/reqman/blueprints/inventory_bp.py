@@ -283,14 +283,19 @@ def _login_bat_template(server_url: str) -> str:
         "\r\n"
         ":install\r\n"
         "echo [首次使用] 正在自动安装运行环境，请稍候...\r\n"
-        "python --version >nul 2>&1 || (py --version >nul 2>&1 || goto :nopython)\r\n"
         'if exist "%USERPROFILE%\\.local\\bin\\uv.exe" set "UV=%USERPROFILE%\\.local\\bin\\uv.exe"\r\n'
         "if not defined UV where uv >nul 2>nul && set \"UV=uv\"\r\n"
         "if not defined UV (\r\n"
         '    powershell -ExecutionPolicy Bypass -c "irm https://astral.sh/uv/install.ps1 | iex"\r\n'
-        "    if errorlevel 1 goto :fail\r\n"
+        "    if errorlevel 1 (\r\n"
+        "        echo [备用源] 官方安装脚本不可达，改用 uv.agentsmirror.com 镜像下载 uv...\r\n"
+        '        powershell -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri \'https://uv.agentsmirror.com/github/astral-sh/uv/releases/download/0.12.5/uv-x86_64-pc-windows-msvc.zip\' -OutFile \'%TEMP%\\uv.zip\'; Expand-Archive -Path \'%TEMP%\\uv.zip\' -DestinationPath \'%USERPROFILE%\\.local\' -Force"\r\n'
+        "        if errorlevel 1 goto :fail\r\n"
+        "    )\r\n"
         '    set "UV=%USERPROFILE%\\.local\\bin\\uv.exe"\r\n'
         ")\r\n"
+        '"%UV%" --version >nul 2>&1\r\n'
+        "if errorlevel 1 goto :fail\r\n"
         '"%UV%" python install 3.11\r\n'
         "if errorlevel 1 goto :fail\r\n"
         '"%UV%" venv .runtime\\venv\r\n'
@@ -310,10 +315,6 @@ def _login_bat_template(server_url: str) -> str:
         "echo [已完成登录] 本窗口可安全关闭\r\n"
         "goto :done\r\n"
         "\r\n"
-        ":nopython\r\n"
-        "echo [未检测到可用 Python] 本机未安装可用的 Python（Microsoft Store 存根不可用），请安装 Python 3.11 后重新运行\r\n"
-        "pause\r\n"
-        "exit /b 1\r\n"
         "\r\n"
         ":fail\r\n"
         "echo [安装失败] 可能是网络问题，请检查网络连接后重新运行，或手动安装运行环境\r\n"
