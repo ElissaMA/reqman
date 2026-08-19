@@ -1003,9 +1003,95 @@
       "category": "发动机",
       "task_type": "",
       "remark": "",
-      "tools": [],
-      "materials": [],
-      "set_id": null,
+      "tools": [
+        {
+          "device_name": "CFM碳封严工具",
+          "part_number": "856A1130G10",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "导向销",
+          "part_number": "856A3409G01",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "热风枪",
+          "part_number": "",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "敲击工具",
+          "part_number": "98A57103013000",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "转接盒（正相+反相）",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "磨损测量工具",
+          "part_number": "856A5817G01",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "塞尺",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "内六方转接杆",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "红外温度仪",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "materials": [
+        {
+          "material_name": "异丙醇",
+          "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防咬合剂",
+          "part_number": "NYCOGREASEGNGA47",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "干膜润滑剂",
+          "part_number": "MOLYKOTE D321R",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "set_id": 1016,
       "tools_confirmed": false,
       "materials_confirmed": false,
       "reminder_type": "一般提醒"
@@ -12253,14 +12339,14 @@
       "id": 869,
       "task_code": "CSCA320-724110-I1-1-1",
       "task_name": "检查高压压气机3级转子叶片凸台-1发（IAE)",
-      "category": "发动机",
+      "category": "特检",
       "task_type": "",
       "remark": "",
       "tools": [],
       "materials": [],
       "set_id": null,
-      "tools_confirmed": false,
-      "materials_confirmed": false,
+      "tools_confirmed": true,
+      "materials_confirmed": true,
       "reminder_type": "一般提醒"
     },
     "870": {
@@ -14415,22 +14501,22 @@
     "951": {
       "id": 951,
       "task_code": "CSCA320-722000-C3-1-2",
-      "task_name": "详细检查和润滑风扇叶片的燕尾槽，中跨护罩，垫片，平台和风扇盘燕尾槽（单发）（CFMB）",
+      "task_name": "详细检查和润滑风扇叶片的燕尾槽，中跨护罩，垫片，平台和风扇盘燕尾槽（2发）（CFMB）",
       "category": "发动机",
       "task_type": "",
       "remark": "",
       "tools": [
         {
-          "device_name": "调节螺栓",
-          "part_number": "856A1130G01",
-          "quantity": "3",
+          "device_name": "CFM碳封严工具",
+          "part_number": "856A1130G10",
+          "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
         },
         {
           "device_name": "导向销",
           "part_number": "856A3409G01",
-          "quantity": "3",
+          "quantity": "1",
           "remark": "",
           "usage_type": "必须使用"
         },
@@ -14509,7 +14595,7 @@
       ],
       "tools_confirmed": false,
       "materials_confirmed": false,
-      "set_id": null,
+      "set_id": 1016,
       "reminder_type": "一般提醒"
     },
     "952": {
@@ -15857,7 +15943,7 @@
         },
         {
           "material_name": "环保清洁剂",
-          "part_number": "TURCO P-D-680",
+          "part_number": "RH-P-680-20L",
           "quantity": "1",
           "remark": "优先使用开封航化",
           "usage_type": "必须使用"
@@ -15893,7 +15979,7 @@
         },
         {
           "material_name": "环保清洁剂",
-          "part_number": "TURCO P-D-680",
+          "part_number": "RH-P-680-20L",
           "quantity": "1",
           "remark": "优先使用开封航化",
           "usage_type": "必须使用"
@@ -15910,6 +15996,92 @@
       "task_name": "孔探检查CFM56-5B发动机高压涡轮转子叶片",
       "category": "特检",
       "task_type": "EO分段",
+      "remark": "",
+      "tools": [],
+      "materials": [],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": null,
+      "reminder_type": "一般提醒"
+    },
+    "1011": {
+      "id": 1011,
+      "task_code": "CSCA320-783200-I3-1-1",
+      "task_name": "一般目视检查叶栅及其附件（要求完全展开反推装置）-1发（IAE）",
+      "category": "发动机",
+      "task_type": "",
+      "remark": "",
+      "tools": [],
+      "materials": [
+        {
+          "material_name": "异丙醇",
+          "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": true,
+      "materials_confirmed": false,
+      "set_id": null,
+      "reminder_type": "一般提醒"
+    },
+    "1012": {
+      "id": 1012,
+      "task_code": "CSCA320-783200-I3-1-2",
+      "task_name": "一般目视检查叶栅及其附件（要求完全展开反推装置）-2发（IAE）",
+      "category": "发动机",
+      "task_type": "",
+      "remark": "",
+      "tools": [],
+      "materials": [
+        {
+          "material_name": "异丙醇",
+          "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": true,
+      "materials_confirmed": false,
+      "set_id": null,
+      "reminder_type": "一般提醒"
+    },
+    "1013": {
+      "id": 1013,
+      "task_code": "CSCA320-723100-I3-1-2",
+      "task_name": "发动机风扇叶片TAP测试-2发(IAE)",
+      "category": "特检",
+      "task_type": "",
+      "remark": "",
+      "tools": [],
+      "materials": [],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": null,
+      "reminder_type": "一般提醒"
+    },
+    "1014": {
+      "id": 1014,
+      "task_code": "EOJC-V2500-72-2025-066-S",
+      "task_name": "孔探V2500发动机高压涡轮一级转子叶片",
+      "category": "特检",
+      "task_type": "EO分段",
+      "remark": "",
+      "tools": [],
+      "materials": [],
+      "tools_confirmed": true,
+      "materials_confirmed": true,
+      "set_id": null,
+      "reminder_type": "一般提醒"
+    },
+    "1015": {
+      "id": 1015,
+      "task_code": "DP1000005918",
+      "task_name": "机长位风挡上部边缘有气泡，距离边框25MM。",
+      "category": "电子",
+      "task_type": "DP项目",
       "remark": "",
       "tools": [],
       "materials": [],
@@ -17541,6 +17713,102 @@
       ],
       "tools_confirmed": true,
       "materials_confirmed": false
+    },
+    "1016": {
+      "id": 1016,
+      "name": "详细检查和润滑风扇叶片的燕尾槽，中跨护罩，垫片，平台和风扇盘燕尾槽（单发）（CFMB）",
+      "description": "",
+      "category": "发动机",
+      "tools": [
+        {
+          "device_name": "CFM碳封严工具",
+          "part_number": "856A1130G10",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "导向销",
+          "part_number": "856A3409G01",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "热风枪",
+          "part_number": "",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "敲击工具",
+          "part_number": "98A57103013000",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "转接盒（正相+反相）",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "磨损测量工具",
+          "part_number": "856A5817G01",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "塞尺",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "内六方转接杆",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        },
+        {
+          "device_name": "红外温度仪",
+          "part_number": "",
+          "quantity": "1",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "materials": [
+        {
+          "material_name": "异丙醇",
+          "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "防咬合剂",
+          "part_number": "NYCOGREASEGNGA47",
+          "quantity": "1",
+          "remark": "优先使用开封航化",
+          "usage_type": "必须使用"
+        },
+        {
+          "material_name": "干膜润滑剂",
+          "part_number": "MOLYKOTE D321R",
+          "quantity": "2",
+          "remark": "",
+          "usage_type": "必须使用"
+        }
+      ],
+      "tools_confirmed": false,
+      "materials_confirmed": false
     }
   },
   "aircraft": {
@@ -18752,6 +19020,483 @@
     }
   },
   "card_logs": [
+    {
+      "id": 334,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 951,
+      "target_identifier": "CSCA320-722000-C3-1-2",
+      "target_name": "详细检查和润滑风扇叶片的燕尾槽，中跨护罩，垫片，平台和风扇盘燕尾槽（2发）（CFMB）",
+      "changes": [
+        {
+          "field": "tools",
+          "old": [
+            {
+              "device_name": "调节螺栓",
+              "part_number": "856A1130G01",
+              "quantity": "3",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "导向销",
+              "part_number": "856A3409G01",
+              "quantity": "3",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "热风枪",
+              "part_number": "",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "敲击工具",
+              "part_number": "98A57103013000",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "转接盒（正相+反相）",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "磨损测量工具",
+              "part_number": "856A5817G01",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "塞尺",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "内六方转接杆",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "红外温度仪",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "new": [
+            {
+              "device_name": "调节螺栓",
+              "part_number": "856A1130G10",
+              "quantity": "3",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "导向销",
+              "part_number": "856A3409G01",
+              "quantity": "3",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "热风枪",
+              "part_number": "",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "敲击工具",
+              "part_number": "98A57103013000",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "转接盒（正相+反相）",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "磨损测量工具",
+              "part_number": "856A5817G01",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "塞尺",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "内六方转接杆",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "红外温度仪",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ]
+        }
+      ],
+      "timestamp": "2026-08-19T14:49:45.614219+08:00"
+    },
+    {
+      "id": 333,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 951,
+      "target_identifier": "CSCA320-722000-C3-1-2",
+      "target_name": "详细检查和润滑风扇叶片的燕尾槽，中跨护罩，垫片，平台和风扇盘燕尾槽（2发）（CFMB）",
+      "changes": [
+        {
+          "field": "task_name",
+          "old": "详细检查和润滑风扇叶片的燕尾槽，中跨护罩，垫片，平台和风扇盘燕尾槽（单发）（CFMB）",
+          "new": "详细检查和润滑风扇叶片的燕尾槽，中跨护罩，垫片，平台和风扇盘燕尾槽（2发）（CFMB）"
+        }
+      ],
+      "timestamp": "2026-08-19T14:47:39.281458+08:00"
+    },
+    {
+      "id": 332,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 1015,
+      "target_identifier": "DP1000005918",
+      "target_name": "机长位风挡上部边缘有气泡，距离边框25MM。",
+      "changes": [
+        {
+          "field": "tools_confirmed",
+          "old": false,
+          "new": true
+        },
+        {
+          "field": "materials_confirmed",
+          "old": false,
+          "new": true
+        }
+      ],
+      "timestamp": "2026-08-19T11:06:03.949522+08:00"
+    },
+    {
+      "id": 331,
+      "operation": "add",
+      "target_type": "card",
+      "target_id": 1015,
+      "target_identifier": "DP1000005918",
+      "target_name": "机长位风挡上部边缘有气泡，距离边框25MM。",
+      "changes": [],
+      "timestamp": "2026-08-19T11:06:03.861576+08:00"
+    },
+    {
+      "id": 330,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 1014,
+      "target_identifier": "EOJC-V2500-72-2025-066-S",
+      "target_name": "孔探V2500发动机高压涡轮一级转子叶片",
+      "changes": [
+        {
+          "field": "tools_confirmed",
+          "old": false,
+          "new": true
+        },
+        {
+          "field": "materials_confirmed",
+          "old": false,
+          "new": true
+        }
+      ],
+      "timestamp": "2026-08-19T11:04:15.161455+08:00"
+    },
+    {
+      "id": 329,
+      "operation": "add",
+      "target_type": "card",
+      "target_id": 1014,
+      "target_identifier": "EOJC-V2500-72-2025-066-S",
+      "target_name": "孔探V2500发动机高压涡轮一级转子叶片",
+      "changes": [],
+      "timestamp": "2026-08-19T11:04:15.071096+08:00"
+    },
+    {
+      "id": 328,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 869,
+      "target_identifier": "CSCA320-724110-I1-1-1",
+      "target_name": "检查高压压气机3级转子叶片凸台-1发（IAE)",
+      "changes": [
+        {
+          "field": "category",
+          "old": "发动机",
+          "new": "特检"
+        },
+        {
+          "field": "tools_confirmed",
+          "old": false,
+          "new": true
+        },
+        {
+          "field": "materials_confirmed",
+          "old": false,
+          "new": true
+        }
+      ],
+      "timestamp": "2026-08-19T11:04:05.931815+08:00"
+    },
+    {
+      "id": 327,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 1013,
+      "target_identifier": "CSCA320-723100-I3-1-2",
+      "target_name": "发动机风扇叶片TAP测试-2发(IAE)",
+      "changes": [
+        {
+          "field": "tools_confirmed",
+          "old": false,
+          "new": true
+        },
+        {
+          "field": "materials_confirmed",
+          "old": false,
+          "new": true
+        }
+      ],
+      "timestamp": "2026-08-19T11:03:48.145248+08:00"
+    },
+    {
+      "id": 326,
+      "operation": "add",
+      "target_type": "card",
+      "target_id": 1013,
+      "target_identifier": "CSCA320-723100-I3-1-2",
+      "target_name": "发动机风扇叶片TAP测试-2发(IAE)",
+      "changes": [],
+      "timestamp": "2026-08-19T11:03:48.054804+08:00"
+    },
+    {
+      "id": 325,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 1012,
+      "target_identifier": "CSCA320-783200-I3-1-2",
+      "target_name": "一般目视检查叶栅及其附件（要求完全展开反推装置）-2发（IAE）",
+      "changes": [
+        {
+          "field": "materials",
+          "old": [],
+          "new": [
+            {
+              "material_name": "异丙醇",
+              "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "field": "tools_confirmed",
+          "old": false,
+          "new": true
+        }
+      ],
+      "timestamp": "2026-08-19T10:59:34.828389+08:00"
+    },
+    {
+      "id": 324,
+      "operation": "add",
+      "target_type": "card",
+      "target_id": 1012,
+      "target_identifier": "CSCA320-783200-I3-1-2",
+      "target_name": "一般目视检查叶栅及其附件（要求完全展开反推装置）-2发（IAE）",
+      "changes": [],
+      "timestamp": "2026-08-19T10:59:34.743118+08:00"
+    },
+    {
+      "id": 323,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 1011,
+      "target_identifier": "CSCA320-783200-I3-1-1",
+      "target_name": "一般目视检查叶栅及其附件（要求完全展开反推装置）-1发（IAE）",
+      "changes": [
+        {
+          "field": "materials",
+          "old": [],
+          "new": [
+            {
+              "material_name": "异丙醇",
+              "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            }
+          ]
+        },
+        {
+          "field": "tools_confirmed",
+          "old": false,
+          "new": true
+        }
+      ],
+      "timestamp": "2026-08-19T10:59:10.408231+08:00"
+    },
+    {
+      "id": 322,
+      "operation": "add",
+      "target_type": "card",
+      "target_id": 1011,
+      "target_identifier": "CSCA320-783200-I3-1-1",
+      "target_name": "一般目视检查叶栅及其附件（要求完全展开反推装置）-1发（IAE）",
+      "changes": [],
+      "timestamp": "2026-08-19T10:59:10.311799+08:00"
+    },
+    {
+      "id": 321,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 1009,
+      "target_identifier": "CSCA320-792000-C7-1-2",
+      "target_name": "检查前后油槽,AGB 和TGB 回油滤网 — 2发（CFMB）",
+      "changes": [
+        {
+          "field": "materials",
+          "old": [
+            {
+              "material_name": "胶圈",
+              "part_number": "J221P916",
+              "quantity": "4",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "备用胶圈",
+              "part_number": "301-806-101-0",
+              "quantity": "4",
+              "remark": "",
+              "usage_type": "检查有问题领用"
+            },
+            {
+              "material_name": "环保清洁剂",
+              "part_number": "TURCO P-D-680",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            }
+          ],
+          "new": [
+            {
+              "material_name": "胶圈",
+              "part_number": "J221P916",
+              "quantity": "4",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "备用胶圈",
+              "part_number": "301-806-101-0",
+              "quantity": "4",
+              "remark": "",
+              "usage_type": "检查有问题领用"
+            },
+            {
+              "material_name": "环保清洁剂",
+              "part_number": "RH-P-680-20L",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            }
+          ]
+        }
+      ],
+      "timestamp": "2026-08-16T19:27:00.728201+08:00"
+    },
+    {
+      "id": 320,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 1008,
+      "target_identifier": "CSCA320-792000-C7-1-1",
+      "target_name": "检查前后油槽,AGB 和TGB 回油滤网 — 1发（CFMB）",
+      "changes": [
+        {
+          "field": "materials",
+          "old": [
+            {
+              "material_name": "胶圈",
+              "part_number": "J221P916",
+              "quantity": "4",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "备用胶圈",
+              "part_number": "301-806-101-0",
+              "quantity": "4",
+              "remark": "",
+              "usage_type": "检查有问题领用"
+            },
+            {
+              "material_name": "环保清洁剂",
+              "part_number": "TURCO P-D-680",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            }
+          ],
+          "new": [
+            {
+              "material_name": "胶圈",
+              "part_number": "J221P916",
+              "quantity": "4",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "material_name": "备用胶圈",
+              "part_number": "301-806-101-0",
+              "quantity": "4",
+              "remark": "",
+              "usage_type": "检查有问题领用"
+            },
+            {
+              "material_name": "环保清洁剂",
+              "part_number": "RH-P-680-20L",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            }
+          ]
+        }
+      ],
+      "timestamp": "2026-08-16T19:26:54.636706+08:00"
+    },
     {
       "id": 319,
       "operation": "update",
@@ -23883,78 +24628,374 @@
       "timestamp": "2026-07-29T15:46:25.041949+00:00"
     },
     {
-      "id": 134,
+      "id": 335,
       "operation": "update",
       "target_type": "card",
-      "target_id": 944,
-      "target_identifier": "CSCA320-75ZB02-01-1-1",
-      "target_name": "目视检查可变放气阀系统 — 1发（CFMB）",
-      "changes": [
-        {
-          "field": "set_id",
-          "old": null,
-          "new": 973
-        }
-      ],
-      "timestamp": "2026-07-29T15:46:24.951228+00:00"
-    },
-    {
-      "id": 133,
-      "operation": "update",
-      "target_type": "set",
-      "target_id": 973,
-      "target_identifier": "VBV系统目视检查和润滑",
-      "target_name": "VBV系统目视检查和润滑",
+      "target_id": 951,
+      "target_identifier": "CSCA320-722000-C3-1-2",
+      "target_name": "详细检查和润滑风扇叶片的燕尾槽，中跨护罩，垫片，平台和风扇盘燕尾槽（2发）（CFMB）",
       "changes": [
         {
           "field": "tools",
-          "old": [],
-          "new": [
+          "old": [
             {
-              "device_name": "VBV门保持工具",
-              "part_number": "856A2664G01-FZC",
+              "device_name": "调节螺栓",
+              "part_number": "856A1130G10",
+              "quantity": "3",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "导向销",
+              "part_number": "856A3409G01",
+              "quantity": "3",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "热风枪",
+              "part_number": "",
               "quantity": "2",
               "remark": "",
               "usage_type": "必须使用"
             },
             {
-              "device_name": "VBV开关工具",
-              "part_number": "856A2501G01",
+              "device_name": "敲击工具",
+              "part_number": "98A57103013000",
               "quantity": "1",
               "remark": "",
               "usage_type": "必须使用"
             },
             {
-              "device_name": "VBV拆装工具",
-              "part_number": "856A3114G01",
-              "quantity": "1",
-              "remark": "",
-              "usage_type": "必须使用"
-            },
-            {
-              "device_name": "注油嘴（VBV）",
-              "part_number": "自编号Z4001-12",
-              "quantity": "1",
-              "remark": "",
-              "usage_type": "必须使用"
-            },
-            {
-              "device_name": "套筒1/4孔3/16六方杆",
-              "part_number": "自编号T7057-26",
-              "quantity": "1",
-              "remark": "",
-              "usage_type": "必须使用"
-            },
-            {
-              "device_name": "电动工具",
+              "device_name": "转接盒（正相+反相）",
               "part_number": "",
               "quantity": "1",
               "remark": "",
               "usage_type": "必须使用"
             },
             {
-              "device_name": "28号注油枪",
-              "part_number": "自编号Z1006-28",
+              "device_name": "磨损测量工具",
+              "part_number": "856A5817G01",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "塞尺",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "内六方转接杆",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "红外温度仪",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "new": [
+            {
+              "device_name": "CFM碳封严工具",
+              "part_number": "856A1130G10",
+              "quantity": "3",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "导向销",
+              "part_number": "856A3409G01",
+              "quantity": "3",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "热风枪",
+              "part_number": "",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "敲击工具",
+              "part_number": "98A57103013000",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "转接盒（正相+反相）",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "磨损测量工具",
+              "part_number": "856A5817G01",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "塞尺",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "内六方转接杆",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "红外温度仪",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ]
+        }
+      ],
+      "timestamp": "2026-08-19T22:02:29.330387+08:00"
+    },
+    {
+      "id": 336,
+      "operation": "update",
+      "target_type": "card",
+      "target_id": 951,
+      "target_identifier": "CSCA320-722000-C3-1-2",
+      "target_name": "详细检查和润滑风扇叶片的燕尾槽，中跨护罩，垫片，平台和风扇盘燕尾槽（2发）（CFMB）",
+      "changes": [
+        {
+          "field": "tools",
+          "old": [
+            {
+              "device_name": "CFM碳封严工具",
+              "part_number": "856A1130G10",
+              "quantity": "3",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "导向销",
+              "part_number": "856A3409G01",
+              "quantity": "3",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "热风枪",
+              "part_number": "",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "敲击工具",
+              "part_number": "98A57103013000",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "转接盒（正相+反相）",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "磨损测量工具",
+              "part_number": "856A5817G01",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "塞尺",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "内六方转接杆",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "红外温度仪",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ],
+          "new": [
+            {
+              "device_name": "CFM碳封严工具",
+              "part_number": "856A1130G10",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "导向销",
+              "part_number": "856A3409G01",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "热风枪",
+              "part_number": "",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "敲击工具",
+              "part_number": "98A57103013000",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "转接盒（正相+反相）",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "磨损测量工具",
+              "part_number": "856A5817G01",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "塞尺",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "内六方转接杆",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "红外温度仪",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            }
+          ]
+        }
+      ],
+      "timestamp": "2026-08-19T22:03:33.287276+08:00"
+    },
+    {
+      "id": 337,
+      "operation": "add",
+      "target_type": "set",
+      "target_id": 1016,
+      "target_identifier": "详细检查和润滑风扇叶片的燕尾槽，中跨护罩，垫片，平台和风扇盘燕尾槽（单发）（CFMB）",
+      "target_name": "详细检查和润滑风扇叶片的燕尾槽，中跨护罩，垫片，平台和风扇盘燕尾槽（单发）（CFMB）",
+      "changes": [],
+      "timestamp": "2026-08-19T22:05:44.227606+08:00"
+    },
+    {
+      "id": 338,
+      "operation": "update",
+      "target_type": "set",
+      "target_id": 1016,
+      "target_identifier": "详细检查和润滑风扇叶片的燕尾槽，中跨护罩，垫片，平台和风扇盘燕尾槽（单发）（CFMB）",
+      "target_name": "详细检查和润滑风扇叶片的燕尾槽，中跨护罩，垫片，平台和风扇盘燕尾槽（单发）（CFMB）",
+      "changes": [
+        {
+          "field": "tools",
+          "old": [],
+          "new": [
+            {
+              "device_name": "CFM碳封严工具",
+              "part_number": "856A1130G10",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "导向销",
+              "part_number": "856A3409G01",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "热风枪",
+              "part_number": "",
+              "quantity": "2",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "敲击工具",
+              "part_number": "98A57103013000",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "转接盒（正相+反相）",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "磨损测量工具",
+              "part_number": "856A5817G01",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "塞尺",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "内六方转接杆",
+              "part_number": "",
+              "quantity": "1",
+              "remark": "",
+              "usage_type": "必须使用"
+            },
+            {
+              "device_name": "红外温度仪",
+              "part_number": "",
               "quantity": "1",
               "remark": "",
               "usage_type": "必须使用"
@@ -23965,6 +25006,13 @@
           "field": "materials",
           "old": [],
           "new": [
+            {
+              "material_name": "异丙醇",
+              "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
+              "quantity": "1",
+              "remark": "优先使用开封航化",
+              "usage_type": "必须使用"
+            },
             {
               "material_name": "防咬合剂",
               "part_number": "NYCOGREASEGNGA47",
@@ -23973,266 +25021,49 @@
               "usage_type": "必须使用"
             },
             {
-              "material_name": "28号油脂",
-              "part_number": "MOBILGREASE28",
-              "quantity": "1",
-              "remark": "优先使用开封航化",
-              "usage_type": "必须使用"
-            },
-            {
-              "material_name": "异丙醇",
-              "part_number": "ISOPROPYL ALCOHOL(TT-I-735A)",
-              "quantity": "1",
-              "remark": "优先使用开封航化",
+              "material_name": "干膜润滑剂",
+              "part_number": "MOLYKOTE D321R",
+              "quantity": "2",
+              "remark": "",
               "usage_type": "必须使用"
             }
           ]
         }
       ],
-      "timestamp": "2026-07-29T15:46:24.829271+00:00"
+      "timestamp": "2026-08-19T22:05:44.327108+08:00"
     },
     {
-      "id": 132,
-      "operation": "add",
-      "target_type": "set",
-      "target_id": 973,
-      "target_identifier": "VBV系统目视检查和润滑",
-      "target_name": "VBV系统目视检查和润滑",
-      "changes": [],
-      "timestamp": "2026-07-29T15:46:24.727877+00:00"
-    },
-    {
-      "id": 131,
+      "id": 339,
       "operation": "update",
       "target_type": "card",
-      "target_id": 115,
-      "target_identifier": "CSCA320-792000-C9-1-2",
-      "target_name": "主金属屑检测器远程指示的操作检查 — 2发(CFMB)",
+      "target_id": 53,
+      "target_identifier": "CSCA320-722000-C3-1-1",
+      "target_name": "详细检查和润滑风扇叶片的燕尾槽，中跨护罩，垫片，平台和风扇盘燕尾槽（1发）（CFMB）",
       "changes": [
         {
           "field": "set_id",
           "old": null,
-          "new": 972
+          "new": 1016
         }
       ],
-      "timestamp": "2026-07-29T15:26:29.416863+00:00"
+      "timestamp": "2026-08-19T22:05:44.445866+08:00"
     },
     {
-      "id": 130,
+      "id": 340,
       "operation": "update",
       "target_type": "card",
-      "target_id": 959,
-      "target_identifier": "CSCA320-792000-C9-1-1",
-      "target_name": "主金属屑检测器远程指示的操作检查 — 1发(CFMB)",
+      "target_id": 951,
+      "target_identifier": "CSCA320-722000-C3-1-2",
+      "target_name": "详细检查和润滑风扇叶片的燕尾槽，中跨护罩，垫片，平台和风扇盘燕尾槽（2发）（CFMB）",
       "changes": [
         {
           "field": "set_id",
           "old": null,
-          "new": 972
+          "new": 1016
         }
       ],
-      "timestamp": "2026-07-29T15:26:29.327913+00:00"
-    },
-    {
-      "id": 129,
-      "operation": "update",
-      "target_type": "set",
-      "target_id": 972,
-      "target_identifier": "主金属屑检测器远程指示的操作检查 — 单发(CFMB)",
-      "target_name": "主金属屑检测器远程指示的操作检查 — 单发(CFMB)",
-      "changes": [
-        {
-          "field": "tools",
-          "old": [],
-          "new": [
-            {
-              "device_name": "兆欧表",
-              "part_number": "",
-              "quantity": "1",
-              "remark": "",
-              "usage_type": "必须使用"
-            }
-          ]
-        },
-        {
-          "field": "materials_confirmed",
-          "old": false,
-          "new": true
-        }
-      ],
-      "timestamp": "2026-07-29T15:26:29.216718+00:00"
-    },
-    {
-      "id": 128,
-      "operation": "add",
-      "target_type": "set",
-      "target_id": 972,
-      "target_identifier": "主金属屑检测器远程指示的操作检查 — 单发(CFMB)",
-      "target_name": "主金属屑检测器远程指示的操作检查 — 单发(CFMB)",
-      "changes": [],
-      "timestamp": "2026-07-29T15:26:29.035852+00:00"
-    },
-    {
-      "id": 127,
-      "operation": "update",
-      "target_type": "card",
-      "target_id": 316,
-      "target_identifier": "EOJC-CFM56-72-2022-002-S1",
-      "target_name": "孔探检查HPC三级可调静子叶片后部挂钩封严状态",
-      "changes": [
-        {
-          "field": "tools_confirmed",
-          "old": false,
-          "new": true
-        },
-        {
-          "field": "materials_confirmed",
-          "old": false,
-          "new": true
-        }
-      ],
-      "timestamp": "2026-07-29T14:47:01.383531+00:00"
-    },
-    {
-      "id": 126,
-      "operation": "update",
-      "target_type": "card",
-      "target_id": 971,
-      "target_identifier": "CSCA320-730000-C2-1-2",
-      "target_name": "校正发动机定期维护报告(SMR)的故障-2发(CFMB)",
-      "changes": [
-        {
-          "field": "tools_confirmed",
-          "old": false,
-          "new": true
-        },
-        {
-          "field": "materials_confirmed",
-          "old": false,
-          "new": true
-        }
-      ],
-      "timestamp": "2026-07-29T14:46:53.988013+00:00"
-    },
-    {
-      "id": 125,
-      "operation": "add",
-      "target_type": "card",
-      "target_id": 971,
-      "target_identifier": "CSCA320-730000-C2-1-2",
-      "target_name": "校正发动机定期维护报告(SMR)的故障-2发(CFMB)",
-      "changes": [],
-      "timestamp": "2026-07-29T14:46:53.889308+00:00"
-    },
-    {
-      "id": 124,
-      "operation": "update",
-      "target_type": "card",
-      "target_id": 970,
-      "target_identifier": "CSCA320-730000-C2-1-1",
-      "target_name": "校正发动机定期维护报告(SMR)的故障-1发(CFMB)",
-      "changes": [
-        {
-          "field": "tools_confirmed",
-          "old": false,
-          "new": true
-        },
-        {
-          "field": "materials_confirmed",
-          "old": false,
-          "new": true
-        }
-      ],
-      "timestamp": "2026-07-29T14:46:50.169712+00:00"
-    },
-    {
-      "id": 123,
-      "operation": "add",
-      "target_type": "card",
-      "target_id": 970,
-      "target_identifier": "CSCA320-730000-C2-1-1",
-      "target_name": "校正发动机定期维护报告(SMR)的故障-1发(CFMB)",
-      "changes": [],
-      "timestamp": "2026-07-29T14:46:50.058548+00:00"
-    },
-    {
-      "id": 122,
-      "operation": "update",
-      "target_type": "card",
-      "target_id": 861,
-      "target_identifier": "CSCA320-323100-01-1-X",
-      "target_name": "使用MCDU进行LGCIU的BITE检查确保连续的BITE有效",
-      "changes": [
-        {
-          "field": "tools_confirmed",
-          "old": false,
-          "new": true
-        },
-        {
-          "field": "materials_confirmed",
-          "old": false,
-          "new": true
-        }
-      ],
-      "timestamp": "2026-07-29T14:46:41.326206+00:00"
-    },
-    {
-      "id": 121,
-      "operation": "update",
-      "target_type": "card",
-      "target_id": 227,
-      "target_identifier": "EOJC-A320-52-2023-001-A",
-      "target_name": "对主起落架固定式整流罩组件的详细检查",
-      "changes": [
-        {
-          "field": "materials",
-          "old": [],
-          "new": [
-            {
-              "material_name": "结构防腐密封胶",
-              "part_number": "PS870B1/2",
-              "quantity": "1",
-              "remark": "",
-              "usage_type": "必须使用"
-            },
-            {
-              "material_name": "粘结胶",
-              "part_number": "MC-780C2",
-              "quantity": "1",
-              "remark": "",
-              "usage_type": "必须使用"
-            }
-          ]
-        },
-        {
-          "field": "materials_confirmed",
-          "old": true,
-          "new": false
-        }
-      ],
-      "timestamp": "2026-07-29T14:45:52.413815+00:00"
-    },
-    {
-      "id": 120,
-      "operation": "update",
-      "target_type": "card",
-      "target_id": 227,
-      "target_identifier": "EOJC-A320-52-2023-001-A",
-      "target_name": "对主起落架固定式整流罩组件的详细检查",
-      "changes": [
-        {
-          "field": "tools_confirmed",
-          "old": false,
-          "new": true
-        },
-        {
-          "field": "materials_confirmed",
-          "old": false,
-          "new": true
-        }
-      ],
-      "timestamp": "2026-07-29T14:44:18.593828+00:00"
+      "timestamp": "2026-08-19T22:05:44.588266+08:00"
     }
   ],
-  "card_log_next_id": 320
+  "card_log_next_id": 341
 }
