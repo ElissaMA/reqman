@@ -75,6 +75,7 @@ def setup_package():
         "2. 双击 start_login.bat\n"
         "3. 按提示关闭已登录的川航 AMRO 页面，点击确认后完成登录\n"
         "登录成功后脚本将自动上传凭证，本系统页面即可开始查询。\n"
+        "首次运行约 1-2 分钟自动安装运行环境，使用系统自带 Chrome/Edge 浏览器，无需下载浏览器。\n"
         "注意：请勿将 .runtime 文件夹拷贝到其他机器，每台机器首次运行脚本会自动安装运行环境。\n"
     )
 
@@ -227,7 +228,14 @@ def _login_py_template(server_url: str) -> str:
         '    if not confirm():\n'
         '        return\n'
         '    async with async_playwright() as p:\n'
-        '        browser = await p.chromium.launch(headless=False)\n'
+        '        try:\n'
+        '            browser = await p.chromium.launch(channel="chrome", headless=False)\n'
+        '        except Exception:\n'
+        '            try:\n'
+        '                browser = await p.chromium.launch(channel="msedge", headless=False)\n'
+        '            except Exception:\n'
+        '                print("未检测到 Chrome/Edge，请安装浏览器后重试")\n'
+        '                return\n'
         '        ctx = await browser.new_context()\n'
         '        page = await ctx.new_page()\n'
         '        print(MSG_P2)\n'
@@ -271,6 +279,7 @@ def _login_bat_template(server_url: str) -> str:
         "set UV_DEFAULT_INDEX=https://mirrors.aliyun.com/pypi/simple/\r\n"
         "set UV_PYTHON_INSTALL_MIRROR=https://registry.npmmirror.com/-/binary/python-build-standalone/\r\n"
         "set PLAYWRIGHT_DOWNLOAD_HOST=https://registry.npmmirror.com/-/binary/playwright/\r\n"
+        "set PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1\r\n"
         "rem venv 有效性校验（防拷贝 .runtime 后 trampoline 失效）\r\n"
         "if not exist .runtime\\venv\\Scripts\\python.exe goto :install\r\n"
         ".runtime\\venv\\Scripts\\python --version >nul 2>&1\r\n"
@@ -302,8 +311,6 @@ def _login_bat_template(server_url: str) -> str:
         '"%UV%" venv .runtime\\venv\r\n'
         "if errorlevel 1 goto :fail\r\n"
         '"%UV%" pip install --python .runtime\\venv\\Scripts\\python.exe httpx playwright\r\n'
-        "if errorlevel 1 goto :fail\r\n"
-        ".runtime\\venv\\Scripts\\python -m playwright install chromium\r\n"
         "if errorlevel 1 goto :fail\r\n"
         "echo [安装完成] 运行环境就绪\r\n"
         "\r\n"

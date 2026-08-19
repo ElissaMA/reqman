@@ -26,6 +26,7 @@
 - 登录脚本自举优化：uv 改用 astral 官方脚本安装（免 Python 依赖，兼容无真 Python 仅 Store 存根的机器）；删除 .installed 标记改为 venv 实跑校验（python --version 失败即删 .runtime 重建，修复拷贝 .runtime 后 trampoline 失效）；Python 探测改实跑替代 where 防 Store 存根误判；提示明确区分未检测到可用 Python 与网络/安装失败
 - 登录脚本免 Python 自举修复：移除 install 块多余 Python 检测与 :nopython 分支（astral 脚本已免 Python，office 电脑无 Python 也能装）；uv 安装失败改用 uv.agentsmirror.com 备用源（npmmirror 实测无 uv 二进制），下载 zip 解压至 %USERPROFILE%\.local\bin\uv.exe 并 uv --version 验证，失败统一 goto :fail
 - 登录脚本 uv 下载主备对调：首选国内镜像 uv.agentsmirror.com（实测 1.7MB/s 最快最稳，官方 GitHub 源仅 23KB/s 卡慢速），失败才兜底官方 astral.sh 安装脚本
+- 登录配置包改用系统浏览器：chromium.launch 改用 channel="chrome" 失败回退 channel="msedge"（Win10/11 必装，办公电脑无需下载 120MB chromium）；弃用 playwright install chromium（set PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1）；两浏览器皆缺提示安装后重试
 
 ### Changed
 - 开发过程资产（docs/superpowers/ 设计文档与实现计划）移出 git 追踪（仅本地保留，不上传生产）

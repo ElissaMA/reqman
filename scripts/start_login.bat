@@ -9,6 +9,7 @@ set ALL_PROXY=
 set UV_DEFAULT_INDEX=https://mirrors.aliyun.com/pypi/simple/
 set UV_PYTHON_INSTALL_MIRROR=https://registry.npmmirror.com/-/binary/python-build-standalone/
 set PLAYWRIGHT_DOWNLOAD_HOST=https://registry.npmmirror.com/-/binary/playwright/
+set PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 rem venv 有效性校验（防拷贝 .runtime 后 trampoline 失效）
 if not exist .runtime\venv\Scripts\python.exe goto :install
 .runtime\venv\Scripts\python --version >nul 2>&1
@@ -40,8 +41,6 @@ if errorlevel 1 goto :fail
 "%UV%" venv .runtime\venv
 if errorlevel 1 goto :fail
 "%UV%" pip install --python .runtime\venv\Scripts\python.exe httpx playwright
-if errorlevel 1 goto :fail
-.runtime\venv\Scripts\python -m playwright install chromium
 if errorlevel 1 goto :fail
 echo [安装完成] 运行环境就绪
 

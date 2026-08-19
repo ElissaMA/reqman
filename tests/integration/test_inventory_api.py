@@ -134,6 +134,8 @@ class TestSetupPackage:
         assert bat.index("uv.agentsmirror.com") < bat.index("astral.sh/uv/install.ps1")
         assert "%USERPROFILE%\\.local\\bin\\uv.exe" in bat
         assert '"%UV%" --version >nul 2>&1' in bat
+        assert "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1" in bat
+        assert "playwright install chromium" not in bat
         assert ".runtime\\venv\\Scripts\\python --version >nul 2>&1" in bat
 
     def _py_source(self, resp) -> str:
@@ -150,6 +152,23 @@ class TestSetupPackage:
         assert 'SERVER_URL = "http://localhost"' in src
         assert 'UPLOAD_URL = "http://localhost/inventory/login/upload"' in src
         assert "trust_env=False" in src
+
+    def test_py_uses_system_browser_chrome_to_msedge(self, client):
+        """amro_login.py 使用系统 Chrome，失败回退 msedge，弃用 chromium 下载。"""
+        resp = client.get("/inventory/setup-package")
+        assert resp.status_code == 200
+        src = self._py_source(resp)
+        assert 'channel="chrome"' in src
+        assert 'channel="msedge"' in src
+        assert src.index('channel="chrome"') < src.index('channel="msedge"')
+        assert "未检测到 Chrome/Edge，请安装浏览器后重试" in src
+
+    def test_py_login_version(self, client):
+        """amro_login.py 注入 LOGIN_VERSION 为当前版本（2）。"""
+        resp = client.get("/inventory/setup-package")
+        assert resp.status_code == 200
+        src = self._py_source(resp)
+        assert 'LOGIN_VERSION = "2"' in src
 
     def test_injects_configured_public_url(self, client, monkeypatch):
         """配置 AMRO_PUBLIC_URL → 注入配置的公网地址。"""
