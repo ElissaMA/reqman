@@ -23,6 +23,7 @@
 - 文档同步：README 库存查询使用流程对齐最新交互；deploy.sh 配置项 GENERATED_DIR 更正为 OUTPUT_DIR（与 config.py 一致）
 - 登录启动窗口前台化：移除服务器模式 start /min 静默化（安装/运行全部前台，防中途误关闪退）；安装环境每步 if errorlevel 兜底跳 :fail 统一提示；所有窗口结尾无条件停留（[已完成登录] 本窗口可安全关闭 + pause），脚本补 UTF-8 BOM 消除中文误读
 - 登录脚本安装兼容性：cd 路径加引号防空格；UV_PYTHON_INSTALL_MIRROR 改 python-build-standalone 镜像（原 aliyun python-release 实测 404）；bat 统一豁免代理（NO_PROXY=* + 清空 HTTP/HTTPS/ALL_PROXY）；.runtime\.installed 标记防 venv 半成品跳过；登录失败区分 [登录未完成]（修复无条件显示已完成登录回归）+ 未检测到 Python 独立提示
+- 登录脚本自举优化：uv 改用 astral 官方脚本安装（免 Python 依赖，兼容无真 Python 仅 Store 存根的机器）；删除 .installed 标记改为 venv 实跑校验（python --version 失败即删 .runtime 重建，修复拷贝 .runtime 后 trampoline 失效）；Python 探测改实跑替代 where 防 Store 存根误判；提示明确区分未检测到可用 Python 与网络/安装失败
 
 ### Changed
 - 开发过程资产（docs/superpowers/ 设计文档与实现计划）移出 git 追踪（仅本地保留，不上传生产）

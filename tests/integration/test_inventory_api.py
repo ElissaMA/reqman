@@ -116,7 +116,7 @@ class TestSetupPackage:
         assert "pause" in bat
 
     def test_bat_install_compat(self, client):
-        """ZIP 内 start_login.bat 安装兼容性：引号 cd、新镜像、代理豁免、.installed 标记。"""
+        """ZIP 内 start_login.bat 安装兼容性：引号 cd、新镜像、代理豁免、免 Python 装 uv、venv 实跑校验。"""
         resp = client.get("/inventory/setup-package")
         assert resp.status_code == 200
         bat = self._bat_source(resp)
@@ -126,9 +126,12 @@ class TestSetupPackage:
         assert "set HTTP_PROXY=" in bat
         assert "set HTTPS_PROXY=" in bat
         assert "set ALL_PROXY=" in bat
-        assert ".runtime\\.installed" in bat
+        assert ".runtime\\.installed" not in bat
         assert ":nopython" in bat
-        assert "where uv >nul 2>nul || (python -m pip install -q uv || py -m pip install -q uv)" in bat
+        assert "python --version >nul 2>&1 || (py --version >nul 2>&1 || goto :nopython)" in bat
+        assert "astral.sh/uv/install.ps1" in bat
+        assert "%USERPROFILE%\\.local\\bin\\uv.exe" in bat
+        assert ".runtime\\venv\\Scripts\\python --version >nul 2>&1" in bat
 
     def _py_source(self, resp) -> str:
         zf = zipfile.ZipFile(io.BytesIO(resp.data))
