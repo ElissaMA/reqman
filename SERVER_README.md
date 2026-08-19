@@ -120,35 +120,45 @@ bash scripts/db.sh clean 28
 
 ---
 
-## 5. 代码更新与数据库同步
+## 5. 代码更新与数据同步
 
 > **操作方式：** 服务器仅通过阿里云 Workbench 终端操作，不使用本地 SSH。
 
-### 5.1 GitHub 仓库地址
+通用流程：本地改代码 + 同步数据 → 提交推送 GitHub main → 服务器丢弃本地 data 差异后拉取 → 重启
+
+### GitHub 仓库地址
 
 - **仓库：** https://github.com/ElissaMA/reqman
 - **服务器配置：** `git remote set-url origin https://github.com/ElissaMA/reqman.git`
 
-### 5.2 代码更新流程
-
-#### 本地开发 → 服务器更新
+### 5.1 本地操作（更新代码并同步数据）
 
 ```bash
-# === 本地操作 ===
-# 1. 在 dev 分支开发
-git checkout dev
+# 1.（可选）从服务器下载最新数据替换本地
+scp root@8.137.15.167:/root/workspace/reqman/data/reqman_db.json data/reqman_db.json
 
-# 2. 开发完成后合并到 main
-git checkout main && git merge dev
-
-# 3. 推送到 GitHub
+# 2. 本地修改代码 / 数据……
+# 3. 提交并推送（代码 + 数据一起）
+git add .
+git commit -m "feat/fix/chore: 描述"
 git push origin main
+```
 
-# === Workbench 终端操作 ===
-# 4. 服务器拉取最新代码
-cd /root/workspace/reqman && git pull origin main
+### 5.2 服务器操作（拉取最新代码与数据）
 
-# 4.1 更新依赖（新功能可能引入新依赖，幂等安全）
+```bash
+cd /root/workspace/reqman
+
+# 1.（可选，保险起见）备份当前数据库
+bash scripts/db.sh backup
+
+# 2. 丢弃服务器本地 data 差异（忽略 data 冲突警告，以 GitHub 最新数据为准）
+git checkout -- data/reqman_db.json
+
+# 3. 拉取最新代码与数据
+git pull origin main
+
+# 4. 更新依赖（引入新依赖时执行，幂等安全）
 ./venv/bin/pip install -e .
 
 # 5. 重启服务
@@ -158,99 +168,16 @@ sudo systemctl restart reqman
 curl -s -o /dev/null -w "%{http_code}" http://localhost:5001/
 ```
 
-#### 仅重启服务（无代码变更时）
+### 5.3 分支开发提示（简化 feature 工作流）
 
 ```bash
-sudo systemctl restart reqman
-```
-
-### 5.3 数据库同步流程
-
-#### 原则
-
-1. **服务器是数据源：** 日常数据修改优先通过 Web 界面操作
-2. **本地修改前拉取：** 批量修改数据库前，先从服务器下载最新版本
-3. **更新服务器前备份：** 执行 `git pull` 前，先运行 `bash scripts/db.sh backup`
-4. **避免双向修改：** 同一时间段内，只在一处修改数据库
-
-#### 场景A：本地修改数据库后同步到服务器
-
-```bash
-# === 本地操作 ===
-# 1. 先拉取服务器最新数据库
-scp root@8.137.15.167:/root/workspace/reqman/data/reqman_db.json data/reqman_db.json
-
-# 2. 本地修改数据库
-
-# 3. 提交到 git
-git add data/reqman_db.json && git commit -m "chore(db): 描述修改内容"
-git push origin main
-
-# === Workbench 终端操作 ===
-# 4. 服务器拉取
-cd /root/workspace/reqman && git pull origin main
-
-# 5. 重启服务
-sudo systemctl restart reqman
-```
-
-#### 场景B：服务器 Web 界面修改后同步到本地
-
-```bash
-# === 本地操作 ===
-# 1. 从服务器拉取最新数据库
-scp root@8.137.15.167:/root/workspace/reqman/data/reqman_db.json data/reqman_db.json
-
-# 2. 提交到 git（如需保留版本历史）
-git add data/reqman_db.json && git commit -m "chore(db): 同步服务器数据"
-git push origin main
-```
-
-#### 场景C：更新服务器前的安全检查
-
-```bash
-# === Workbench 终端操作 ===
-# 1. 备份当前数据库
-cd /root/workspace/reqman && bash scripts/db.sh backup
-
-# 2. 拉取最新代码
-git pull origin main
-
-# 3. 如有数据库冲突，查看差异
-git diff data/reqman_db.json
-
-# 4. 重启服务
-sudo systemctl restart reqman
-```
-
-### 5.4 feature 分支操作提示
-
-#### 本地 feature 分支工作流
-
-```bash
-# 1. 从 main 创建 feature 分支
-git checkout main
-git checkout -b feature/xxx
-
-# 2. 开发完成后合并到 dev 测试
-git checkout dev && git merge feature/xxx
-
-# 3. 测试通过后合并到 main
-git checkout main && git merge feature/xxx
-
-# 4. 推送到 GitHub
-git push origin main
-
-# 5. 可选：清理 feature 分支
+git checkout main && git checkout -b feature/xxx
+# 开发 → 测试通过后合并回 main
+git checkout main && git merge feature/xxx && git push origin main
 git branch -d feature/xxx
 ```
 
-#### 注意事项
-
-- **feature 分支不直接推送到服务器**，必须合并到 main 后才推送
-- **合并前确保 dev 分支测试通过**
-- **合并后切回 dev 继续开发**
-- **合并到 main 推送到服务器后，服务器拉取代码需同步更新依赖**（`./venv/bin/pip install -e .`，见 §5.2 步骤 4.1），新功能可能引入新依赖，否则会导致服务 502
+> 注意：feature 分支不直接推送到服务器；合并到 main 推送后，服务器拉取需同步更新依赖（`./venv/bin/pip install -e .`），否则服务 502。
 
 
 ---
