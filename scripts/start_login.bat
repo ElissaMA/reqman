@@ -24,10 +24,11 @@ echo [首次使用] 正在自动安装运行环境，请稍候...
 if exist "%USERPROFILE%\.local\bin\uv.exe" set "UV=%USERPROFILE%\.local\bin\uv.exe"
 if not defined UV where uv >nul 2>nul && set "UV=uv"
 if not defined UV (
-    powershell -ExecutionPolicy Bypass -c "irm https://astral.sh/uv/install.ps1 | iex"
+    echo [下载 uv] 使用 uv.agentsmirror.com 镜像源下载 uv（最快最稳）...
+    powershell -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri 'https://uv.agentsmirror.com/github/astral-sh/uv/releases/download/0.12.5/uv-x86_64-pc-windows-msvc.zip' -OutFile '%TEMP%\uv.zip'; Expand-Archive -Path '%TEMP%\uv.zip' -DestinationPath '%USERPROFILE%\.local' -Force"
     if errorlevel 1 (
-        echo [备用源] 官方安装脚本不可达，改用 uv.agentsmirror.com 镜像下载 uv...
-        powershell -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri 'https://uv.agentsmirror.com/github/astral-sh/uv/releases/download/0.12.5/uv-x86_64-pc-windows-msvc.zip' -OutFile '%TEMP%\uv.zip'; Expand-Archive -Path '%TEMP%\uv.zip' -DestinationPath '%USERPROFILE%\.local' -Force"
+        echo [备用源] 镜像源不可达，改用官方安装脚本下载 uv...
+        powershell -ExecutionPolicy Bypass -c "irm https://astral.sh/uv/install.ps1 | iex"
         if errorlevel 1 goto :fail
     )
     set "UV=%USERPROFILE%\.local\bin\uv.exe"

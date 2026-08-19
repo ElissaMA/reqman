@@ -286,10 +286,11 @@ def _login_bat_template(server_url: str) -> str:
         'if exist "%USERPROFILE%\\.local\\bin\\uv.exe" set "UV=%USERPROFILE%\\.local\\bin\\uv.exe"\r\n'
         "if not defined UV where uv >nul 2>nul && set \"UV=uv\"\r\n"
         "if not defined UV (\r\n"
-        '    powershell -ExecutionPolicy Bypass -c "irm https://astral.sh/uv/install.ps1 | iex"\r\n'
+        "    echo [下载 uv] 使用 uv.agentsmirror.com 镜像源下载 uv（最快最稳）...\r\n"
+        '    powershell -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri \'https://uv.agentsmirror.com/github/astral-sh/uv/releases/download/0.12.5/uv-x86_64-pc-windows-msvc.zip\' -OutFile \'%TEMP%\\uv.zip\'; Expand-Archive -Path \'%TEMP%\\uv.zip\' -DestinationPath \'%USERPROFILE%\\.local\' -Force"\r\n'
         "    if errorlevel 1 (\r\n"
-        "        echo [备用源] 官方安装脚本不可达，改用 uv.agentsmirror.com 镜像下载 uv...\r\n"
-        '        powershell -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri \'https://uv.agentsmirror.com/github/astral-sh/uv/releases/download/0.12.5/uv-x86_64-pc-windows-msvc.zip\' -OutFile \'%TEMP%\\uv.zip\'; Expand-Archive -Path \'%TEMP%\\uv.zip\' -DestinationPath \'%USERPROFILE%\\.local\' -Force"\r\n'
+        "        echo [备用源] 镜像源不可达，改用官方安装脚本下载 uv...\r\n"
+        '        powershell -ExecutionPolicy Bypass -c "irm https://astral.sh/uv/install.ps1 | iex"\r\n'
         "        if errorlevel 1 goto :fail\r\n"
         "    )\r\n"
         '    set "UV=%USERPROFILE%\\.local\\bin\\uv.exe"\r\n'

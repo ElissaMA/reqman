@@ -129,8 +129,9 @@ class TestSetupPackage:
         assert ".runtime\\.installed" not in bat
         assert ":nopython" not in bat
         assert "python --version >nul 2>&1 || (py --version >nul 2>&1 || goto :nopython)" not in bat
-        assert "astral.sh/uv/install.ps1" in bat
         assert "uv.agentsmirror.com" in bat
+        assert "astral.sh/uv/install.ps1" in bat
+        assert bat.index("uv.agentsmirror.com") < bat.index("astral.sh/uv/install.ps1")
         assert "%USERPROFILE%\\.local\\bin\\uv.exe" in bat
         assert '"%UV%" --version >nul 2>&1' in bat
         assert ".runtime\\venv\\Scripts\\python --version >nul 2>&1" in bat
