@@ -207,7 +207,7 @@ def download():
 def _login_py_template(server_url: str) -> str:
     return (
         f'"""川航 AMRO 登录脚本 — 自动提取登录凭证并上传到需求单系统"""\n'
-        "import asyncio, json, sys, tkinter as tk\n"
+        "import asyncio, json, os, sys, tkinter as tk\n"
         "from tkinter import messagebox\n"
         f'SERVER_URL = "{server_url}"\n'
         f'UPLOAD_URL = "{server_url}/inventory/login/upload"\n'
@@ -222,20 +222,38 @@ def _login_py_template(server_url: str) -> str:
         '    root.destroy()\n'
         '    return ok\n'
         '\n'
+        'def _edge_candidates():\n'
+        '    """显式 Edge 路径探测（ProgramFiles 与 x86 变体）。"""\n'
+        '    return [\n'
+        '        os.path.join(os.environ.get("ProgramFiles", ""), "Microsoft", "Edge", "Application", "msedge.exe"),\n'
+        '        os.path.join(os.environ.get("ProgramFiles(x86)", ""), "Microsoft", "Edge", "Application", "msedge.exe"),\n'
+        '    ]\n'
+        '\n'
+        'async def _launch_browser(p):\n'
+        '    """浏览器三级回退：Chrome → Edge → 显式 Edge 路径。"""\n'
+        '    for kwargs in ({"channel": "chrome"}, {"channel": "msedge"}):\n'
+        '        try:\n'
+        '            return await p.chromium.launch(headless=False, **kwargs)\n'
+        '        except Exception:\n'
+        '            pass\n'
+        '    for path in _edge_candidates():\n'
+        '        if os.path.exists(path):\n'
+        '            try:\n'
+        '                return await p.chromium.launch(headless=False, executable_path=path)\n'
+        '            except Exception:\n'
+        '                pass\n'
+        '    print("未检测到 Chrome/Edge，请安装浏览器后重试")\n'
+        '    return None\n'
+        '\n'
         'async def main():\n'
         '    from playwright.async_api import async_playwright\n'
         '    import httpx\n'
         '    if not confirm():\n'
         '        return\n'
         '    async with async_playwright() as p:\n'
-        '        try:\n'
-        '            browser = await p.chromium.launch(channel="chrome", headless=False)\n'
-        '        except Exception:\n'
-        '            try:\n'
-        '                browser = await p.chromium.launch(channel="msedge", headless=False)\n'
-        '            except Exception:\n'
-        '                print("未检测到 Chrome/Edge，请安装浏览器后重试")\n'
-        '                return\n'
+        '        browser = await _launch_browser(p)\n'
+        '        if browser is None:\n'
+        '            return\n'
         '        ctx = await browser.new_context()\n'
         '        page = await ctx.new_page()\n'
         '        print(MSG_P2)\n'
@@ -292,26 +310,46 @@ def _login_bat_template(server_url: str) -> str:
         "\r\n"
         ":install\r\n"
         "echo [首次使用] 正在自动安装运行环境，请稍候...\r\n"
+        "rem 定位 uv：本机已装 → PATH → 下载解压定位\r\n"
         'if exist "%USERPROFILE%\\.local\\bin\\uv.exe" set "UV=%USERPROFILE%\\.local\\bin\\uv.exe"\r\n'
         "if not defined UV where uv >nul 2>nul && set \"UV=uv\"\r\n"
         "if not defined UV (\r\n"
-        "    echo [下载 uv] 使用 uv.agentsmirror.com 镜像源下载 uv（最快最稳）...\r\n"
-        '    powershell -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri \'https://uv.agentsmirror.com/github/astral-sh/uv/releases/download/0.12.5/uv-x86_64-pc-windows-msvc.zip\' -OutFile \'%TEMP%\\uv.zip\'; Expand-Archive -Path \'%TEMP%\\uv.zip\' -DestinationPath \'%USERPROFILE%\\.local\' -Force"\r\n'
+        "    echo [下载 uv] 正在从镜像源下载 uv...\r\n"
+        '    powershell -ExecutionPolicy Bypass -Command "$tmp=Join-Path $env:TEMP \'uv_install\'; if(Test-Path $tmp){Remove-Item $tmp -Recurse -Force}; New-Item -ItemType Directory -Path $tmp | Out-Null; Invoke-WebRequest -Uri \'https://uv.agentsmirror.com/github/astral-sh/uv/releases/download/0.12.5/uv-x86_64-pc-windows-msvc.zip\' -OutFile (Join-Path $tmp \'uv.zip\'); Expand-Archive -Path (Join-Path $tmp \'uv.zip\') -DestinationPath $tmp -Force; $exe=Get-ChildItem -Path $tmp -Recurse -Filter uv.exe | Select-Object -First 1; if(-not $exe){exit 1}; New-Item -ItemType Directory -Path \'%USERPROFILE%\\.local\\bin\' -Force | Out-Null; Copy-Item $exe.FullName \'%USERPROFILE%\\.local\\bin\\uv.exe\' -Force"\r\n'
         "    if errorlevel 1 (\r\n"
-        "        echo [备用源] 镜像源不可达，改用官方安装脚本下载 uv...\r\n"
-        '        powershell -ExecutionPolicy Bypass -c "irm https://astral.sh/uv/install.ps1 | iex"\r\n'
+        "        echo [备用源] 镜像源不可达，改用 GitHub 官方下载 uv...\r\n"
+        '        powershell -ExecutionPolicy Bypass -Command "$tmp=Join-Path $env:TEMP \'uv_install2\'; if(Test-Path $tmp){Remove-Item $tmp -Recurse -Force}; New-Item -ItemType Directory -Path $tmp | Out-Null; Invoke-WebRequest -Uri \'https://github.com/astral-sh/uv/releases/download/0.12.5/uv-x86_64-pc-windows-msvc.zip\' -OutFile (Join-Path $tmp \'uv.zip\'); Expand-Archive -Path (Join-Path $tmp \'uv.zip\') -DestinationPath $tmp -Force; $exe=Get-ChildItem -Path $tmp -Recurse -Filter uv.exe | Select-Object -First 1; if(-not $exe){exit 1}; New-Item -ItemType Directory -Path \'%USERPROFILE%\\.local\\bin\' -Force | Out-Null; Copy-Item $exe.FullName \'%USERPROFILE%\\.local\\bin\\uv.exe\' -Force"\r\n'
         "        if errorlevel 1 goto :fail\r\n"
         "    )\r\n"
         '    set "UV=%USERPROFILE%\\.local\\bin\\uv.exe"\r\n'
         ")\r\n"
         '"%UV%" --version >nul 2>&1\r\n'
         "if errorlevel 1 goto :fail\r\n"
+        "rem 安装 Python 3.11（裸机无 Python 也可建 venv）\r\n"
         '"%UV%" python install 3.11\r\n'
         "if errorlevel 1 goto :fail\r\n"
-        '"%UV%" venv .runtime\\venv\r\n'
-        "if errorlevel 1 goto :fail\r\n"
+        "rem 创建 venv（seed 失败回退最小 venv）\r\n"
+        '"%UV%" venv .runtime\\venv --seed\r\n'
+        "if errorlevel 1 (\r\n"
+        "    echo [提示] seed 失败，改用最小 venv...\r\n"
+        '    "%UV%" venv .runtime\\venv\r\n'
+        "    if errorlevel 1 goto :fail\r\n"
+        ")\r\n"
+        "rem 安装依赖（镜像 2 级：aliyun → tuna）\r\n"
         '"%UV%" pip install --python .runtime\\venv\\Scripts\\python.exe httpx playwright\r\n'
-        "if errorlevel 1 goto :fail\r\n"
+        "if errorlevel 1 (\r\n"
+        "    echo [备用源] 阿里云镜像不可达，改用清华镜像...\r\n"
+        '    set "UV_DEFAULT_INDEX=https://pypi.tuna.tsinghua.edu.cn/simple/"\r\n'
+        '    "%UV%" pip install --python .runtime\\venv\\Scripts\\python.exe httpx playwright\r\n'
+        "    if errorlevel 1 goto :fail\r\n"
+        ")\r\n"
+        "rem 校验 playwright 可导入，失败重装兜底\r\n"
+        '.runtime\\venv\\Scripts\\python -c "import playwright"\r\n'
+        "if errorlevel 1 (\r\n"
+        "    echo [提示] playwright 校验失败，正在重装...\r\n"
+        '    "%UV%" pip install --python .runtime\\venv\\Scripts\\python.exe --force-reinstall playwright\r\n'
+        "    if errorlevel 1 goto :fail\r\n"
+        ")\r\n"
         "echo [安装完成] 运行环境就绪\r\n"
         "\r\n"
         ":run\r\n"

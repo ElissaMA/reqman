@@ -130,13 +130,20 @@ class TestSetupPackage:
         assert ":nopython" not in bat
         assert "python --version >nul 2>&1 || (py --version >nul 2>&1 || goto :nopython)" not in bat
         assert "uv.agentsmirror.com" in bat
-        assert "astral.sh/uv/install.ps1" in bat
-        assert bat.index("uv.agentsmirror.com") < bat.index("astral.sh/uv/install.ps1")
+        assert "github.com/astral-sh/uv/releases/download" in bat
+        assert bat.index("uv.agentsmirror.com") < bat.index("github.com/astral-sh/uv/releases/download")
         assert "%USERPROFILE%\\.local\\bin\\uv.exe" in bat
+        assert 'Get-ChildItem -Path $tmp -Recurse -Filter uv.exe' in bat
         assert '"%UV%" --version >nul 2>&1' in bat
         assert "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1" in bat
         assert "playwright install chromium" not in bat
         assert ".runtime\\venv\\Scripts\\python --version >nul 2>&1" in bat
+        assert "python install 3.11" in bat
+        assert "venv .runtime\\venv --seed" in bat
+        assert "venv .runtime\\venv\r\n" in bat
+        assert "pypi.tuna.tsinghua.edu.cn" in bat
+        assert 'python -c "import playwright"' in bat
+        assert "--force-reinstall playwright" in bat
 
     def _py_source(self, resp) -> str:
         zf = zipfile.ZipFile(io.BytesIO(resp.data))
@@ -154,13 +161,16 @@ class TestSetupPackage:
         assert "trust_env=False" in src
 
     def test_py_uses_system_browser_chrome_to_msedge(self, client):
-        """amro_login.py 使用系统 Chrome，失败回退 msedge，弃用 chromium 下载。"""
+        """amro_login.py 三级回退：Chrome → Edge → 显式 Edge 路径，弃用 chromium 下载。"""
         resp = client.get("/inventory/setup-package")
         assert resp.status_code == 200
         src = self._py_source(resp)
-        assert 'channel="chrome"' in src
-        assert 'channel="msedge"' in src
-        assert src.index('channel="chrome"') < src.index('channel="msedge"')
+        assert '{"channel": "chrome"}' in src
+        assert '{"channel": "msedge"}' in src
+        assert src.index('"chrome"') < src.index('"msedge"')
+        assert "executable_path" in src
+        assert "ProgramFiles(x86)" in src
+        assert "msedge.exe" in src
         assert "未检测到 Chrome/Edge，请安装浏览器后重试" in src
 
     def test_py_login_version(self, client):

@@ -1,5 +1,5 @@
 """川航 AMRO 登录脚本 — 自动提取登录凭证并上传到需求单系统"""
-import asyncio, json, sys, tkinter as tk
+import asyncio, json, os, sys, tkinter as tk
 from tkinter import messagebox
 SERVER_URL = "http://127.0.0.1:5001"
 UPLOAD_URL = "http://127.0.0.1:5001/inventory/login/upload"
@@ -14,13 +14,38 @@ def confirm():
     root.destroy()
     return ok
 
+def _edge_candidates():
+    """显式 Edge 路径探测（ProgramFiles 与 x86 变体）。"""
+    return [
+        os.path.join(os.environ.get("ProgramFiles", ""), "Microsoft", "Edge", "Application", "msedge.exe"),
+        os.path.join(os.environ.get("ProgramFiles(x86)", ""), "Microsoft", "Edge", "Application", "msedge.exe"),
+    ]
+
+async def _launch_browser(p):
+    """浏览器三级回退：Chrome → Edge → 显式 Edge 路径。"""
+    for kwargs in ({"channel": "chrome"}, {"channel": "msedge"}):
+        try:
+            return await p.chromium.launch(headless=False, **kwargs)
+        except Exception:
+            pass
+    for path in _edge_candidates():
+        if os.path.exists(path):
+            try:
+                return await p.chromium.launch(headless=False, executable_path=path)
+            except Exception:
+                pass
+    print("未检测到 Chrome/Edge，请安装浏览器后重试")
+    return None
+
 async def main():
     from playwright.async_api import async_playwright
     import httpx
     if not confirm():
         return
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=False)
+        browser = await _launch_browser(p)
+        if browser is None:
+            return
         ctx = await browser.new_context()
         page = await ctx.new_page()
         print(MSG_P2)
