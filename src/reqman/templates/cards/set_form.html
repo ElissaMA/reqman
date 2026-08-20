@@ -11,6 +11,20 @@
 <div class="card">
     <div class="card-body">
         <form method="POST" id="setForm">
+            <!-- 工卡组数据确认状态（总确认，表头横幅） -->
+            <div class="mb-3 d-flex justify-content-between align-items-center p-2 rounded
+                        {{ 'bg-success-subtle' if set and set.card_ok else 'bg-danger-subtle' }}">
+                <span class="small">
+                    <strong>工卡组数据已确认</strong>
+                    {% if set and set.card_ok %}<span class="badge bg-success">已确认</span>
+                    {% else %}<span class="badge bg-danger">未确认</span>{% endif %}
+                </span>
+                {% if set and set.card_ok %}
+                <button type="button" class="btn btn-outline-danger btn-sm py-0"
+                        onclick="resetSetConfirm({{ set.id }})">重置确认</button>
+                {% endif %}
+            </div>
+
             <div class="row g-3 mb-3">
                 <div class="col-md-4">
                     <label class="form-label small">名称 <span class="text-danger">*</span></label>
@@ -30,6 +44,38 @@
                     <label class="form-label small">说明</label>
                     <input type="text" class="form-control form-control-sm" name="description"
                            value="{{ set.description if set else "" }}">
+                </div>
+            </div>
+
+            <!-- 提醒类型区块 -->
+            <div id="reminderSection" class="mb-2">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <label class="form-label fw-bold mb-0">&#x1F514; 提醒类型</label>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <select class="form-select form-select-sm" name="reminder_type" id="reminderTypeSelect">
+                            <option value="">请选择提醒类型</option>
+                            {% for rt in reminder_types %}
+                            <option value="{{ rt }}" {{ "selected" if set and set.reminder_type == rt }}>{{ rt }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="mb-3 d-flex align-items-center gap-3">
+                <span class="small text-muted">
+                    提醒确认状态：
+                    {% if set and set.reminder_confirmed %}
+                    <span class="badge bg-success">已确认</span>
+                    {% else %}
+                    <span class="badge bg-warning">未确认</span>
+                    {% endif %}
+                </span>
+                <div class="form-check mb-0">
+                    <input class="form-check-input" type="checkbox" id="confirmNoReminder" name="confirm_no_reminder" value="1"
+                           {{ "checked" if set and set.reminder_confirmed else "" }}>
+                    <label class="form-check-label small text-muted" for="confirmNoReminder">确认无需提醒</label>
                 </div>
             </div>
 
@@ -78,9 +124,9 @@
                 </div>
             </div>
 
-            <!-- 工具清单 -->
+            <!-- 工具清单区块 -->
             <div id="toolSection">
-            <div class="mb-3">
+            <div class="mb-2">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <label class="form-label fw-bold mb-0">&#x1F527; 共用工具清单</label>
                     <button type="button" class="btn btn-outline-success btn-sm"
@@ -89,19 +135,25 @@
                 {{ tables.tool_table(set.tools if set else [], usage_types, editable=true, show_delete=true) }}
             </div>
             </div>
-            <div class="mb-2">
-                <div class="form-check">
+            <div class="mb-3 d-flex align-items-center gap-3">
+                <span class="small text-muted">
+                    工具确认状态：
+                    {% if set and set.tools_confirmed %}
+                    <span class="badge bg-success">已确认</span>
+                    {% else %}
+                    <span class="badge bg-warning">未确认</span>
+                    {% endif %}
+                </span>
+                <div class="form-check mb-0">
                     <input class="form-check-input" type="checkbox" id="confirmNoTools" name="confirm_no_tools" value="1"
                            {{ "checked" if set and set.tools_confirmed else "" }}>
-                    <label class="form-check-label small text-muted" for="confirmNoTools">
-                        确认无工具
-                    </label>
+                    <label class="form-check-label small text-muted" for="confirmNoTools">确认无工具</label>
                 </div>
             </div>
 
-            <!-- 航材清单 -->
+            <!-- 航材清单区块 -->
             <div id="matSection">
-            <div class="mb-3">
+            <div class="mb-2">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <label class="form-label fw-bold mb-0">&#x1F4E6; 共用航材清单</label>
                     <button type="button" class="btn btn-outline-success btn-sm"
@@ -110,13 +162,19 @@
                 {{ tables.material_table(set.materials if set else [], usage_types, editable=true, show_delete=true) }}
             </div>
             </div>
-            <div class="mb-2">
-                <div class="form-check">
+            <div class="mb-3 d-flex align-items-center gap-3">
+                <span class="small text-muted">
+                    航材确认状态：
+                    {% if set and set.materials_confirmed %}
+                    <span class="badge bg-success">已确认</span>
+                    {% else %}
+                    <span class="badge bg-warning">未确认</span>
+                    {% endif %}
+                </span>
+                <div class="form-check mb-0">
                     <input class="form-check-input" type="checkbox" id="confirmNoMats" name="confirm_no_mats" value="1"
                            {{ "checked" if set and set.materials_confirmed else "" }}>
-                    <label class="form-check-label small text-muted" for="confirmNoMats">
-                        确认无航材
-                    </label>
+                    <label class="form-check-label small text-muted" for="confirmNoMats">确认无航材</label>
                 </div>
             </div>
 
@@ -139,6 +197,16 @@ var selectedCards = {{ (set_card_codes or [])|tojson }};
 // --- Checkbox toggle logic (section-disabled class) ---
 var confirmNoTools = document.getElementById("confirmNoTools");
 var confirmNoMats = document.getElementById("confirmNoMats");
+var confirmNoReminder = document.getElementById("confirmNoReminder");
+var reminderTypeSelect = document.getElementById("reminderTypeSelect");
+
+reminderTypeSelect.addEventListener("change", function() {
+    if (this.value) confirmNoReminder.checked = false;
+});
+confirmNoReminder.addEventListener("change", function() {
+    if (this.checked) reminderTypeSelect.value = "";
+    document.getElementById("reminderSection").classList.toggle("section-disabled", this.checked);
+});
 
 confirmNoTools.addEventListener("change", function() {
     document.getElementById("toolSection").classList.toggle("section-disabled", this.checked);
@@ -252,6 +320,9 @@ document.getElementById("cardTableBody").addEventListener("change", function(e) 
         }
         if (document.getElementById("confirmNoMats").checked) {
             document.getElementById("matSection").classList.add("section-disabled");
+        }
+        if (document.getElementById("confirmNoReminder").checked) {
+            document.getElementById("reminderSection").classList.add("section-disabled");
         }
         watchTable("toolTable", confirmNoTools);
         watchTable("matTable", confirmNoMats);
@@ -413,6 +484,13 @@ document.getElementById("setForm").addEventListener("submit", function(e) {
         window.safeToast("请添加航材或确认无航材", 'warning');
         return false;
     }
+    var reminderType = document.querySelector('select[name=reminder_type]');
+    var confirmNoReminder = document.getElementById('confirmNoReminder');
+    if ((!reminderType || isBlank(reminderType.value)) && !confirmNoReminder.checked) {
+        e.preventDefault();
+        window.safeToast("请选择提醒类型或确认无需提醒", 'warning');
+        return false;
+    }
 
     // 弹窗场景（从列表页 window.open() 打开）：AJAX提交，成功后自动关闭并通知父页刷新
     if (window.opener) {
@@ -447,5 +525,17 @@ document.getElementById("setForm").addEventListener("submit", function(e) {
         return false;
     }
 });
+
+function resetSetConfirm(setId) {
+    if (!confirm('重置确认状态？内容不会被清空，再次保存后将重新确认。')) return;
+    window.showLoader();
+    fetch('/card/sets/' + setId + '/reset-confirm', {
+        method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    }).then(function(r) { return r.json(); }).then(function(d) {
+        window.hideLoader();
+        if (d && d.success) { window.safeToast('已重置确认状态', 'success'); location.reload(); }
+        else { window.safeToast((d && d.message) || '重置失败', 'error'); }
+    }).catch(function() { window.hideLoader(); window.safeToast('重置失败', 'error'); });
+}
 </script>
 {% endblock %}

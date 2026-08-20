@@ -9,8 +9,8 @@ def match_work_package_items(all_items, store, service):
     """对原始工作清单项执行数据库匹配，返回 (matched, new_cards, cancelled)
 
     匹配规则：
-    - 数据库有工卡且工具/航材已确认 → matched
-    - 数据库有工卡但工具/航材均未确认且无数据 → new_cards（需人工补全）
+    - 数据库有工卡且工具/航材/提醒三块均已确认 → matched
+    - 数据库有工卡但任一确认缺失（工具/航材/提醒） → new_cards（需人工补全）
     - 数据库无工卡 → new_cards
     """
     matched = []
@@ -25,12 +25,16 @@ def match_work_package_items(all_items, store, service):
 
         card = store.find_by_code(item["task_code"])
         if card:
-            # 检查是否已配置工具/航材
+            item["reminder_type"] = card.get("reminder_type", "")
+            item["card_ok"] = card.get("card_ok", False)
+            item["reminder_confirmed"] = card.get("reminder_confirmed", False)
+            # 三块（工具/航材/提醒）任一未确认 → 需人工补全
             tools = card.get("tools", [])
             materials = card.get("materials", [])
             tools_confirmed = card.get("tools_confirmed", False)
             materials_confirmed = card.get("materials_confirmed", False)
-            is_unconfigured = len(tools) == 0 and len(materials) == 0 and not (tools_confirmed and materials_confirmed)
+            reminder_confirmed = item["reminder_confirmed"]
+            is_unconfigured = not (tools_confirmed and materials_confirmed and reminder_confirmed)
 
             if is_unconfigured:
                 item["status"] = "new"

@@ -98,6 +98,7 @@ def test_new_card_popup(page, server_base):
     popup.select_option("select[name=task_type]", "A")
     popup.check("#confirmNoTools")
     popup.check("#confirmNoMats")
+    popup.check("#confirmNoReminder")
 
     with popup.expect_event("close", timeout=15000):
         popup.click("button[type=submit]")

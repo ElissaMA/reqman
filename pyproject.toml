@@ -1,6 +1,6 @@
 [project]
 name = "inspection-demand-system"
-version = "3.3.0"
+version = "3.4.0"
 description = "飞机定检需求单管理系统，工卡匹配与需求单自动生成工具"
 requires-python = ">=3.10"
 dependencies = [

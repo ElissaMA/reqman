@@ -178,6 +178,9 @@ COMPONENTS = {
                 "tools_confirmed": {"type": "boolean"},
                 "materials_confirmed": {"type": "boolean"},
                 "remark": {"type": "string"},
+                "reminder_type": {"type": "string", "description": "提醒类型"},
+                "card_ok": {"type": "boolean", "description": "总确认"},
+                "reminder_confirmed": {"type": "boolean", "description": "提醒已确认（选提醒类型或勾选确认无需提醒）"},
             }
         },
         "CardSimple": {

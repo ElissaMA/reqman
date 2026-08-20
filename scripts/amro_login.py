@@ -3,7 +3,7 @@ import asyncio, json, os, sys, tkinter as tk
 from tkinter import messagebox
 SERVER_URL = "http://127.0.0.1:5001"
 UPLOAD_URL = "http://127.0.0.1:5001/inventory/login/upload"
-LOGIN_VERSION = "1"
+LOGIN_VERSION = "2"
 MSG_P1 = "⚠️ 使用前请先关闭浏览器中已登录的川航 AMRO 页面，否则会导致登录获取失败。"
 MSG_P2 = "已打开登录页面，请在浏览器中完成川航 AMRO 登录（账号/密码/验证码），登录后请保持页面不动。"
 MSG_P3 = "✅ 登录成功，本页面即将就绪。"

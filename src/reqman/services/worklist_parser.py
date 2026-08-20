@@ -78,7 +78,7 @@ def parse_worklist(file_path: str, file_type: str = "例行") -> dict:
 
 def _parse_aircraft_info(ws) -> dict:
     """从 Row 2 提取飞机信息"""
-    info = {"reg": "", "type": "", "package": "", "description": "", "date": ""}
+    info = {"reg": "", "type": "", "package": "", "description": "", "level": "", "date": ""}
 
     try:
         for row in ws.iter_rows(min_row=2, max_row=2, values_only=False):
@@ -90,8 +90,9 @@ def _parse_aircraft_info(ws) -> dict:
                     info["reg"] = val
                 elif cell.column == 4:     # D2 = 机型
                     info["type"] = val
-                elif cell.column == 8:     # H2 = 描述
+                elif cell.column == 8:     # H2 = 定检级别/描述（同源）
                     info["description"] = val
+                    info["level"] = val
                 elif cell.column == 10:    # J2 = 包号
                     info["package"] = val
     except (AttributeError, ValueError) as e:
@@ -181,7 +182,7 @@ def _parse_items(ws, file_type: str) -> list[dict]:
 
 def merge_aircraft_info(info_list: list[dict]) -> dict:
     """合并多个文件的飞机信息，优先使用非空值"""
-    merged = {"reg": "", "type": "", "package": "", "description": "", "date": ""}
+    merged = {"reg": "", "type": "", "package": "", "description": "", "level": "", "date": ""}
     for info in info_list:
         if not isinstance(info, dict):
             continue

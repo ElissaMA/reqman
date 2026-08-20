@@ -324,12 +324,14 @@ class TestAircraftInfoExtraction:
         info = _parse_aircraft_info(ws)
         assert info["reg"] == "B-5678"
         assert info["type"] == ""  # 未提供
+        assert info["description"] == ""
+        assert info["level"] == ""  # H2 未提供
         assert info["date"] == ""
 
     def test_parse_empty_ws(self, ws_empty):
         """空工作表应返回默认值"""
         info = _parse_aircraft_info(ws_empty)
-        assert info == {"reg": "", "type": "", "package": "", "description": "", "date": ""}
+        assert info == {"reg": "", "type": "", "package": "", "description": "", "level": "", "date": ""}
 
     def test_parse_date_format(self):
         """日期中的横线应替换为点号"""
@@ -467,7 +469,7 @@ class TestMergeAircraftInfo:
     def test_merge_single(self):
         """合并单个信息"""
         info = {"reg": "B-1234", "type": "A320", "package": "PKG-001",
-                "description": "测试", "date": "2026.01.01"}
+                "description": "测试", "level": "测试", "date": "2026.01.01"}
         merged = merge_aircraft_info([info])
         assert merged == info
 
@@ -475,7 +477,7 @@ class TestMergeAircraftInfo:
         """空列表应返回空字典"""
         merged = merge_aircraft_info([])
         assert merged == {"reg": "", "type": "", "package": "",
-                          "description": "", "date": ""}
+                          "description": "", "level": "", "date": ""}
 
     def test_merge_conflict(self):
         """冲突字段应保留第一个非空值"""

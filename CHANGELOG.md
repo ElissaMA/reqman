@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.4.0] - Unreleased
+### Added
+- 工卡提醒并入：工卡/工卡组新增提醒字段（card_ok / reminder_confirmed / reminder_type），保存校验统一 + card_ok 自动置位 + 确认重置接口
+- 提醒单下载：基于 reminder_template.xlsx 生成例行（黑字）/其他（红字）/重点（黄底）提醒单，无未识别表
+- 工卡列表筛选：按提醒状态/重点过滤，未确认与重点提醒红框高亮，无需提醒列留白
+- VBA 配置迁移脚本（scripts/import_vba_config.py）：不导无需提醒、弃用清单、重点覆盖一般、飞机防重复，初始 card_ok=False
+- 确认字段统一：no_reminder 重命名为 reminder_confirmed；工具/航材/提醒三块对称确认（有数据自动确认/无数据须勾选），任一未确认进新工卡区；提醒单补定检级别/FSN/MSN/APU（按机号查库）；UI 布局统一（总确认置表头、分项确认置区块下、备注置底部）
+- 预览新工卡区仅显示总体"未确认"badge（card_ok=False），不重复显示分项确认；提醒区块确认无需提醒后红框联动置灰锁定（section-disabled）；确认勾选框移出红框外，可随时取消
+
 ## [3.3.0] - Unreleased
 ### Added
 - 库存查询功能：上传需求单 Excel 批量查询川航 AMRO 昆明库存，副本回填 G 列并标红/标黄

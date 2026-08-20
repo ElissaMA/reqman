@@ -91,6 +91,7 @@ class TestCreateCard:
             "task_type": "A",
             "confirm_no_tools": "1",
             "confirm_no_mats": "1",
+            "reminder_type": "一般提醒",
         }, headers=ajax_headers)
         assert resp.status_code == 200
         data = resp.get_json()
@@ -135,6 +136,7 @@ class TestCreateCard:
             "mat_name[]": ["润滑油", "密封胶"],
             "mat_pn[]": ["GRE-001", "SEAL-001"],
             "mat_qty[]": ["1瓶", "2支"],
+            "reminder_type": "一般提醒",
         }, headers=ajax_headers)
         assert resp.status_code == 200
         data = resp.get_json()
@@ -149,6 +151,7 @@ class TestCreateCard:
             "task_type": "A",
             "confirm_no_tools": "1",
             "confirm_no_mats": "1",
+            "reminder_type": "一般提醒",
         })
         assert resp.status_code in (302, 200)
 
@@ -172,6 +175,7 @@ class TestEditCard:
             "task_type": "B",
             "confirm_no_tools": "1",
             "confirm_no_mats": "1",
+            "reminder_type": "一般提醒",
         }, headers=ajax_headers)
         assert resp.status_code == 200
         data = resp.get_json()
@@ -188,6 +192,7 @@ class TestEditCard:
             "mat_name[]": ["新航材"],
             "mat_pn[]": ["NM-001"],
             "mat_qty[]": ["1个"],
+            "reminder_type": "重点提醒",
         }, headers=ajax_headers)
         assert resp.status_code == 200
         data = resp.get_json()
@@ -207,6 +212,7 @@ class TestEditCard:
             "category": "发动机",
             "confirm_no_tools": "1",
             "confirm_no_mats": "1",
+            "reminder_type": "一般提醒",
         }, headers=ajax_headers)
         assert resp.status_code == 200
         data = resp.get_json()
@@ -267,6 +273,7 @@ class TestCardSetAPI:
             "card_codes[]": ["A320-TEST-001", "A320-TEST-002"],
             "confirm_no_tools": "1",
             "confirm_no_mats": "1",
+            "reminder_type": "一般提醒",
         }, headers=ajax_headers)
         assert resp.status_code == 200
         data = resp.get_json()
@@ -297,3 +304,85 @@ class TestAircraftAPI:
         """删除飞机"""
         resp = prefilled_client.post("/card/aircraft/1/delete")
         assert resp.status_code == 302
+
+
+class TestReminderResetApi:
+    def test_reset_card_confirmation(self, client, store):
+        # 先新增一张已确认卡（工具/航材/提醒三满足）
+        resp = client.post("/card/new", data={
+            "task_code": "R-200", "task_name": "卡", "category": "电子",
+            "reminder_type": "一般提醒",
+            "confirm_no_tools": "1", "confirm_no_mats": "1",
+        }, headers={"X-Requested-With": "XMLHttpRequest"})
+        assert resp.get_json()["success"] is True
+        card = store.find_by_code("R-200")
+        assert card["card_ok"] is True
+        resp2 = client.post(f"/card/{card['id']}/reset-confirm",
+                            headers={"X-Requested-With": "XMLHttpRequest"})
+        assert resp2.get_json()["success"] is True
+        assert store.find_by_code("R-200")["card_ok"] is False
+        # 内容保留：提醒类型/工具确认未被清空
+        assert store.find_by_code("R-200")["reminder_type"] == "一般提醒"
+
+
+class TestConfirmSymmetry:
+    """三块对称确认判定：有数据自动确认/无数据须勾选/提醒选类型即确认"""
+
+    def _post(self, client, task_code="SYM-001", data=None):
+        payload = {
+            "task_code": task_code,
+            "task_name": "对称确认卡",
+            "category": "电子",
+            "task_type": "A",
+        }
+        if data:
+            payload.update(data)
+        return client.post("/card/new", data=payload,
+                           headers={"X-Requested-With": "XMLHttpRequest"})
+
+    def test_all_missing_blocks_fail(self, client):
+        """工具/航材/提醒均空且未勾选确认 → 校验失败"""
+        resp = self._post(client)
+        assert resp.get_json()["success"] is False
+
+    def test_data_auto_confirms_three_blocks(self, client, store):
+        """有工具/航材数据 + 选提醒类型 → 三块自动确认"""
+        resp = self._post(client, task_code="SYM-002", data={
+            "tool_name[]": ["扳手"], "tool_pn[]": ["WR-1"], "tool_qty[]": ["1"],
+            "mat_name[]": ["润滑油"], "mat_pn[]": ["GRE-1"], "mat_qty[]": ["1瓶"],
+            "reminder_type": "一般提醒",
+        })
+        assert resp.get_json()["success"] is True
+        card = store.find_by_code("SYM-002")
+        assert card["tools_confirmed"] is True
+        assert card["materials_confirmed"] is True
+        assert card["reminder_confirmed"] is True
+
+    def test_reminder_type_alone_confirms(self, client, store):
+        """选提醒类型即确认提醒（无需勾选确认无需提醒）"""
+        resp = self._post(client, task_code="SYM-003", data={
+            "confirm_no_tools": "1", "confirm_no_mats": "1",
+            "reminder_type": "重点提醒",
+        })
+        assert resp.get_json()["success"] is True
+        card = store.find_by_code("SYM-003")
+        assert card["reminder_type"] == "重点提醒"
+        assert card["reminder_confirmed"] is True
+
+    def test_confirm_no_reminder_alone(self, client, store):
+        """无提醒类型但勾选确认无需提醒 → 提醒确认"""
+        resp = self._post(client, task_code="SYM-004", data={
+            "confirm_no_tools": "1", "confirm_no_mats": "1",
+            "confirm_no_reminder": "1",
+        })
+        assert resp.get_json()["success"] is True
+        card = store.find_by_code("SYM-004")
+        assert card["reminder_type"] == ""
+        assert card["reminder_confirmed"] is True
+
+    def test_reminder_missing_fails(self, client):
+        """无提醒类型且未勾选确认无需提醒 → 校验失败"""
+        resp = self._post(client, task_code="SYM-005", data={
+            "confirm_no_tools": "1", "confirm_no_mats": "1",
+        })
+        assert resp.get_json()["success"] is False

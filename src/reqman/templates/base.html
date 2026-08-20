@@ -269,7 +269,7 @@ window.AppFilter = (function () {
         if (!input) return;
         var tbl = input.closest('table');
         if (!tbl) return;
-        var inputs = tbl.querySelectorAll('.filter-row input');
+        var inputs = tbl.querySelectorAll('.filter-row input, .filter-row select');
         tbl.querySelectorAll('tbody tr').forEach(function (r) {
             if (r.classList.contains('empty-state-row')) return;
             var show = true;
@@ -319,7 +319,7 @@ window.ListUI = (function() {
     // 保存当前页面搜索状态到 sessionStorage
     function saveState() {
         var state = { scrollTop: window.scrollY || 0, filters: {} };
-        document.querySelectorAll('.filter-row input').forEach(function(inp) {
+        document.querySelectorAll('.filter-row input, .filter-row select').forEach(function(inp) {
             state.filters[inp.id] = inp.value;
         });
         try { sessionStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
@@ -335,7 +335,7 @@ window.ListUI = (function() {
                 var inp = document.getElementById(id);
                 if (inp) inp.value = state.filters[id];
             });
-            document.querySelectorAll('.filter-row input').forEach(function(inp) {
+            document.querySelectorAll('.filter-row input, .filter-row select').forEach(function(inp) {
                 if (inp.value) window.AppFilter && window.AppFilter.filter(inp.id);
             });
             if (state.scrollTop) window.scrollTo(0, state.scrollTop);

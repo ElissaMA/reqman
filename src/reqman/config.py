@@ -19,6 +19,7 @@ DEBUG: bool = os.getenv("FLASK_ENV", "development") == "development"
 
 DB_FILE: Path = BASE_DIR / os.getenv("DB_FILE", "data/reqman_db.json")
 TEMPLATE_FILE: Path = BASE_DIR / os.getenv("TEMPLATE_FILE", "assets/demand_template.xlsx")
+REMINDER_TEMPLATE_FILE: Path = BASE_DIR / os.getenv("REMINDER_TEMPLATE_FILE", "assets/reminder_template.xlsx")
 
 CATEGORIES: list[str] = os.getenv(
     "CATEGORIES", "发动机,机体,电子,特检,支援"
@@ -29,6 +30,10 @@ TASK_TYPES: list[str] = os.getenv(
 ).split(",")
 
 USAGE_TYPES: list[str] = ["必须使用", "检查有问题领用"]
+
+REMINDER_TYPES: list[str] = os.getenv(
+    "REMINDER_TYPES", "一般提醒,重点提醒"
+).split(",")
 
 CONDITIONS: list[str] = [
     "机位用电",

@@ -72,12 +72,13 @@ class JsonStore:
             "id": None, "task_code": "", "task_name": "", "category": "机体",
             "task_type": "", "remark": "", "tools": [], "materials": [],
             "tools_confirmed": False, "materials_confirmed": False,
-            "set_id": None, "reminder_type": "一般提醒",
+            "set_id": None, "reminder_type": "", "card_ok": False, "reminder_confirmed": False,
         },
         "set": {
             "id": None, "name": "", "description": "", "category": "机体",
             "tools": [], "materials": [],
             "tools_confirmed": False, "materials_confirmed": False,
+            "reminder_type": "", "card_ok": False, "reminder_confirmed": False,
         },
         "aircraft": {
             "id": None, "reg": "", "model": "", "engine": "",
@@ -88,9 +89,10 @@ class JsonStore:
     # 字段映射表（用于变更检测）
     _CARD_FIELDS: ClassVar[list] = ["task_code", "task_name", "category", "task_type", "remark",
                     "tools", "materials", "tools_confirmed", "materials_confirmed",
-                    "set_id", "reminder_type"]
+                    "set_id", "reminder_type", "card_ok", "reminder_confirmed"]
     _SET_FIELDS: ClassVar[list] = ["name", "description", "category", "tools", "materials",
-                   "tools_confirmed", "materials_confirmed"]
+                   "tools_confirmed", "materials_confirmed",
+                   "reminder_type", "card_ok", "reminder_confirmed"]
     _AIRCRAFT_FIELDS: ClassVar[list] = ["reg", "model", "engine", "fsn", "msn", "apu"]
 
     def _norm(self, d, kind):
@@ -234,7 +236,8 @@ class JsonStore:
 
     # ---------- 工卡 CRUD ----------
 
-    def get_all(self, search: str = "", category: str = "") -> list[dict]:
+    def get_all(self, search: str = "", category: str = "",
+                reminder_type: str = "") -> list[dict]:
         db = self._read()
         cards = list(db.get("cards", {}).values())
 
@@ -247,6 +250,9 @@ class JsonStore:
 
         if category:
             cards = [card for card in cards if card.get("category") == category]
+
+        if reminder_type:
+            cards = [card for card in cards if card.get("reminder_type") == reminder_type]
 
         # 按 专业 → 工卡号 排序
         cat_order = {cat: i for i, cat in enumerate(CATEGORIES)}
@@ -268,7 +274,7 @@ class JsonStore:
 
     def add(self, task_code: str, task_name: str = "",
             category: str = "机体", task_type: str = "",
-            remark: str = "") -> dict | None:
+            remark: str = "", reminder_type: str = "") -> dict | None:
         with self._lock:
             db = self._read()
 
@@ -292,7 +298,9 @@ class JsonStore:
                 "tools_confirmed": False,
                 "materials_confirmed": False,
                 "set_id": None,
-                "reminder_type": "一般提醒",
+                "reminder_type": reminder_type,
+                "card_ok": False,
+                "reminder_confirmed": False,
             }
 
             db.setdefault("cards", {})[str(card_id)] = card
@@ -315,7 +323,7 @@ class JsonStore:
             for key in ("task_code", "task_name", "category",
                         "task_type", "remark", "tools", "materials",
                         "set_id", "tools_confirmed", "materials_confirmed",
-                        "reminder_type"):
+                        "reminder_type", "card_ok", "reminder_confirmed"):
                 if key in kwargs:
                     card[key] = kwargs[key]
 
@@ -359,7 +367,8 @@ class JsonStore:
         return self._norm(set, "set") if set else None
 
     def add_set(self, name: str, description: str = "",
-                category: str = "机体") -> dict:
+                category: str = "机体", reminder_type: str = "",
+                card_ok: bool = False, reminder_confirmed: bool = False) -> dict:
         with self._lock:
             db = self._read()
             set_id = self._next_id(db)
@@ -372,6 +381,9 @@ class JsonStore:
                 "materials": [],
                 "tools_confirmed": False,
                 "materials_confirmed": False,
+                "reminder_type": reminder_type,
+                "card_ok": card_ok,
+                "reminder_confirmed": reminder_confirmed,
             }
             db.setdefault("card_sets", {})[str(set_id)] = set
             self._add_log(db, "add", "set", set_id, name, name, [])
@@ -387,7 +399,8 @@ class JsonStore:
 
             old_set = dict(set)  # 变更前快照
             for key in ("name", "description", "category", "tools",
-                         "materials", "tools_confirmed", "materials_confirmed"):
+                         "materials", "tools_confirmed", "materials_confirmed",
+                         "reminder_type", "card_ok", "reminder_confirmed"):
                 if key in kwargs and kwargs[key] is not None:
                     set[key] = kwargs[key]
 
@@ -532,24 +545,20 @@ class JsonStore:
     # ---------- 工卡组同步 ----------
 
     def sync_set_to_cards(self, set_id: int) -> None:
-        """将工卡组的分类/工具/航材同步到组内所有卡，主工卡保留原数据但加 set_id"""
+        """将工卡组的分类/工具/航材/提醒字段同步到组内所有卡"""
         with self._lock:
             db = self._read()
             set = db.get("card_sets", {}).get(str(set_id))
             if not set:
                 return
-            category = set.get("category", "")
-            tools = set.get("tools", [])
-            materials = set.get("materials", [])
-            tools_confirmed = set.get("tools_confirmed", False)
-            materials_confirmed = set.get("materials_confirmed", False)
-            for card in db.get("cards", {}).values():
-                if card.get("set_id") == set_id:
-                    card["category"] = category
-                    card["tools"] = list(tools)
-                    card["materials"] = list(materials)
-                    card["tools_confirmed"] = tools_confirmed
-                    card["materials_confirmed"] = materials_confirmed
+            for field in ("category", "tools", "materials",
+                          "tools_confirmed", "materials_confirmed",
+                          "card_ok", "reminder_type", "reminder_confirmed"):
+                if field not in set:
+                    continue
+                for card in db.get("cards", {}).values():
+                    if card.get("set_id") == set_id:
+                        card[field] = set[field]
             self._write(db)
 
     # ---------- 日志查询 ----------

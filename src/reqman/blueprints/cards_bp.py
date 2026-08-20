@@ -4,7 +4,7 @@ import logging
 
 from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request
 
-from ..config import CATEGORIES, TASK_TYPES, USAGE_TYPES
+from ..config import CATEGORIES, REMINDER_TYPES, TASK_TYPES, USAGE_TYPES
 from ..services.card_service import ServiceError
 from ..utils.error_handlers import ValidationError
 from ..utils.validators import validate_required
@@ -22,18 +22,22 @@ def card_list():
     try:
         search = request.args.get("search", "").strip()
         category = request.args.get("category", "").strip()
-        cards = current_app.extensions['card_service'].list_cards(search=search, category=category)
+        reminder_type = request.args.get("reminder_type", "").strip()
+        cards = current_app.extensions['card_service'].list_cards(
+            search=search, category=category, reminder_type=reminder_type)
         sets = current_app.extensions['card_service'].list_card_sets()
         set_map = {set["id"]: set.get("name", "") for set in sets}
         for card in cards:
             set_id = card.get("set_id")
             card["set_name"] = set_map.get(set_id, "") if set_id else ""
         return render_template("cards/list.html",
-                               cards=cards)
+                               cards=cards,
+                               reminder_types=REMINDER_TYPES)
     except Exception:
         logger.exception("获取工卡列表失败")
         flash("加载工卡列表失败，请稍后重试", "error")
-        return render_template("cards/list.html", cards=[])
+        return render_template("cards/list.html", cards=[],
+                               reminder_types=REMINDER_TYPES)
 
 
 def _is_ajax():
@@ -43,8 +47,8 @@ def _is_ajax():
 def _parse_and_validate_tools_mats(redirect_url):
     """解析并验证工具/航材，失败时返回 (None, None, None, None, error_response)。"""
     tools, materials = current_app.extensions['card_service'].parse_tools_mats(request.form)
-    tools_confirmed = (not tools) and bool(request.form.get("confirm_no_tools"))
-    materials_confirmed = (not materials) and bool(request.form.get("confirm_no_mats"))
+    tools_confirmed = bool(tools) or (not tools and bool(request.form.get("confirm_no_tools")))
+    materials_confirmed = bool(materials) or (not materials and bool(request.form.get("confirm_no_mats")))
 
     if not tools and not tools_confirmed:
         msg = "请添加工具或确认无工具"
@@ -62,6 +66,19 @@ def _parse_and_validate_tools_mats(redirect_url):
     return tools, materials, tools_confirmed, materials_confirmed, None
 
 
+def _parse_reminder():
+    """解析提醒字段并校验：提醒类型非空 或 确认无需提醒。"""
+    reminder_type = request.form.get("reminder_type", "").strip()
+    reminder_confirmed = bool(reminder_type) or (not reminder_type and bool(request.form.get("confirm_no_reminder")))
+    if not reminder_type and not reminder_confirmed:
+        msg = "请选择提醒类型或确认无需提醒"
+        if _is_ajax():
+            return None, None, jsonify({"success": False, "message": msg})
+        flash(msg, "error")
+        return None, None, redirect(request.referrer or "/card/list")
+    return reminder_type, reminder_confirmed, None
+
+
 @cards_bp.route("/card/new", methods=["GET", "POST"])
 def card_new():
     """新增工卡"""
@@ -74,6 +91,9 @@ def card_new():
             tools, materials, tools_confirmed, materials_confirmed, err = _parse_and_validate_tools_mats("/card/new")
             if err:
                 return err
+            reminder_type, reminder_confirmed, rerr = _parse_reminder()
+            if rerr:
+                return rerr
             current_app.extensions['card_service'].add_card(
                 task_code=task_code,
                 task_name=task_name,
@@ -84,6 +104,9 @@ def card_new():
                 materials=materials,
                 tools_confirmed=tools_confirmed,
                 materials_confirmed=materials_confirmed,
+                reminder_type=reminder_type,
+                reminder_confirmed=reminder_confirmed,
+                card_ok=True,
             )
             if _is_ajax():
                 return jsonify({"success": True, "message": "工卡新增成功"})
@@ -111,7 +134,8 @@ def card_new():
                            categories=CATEGORIES, task_types=TASK_TYPES,
                            usage_types=USAGE_TYPES, edit_mode=False,
                            prefill_code=prefill_code, prefill_name=prefill_name,
-                           prefill_category=prefill_category, prefill_task_type=prefill_task_type)
+                           prefill_category=prefill_category, prefill_task_type=prefill_task_type,
+                           reminder_types=REMINDER_TYPES)
 
 
 @cards_bp.route("/card/<int:card_id>/edit", methods=["GET", "POST"])
@@ -132,6 +156,9 @@ def card_edit(card_id):
             tools, materials, tools_confirmed, materials_confirmed, err = _parse_and_validate_tools_mats(f"/card/{card_id}/edit")
             if err:
                 return err
+            reminder_type, reminder_confirmed, rerr = _parse_reminder()
+            if rerr:
+                return rerr
             current_app.extensions['card_service'].update_card(
                 card_id,
                 task_code=request.form.get("task_code", card["task_code"]),
@@ -143,6 +170,9 @@ def card_edit(card_id):
                 materials=materials,
                 tools_confirmed=tools_confirmed,
                 materials_confirmed=materials_confirmed,
+                reminder_type=reminder_type,
+                reminder_confirmed=reminder_confirmed,
+                card_ok=True,
             )
             if _is_ajax():
                 return jsonify({"success": True, "message": "工卡更新成功"})
@@ -168,7 +198,8 @@ def card_edit(card_id):
                            usage_types=USAGE_TYPES,
                            edit_mode=True,
                            prefill_code="", prefill_name="",
-                           prefill_category="", prefill_task_type="")
+                           prefill_category="", prefill_task_type="",
+                           reminder_types=REMINDER_TYPES)
 
 
 @cards_bp.route("/card/<int:card_id>/delete", methods=["POST"])
@@ -202,6 +233,21 @@ def card_detail(card_id):
     except Exception:
         logger.exception("获取工卡详情失败")
         return jsonify({"error": "server error"}), 500
+
+
+@cards_bp.route("/card/<int:card_id>/reset-confirm", methods=["POST"])
+def card_reset_confirm(card_id):
+    """重置确认：仅置 card_ok=False，不清空内容"""
+    try:
+        current_app.extensions['card_service'].update_card(card_id, card_ok=False)
+        if _is_ajax():
+            return jsonify({"success": True, "message": "已重置确认状态", "data": {"card_ok": False}})
+        flash("已重置确认状态", "success")
+    except ServiceError as e:
+        if _is_ajax():
+            return jsonify({"success": False, "message": e.message})
+        flash(e.message, "error")
+    return redirect("/card/list")
 
 
 
@@ -240,17 +286,22 @@ def card_sets():
                 "materials": set.get("materials", []),
                 "tools_confirmed": set.get("tools_confirmed", False),
                 "materials_confirmed": set.get("materials_confirmed", False),
+                "reminder_type": set.get("reminder_type", ""),
+                "card_ok": set.get("card_ok", False),
+                "reminder_confirmed": set.get("reminder_confirmed", False),
                 "cards": [{"task_code": cd["task_code"],
                             "task_name": cd.get("task_name", "")}
                            for cd in cards]
             })
         return render_template("cards/sets.html", sets=sets,
-                               card_counts=card_counts)
+                               card_counts=card_counts,
+                               reminder_types=REMINDER_TYPES)
     except Exception:
         logger.exception("获取工卡组列表失败")
         flash("加载失败", "error")
         return render_template("cards/sets.html", sets=[],
-                               card_counts={})
+                               card_counts={},
+                               reminder_types=REMINDER_TYPES)
 
 
 @cards_bp.route("/card/sets/new", methods=["GET", "POST"])
@@ -269,6 +320,9 @@ def card_set_new():
             tools, materials, tools_confirmed, materials_confirmed, err = _parse_and_validate_tools_mats("/card/sets/new")
             if err:
                 return err
+            reminder_type, reminder_confirmed, rerr = _parse_reminder()
+            if rerr:
+                return rerr
             current_app.extensions['card_service'].add_card_set(
                 name=request.form.get("name", ""),
                 description=request.form.get("description", ""),
@@ -278,6 +332,9 @@ def card_set_new():
                 materials=materials,
                 tools_confirmed=tools_confirmed,
                 materials_confirmed=materials_confirmed,
+                reminder_type=reminder_type,
+                reminder_confirmed=reminder_confirmed,
+                card_ok=True,
             )
             if _is_ajax():
                 return jsonify({"success": True, "message": "工卡组新增成功"})
@@ -297,7 +354,8 @@ def card_set_new():
                            set=None,
                            set_card_codes=[],
                            categories=CATEGORIES,
-                           usage_types=USAGE_TYPES)
+                           usage_types=USAGE_TYPES,
+                           reminder_types=REMINDER_TYPES)
 
 
 @cards_bp.route("/card/sets/<int:set_id>/edit", methods=["GET", "POST"])
@@ -325,6 +383,9 @@ def card_set_edit(set_id):
             tools, materials, tools_confirmed, materials_confirmed, err = _parse_and_validate_tools_mats(f"/card/sets/{set_id}/edit")
             if err:
                 return err
+            reminder_type, reminder_confirmed, rerr = _parse_reminder()
+            if rerr:
+                return rerr
             current_app.extensions['card_service'].update_card_set(
                 set_id,
                 name=request.form.get("name", set.get("name", "")),
@@ -335,6 +396,9 @@ def card_set_edit(set_id):
                 materials=materials,
                 tools_confirmed=tools_confirmed,
                 materials_confirmed=materials_confirmed,
+                reminder_type=reminder_type,
+                reminder_confirmed=reminder_confirmed,
+                card_ok=True,
             )
             if _is_ajax():
                 return jsonify({"success": True, "message": "工卡组更新成功"})
@@ -356,7 +420,8 @@ def card_set_edit(set_id):
                            set=set,
                            set_card_codes=set_card_codes,
                            categories=CATEGORIES,
-                           usage_types=USAGE_TYPES)
+                           usage_types=USAGE_TYPES,
+                           reminder_types=REMINDER_TYPES)
 
 
 @cards_bp.route("/card/sets/<int:set_id>/delete", methods=["POST"])
@@ -376,6 +441,21 @@ def card_set_delete(set_id):
         if _is_ajax():
             return jsonify({"success": False, "message": "服务器错误"})
         flash("服务器错误", "error")
+    return redirect("/card/sets")
+
+
+@cards_bp.route("/card/sets/<int:set_id>/reset-confirm", methods=["POST"])
+def card_set_reset_confirm(set_id):
+    """重置确认：仅置 card_ok=False，不清空内容"""
+    try:
+        current_app.extensions['card_service'].update_card_set(set_id, card_ok=False)
+        if _is_ajax():
+            return jsonify({"success": True, "message": "已重置确认状态", "data": {"card_ok": False}})
+        flash("已重置确认状态", "success")
+    except ServiceError as e:
+        if _is_ajax():
+            return jsonify({"success": False, "message": e.message})
+        flash(e.message, "error")
     return redirect("/card/sets")
 
 

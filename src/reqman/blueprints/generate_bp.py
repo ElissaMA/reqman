@@ -8,6 +8,7 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 
 from ..config import CATEGORIES, CONDITIONS
 from ..services.form_generator import generate_form
+from ..services.reminder_generator import generate_reminder
 from ..services.work_package_matcher import match_work_package_items
 from ..utils.error_handlers import NotFoundError
 from ..utils.response import api_error, api_success
@@ -36,20 +37,19 @@ def _ensure_package_matched(pkg_data):
     all_items = pkg_data.get("all_items", [])
     matched, new_cards, cancelled = match_work_package_items(all_items, store, service)
 
-    # 后处理：空工具+空航材+未确认的工卡从已匹配移入新工卡区域
+    # 后处理：三块（工具/航材/提醒）任一未确认的工卡从已匹配移入新工卡区域
     unconfirmed = []
     still_matched = []
     for item in matched:
         card = store.find_by_code(item["task_code"])
         if card:
-            tools = card.get("tools", [])
-            materials = card.get("materials", [])
             tools_ok = card.get("tools_confirmed", False)
             materials_ok = card.get("materials_confirmed", False)
-            if (not tools) and (not materials) and (not tools_ok) and (not materials_ok):
+            reminder_ok = card.get("reminder_confirmed", False)
+            if not (tools_ok and materials_ok and reminder_ok):
                 item["status"] = "new"
                 item["unconfirmed"] = True
-                item["reason"] = "工具航材未完善"
+                item["reason"] = "工具/航材/提醒未完善"
                 unconfirmed.append(item)
             else:
                 still_matched.append(item)
@@ -269,3 +269,57 @@ def _handle_generate_preview(pkg_data: dict, package_id: str):
                            spare_groups=_group_by_category(spare_preview),
                            now=datetime.now(ZoneInfo("Asia/Shanghai")),
                            categories=CATEGORIES)
+
+
+@generate_bp.route("/generate/reminder", methods=["POST"])
+def reminder_download():
+    """生成并下载《定检工作提醒单》"""
+    package_id = request.form.get("package_id", "")
+    if not package_id:
+        return api_error("缺少工作包参数", "MISSING_PACKAGE_ID", 400)
+    pkg_data = _get_store().get_work_package(package_id)
+    if not pkg_data:
+        raise NotFoundError("数据已过期，请重新上传工作清单")
+    pkg_data = _ensure_package_matched(pkg_data)
+
+    items = []
+    for item in pkg_data.get("matched", []):
+        if item.get("card_ok") and item.get("reminder_confirmed") and item.get("reminder_type"):
+            items.append({
+                "task_name": item.get("task_name", ""),
+                "category": item.get("category", ""),
+                "reminder_type": item.get("reminder_type", ""),
+                "source": item.get("source", "例行"),
+            })
+
+    ac = pkg_data.get("aircraft_info", {})
+    reg = ac.get("reg", "")
+    level = ac.get("level", "") or ac.get("description", "")
+    fsn = msn = apu = ""
+    if reg:
+        store = _get_store()
+        ac_db = store.find_aircraft_by_reg(reg)
+        if not ac_db:
+            stripped = reg.removeprefix("B-")
+            ac_db = store.find_aircraft_by_reg(stripped) or store.find_aircraft_by_reg("B-" + stripped)
+        if ac_db:
+            fsn = ac_db.get("fsn", "")
+            msn = ac_db.get("msn", "")
+            apu = ac_db.get("apu", "")
+    form_data = {
+        "reg": reg,
+        "aircraft_type": ac.get("type", ""),
+        "description": ac.get("description", ""),
+        "level": level,
+        "fsn": fsn,
+        "msn": msn,
+        "apu": apu,
+        "date": ac.get("date", datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y.%m.%d")),
+        "routine_count": pkg_data.get("routine_count", 0),
+        "other_count": pkg_data.get("other_count", 0),
+    }
+    buffer, filename = generate_reminder(form_data, items)
+    return send_file(
+        buffer, as_attachment=True, download_name=filename,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )

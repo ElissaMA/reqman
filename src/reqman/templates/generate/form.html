@@ -123,7 +123,7 @@
                         {% for card in new_cards %}
                         <tr>
                             <td><code>{{ card.task_code }}</code></td>
-                            <td>{{ card.task_name }}{% if card.unconfirmed %}<span class="badge bg-warning text-dark ms-1">未确认</span>{% endif %}</td>
+                            <td>{{ card.task_name }}{% if card.card_ok is defined and not card.card_ok %}<span class="badge bg-warning text-dark ms-1">未确认</span>{% endif %}</td>
                             <td>{{ card.category }}</td>
                             <td>{{ card.task_type or '-' }}</td>
                             <td>
@@ -293,7 +293,9 @@
 
     <div class="text-center mb-4">
         <button type="submit" class="btn btn-primary btn-sm px-4"
-                onclick="return confirm('确认生成并下载需求单？')">✅ 确认生成并下载</button>
+                onclick="return confirmGen()">✅ 生成需求单下载</button>
+        <button type="button" class="btn btn-outline-primary btn-sm px-4"
+                onclick="downloadReminder()">📋 生成提醒单下载</button>
     </div>
 </form>
 
@@ -308,6 +310,13 @@ function confirmGen() {
         return confirm('还有 ' + newCardCount + ' 个新工卡/未完善工卡未录入，是否继续导出下载？');
     }
     return confirm('确认生成并下载需求单？');
+}
+function downloadReminder() {
+    var form = document.createElement('form');
+    form.method = 'POST'; form.action = '/generate/reminder';
+    var inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = 'package_id'; inp.value = '{{ package_id }}';
+    form.appendChild(inp); document.body.appendChild(form); form.submit();
 }
 
 // 监听子窗口保存成功消息 → 刷新预览页（新增/编辑工卡后同步）

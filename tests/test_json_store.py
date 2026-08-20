@@ -182,3 +182,44 @@ class TestPersistence:
         assert len(json_store.get_all()) == 1
         assert json_store.get_all()[0]["task_code"] == "C-002"
         assert len(json_store.get_all_sets()) == 1
+
+
+class TestReminderFields:
+    def test_card_defaults(self, json_store: JsonStore):
+        card = json_store.add(task_code="R-001", task_name="提醒卡")
+        assert card["card_ok"] is False
+        assert card["reminder_confirmed"] is False
+        assert card["reminder_type"] == ""
+
+    def test_card_update_reminder_fields(self, json_store: JsonStore):
+        card = json_store.add(task_code="R-002", task_name="卡")
+        updated = json_store.update(card["id"], reminder_type="重点提醒", card_ok=True, reminder_confirmed=False)
+        assert updated["reminder_type"] == "重点提醒"
+        assert updated["card_ok"] is True
+        assert updated["reminder_confirmed"] is False
+
+    def test_card_add_with_reminder_type(self, json_store: JsonStore):
+        card = json_store.add(task_code="R-003", task_name="卡", reminder_type="一般提醒")
+        assert card["reminder_type"] == "一般提醒"
+
+    def test_set_defaults_and_update(self, json_store: JsonStore):
+        s = json_store.add_set(name="提醒组", description="", category="发动机")
+        assert s["card_ok"] is False
+        assert s["reminder_type"] == ""
+        updated = json_store.update_set(s["id"], reminder_type="重点提醒", card_ok=True, reminder_confirmed=False)
+        assert updated["reminder_type"] == "重点提醒"
+        assert updated["card_ok"] is True
+
+
+class TestSyncSetReminder:
+    def test_sync_propagates_reminder_fields(self, json_store: JsonStore):
+        card = json_store.add(task_code="S-001", task_name="卡")
+        s = json_store.add_set(name="组A", description="", category="发动机",
+                               reminder_type="重点提醒", card_ok=True, reminder_confirmed=False)
+        json_store.update(card["id"], set_id=s["id"])
+        json_store.sync_set_to_cards(s["id"])
+        synced = json_store.get(card["id"])
+        assert synced["reminder_type"] == "重点提醒"
+        assert synced["card_ok"] is True
+        assert synced["reminder_confirmed"] is False
+        assert synced["category"] == "发动机"

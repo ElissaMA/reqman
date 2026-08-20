@@ -406,6 +406,30 @@ class TestToolMaterialParsing:
         assert tools == []
 
 
+class TestReminderValidation:
+    def test_add_with_reminder_type_ok(self, card_service: CardService):
+        card = card_service.add_card("R-101", "提醒卡", category="电子",
+                                     tools_confirmed=True, materials_confirmed=True,
+                                     reminder_type="一般提醒", card_ok=True)
+        assert card["reminder_type"] == "一般提醒"
+        assert card["card_ok"] is True
+
+    def test_add_with_reminder_confirmed_ok(self, card_service: CardService):
+        card = card_service.add_card("R-102", "卡", category="电子",
+                                     tools_confirmed=True, materials_confirmed=True,
+                                     reminder_confirmed=True, card_ok=True)
+        assert card["reminder_confirmed"] is True
+
+    def test_reset_confirmation_keeps_content(self, card_service: CardService):
+        card = card_service.add_card("R-103", "卡", category="电子",
+                                     tools_confirmed=True, materials_confirmed=True,
+                                     reminder_type="重点提醒", card_ok=True)
+        updated = card_service.update_card(card["id"], card_ok=False)
+        assert updated["card_ok"] is False
+        assert updated["reminder_type"] == "重点提醒"   # 内容保留
+        assert updated["tools"] == []                    # 工具内容保留
+
+
 def _make_form(**fields):
     """创建模拟 Flask request.form，字段名自动补 []"""
     processed = {}

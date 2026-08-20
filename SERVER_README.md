@@ -1,6 +1,6 @@
 # 定检需求单管理系统 — 服务器运维手册
 
-> 版本：V3.3.0 | 目标环境：Ubuntu 22.04 LTS (阿里云)
+> 版本：V3.4.0 | 目标环境：Ubuntu 22.04 LTS (阿里云)
 
 ---
 
@@ -187,7 +187,9 @@ git branch -d feature/xxx
 ```
 /root/workspace/reqman/
 ├── src/reqman/             # 应用源代码
-├── assets/                 # 需求单 Excel 模板
+├── assets/                 # 需求单 / 提醒单 Excel 模板
+│   ├── demand_template.xlsx
+│   └── reminder_template.xlsx
 ├── data/                   # 数据库文件
 │   ├── reqman_db.json      # 核心数据
 │   ├── reqman_db_runtime.json  # 运行时数据
@@ -196,9 +198,12 @@ git branch -d feature/xxx
 ├── config/                 # 部署配置
 │   ├── reqman.service      # systemd 服务
 │   └── nginx-reqman.conf   # Nginx 站点配置
-├── scripts/                # 运维脚本
+├── scripts/                # 运维脚本 + 登录脚本
 │   ├── deploy.sh           # 一键部署
-│   └── db.sh               # 数据库管理
+│   ├── db.sh               # 数据库管理
+│   ├── amro_login.py       # AMRO 登录脚本（本地参考副本，服务器动态下发模板）
+│   ├── start_login.bat     # 一键登录启动脚本（本地参考副本）
+│   └── import_vba_config.py # 旧版 VBA 提醒配置迁移
 ├── venv/                   # Python 虚拟环境
 ├── .env                    # 环境变量
 └── pyproject.toml          # Python 依赖（唯一依赖源）
@@ -285,6 +290,13 @@ du -sh /root/workspace/reqman/data/backups/
 systemctl restart reqman
 ```
 
+### 提醒单相关环境变量（可选）
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `REMINDER_TEMPLATE_FILE` | `assets/reminder_template.xlsx` | 提醒单 Excel 模板路径 |
+| `REMINDER_TYPES` | `一般提醒,重点提醒` | 提醒类型选项（逗号分隔） |
+
 ### AMRO 库存查询相关环境变量（可选）
 
 | 变量 | 默认值 | 说明 |
@@ -293,7 +305,7 @@ systemctl restart reqman
 | `AMRO_COOKIE_FILE` | `data/cookie/amro_cookies.json` | 登录凭证临时缓存文件路径 |
 | `AMRO_MAX_CONCURRENT` | `10` | 库存查询最大并发数 |
 | `AMRO_SESSION_TTL` | `7200` | 登录凭证有效时长（秒），默认 2 小时 |
-| `AMRO_LOGIN_VERSION` | `1` | 登录脚本版本号 |
+| `AMRO_LOGIN_VERSION` | `2` | 登录脚本版本号 |
 | `AMRO_PUBLIC_URL` | 空 | 登录脚本 ZIP 注入的公网地址，如 `http://8.137.15.167`；服务器部署建议配置，保证多用户下载的 ZIP 注入地址一致可达；未配置回退当前访问地址 |
 
 ### 库存查询运维使用说明

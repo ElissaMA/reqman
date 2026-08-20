@@ -92,7 +92,9 @@ class CardService:
                  tools: list[dict] | None = None,
                  materials: list[dict] | None = None,
                  tools_confirmed: bool = False,
-                 materials_confirmed: bool = False) -> dict:
+                 materials_confirmed: bool = False,
+                 reminder_type: str = "", reminder_confirmed: bool = False,
+                 card_ok: bool = False) -> dict:
         """新增工卡。code 重复时抛出 ServiceError"""
         if is_blank(task_code):
             raise ServiceError("工卡号不能为空", "task_code")
@@ -109,6 +111,9 @@ class CardService:
             updates["materials"] = materials
         updates["tools_confirmed"] = tools_confirmed
         updates["materials_confirmed"] = materials_confirmed
+        updates["reminder_type"] = reminder_type
+        updates["reminder_confirmed"] = reminder_confirmed
+        updates["card_ok"] = card_ok
         self.store.update(card["id"], **updates)
 
         card = self.store.get(card["id"])
@@ -128,8 +133,10 @@ class CardService:
     def get_card(self, card_id: int) -> dict | None:
         return self.store.get(card_id)
 
-    def list_cards(self, search: str = "", category: str = "") -> list[dict]:
-        return self.store.get_all(search=search, category=category)
+    def list_cards(self, search: str = "", category: str = "",
+                   reminder_type: str = "") -> list[dict]:
+        return self.store.get_all(search=search, category=category,
+                                  reminder_type=reminder_type)
 
     # ---------- 工卡组 ----------
 
@@ -139,7 +146,9 @@ class CardService:
                      tools: list[dict] | None = None,
                      materials: list[dict] | None = None,
                      tools_confirmed: bool = False,
-                     materials_confirmed: bool = False) -> dict:
+                     materials_confirmed: bool = False,
+                     reminder_type: str = "", reminder_confirmed: bool = False,
+                     card_ok: bool = False) -> dict:
         """新增工卡组。所有组内工卡地位平等，共享工具/航材需求"""
         if is_blank(name):
             raise ServiceError("工卡组名称不能为空", "name")
@@ -154,6 +163,9 @@ class CardService:
             updates["materials"] = materials
         updates["tools_confirmed"] = tools_confirmed
         updates["materials_confirmed"] = materials_confirmed
+        updates["reminder_type"] = reminder_type
+        updates["reminder_confirmed"] = reminder_confirmed
+        updates["card_ok"] = card_ok
         if updates:
             self.store.update_set(set["id"], **updates)
 
@@ -170,7 +182,10 @@ class CardService:
                          tools: list[dict] | None = None,
                          materials: list[dict] | None = None,
                          tools_confirmed: bool | None = None,
-                         materials_confirmed: bool | None = None) -> dict:
+                         materials_confirmed: bool | None = None,
+                         reminder_type: str | None = None,
+                         reminder_confirmed: bool | None = None,
+                         card_ok: bool | None = None) -> dict:
         """更新工卡组，保存后自动同步工具/航材"""
         set = self.store.get_set(set_id)
         if set is None:
@@ -191,6 +206,12 @@ class CardService:
             updates["tools_confirmed"] = tools_confirmed
         if materials_confirmed is not None:
             updates["materials_confirmed"] = materials_confirmed
+        if reminder_type is not None:
+            updates["reminder_type"] = reminder_type
+        if reminder_confirmed is not None:
+            updates["reminder_confirmed"] = reminder_confirmed
+        if card_ok is not None:
+            updates["card_ok"] = card_ok
 
         if updates:
             self.store.update_set(set_id, **updates)
