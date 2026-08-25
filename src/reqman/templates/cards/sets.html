@@ -92,10 +92,11 @@ function showSetDetail(id) {
         + '<div class="col-md-6"><label class="form-label small">专业</label><div>' + (d.category || '-') + '</div></div>'
         + '</div>';
     // 提醒区块（类型 + 确认状态）
-    var remStatus = '未确认';
-    if (d.reminder_confirmed) { remStatus = d.reminder_type ? (d.reminder_type + '（已确认）') : '无需提醒（已确认）'; }
-    else if (d.reminder_type) { remStatus = d.reminder_type + '（未确认）'; }
-    h += '<div class="mb-3"><label class="form-label small fw-bold">&#x1F514; 提醒类型</label><div>' + remStatus + '</div></div>';
+    h += '<div class="mb-3"><label class="form-label small fw-bold">&#x1F514; 提醒类型</label><div>'
+        + (d.reminder_type || '无') + '</div></div>';
+    h += '<span class="small text-muted">提醒确认状态：'
+        + (d.reminder_confirmed ? '<span class="badge bg-success">已确认</span>' : '<span class="badge bg-warning">未确认</span>')
+        + '</span>';
 
     // 组内工卡
     if (d.cards && d.cards.length) {
