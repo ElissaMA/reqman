@@ -72,7 +72,7 @@
                     {% set op_badge = {'add': 'bg-success', 'update': 'bg-primary', 'delete': 'bg-danger'}.get(log.operation, 'bg-secondary') %}
                     {% set tt_badge = {'card': 'bg-info text-dark', 'set': 'bg-warning text-dark', 'aircraft': 'bg-secondary'}.get(log.target_type, 'bg-light text-dark') %}
                     {% set changes = log.changes or [] %}
-                    <tr>
+                    <tr class="log-row" style="cursor:pointer" data-target-type="{{ log.target_type }}" data-target-id="{{ log.target_id or '' }}" onclick="previewTarget(this)">
                         <td class="text-muted small">{{ log.display_id }}</td>
                         <td class="text-muted small">{{ log.id }}</td>
                         <td class="small" title="{{ log.timestamp or '' }}">{{ (log.timestamp or '')[:19] }}</td>
@@ -139,6 +139,19 @@
     </div>
 </div>
 
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="previewModalTitle">预览</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="previewContent"><p class="text-muted">加载中...</p></div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">关闭</button>
+        </div>
+    </div></div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -162,6 +175,136 @@ function resetFilter() {
         url.searchParams.delete(k);
     });
     window.location.href = url.toString();
+}
+
+function previewTarget(el) {
+    var type = el.getAttribute('data-target-type');
+    var id = el.getAttribute('data-target-id');
+    if (!type || !id) return;
+    if (type === 'aircraft') {
+        window.location.href = '/card/aircraft/' + id + '/edit';
+        return;
+    }
+    var url = type === 'set' ? '/card/sets/' + id : '/card/' + id;
+    var title = type === 'set' ? '工卡组详情' : '工卡详情';
+    document.getElementById('previewModalTitle').textContent = title;
+    document.getElementById('previewContent').innerHTML = '<p class="text-muted">加载中...</p>';
+    new bootstrap.Modal(document.getElementById('previewModal')).show();
+    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function(r) {
+            if (!r.ok) throw new Error('not found');
+            return r.json();
+        })
+        .then(function(d) {
+            if (d.error) throw new Error(d.error);
+            document.getElementById('previewContent').innerHTML = type === 'set' ? renderSetPreview(d) : renderCardPreview(d);
+        })
+        .catch(function() {
+            var changes = el.querySelector('td:last-child span[title]');
+            var extra = changes ? '<div class="mt-2"><label class="form-label small fw-bold">日志变更</label><div class="text-muted small">' + changes.getAttribute('title') + '</div></div>' : '';
+            document.getElementById('previewContent').innerHTML = '<div class="alert alert-secondary mb-0">该记录已删除' + extra + '</div>';
+        });
+}
+
+function renderCardPreview(d) {
+    var h = '<div class="d-flex justify-content-between align-items-center p-2 rounded mb-3 '
+        + (d.card_ok ? 'bg-success-subtle' : 'bg-danger-subtle') + '">'
+        + '<span class="small"><strong>工卡数据已确认</strong> '
+        + (d.card_ok ? '<span class="badge bg-success">已确认</span>' : '<span class="badge bg-danger">未确认</span>')
+        + '</span></div>';
+    h += '<div class="row g-3 mb-3">'
+        + '<div class="col-md-3"><label class="form-label small">工卡号</label><div><strong>' + d.task_code + '</strong></div></div>'
+        + '<div class="col-md-5"><label class="form-label small">工卡描述</label><div>' + (d.task_name || '-') + '</div></div>'
+        + '<div class="col-md-2"><label class="form-label small">专业</label><div>' + (d.category || '-') + '</div></div>'
+        + '<div class="col-md-2"><label class="form-label small">类型</label><div>' + (d.task_type || '-') + '</div></div>'
+        + '</div>';
+    h += '<div class="mb-3"><label class="form-label small">所属工卡组</label><div>' + (d.set_name || '-') + '</div></div>';
+    var remStatus = '未确认';
+    if (d.reminder_confirmed) { remStatus = d.reminder_type ? (d.reminder_type + '（已确认）') : '无需提醒（已确认）'; }
+    else if (d.reminder_type) { remStatus = d.reminder_type + '（未确认）'; }
+    h += '<div class="mb-3"><label class="form-label small fw-bold">&#x1F514; 提醒类型</label><div>' + remStatus + '</div></div>';
+    h += '<div class="mb-3"><label class="form-label small fw-bold">&#x1F527; 工具清单</label>';
+    if (d.tools && d.tools.length) {
+        h += '<table class="table table-bordered table-sm mb-2"><thead><tr><th>设备名称</th><th>件号</th><th>数量</th><th>备注</th><th>使用类型</th></tr></thead><tbody>';
+        d.tools.forEach(function(t) {
+            h += '<tr><td>' + (t.device_name||'') + '</td><td>' + (t.part_number||'') + '</td><td>' + (t.quantity||'') + '</td><td>' + (t.remark||'') + '</td><td>' + (t.usage_type||'') + '</td></tr>';
+        });
+        h += '</tbody></table>';
+    } else {
+        h += '<p class="text-muted small mb-2">工具清单：无</p>';
+    }
+    h += '<span class="small text-muted">工具确认状态：'
+        + (d.tools_confirmed ? '<span class="badge bg-success">已确认</span>' : '<span class="badge bg-warning">未确认</span>')
+        + '</span></div>';
+    h += '<div class="mb-3"><label class="form-label small fw-bold">&#x1F4E6; 航材清单</label>';
+    if (d.materials && d.materials.length) {
+        h += '<table class="table table-bordered table-sm mb-2"><thead><tr><th>航材名称</th><th>件号</th><th>数量</th><th>备注</th><th>使用类型</th></tr></thead><tbody>';
+        d.materials.forEach(function(m) {
+            h += '<tr><td>' + (m.material_name||'') + '</td><td>' + (m.part_number||'') + '</td><td>' + (m.quantity||'') + '</td><td>' + (m.remark||'') + '</td><td>' + (m.usage_type||'') + '</td></tr>';
+        });
+        h += '</tbody></table>';
+    } else {
+        h += '<p class="text-muted small mb-2">航材清单：无</p>';
+    }
+    h += '<span class="small text-muted">航材确认状态：'
+        + (d.materials_confirmed ? '<span class="badge bg-success">已确认</span>' : '<span class="badge bg-warning">未确认</span>')
+        + '</span></div>';
+    h += '<div class="mb-0"><label class="form-label small fw-bold">备注</label><div class="text-muted">'
+        + (d.remark || '-') + '</div></div>';
+    return h;
+}
+
+function renderSetPreview(d) {
+    var h = '<div class="d-flex justify-content-between align-items-center p-2 rounded mb-3 '
+        + (d.card_ok ? 'bg-success-subtle' : 'bg-danger-subtle') + '">'
+        + '<span class="small"><strong>工卡组数据已确认</strong> '
+        + (d.card_ok ? '<span class="badge bg-success">已确认</span>' : '<span class="badge bg-danger">未确认</span>')
+        + '</span></div>';
+    h += '<div class="row g-3 mb-3">'
+        + '<div class="col-md-6"><label class="form-label small">名称</label><div><strong>' + (d.name || '') + '</strong></div></div>'
+        + '<div class="col-md-6"><label class="form-label small">专业</label><div>' + (d.category || '-') + '</div></div>'
+        + '</div>';
+    var remStatus = '未确认';
+    if (d.reminder_confirmed) { remStatus = d.reminder_type ? (d.reminder_type + '（已确认）') : '无需提醒（已确认）'; }
+    else if (d.reminder_type) { remStatus = d.reminder_type + '（未确认）'; }
+    h += '<div class="mb-3"><label class="form-label small fw-bold">&#x1F514; 提醒类型</label><div>' + remStatus + '</div></div>';
+    if (d.cards && d.cards.length) {
+        h += '<label class="form-label small fw-bold">组内工卡</label>'
+           + '<table class="table table-bordered table-sm mb-3"><thead><tr><th>工卡号</th><th>工卡名称</th></tr></thead><tbody>';
+        d.cards.forEach(function(c) {
+            h += '<tr><td><code>' + (c.task_code || '') + '</code></td><td>' + (c.task_name || '') + '</td></tr>';
+        });
+        h += '</tbody></table>';
+    }
+    h += '<div class="mb-3"><label class="form-label small fw-bold">&#x1F527; 共用工具清单</label>';
+    if (d.tools && d.tools.length) {
+        h += '<table class="table table-bordered table-sm mb-2"><thead><tr><th>设备名称</th><th>件号</th><th>数量</th><th>备注</th><th>使用类型</th></tr></thead><tbody>';
+        d.tools.forEach(function(t) {
+            h += '<tr><td>' + (t.device_name||'') + '</td><td>' + (t.part_number||'') + '</td><td>' + (t.quantity||'') + '</td><td>' + (t.remark||'') + '</td><td>' + (t.usage_type||'') + '</td></tr>';
+        });
+        h += '</tbody></table>';
+    } else {
+        h += '<p class="text-muted small mb-2">共用工具清单：无</p>';
+    }
+    h += '<span class="small text-muted">工具确认状态：'
+        + (d.tools_confirmed ? '<span class="badge bg-success">已确认</span>' : '<span class="badge bg-warning">未确认</span>')
+        + '</span></div>';
+    h += '<div class="mb-3"><label class="form-label small fw-bold">&#x1F4E6; 共用航材清单</label>';
+    if (d.materials && d.materials.length) {
+        h += '<table class="table table-bordered table-sm mb-2"><thead><tr><th>航材名称</th><th>件号</th><th>数量</th><th>备注</th><th>使用类型</th></tr></thead><tbody>';
+        d.materials.forEach(function(m) {
+            h += '<tr><td>' + (m.material_name||'') + '</td><td>' + (m.part_number||'') + '</td><td>' + (m.quantity||'') + '</td><td>' + (m.remark||'') + '</td><td>' + (m.usage_type||'') + '</td></tr>';
+        });
+        h += '</tbody></table>';
+    } else {
+        h += '<p class="text-muted small mb-2">共用航材清单：无</p>';
+    }
+    h += '<span class="small text-muted">航材确认状态：'
+        + (d.materials_confirmed ? '<span class="badge bg-success">已确认</span>' : '<span class="badge bg-warning">未确认</span>')
+        + '</span></div>';
+    h += '<div class="mb-0"><label class="form-label small fw-bold">说明</label><div class="text-muted">'
+        + (d.description || '-') + '</div></div>';
+    return h;
 }
 </script>
 {% endblock %}

@@ -1,4 +1,5 @@
 """日志分页与序号显示测试（任务 #019fe5d2）"""
+import re
 
 
 class TestPageWindow:
@@ -52,7 +53,7 @@ class TestLogsPaginationPage:
         assert f'<span class="fw-bold">{page}/{total_pages}</span> 页' in data
         # 展示序号：全局编号跨页连续，第2页显示 (page-1)*page_size+1 起
         tbody = data.split("<tbody>")[1].split("</tbody>")[0]
-        rows = [r for r in tbody.split("<tr>") if "<td" in r]
+        rows = re.findall(r'<tr\b[^>]*>.*?</tr>', tbody, re.DOTALL)
         assert len(rows) == page_size
         start_idx = (page - 1) * page_size
         for display_id in range(start_idx + 1, start_idx + page_size + 1):

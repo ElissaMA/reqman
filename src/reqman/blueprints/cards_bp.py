@@ -424,6 +424,22 @@ def card_set_edit(set_id):
                            reminder_types=REMINDER_TYPES)
 
 
+@cards_bp.route("/card/sets/<int:set_id>")
+def card_set_detail(set_id):
+    """工卡组详情 (AJAX)"""
+    try:
+        card_set = current_app.extensions['card_service'].get_card_set(set_id)
+        if not card_set:
+            return jsonify({"error": "not found"}), 404
+        cards_in_set = current_app.extensions['card_service'].get_cards_in_set(set_id)
+        card_set["cards"] = [{"task_code": c["task_code"], "task_name": c.get("task_name", "")}
+                             for c in cards_in_set]
+        return jsonify(card_set)
+    except Exception:
+        logger.exception("获取工卡组详情失败")
+        return jsonify({"error": "server error"}), 500
+
+
 @cards_bp.route("/card/sets/<int:set_id>/delete", methods=["POST"])
 def card_set_delete(set_id):
     """删除工卡组"""

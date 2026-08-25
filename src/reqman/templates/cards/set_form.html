@@ -74,7 +74,7 @@
                 </span>
                 <div class="form-check mb-0">
                     <input class="form-check-input" type="checkbox" id="confirmNoReminder" name="confirm_no_reminder" value="1"
-                           {{ "checked" if set and set.reminder_confirmed else "" }}>
+                           {{ "checked" if set and set.reminder_confirmed and not set.reminder_type else "" }}>
                     <label class="form-check-label small text-muted" for="confirmNoReminder">确认无需提醒</label>
                 </div>
             </div>
@@ -146,7 +146,7 @@
                 </span>
                 <div class="form-check mb-0">
                     <input class="form-check-input" type="checkbox" id="confirmNoTools" name="confirm_no_tools" value="1"
-                           {{ "checked" if set and set.tools_confirmed else "" }}>
+                           {{ "checked" if set and set.tools_confirmed and not set.tools else "" }}>
                     <label class="form-check-label small text-muted" for="confirmNoTools">确认无工具</label>
                 </div>
             </div>
@@ -173,7 +173,7 @@
                 </span>
                 <div class="form-check mb-0">
                     <input class="form-check-input" type="checkbox" id="confirmNoMats" name="confirm_no_mats" value="1"
-                           {{ "checked" if set and set.materials_confirmed else "" }}>
+                           {{ "checked" if set and set.materials_confirmed and not set.materials else "" }}>
                     <label class="form-check-label small text-muted" for="confirmNoMats">确认无航材</label>
                 </div>
             </div>
@@ -315,11 +315,25 @@ document.getElementById("cardTableBody").addEventListener("change", function(e) 
 });
 
     document.addEventListener("DOMContentLoaded", function() {
+        // 如果已有工具/航材数据，确保对应复选框不勾选
+        var toolTable = document.getElementById('toolTable');
+        if (toolTable && toolTable.querySelector('tbody tr')) {
+            document.getElementById('confirmNoTools').checked = false;
+        }
+        var matTable = document.getElementById('matTable');
+        if (matTable && matTable.querySelector('tbody tr')) {
+            document.getElementById('confirmNoMats').checked = false;
+        }
         if (document.getElementById("confirmNoTools").checked) {
             document.getElementById("toolSection").classList.add("section-disabled");
         }
         if (document.getElementById("confirmNoMats").checked) {
             document.getElementById("matSection").classList.add("section-disabled");
+        }
+        // 如果已有提醒类型，确保复选框不勾选
+        var reminderTypeSelect = document.querySelector('select[name=reminder_type]');
+        if (reminderTypeSelect && reminderTypeSelect.value) {
+            document.getElementById("confirmNoReminder").checked = false;
         }
         if (document.getElementById("confirmNoReminder").checked) {
             document.getElementById("reminderSection").classList.add("section-disabled");
