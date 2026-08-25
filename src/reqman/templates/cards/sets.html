@@ -14,7 +14,10 @@
                 <thead>
                     <tr class="filter-row">
                         <th><input class="form-control form-control-sm" placeholder="搜索名称..." onkeyup="AppFilter.filter('fName')" id="fName"></th>
-                        <th><input class="form-control form-control-sm" placeholder="搜索专业..." onkeyup="AppFilter.filter('fCat')" id="fCat"></th>
+                        <th><select class="form-select form-select-sm" id="fCat" onchange="AppFilter.filter('fCat')">
+                            <option value="">全部专业</option>
+                            {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+                        </select></th>
                         <th><select class="form-select form-select-sm" id="fReminder" onchange="AppFilter.filter('fReminder')">
                             <option value="">全部提醒类型</option>
                             <option value="无需提醒">无需提醒</option>
@@ -23,7 +26,7 @@
                         <th></th><th></th><th></th>
                     </tr>
                     <tr>
-                        <th class="sortable" data-col="0" onclick="AppFilter.sort(document.getElementById('setTable'),0)">名称 <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
+                        <th>名称</th>
                         <th>专业</th>
                         <th>提醒类型</th>
                         <th class="text-center">工卡数</th>
@@ -39,7 +42,7 @@
                     <tr onclick="showSetDetail({{ set.id }})" style="cursor:pointer" class="{{ 'blink-warn' if blink }}">
                         <td><strong>{{ set.name }}</strong></td>
                         <td>{{ set.category or '-' }}</td>
-                        <td>{{ '' if set.reminder_confirmed else (set.reminder_type or '') }}</td>
+                        <td>{{ set.reminder_type or '-' }}</td>
                         <td class="text-center">{{ card_counts.get(set.id, 0) }}</td>
                         <td class="text-center">{{ set.tools|length }}</td>
                         <td class="text-center">{{ set.materials|length }}</td>

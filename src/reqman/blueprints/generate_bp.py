@@ -283,10 +283,10 @@ def reminder_download():
     pkg_data = _ensure_package_matched(pkg_data)
 
     items = []
-    for item in pkg_data.get("matched", []):
+    for item in _dedup_matched(pkg_data.get("matched", [])):
         if item.get("card_ok") and item.get("reminder_confirmed") and item.get("reminder_type"):
             items.append({
-                "task_name": item.get("task_name", ""),
+                "task_name": item.get("set_name") or item.get("task_name", ""),
                 "category": item.get("category", ""),
                 "reminder_type": item.get("reminder_type", ""),
                 "source": item.get("source", "例行"),

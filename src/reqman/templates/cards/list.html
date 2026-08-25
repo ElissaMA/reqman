@@ -15,21 +15,27 @@
                     <tr class="filter-row">
                         <th><input class="form-control form-control-sm" placeholder="搜索工卡号..." onkeyup="AppFilter.filter('fCode')" id="fCode"></th>
                         <th><input class="form-control form-control-sm" placeholder="搜索描述..." onkeyup="AppFilter.filter('fDesc')" id="fDesc"></th>
-                        <th><input class="form-control form-control-sm" placeholder="搜索专业..." onkeyup="AppFilter.filter('fCat')" id="fCat"></th>
+                        <th><select class="form-select form-select-sm" id="fCat" onchange="AppFilter.filter('fCat')">
+                            <option value="">全部专业</option>
+                            {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+                        </select></th>
                         <th><select class="form-select form-select-sm" id="fReminder" onchange="AppFilter.filter('fReminder')">
                             <option value="">全部提醒类型</option>
                             <option value="无需提醒">无需提醒</option>
                             {% for rt in reminder_types %}<option value="{{ rt }}">{{ rt }}</option>{% endfor %}
                         </select></th>
-                        <th><input class="form-control form-control-sm" placeholder="搜索类型..." onkeyup="AppFilter.filter('fType')" id="fType"></th>
+                        <th><select class="form-select form-select-sm" id="fType" onchange="AppFilter.filter('fType')">
+                            <option value="">全部类型</option>
+                            {% for t in task_types %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+                        </select></th>
                         <th></th><th></th><th></th><th></th>
                     </tr>
                     <tr>
-                        <th class="sortable" data-col="0" onclick="AppFilter.sort(document.getElementById('cardTable'),0)">工卡号 <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
-                        <th class="sortable" data-col="1" onclick="AppFilter.sort(document.getElementById('cardTable'),1)">工卡描述 <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
-                        <th class="sortable" data-col="2" onclick="AppFilter.sort(document.getElementById('cardTable'),2)">专业 <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
+                        <th>工卡号</th>
+                        <th>工卡描述</th>
+                        <th>专业</th>
                         <th>提醒类型</th>
-                        <th class="sortable" data-col="3" onclick="AppFilter.sort(document.getElementById('cardTable'),3)">类型 <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
+                        <th>类型</th>
                         <th>所属工卡组</th>
                         <th class="text-center">工具数</th>
                         <th class="text-center">航材数</th>
@@ -44,7 +50,7 @@
                         <td style="font-weight:700;font-family:Consolas,monospace">{{ card.task_code }}</td>
                         <td>{{ card.task_name[:60] }}{% if card.task_name|length > 60 %}...{% endif %}</td>
                         <td>{{ card.category }}</td>
-                        <td>{{ '' if card.reminder_confirmed else (card.reminder_type or '') }}</td>
+                        <td>{{ card.reminder_type or '-' }}</td>
                         <td>{{ card.task_type or '-' }}</td>
                         <td>{{ card.set_name or '-' }}</td>
                         <td class="text-center">{{ card.tools|length }}</td>

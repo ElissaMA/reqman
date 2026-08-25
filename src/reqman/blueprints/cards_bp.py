@@ -32,6 +32,7 @@ def card_list():
             card["set_name"] = set_map.get(set_id, "") if set_id else ""
         return render_template("cards/list.html",
                                cards=cards,
+                               categories=CATEGORIES, task_types=TASK_TYPES,
                                reminder_types=REMINDER_TYPES)
     except Exception:
         logger.exception("获取工卡列表失败")
@@ -295,6 +296,7 @@ def card_sets():
             })
         return render_template("cards/sets.html", sets=sets,
                                card_counts=card_counts,
+                               categories=CATEGORIES,
                                reminder_types=REMINDER_TYPES)
     except Exception:
         logger.exception("获取工卡组列表失败")
