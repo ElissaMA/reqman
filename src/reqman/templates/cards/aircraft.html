@@ -14,12 +14,12 @@
                 <thead>
                     {{ list.filter_row([('搜索飞机号...','fReg'),('搜索机型...','fModel'),('搜索发动机...','fEngine'),('','_'),('','_'),('搜索APU...','fAPU'),('','_')]) }}
                     <tr>
-                        <th style="width:12%" class="sortable" data-col="0" onclick="AppFilter.sort(document.getElementById('acTable'),0)">飞机号 <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
-                        <th style="width:18%" class="sortable" data-col="1" onclick="AppFilter.sort(document.getElementById('acTable'),1)">机型 <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
-                        <th style="width:18%" class="sortable" data-col="2" onclick="AppFilter.sort(document.getElementById('acTable'),2)">发动机 <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
-                        <th style="width:12%" class="sortable" data-col="3" onclick="AppFilter.sort(document.getElementById('acTable'),3)">FSN <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
-                        <th style="width:12%" class="sortable" data-col="4" onclick="AppFilter.sort(document.getElementById('acTable'),4)">MSN <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
-                        <th style="width:18%" class="sortable" data-col="5" onclick="AppFilter.sort(document.getElementById('acTable'),5)">APU <span class="sort-arrow" data-dir="asc">&#9650;</span></th>
+                        <th style="width:12%">飞机号</th>
+                        <th style="width:18%">机型</th>
+                        <th style="width:18%">发动机</th>
+                        <th style="width:12%">FSN</th>
+                        <th style="width:12%">MSN</th>
+                        <th style="width:18%">APU</th>
                         <th style="width:120px" class="text-center">操作</th>
                     </tr>
                 </thead>
@@ -86,5 +86,12 @@ function showAcDetail(id) {
     document.getElementById('acDetailContent').innerHTML = h;
     new bootstrap.Modal(document.getElementById('acDetailModal')).show();
 }
+</script>
+<script>
+['fReg:0','fModel:1','fEngine:2','fAPU:5'].forEach(function(p) {
+    var id = p.split(':')[0], col = p.split(':')[1];
+    var el = document.getElementById(id);
+    if (el) el.setAttribute('data-col', col);
+});
 </script>
 {% endblock %}
