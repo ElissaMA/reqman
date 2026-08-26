@@ -134,41 +134,56 @@ bash scripts/db.sh clean 28
 ### 5.1 本地操作（更新代码并同步数据）
 
 ```bash
-# 1.（可选）从服务器下载最新数据替换本地
+# 1. 从服务器下载最新数据替换本地
 scp root@8.137.15.167:/root/workspace/reqman/data/reqman_db.json data/reqman_db.json
 
-# 2. 本地修改代码 / 数据……
-# 3. 提交并推送（代码 + 数据一起）
+# 2. 本地修改代码……
+# 3. 提交并推送（仅代码，数据不入库）
 git add .
 git commit -m "feat/fix/chore: 描述"
 git push origin main
 ```
 
-### 5.2 服务器操作（拉取最新代码与数据）
+### 5.2 服务器操作（拉取最新代码并同步数据）
 
 ```bash
 cd /root/workspace/reqman
 
-# 1.（可选，保险起见）备份当前数据库
-bash scripts/db.sh backup
-
-# 2. 丢弃服务器本地 data 差异（忽略 data 冲突警告，以 GitHub 最新数据为准）
-git checkout -- data/reqman_db.json
-
-# 3. 拉取最新代码与数据
+# 1. 拉取最新代码
 git pull origin main
 
-# 4. 更新依赖（引入新依赖时执行，幂等安全）
+# 2. 更新依赖（引入新依赖时执行，幂等安全）
 ./venv/bin/pip install -e .
 
-# 5. 重启服务
+# 3. 重启服务
 sudo systemctl restart reqman
 
-# 6. 验证
+# 4. 上传最新数据（从本地 scp 上传）
+scp data/reqman_db.json root@8.137.15.167:/root/workspace/reqman/data/reqman_db.json
+
+# 5. 验证
 curl -s -o /dev/null -w "%{http_code}" http://localhost:5001/
 ```
 
-### 5.3 分支开发提示（简化 feature 工作流）
+### 5.3 数据备份
+
+> 自动备份已配置为每天 0:00 执行（cron: `0 0 * * *`），保留 7 天。
+
+```bash
+# 手动备份
+bash scripts/db.sh backup
+
+# 查看所有备份
+bash scripts/db.sh list
+
+# 恢复最近一次备份
+bash scripts/db.sh restore
+
+# 恢复指定备份
+bash scripts/db.sh restore data/backups/reqman_db_20260820_120000.json.gz
+```
+
+### 5.4 分支开发提示（简化 feature 工作流）
 
 ```bash
 git checkout main && git checkout -b feature/xxx
@@ -220,7 +235,7 @@ git branch -d feature/xxx
 - [ ] HTTP 响应码 2xx/3xx
 - [ ] 数据持久化：重启后数据不丢失
 - [ ] 备份脚本正常：`bash scripts/db.sh backup`
-- [ ] cron 自动备份已配置：`crontab -l | grep db.sh`
+- [ ] cron 自动备份已配置：`crontab -l | grep auto_backup`
 
 ---
 

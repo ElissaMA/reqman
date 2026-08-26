@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.4.3] - Unreleased
+### Changed
+- 数据同步：停止 Git 追踪 `reqman_db.json`，改为手动 scp 同步
+- 数据备份：新增 `scripts/auto_backup.sh`，服务器 cron 每天 0:00 自动备份，保留 7 天
+### Fixed
+- 工卡匹配索引：修复从服务器导入数据后 code_index 不完整的问题（自动重建）
+
 ## [3.4.2] - Unreleased
 ### Fixed
 - 工卡匹配索引：修复从服务器导入数据后 code_index 为空导致所有工卡进入新工卡区的问题（自动重建空索引）
