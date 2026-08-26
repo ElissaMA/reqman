@@ -1,5 +1,9 @@
 # Changelog
 
+## [3.4.2] - Unreleased
+### Fixed
+- 工卡匹配索引：修复从服务器导入数据后 code_index 为空导致所有工卡进入新工卡区的问题（自动重建空索引）
+
 ## [3.4.1] - Unreleased
 ### Added
 - 工卡组详情API：新增 `GET /card/sets/<id>` 接口，支持工卡组数据预览
