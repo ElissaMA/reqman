@@ -164,16 +164,20 @@ class JsonStore:
                     db.update(json.load(f))
             except (OSError, json.JSONDecodeError):
                 logger.warning("运行时数据库读取失败: %s", self._runtime_path)
-        # 自动重建索引（处理数据导入后索引丢失或不完整的情况）
+        # 内存中修复不完整的索引（不持久化，下次 _write() 时自动保存）
         if db.get("cards"):
             ci = db.get("code_index", {})
             if not ci or len(ci) < len(db["cards"]):
                 self._rebuild_index(db)
-                self._write(db)
         return db
 
     def _write(self, data: dict) -> None:
         """拆分写入两个文件：运行时数据写入独立文件"""
+        # 自动重建索引（处理数据导入后索引丢失或不完整的情况）
+        if data.get("cards"):
+            ci = data.get("code_index", {})
+            if not ci or len(ci) < len(data["cards"]):
+                self._rebuild_index(data)
         core = {}
         runtime = {}
         for k, v in data.items():
