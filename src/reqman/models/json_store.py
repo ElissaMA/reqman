@@ -164,10 +164,12 @@ class JsonStore:
                     db.update(json.load(f))
             except (OSError, json.JSONDecodeError):
                 logger.warning("运行时数据库读取失败: %s", self._runtime_path)
-        # 自动重建空索引（处理数据导入后索引丢失的情况）
-        if not db.get("code_index") and db.get("cards"):
-            self._rebuild_index(db)
-            self._write(db)
+        # 自动重建索引（处理数据导入后索引丢失或不完整的情况）
+        if db.get("cards"):
+            ci = db.get("code_index", {})
+            if not ci or len(ci) < len(db["cards"]):
+                self._rebuild_index(db)
+                self._write(db)
         return db
 
     def _write(self, data: dict) -> None:
