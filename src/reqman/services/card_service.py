@@ -299,6 +299,14 @@ class CardService:
             item["set_name"] = set_name
             for other in all_items:
                 if other.get("set_id") == set_id and other is not item:
+                    # 检查工卡本身的确认状态，未确认的不移入 matched
+                    other_card = self.store.find_by_code(other.get("task_code", ""))
+                    if other_card:
+                        tools_ok = other_card.get("tools_confirmed", False)
+                        materials_ok = other_card.get("materials_confirmed", False)
+                        reminder_ok = other_card.get("reminder_confirmed", False)
+                        if not (tools_ok and materials_ok and reminder_ok):
+                            continue  # 未确认，跳过，保留在 new_cards
                     if other.get("status") != "matched":
                         other["status"] = "matched"
                         other["db_id"] = item.get("db_id")
@@ -335,6 +343,12 @@ class CardService:
         for i, item in enumerate(new_cards):
             card = self.store.find_by_code(item.get("task_code", ""))
             if card and card.get("set_id"):
+                # 检查工卡本身的确认状态，未确认的不移入 matched
+                tools_ok = card.get("tools_confirmed", False)
+                materials_ok = card.get("materials_confirmed", False)
+                reminder_ok = card.get("reminder_confirmed", False)
+                if not (tools_ok and materials_ok and reminder_ok):
+                    continue  # 未确认，跳过，保留在 new_cards
                 item["status"] = "matched"
                 item["db_id"] = card["id"]
                 item["set_id"] = card["set_id"]
