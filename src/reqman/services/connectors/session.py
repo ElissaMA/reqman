@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 def _atomic_write(path: Path, data: dict) -> None:
+    """原子写入，失败时保留原文件并抛出异常——绝不覆盖好数据"""
     tmp = str(path) + ".tmp"
     try:
         with open(tmp, "w", encoding="utf-8") as f:
@@ -26,8 +27,7 @@ def _atomic_write(path: Path, data: dict) -> None:
                 os.remove(tmp)
             except OSError:
                 pass
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        raise
 
 
 class LoginSessionStore:

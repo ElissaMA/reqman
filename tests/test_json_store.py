@@ -270,3 +270,22 @@ class TestIndexHeal:
             json.dump({"cards": {"1": {"id": 1, "task_code": "C-001"}}}, f)
         store = JsonStore(db_path)
         assert store.find_by_code("C-001")["id"] == 1
+
+
+class TestAtomicWriteFailure:
+    def test_write_failure_keeps_target(self, json_store, monkeypatch):
+        """os.replace 失败时目标文件必须原样保留且抛异常（而非被截断覆盖）"""
+        import reqman.models.json_store as jsm
+
+        json_store.add("SAFE-001", "卡", "发动机", "A", "")
+        good = json.load(open(json_store._path, encoding="utf-8"))
+
+        def boom(src, dst):
+            raise OSError("simulated replace failure")
+
+        monkeypatch.setattr(jsm.os, "replace", boom)
+        with pytest.raises(OSError):
+            json_store.add("SAFE-002", "卡2", "发动机", "A", "")
+        monkeypatch.undo()
+        after = json.load(open(json_store._path, encoding="utf-8"))
+        assert after["cards"] == good["cards"]  # 好文件未被截断/覆盖

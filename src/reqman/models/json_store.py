@@ -23,7 +23,8 @@ logger = logging.getLogger(__name__)
 
 
 def _atomic_write(path: str, data: dict) -> None:
-    """原子写入：写到 .tmp 然后 rename。rename 在同文件系统上是原子的。"""
+    """原子写入：写到 .tmp 然后 rename。rename 在同文件系统上是原子的。
+    失败时保留原文件并抛出异常——绝不覆盖好数据"""
     tmp = path + ".tmp"
     try:
         with open(tmp, "w", encoding="utf-8") as f:
@@ -35,8 +36,7 @@ def _atomic_write(path: str, data: dict) -> None:
                 os.remove(tmp)
             except OSError:
                 logger.debug("Failed to remove temp file: %s", tmp)
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        raise
 
 
 _EMPTY_DB = {
