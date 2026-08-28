@@ -320,3 +320,18 @@ class TestWriteConsistency:
         assert json_store.get(b["id"])["task_code"] == "CODE-B"
         assert json_store.get(a["id"])["task_code"] == "CODE-A"
         assert json_store.find_by_code("CODE-A")["id"] == a["id"]
+
+
+class TestCorruptRefuseWrite:
+    def test_corrupt_runtime_refuses_write(self, json_store):
+        """运行时文件损坏后拒绝一切写入，防止残缺库被合法化持久化"""
+        json_store.add("CORR-001", "卡", "机体", "", "")
+        with open(json_store._runtime_path, "w", encoding="utf-8") as f:
+            f.write("{corrupted")
+        with pytest.raises(RuntimeError):
+            json_store.add("CORR-002", "卡2", "机体", "", "")
+        # 核心文件未被"半张库"覆盖
+        with open(json_store._path, encoding="utf-8") as f:
+            core = json.load(f)
+        assert "CORR-002" not in [c["task_code"] for c in core["cards"].values()]
+        assert "CORR-001" in [c["task_code"] for c in core["cards"].values()]

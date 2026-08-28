@@ -105,6 +105,8 @@ class JsonStore:
         self._path = str(db_path)
         base, ext = os.path.splitext(self._path)
         self._runtime_path = base + "_runtime" + ext
+        self._corrupt = False  # 读损坏标志：置位期间拒绝一切写入
+        self._corrupt_files: set[str] = set()
         os.makedirs(os.path.dirname(self._path), exist_ok=True)
         self._init_db()
 
@@ -129,40 +131,43 @@ class JsonStore:
                 # 无备份，用空核心
                 _atomic_write(self._path, {})
 
-        # 验证文件可读（合并读取两个文件）
-        try:
+        # 验证文件可读：读损坏不再抛异常而是置 _corrupt 标志，据此从 .bak 恢复
+        self._read()
+        if self._corrupt:
+            logger.error("数据库文件损坏，尝试从 .bak 恢复: %s", sorted(self._corrupt_files))
+            for p in list(self._corrupt_files):
+                bak = p + ".bak"
+                if os.path.exists(bak):
+                    shutil.copy2(bak, p)
             self._read()
-        except (OSError, json.JSONDecodeError) as e:
-            logger.error(f"数据库文件损坏: {e}")
-            bak = self._path + ".bak"
-            if os.path.exists(bak):
-                logger.warning("尝试从备份恢复")
-                shutil.copy2(bak, self._path)
-                try:
-                    self._read()
-                except (OSError, json.JSONDecodeError):
-                    self._write(_EMPTY_DB)
-                    return
-            else:
+            if self._corrupt:
+                # 仍损坏且无有效备份：重置为空库（蓄意重置，放行本次写入）
+                logger.error("数据库无法恢复，重置为空库")
+                self._corrupt = False
                 self._write(_EMPTY_DB)
-                return
 
     # ---------- 内部分方法 ----------
 
     def _read(self) -> dict:
         """合并加载两个文件：核心数据 + 运行时数据"""
+        self._corrupt = False  # 本次读取正常则复位（外部修复/替换文件后自动恢复写入）
+        self._corrupt_files = set()
         db = {}
         if os.path.exists(self._path):
             try:
                 with open(self._path, encoding="utf-8") as f:
                     db.update(json.load(f))
             except (OSError, json.JSONDecodeError):
+                self._corrupt = True
+                self._corrupt_files.add(self._path)
                 logger.warning("核心数据库读取失败: %s", self._path)
         if os.path.exists(self._runtime_path):
             try:
                 with open(self._runtime_path, encoding="utf-8") as f:
                     db.update(json.load(f))
             except (OSError, json.JSONDecodeError):
+                self._corrupt = True
+                self._corrupt_files.add(self._runtime_path)
                 logger.warning("运行时数据库读取失败: %s", self._runtime_path)
         # 内存中修复不完整/错误的索引（不持久化，下次 _write() 时自动保存）
         if db.get("cards") and not self._index_ok(db):
@@ -184,6 +189,11 @@ class JsonStore:
 
     def _write(self, data: dict) -> None:
         """拆分写入两个文件：运行时数据写入独立文件"""
+        if self._corrupt:
+            raise RuntimeError(
+                "数据库文件读取失败（损坏），已拒绝写入以保护数据；"
+                "请从 data/*.json.bak 或 data/backups/ 恢复后重启应用"
+            )
         # 自动重建索引（处理数据导入后索引丢失或与实体不一致的情况）
         if data.get("cards") and not self._index_ok(data):
             self._rebuild_index(data)
