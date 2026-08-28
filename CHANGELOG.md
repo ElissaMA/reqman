@@ -23,6 +23,7 @@
 1. 本地启动一次应用完成数据自愈，确认日志出现 next_id 自愈/索引重建记录，且工卡/工卡组列表完整
 2. 服务器 `git pull` 并重启：`systemctl restart reqman`（新代码加载即单进程模型）
 3. 同步已自愈的数据：`scp data/reqman_db.json data/reqman_db_runtime.json root@<server>:/root/workspace/reqman/data/`（数据文件不进 Git，需手动同步；服务器重启后自愈逻辑会再兜底一次）
+   - ⚠️ 覆盖前先在服务器留存副本：`cp data/reqman_db.json data/backups/reqman_db_pre_sync_$(date +%Y%m%d).json`。v3.4.5 开发期间本地曾以旧阈值(200)裁掉 64 条审计日志（264→200），服务器现存数据中仍是全量 264 条，覆盖后即不可找回；如需留存审计可事后按日志 id 合并
 4. 核对：服务器启动日志无损坏/自愈告警，工卡、工卡组、日志条数与本地一致
 
 ### 遗留问题（后续迭代取用）
