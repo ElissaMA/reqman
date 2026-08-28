@@ -13,6 +13,7 @@ import logging
 import os
 import shutil
 import threading
+import time
 import uuid
 from typing import ClassVar
 from zoneinfo import ZoneInfo
@@ -29,7 +30,15 @@ def _atomic_write(path: str, data: dict) -> None:
     try:
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-        os.replace(tmp, path)  # Windows / Unix 上均为原子操作
+        for attempt in range(3):
+            try:
+                os.replace(tmp, path)  # Windows / Unix 上均为原子操作
+                break
+            except PermissionError:
+                # Windows：并发读句柄会短暂占用目标文件导致 replace 被拒，稍候重试
+                if attempt == 2:
+                    raise
+                time.sleep(0.05)
     except (OSError, TypeError):
         if os.path.exists(tmp):
             try:

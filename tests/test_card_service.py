@@ -264,11 +264,10 @@ class TestAircraftManagement:
             card_service.add_aircraft("", "A320", "", "", "", "")
 
     def test_add_aircraft_duplicate_reg(self, card_service):
-        """重复注册号仍能添加（JsonStore 不校验 reg 唯一性）"""
-        r = card_service.add_aircraft("B-1234", "A320", "", "", "", "")
-        r2 = card_service.add_aircraft("B-1234", "A320", "", "", "", "")
-        # 两个飞机都应有不同 id
-        assert r2["id"] != r["id"]
+        """重复注册号应拒绝（find_aircraft_by_reg 依赖机号唯一性，v3.4.5 起）"""
+        card_service.add_aircraft("B-1234", "A320", "", "", "", "")
+        with pytest.raises(ServiceError):
+            card_service.add_aircraft("B-1234", "A320", "", "", "", "")
 
     def test_update_aircraft(self, card_service):
         r = card_service.add_aircraft("B-1234", "A320", "", "", "", "")

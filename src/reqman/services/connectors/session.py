@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import threading
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -20,7 +21,15 @@ def _atomic_write(path: Path, data: dict) -> None:
     try:
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-        os.replace(tmp, str(path))
+        for attempt in range(3):
+            try:
+                os.replace(tmp, str(path))
+                break
+            except PermissionError:
+                # Windows：并发读句柄会短暂占用目标文件导致 replace 被拒，稍候重试
+                if attempt == 2:
+                    raise
+                time.sleep(0.05)
     except (OSError, TypeError):
         if os.path.exists(tmp):
             try:
