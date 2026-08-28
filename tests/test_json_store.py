@@ -278,7 +278,8 @@ class TestAtomicWriteFailure:
         import reqman.models.json_store as jsm
 
         json_store.add("SAFE-001", "卡", "发动机", "A", "")
-        good = json.load(open(json_store._path, encoding="utf-8"))
+        with open(json_store._path, encoding="utf-8") as f:
+            good = json.load(f)
 
         def boom(src, dst):
             raise OSError("simulated replace failure")
@@ -287,7 +288,8 @@ class TestAtomicWriteFailure:
         with pytest.raises(OSError):
             json_store.add("SAFE-002", "卡2", "发动机", "A", "")
         monkeypatch.undo()
-        after = json.load(open(json_store._path, encoding="utf-8"))
+        with open(json_store._path, encoding="utf-8") as f:
+            after = json.load(f)
         assert after["cards"] == good["cards"]  # 好文件未被截断/覆盖
 
 
