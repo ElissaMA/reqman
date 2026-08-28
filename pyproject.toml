@@ -1,7 +1,7 @@
 [project]
 name = "inspection-demand-system"
 version = "3.4.5"
-description = "飞机定检需求单管理系统，工卡匹配与需求单自动生成工具"
+description = "ReqMan定检准备系统 — 飞机定检工卡匹配与需求单自动生成"
 requires-python = ">=3.10"
 dependencies = [
     "flask>=3.1.0",

@@ -220,11 +220,11 @@ def get_openapi_spec():
     return {
         "openapi": "3.0.3",
         "info": {
-            "title": "需求单管理系统 API",
+            "title": "ReqMan定检准备系统 API",
             "description": "工卡管理、工作包上传、需求单生成的 AJAX API 接口",
             "version": "1.0.0",
             "contact": {
-                "name": "需求单管理团队",
+                "name": "ReqMan定检准备系统",
             },
         },
         "servers": [

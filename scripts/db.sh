@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# 定检需求单管理系统 — 数据库管理脚本
+# ReqMan定检准备系统 — 数据库管理脚本
 # 用法:
 #   bash scripts/db.sh backup              # 备份数据库（gzip 压缩）
 #   bash scripts/db.sh restore             # 恢复最近一次备份

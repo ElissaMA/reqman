@@ -1,4 +1,4 @@
-"""川航 AMRO 登录脚本 — 自动提取登录凭证并上传到需求单系统"""
+"""川航 AMRO 登录脚本 — 自动提取登录凭证并上传到ReqMan定检准备系统"""
 import asyncio, json, os, sys, tkinter as tk
 from tkinter import messagebox
 SERVER_URL = "http://127.0.0.1:5001"
@@ -60,7 +60,7 @@ async def main():
                         resp = await client.post(UPLOAD_URL, data={"cookies": json.dumps(cookies, ensure_ascii=False)})
                         resp.raise_for_status()
                 except Exception:
-                    print(f"无法连接需求单系统（{UPLOAD_URL}），请检查网络后重新运行登录脚本")
+                    print(f"无法连接ReqMan定检准备系统（{UPLOAD_URL}），请检查网络后重新运行登录脚本")
                     await browser.close()
                     return
                 print(MSG_P3)

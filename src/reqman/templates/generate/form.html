@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% import "macros/list_macros.html" as list %}
 {% macro remark_display(item) %}{% set rt = item.get('usage_type', '') %}{% set rm = item.get('remark', '') %}{% if rt == '检查有问题领用' %}检查有问题领用{% if rm %}，{{ rm }}{% endif %}{% else %}{{ rm }}{% endif %}{% endmacro %}
-{% block title %}生成需求单 - 定检需求单管理{% endblock %}
+{% block title %}生成需求单 - ReqMan定检准备系统{% endblock %}
 {% block content %}
 <style>
 /* 表格行高统一 */

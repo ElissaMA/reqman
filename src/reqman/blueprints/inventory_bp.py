@@ -206,7 +206,7 @@ def download():
 
 def _login_py_template(server_url: str) -> str:
     return (
-        f'"""川航 AMRO 登录脚本 — 自动提取登录凭证并上传到需求单系统"""\n'
+        f'"""川航 AMRO 登录脚本 — 自动提取登录凭证并上传到ReqMan定检准备系统"""\n'
         "import asyncio, json, os, sys, tkinter as tk\n"
         "from tkinter import messagebox\n"
         f'SERVER_URL = "{server_url}"\n'
@@ -268,7 +268,7 @@ def _login_py_template(server_url: str) -> str:
         '                        resp = await client.post(UPLOAD_URL, data={"cookies": json.dumps(cookies, ensure_ascii=False)})\n'
         '                        resp.raise_for_status()\n'
         '                except Exception:\n'
-        '                    print(f"无法连接需求单系统（{UPLOAD_URL}），请检查网络后重新运行登录脚本")\n'
+        '                    print(f"无法连接ReqMan定检准备系统（{UPLOAD_URL}），请检查网络后重新运行登录脚本")\n'
         '                    await browser.close()\n'
         '                    return\n'
         '                print(MSG_P3)\n'

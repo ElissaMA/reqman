@@ -1,5 +1,5 @@
 [Unit]
-Description=定检需求单管理系统
+Description=ReqMan定检准备系统
 After=network.target
 
 [Service]

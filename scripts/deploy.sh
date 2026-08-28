@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# 定检需求单管理系统 — 一键部署脚本（Python 直接部署）
+ # ReqMan定检准备系统 — 一键部署脚本（Python 直接部署）
 # 用法: sudo bash scripts/deploy.sh
 #
 # 部署目标: /root/workspace/reqman
@@ -22,7 +22,7 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 log "=========================================="
-log "  定检需求单管理系统 — 部署开始"
+log "  ReqMan定检准备系统 — 部署开始"
 log "=========================================="
 
 # ---------- 1. 检查 Python 3.11 ----------

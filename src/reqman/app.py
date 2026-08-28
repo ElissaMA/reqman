@@ -160,7 +160,7 @@ if __name__ == "__main__":
     port = 5001
 
     print("=" * 50)
-    print("  定检需求单管理系统 V3.4.5")
+    print("  ReqMan定检准备系统 V3.4.5")
     print("  架构: 工厂模式 + 蓝图 + 服务层")
     print("=" * 50)
 
