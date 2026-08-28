@@ -261,16 +261,26 @@ class CardService:
 
     def add_aircraft(self, reg: str, model: str = "",
                      engine: str = "", fsn: str = "", msn: str = "", apu: str = "") -> dict:
-        """新增飞机。机号不能为空"""
+        """新增飞机。机号必填且不得重复（find_aircraft_by_reg 依赖唯一性）"""
         if is_blank(reg):
             raise ServiceError("机号不能为空", "reg")
+        reg = reg.strip()
+        if self.store.find_aircraft_by_reg(reg):
+            raise ServiceError(f"机号 {reg} 已存在", "reg")
         return self.store.add_aircraft(
-            reg.strip(), model.strip(), engine.strip(),
+            reg, model.strip(), engine.strip(),
             fsn.strip(), msn.strip(), apu.strip()
         )
 
     def update_aircraft(self, aircraft_id: int, **kwargs) -> dict:
-        """更新飞机信息"""
+        """更新飞机信息。机号清空或撞已有机号时抛出 ServiceError"""
+        reg = kwargs.get("reg")
+        if reg is not None:
+            if is_blank(reg):
+                raise ServiceError("机号不能为空", "reg")
+            existing = self.store.find_aircraft_by_reg(reg.strip())
+            if existing and existing["id"] != aircraft_id:
+                raise ServiceError(f"机号 {reg.strip()} 已存在", "reg")
         ac = self.store.update_aircraft(aircraft_id, **kwargs)
         if ac is None:
             raise ServiceError("飞机信息不存在", "aircraft_id")

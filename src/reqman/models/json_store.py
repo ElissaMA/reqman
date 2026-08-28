@@ -54,7 +54,6 @@ _RUNTIME_KEYS = {
     "work_packages",
     "next_id",
     "code_index",
-    "next_ac_id",
 }
 
 
@@ -169,6 +168,8 @@ class JsonStore:
                 self._corrupt = True
                 self._corrupt_files.add(self._runtime_path)
                 logger.warning("运行时数据库读取失败: %s", self._runtime_path)
+        # 清理历史遗留的死键（无任何读者，飞机与工卡共用 next_id）
+        db.pop("next_ac_id", None)
         # 内存中修复不完整/错误的索引（不持久化，下次 _write() 时自动保存）
         if db.get("cards") and not self._index_ok(db):
             logger.warning("code_index 校验失败，已重建索引")
@@ -304,7 +305,7 @@ class JsonStore:
             keyword = search.lower()
             cards = [
                 card for card in cards
-                if keyword in card["task_code"].lower() or keyword in card.get("task_name", "").lower()
+                if keyword in card.get("task_code", "").lower() or keyword in card.get("task_name", "").lower()
             ]
 
         if category:
@@ -315,7 +316,7 @@ class JsonStore:
 
         # 按 专业 → 工卡号 排序
         cat_order = {cat: i for i, cat in enumerate(CATEGORIES)}
-        cards.sort(key=lambda card: (cat_order.get(card.get("category"), 99), card["task_code"]))
+        cards.sort(key=lambda card: (cat_order.get(card.get("category"), 99), card.get("task_code", "")))
         return cards
 
     def get(self, card_id: int) -> dict | None:

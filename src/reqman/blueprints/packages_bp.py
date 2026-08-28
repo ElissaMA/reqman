@@ -154,7 +154,7 @@ def _handle_upload_post():
     store.save_work_package(package_data)
 
     if _is_ajax():
-        return api_success(data={"package_id": package_data.get("id")},
+        return api_success(data={"package_id": package_data.get("package_id")},
                            message="工作包上传成功")
     flash("工作包上传成功，点击工作包即可匹配生成", "success")
     return redirect("/upload")

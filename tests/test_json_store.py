@@ -335,3 +335,33 @@ class TestCorruptRefuseWrite:
             core = json.load(f)
         assert "CORR-002" not in [c["task_code"] for c in core["cards"].values()]
         assert "CORR-001" in [c["task_code"] for c in core["cards"].values()]
+
+
+class TestQuickFixes:
+    def test_get_all_missing_key_safe(self, tmp_path):
+        """数据缺 task_code 键时 get_all 不得 500（KeyError 防护）"""
+        db_path = str(tmp_path / "missing.json")
+        with open(db_path, "w", encoding="utf-8") as f:
+            json.dump({"cards": {"1": {"id": 1}}}, f)  # 缺 task_code
+        store = JsonStore(db_path)
+        cards = store.get_all()
+        assert len(cards) == 1 and cards[0]["id"] == 1
+        assert len(store.get_all(search="任意")) == 0
+
+    def test_aircraft_reg_dup_and_required(self, json_store):
+        """机号必填且不得重复（find_aircraft_by_reg 依赖唯一性）"""
+        from reqman.services.card_service import CardService, ServiceError
+
+        svc = CardService(json_store)
+        svc.add_aircraft(reg="B-1111", model="A320")
+        with pytest.raises(ServiceError):
+            svc.add_aircraft(reg="B-1111", model="B737")  # 重复
+        with pytest.raises(ServiceError):
+            svc.add_aircraft(reg="   ", model="A320")  # 空
+        ac = svc.get_aircraft(1)
+        with pytest.raises(ServiceError):
+            svc.update_aircraft(ac["id"], reg="")  # 编辑清空
+        svc.add_aircraft(reg="B-2222", model="A320")
+        with pytest.raises(ServiceError):
+            svc.update_aircraft(ac["id"], reg="B-2222")  # 编辑撞已有机号
+        assert svc.get_aircraft(ac["id"])["reg"] == "B-1111"

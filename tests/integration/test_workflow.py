@@ -131,6 +131,23 @@ class TestUploadWorkPackage:
             data_json = resp.get_json()
             assert data_json["success"] is True
 
+    def test_upload_ajax_returns_package_id(self, client, store):
+        """AJAX 上传必须回传真实 package_id（曾恒返回 None 导致前端无法跳转预览）"""
+        routine_data = _make_mock_excel([
+            {"task_code": "ENG-001", "task_name": "发动机检查",
+             "category": "发动机", "task_type": "A"},
+        ])
+        data = {"routine_file": (io.BytesIO(routine_data), "routine.xlsx")}
+        resp = client.post(self.UPLOAD_URL, data=data,
+                           headers={"X-Requested-With": "XMLHttpRequest"})
+        assert resp.status_code == 200
+        data_json = resp.get_json()
+        assert data_json["success"] is True
+        pkg_id = data_json["data"]["package_id"]
+        assert pkg_id, "package_id 不应为空"
+        # 回传的 id 能直接查到刚上传的工作包
+        assert store.get_work_package(pkg_id) is not None
+
 
 class TestMatchAndGenerate:
     """匹配和生成流程测试"""
