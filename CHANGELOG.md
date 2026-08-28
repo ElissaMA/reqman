@@ -1,5 +1,41 @@
 # Changelog
 
+## [3.4.5] - Unreleased
+### Fixed（数据安全四项严重缺陷，均经服务器最新数据实证）
+- next_id 计数器落后于现存实体（1032 vs 1036），新建工卡/工卡组会静默覆盖现有数据。读取时自愈为 max(实体ID)+1，分配时跳过已占用 ID
+- code_index 索引悬挂/错映射（`CSCA320-783200-W1-1-1` 误指向卡 1023），原条数检查查不出。改为双向校验（键→卡存在且工卡号匹配、数量一致），不一致即重建
+- 原子写失败 fallback 直接截断覆盖好文件（磁盘满/写失败即毁库）。改为失败保留原文件并抛异常（json_store + session）
+- 启动日志裁剪阈值 200 低于现存 264 条审计日志，每次启动无提示删除 64 条。阈值调整为 2000
+### Fixed（其他）
+- `save_work_package` 读改写补加线程锁（原为唯一无锁写路径，并发丢失更新）
+- 编辑工卡号校验不得占用其他卡的编号（脏索引产生源头），页面返回错误提示
+- 数据文件读取损坏时拒绝一切写入并告警，防止"半张库"被合法化持久化；修复启动自愈死代码（损坏检测从未生效）
+- 备份体系补齐运行时文件 `reqman_db_runtime.json`（.bak / 关闭备份 / cron / db.sh 恢复全链路；此前该文件无任何备份）；关闭备份改用项目根绝对路径
+- 上传工作包 AJAX 响应回传真实 `package_id`（曾恒为 null，前端无法跳转预览）
+- `get_all` 对缺 `task_code` 键的数据容错（曾直接 KeyError 500）
+- 飞机机号新增/编辑增加必填与重复校验；移除无读者的 `next_ac_id` 死键
+
+### Changed
+- 部署：服务器 gunicorn 由 4进程×2线程 调整为 1进程×4线程。JSON 存储锁为进程内锁，多进程并发读写同一对数据文件存在丢更新与 ID 竞争；内部工具单进程足够，并消除 4 份重复关闭备份。未来确需多 worker：先为 JsonStore 增加 fcntl/msvcrt 跨进程文件锁
+- 版本号统一为 3.4.5（README 此前 3.4.0、启动横幅此前 3.2.5）
+
+### 服务器更新步骤（本地为数据源）
+1. 本地启动一次应用完成数据自愈，确认日志出现 next_id 自愈/索引重建记录，且工卡/工卡组列表完整
+2. 服务器 `git pull` 并重启：`systemctl restart reqman`（新代码加载即单进程模型）
+3. 同步已自愈的数据：`scp data/reqman_db.json data/reqman_db_runtime.json root@<server>:/root/workspace/reqman/data/`（数据文件不进 Git，需手动同步；服务器重启后自愈逻辑会再兜底一次）
+4. 核对：服务器启动日志无损坏/自愈告警，工卡、工卡组、日志条数与本地一致
+
+### 遗留问题（后续迭代取用）
+- AMRO 会话 cookie 明文落盘 `data/cookie/`，登录上传端点无鉴权，nginx 无 basic auth
+- AMRO 查询零审计（谁/何时/查了什么无记录）；单全局会话 TTL 2h，异地登录互踢
+- AMRO API URL/表单字段/cookie 名 `JSESSIONID` 全硬编码，接口改版即断
+- 工作清单 Excel 列位/日期解析硬编码，模板变化静默产出空值；`_parse_qty` 对 "1,000"/"1.2.3" 误解析
+- 工卡状态判定逻辑三处重复（matcher/card_service/generate_bp），v3.4.4 漏改即其产物
+- 工卡组提醒字段无条件覆盖子卡（`sync_set_to_cards`）
+- 大规模爬取差距：同步阻塞+前端 65s 硬超时、无重试/限速/断点/任务状态、多用户输出互踩
+- 工卡版本(revision)数据模型不存在；提醒为人工字段+手动下载，无主动通知
+- 结构：前端 CSS/JS 内联模板、双 venv、uv.lock 不入库、docs/superpowers 不入库
+
 ## [3.4.3] - Unreleased
 ### Changed
 - 数据同步：停止 Git 追踪 `reqman_db.json`，改为手动 scp 同步
