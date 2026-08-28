@@ -289,3 +289,32 @@ class TestAtomicWriteFailure:
         monkeypatch.undo()
         after = json.load(open(json_store._path, encoding="utf-8"))
         assert after["cards"] == good["cards"]  # 好文件未被截断/覆盖
+
+
+class TestWriteConsistency:
+    def test_save_work_package_threaded_no_loss(self, tmp_path):
+        """多线程并发保存工作包不得互相丢失（save_work_package 曾是唯一无锁的读改写）"""
+        import threading
+
+        store = JsonStore(str(tmp_path / "wp.json"))
+
+        def save(i):
+            store.save_work_package({"reg": f"B-{i:04d}", "description": "d", "date": "2026.08.28"})
+
+        ts = [threading.Thread(target=save, args=(i,)) for i in range(10)]
+        for t in ts:
+            t.start()
+        for t in ts:
+            t.join()
+        assert len(store.get_work_packages()) == 10
+
+    def test_update_duplicate_code_rejected(self, json_store):
+        """编辑工卡号不得占用其他卡已有的工卡号（脏索引的产生源头）"""
+        a = json_store.add("CODE-A", "卡A", "机体", "", "")
+        b = json_store.add("CODE-B", "卡B", "机体", "", "")
+        with pytest.raises(ValueError):
+            json_store.update(b["id"], task_code="CODE-A")
+        # 拒绝且无副作用
+        assert json_store.get(b["id"])["task_code"] == "CODE-B"
+        assert json_store.get(a["id"])["task_code"] == "CODE-A"
+        assert json_store.find_by_code("CODE-A")["id"] == a["id"]

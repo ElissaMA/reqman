@@ -374,9 +374,12 @@ class JsonStore:
                 if key in kwargs:
                     card[key] = kwargs[key]
 
-            # 如果编码变了，更新索引
+            # 如果编码变了，更新索引（新码不得占用其他卡，堵住脏索引源头）
             new_code = card.get("task_code")
             if old_code and old_code != new_code:
+                owner = db.get("code_index", {}).get(new_code)
+                if new_code and owner is not None and owner != card_id:
+                    raise ValueError(f"工卡号 {new_code} 已存在（卡 {owner}）")
                 db["code_index"].pop(old_code, None)
                 if new_code:
                     db["code_index"][new_code] = card_id
@@ -538,22 +541,23 @@ class JsonStore:
             return self._norm(ac, "aircraft")
 
     def save_work_package(self, data):
-        db = self._read()
-        wps = db.setdefault("work_packages", [])
-        if "package_id" not in data:
-            data["package_id"] = str(uuid.uuid4())
-        for i, wp in enumerate(wps):
-            if wp.get("reg") == data["reg"] and wp.get("description") == data["description"]:
-                data["package_id"] = wp.get("package_id", data["package_id"])
-                wps[i] = data
-                self._write(db)
-                return data
-        wps.append(data)
-        if len(wps) > 10:
-            wps.sort(key=lambda x: x.get("date", ""), reverse=True)
-            wps[:] = wps[:10]
-        self._write(db)
-        return data
+        with self._lock:
+            db = self._read()
+            wps = db.setdefault("work_packages", [])
+            if "package_id" not in data:
+                data["package_id"] = str(uuid.uuid4())
+            for i, wp in enumerate(wps):
+                if wp.get("reg") == data["reg"] and wp.get("description") == data["description"]:
+                    data["package_id"] = wp.get("package_id", data["package_id"])
+                    wps[i] = data
+                    self._write(db)
+                    return data
+            wps.append(data)
+            if len(wps) > 10:
+                wps.sort(key=lambda x: x.get("date", ""), reverse=True)
+                wps[:] = wps[:10]
+            self._write(db)
+            return data
 
     def get_work_packages(self):
         db = self._read()

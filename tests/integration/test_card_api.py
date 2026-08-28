@@ -205,6 +205,23 @@ class TestEditCard:
         }, headers=ajax_headers)
         assert resp.status_code == 302
 
+    def test_edit_ajax_duplicate_code(self, prefilled_client, ajax_headers, store):
+        """编辑工卡号撞其他卡已有编号时被拒绝，且双方数据不变"""
+        resp = prefilled_client.post(self._edit_url(2), data={
+            "task_code": "ENG-001",  # 卡1 已占用
+            "task_name": "发动机拆装",
+            "category": "发动机",
+            "confirm_no_tools": "1",
+            "confirm_no_mats": "1",
+            "reminder_type": "一般提醒",
+        }, headers=ajax_headers)
+        data = resp.get_json()
+        assert data["success"] is False
+        assert "已存在" in data["message"]
+        # 双方工卡号原样保留
+        assert store.get(1)["task_code"] == "ENG-001"
+        assert store.get(2)["task_code"] == "ENG-002"
+
     def test_edit_form_no_tools_no_mats(self, prefilled_client, ajax_headers):
         """编辑时确认无工具航材"""
         resp = prefilled_client.post(self._edit_url(1), data={

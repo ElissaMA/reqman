@@ -120,8 +120,11 @@ class CardService:
         return card
 
     def update_card(self, card_id: int, **kwargs) -> dict:
-        """更新工卡。不存在时抛出 ServiceError"""
-        card = self.store.update(card_id, **kwargs)
+        """更新工卡。不存在或工卡号撞其他卡时抛出 ServiceError"""
+        try:
+            card = self.store.update(card_id, **kwargs)
+        except ValueError as e:
+            raise ServiceError(str(e), "task_code") from e
         if card is None:
             raise ServiceError("工卡不存在", "card_id")
         return card
