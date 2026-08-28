@@ -365,3 +365,17 @@ class TestQuickFixes:
         with pytest.raises(ServiceError):
             svc.update_aircraft(ac["id"], reg="B-2222")  # 编辑撞已有机号
         assert svc.get_aircraft(ac["id"])["reg"] == "B-1111"
+
+
+class TestLogAutoTrim:
+    def test_add_log_auto_trims_to_500(self, json_store):
+        """每次新增日志自动清理：仅保留最新500条（本地/服务器同一行为）"""
+        db = json_store._read()
+        for i in range(505):
+            json_store._add_log(db, "add", "card", i, f"C-{i}", "", [])
+        json_store._write(db)
+        logs = json_store.get_logs(limit=1000)
+        assert len(logs) == 500
+        ids = {l["id"] for l in logs}
+        assert 505 in ids  # 最新保留
+        assert 1 not in ids and 5 not in ids  # 最旧丢弃

@@ -107,15 +107,6 @@ def create_app():
     )
     logger.info("依赖注入完成：store + card_service + inventory_service")
 
-    # 启动时清理日志（保留最新2000条；264条审计日志曾险被200上限裁掉64条）
-    try:
-        store = app.extensions["store"]
-        trimmed = store.trim_logs(max_count=2000)
-        if trimmed:
-            logger.info("启动清理：裁剪 %d 条多余日志", trimmed)
-    except Exception:
-        logger.warning("启动时日志清理失败", exc_info=True)
-
     # 蓝图
     from .blueprints.cards_bp import cards_bp
     from .blueprints.generate_bp import generate_bp

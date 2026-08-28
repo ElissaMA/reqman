@@ -58,6 +58,9 @@ _EMPTY_DB = {
     "card_log_next_id": 1,
 }
 
+# 操作日志保留上限：每次新增日志后自动清理多余旧条目
+MAX_LOGS = 500
+
 # 运行时数据（不纳入 Git 追踪）的键列表
 _RUNTIME_KEYS = {
     "work_packages",
@@ -301,6 +304,11 @@ class JsonStore:
             "timestamp": datetime.now(ZoneInfo("Asia/Shanghai")).isoformat(),
         }
         db.setdefault("card_logs", []).append(log)
+        # 自动清理：仅保留最新 MAX_LOGS 条（时间平局时按自增 id 判定新旧）
+        logs = db["card_logs"]
+        if len(logs) > MAX_LOGS:
+            logs.sort(key=lambda item: (item.get("timestamp", ""), item.get("id", 0)), reverse=True)
+            db["card_logs"] = logs[:MAX_LOGS]
         return log
 
     # ---------- 工卡 CRUD ----------
@@ -666,15 +674,15 @@ class JsonStore:
                 self._write(db)
             return deleted
 
-    def trim_logs(self, max_count: int = 200) -> int:
+    def trim_logs(self, max_count: int = MAX_LOGS) -> int:
         """保留最新N条日志，删除多余的，返回删除数量"""
         with self._lock:
             db = self._read()
             logs = db.get("card_logs", [])
             if len(logs) <= max_count:
                 return 0
-            # 按时间降序排列，保留前max_count条
-            logs.sort(key=lambda log: log.get("timestamp", ""), reverse=True)
+            # 按时间降序排列（时间平局按自增 id 判定新旧），保留前max_count条
+            logs.sort(key=lambda log: (log.get("timestamp", ""), log.get("id", 0)), reverse=True)
             deleted_count = len(logs) - max_count
             db["card_logs"] = logs[:max_count]
             self._write(db)
