@@ -164,11 +164,10 @@ class JsonStore:
                     db.update(json.load(f))
             except (OSError, json.JSONDecodeError):
                 logger.warning("运行时数据库读取失败: %s", self._runtime_path)
-        # 内存中修复不完整的索引（不持久化，下次 _write() 时自动保存）
-        if db.get("cards"):
-            ci = db.get("code_index", {})
-            if not ci or len(ci) < len(db["cards"]):
-                self._rebuild_index(db)
+        # 内存中修复不完整/错误的索引（不持久化，下次 _write() 时自动保存）
+        if db.get("cards") and not self._index_ok(db):
+            logger.warning("code_index 校验失败，已重建索引")
+            self._rebuild_index(db)
         # 计数器自愈：next_id 落后于现存实体时修正（幂等；防止下次创建静默覆盖现有数据）
         max_id = 0
         for coll in ("cards", "card_sets", "aircraft"):
@@ -185,11 +184,9 @@ class JsonStore:
 
     def _write(self, data: dict) -> None:
         """拆分写入两个文件：运行时数据写入独立文件"""
-        # 自动重建索引（处理数据导入后索引丢失或不完整的情况）
-        if data.get("cards"):
-            ci = data.get("code_index", {})
-            if not ci or len(ci) < len(data["cards"]):
-                self._rebuild_index(data)
+        # 自动重建索引（处理数据导入后索引丢失或与实体不一致的情况）
+        if data.get("cards") and not self._index_ok(data):
+            self._rebuild_index(data)
         core = {}
         runtime = {}
         for k, v in data.items():
@@ -220,10 +217,32 @@ class JsonStore:
         return nid
 
     def _rebuild_index(self, db: dict) -> None:
-        """重建编码索引"""
+        """重建编码索引（缺 task_code 的卡跳过；重复码以后写入者为准并告警）"""
         db["code_index"] = {}
+        coded = 0
         for card_id, card in db.get("cards", {}).items():
-            db["code_index"][card["task_code"]] = int(card_id)
+            code = card.get("task_code")
+            if code:
+                db["code_index"][code] = int(card_id)
+                coded += 1
+        if len(db["code_index"]) != coded:
+            logger.warning("检测到重复工卡号，索引以后写入者为准，请检查数据")
+
+    @staticmethod
+    def _index_ok(db: dict) -> bool:
+        """索引双向校验：每个键指向的卡存在且 task_code 匹配、有码卡数量一致。
+        能查出条数比较查不出的悬挂/错映射（如卡删除后索引残留）"""
+        cards = db["cards"]
+        ci = db.get("code_index", {})
+        cards_with_code = 0
+        for cid, card in cards.items():
+            code = card.get("task_code")
+            if not code:
+                continue
+            cards_with_code += 1
+            if ci.get(code) != int(cid):
+                return False
+        return len(ci) == cards_with_code
 
     # ---------- 日志辅助方法 ----------
 

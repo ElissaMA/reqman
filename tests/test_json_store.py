@@ -245,3 +245,28 @@ class TestNextIdHeal:
         # 现有实体原样保留
         assert store.get(1032)["task_code"] == "C-1032"
         assert store.get_set(1036)["name"] == "S-1036"
+
+
+class TestIndexHeal:
+    def test_dirty_index_heals_on_read(self, tmp_path):
+        """悬挂索引（指向 task_code 不匹配的卡）读取即自愈（服务器数据实证）"""
+        db_path = str(tmp_path / "dirty.json")
+        with open(db_path, "w", encoding="utf-8") as f:
+            json.dump({
+                "next_id": 2,
+                "cards": {"1": {"id": 1, "task_code": "REAL-CODE"}},
+                "code_index": {"GHOST-CODE": 1, "REAL-CODE": 1},
+            }, f)
+        store = JsonStore(db_path)
+        assert store.find_by_code("GHOST-CODE") is None
+        assert store.find_by_code("REAL-CODE")["id"] == 1
+        store.update(1, task_name="触发写入")  # 写后索引自愈持久化
+        with open(str(tmp_path / "dirty_runtime.json"), encoding="utf-8") as f:
+            assert "GHOST-CODE" not in json.load(f).get("code_index", {})
+
+    def test_index_missing_rebuilt(self, tmp_path):
+        db_path = str(tmp_path / "noidx.json")
+        with open(db_path, "w", encoding="utf-8") as f:
+            json.dump({"cards": {"1": {"id": 1, "task_code": "C-001"}}}, f)
+        store = JsonStore(db_path)
+        assert store.find_by_code("C-001")["id"] == 1
