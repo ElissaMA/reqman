@@ -14,6 +14,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 BACKUP_DIR="${PROJECT_DIR}/data/backups"
 DB_FILE="${PROJECT_DIR}/data/reqman_db.json"
+RT_FILE="${PROJECT_DIR}/data/reqman_db_runtime.json"  # 运行时文件（计数器/索引/工作包）
 KEEP_DAYS=28  # 默认保留4周
 
 # ---------- 辅助函数 ----------
@@ -31,6 +32,10 @@ do_backup() {
     BACKUP_FILE="${BACKUP_DIR}/reqman_db_${TIMESTAMP}.json.gz"
 
     gzip -c "$DB_FILE" > "$BACKUP_FILE"
+    if [ -f "$RT_FILE" ]; then
+        gzip -c "$RT_FILE" > "${BACKUP_DIR}/reqman_db_runtime_${TIMESTAMP}.json.gz"
+        log "运行时文件已备份: ${BACKUP_DIR}/reqman_db_runtime_${TIMESTAMP}.json.gz"
+    fi
     FILE_SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
     log "备份完成: ${BACKUP_FILE} (${FILE_SIZE})"
 
@@ -53,11 +58,15 @@ do_restore() {
 
     log "恢复文件: $RESTORE_FILE"
 
-    # 安全备份当前数据
+    # 安全备份当前数据（含运行时文件）
     if [ -f "$DB_FILE" ]; then
         SAFETY="${DB_FILE}.pre_restore"
         cp "$DB_FILE" "$SAFETY"
         log "当前数据已备份: ${SAFETY}"
+    fi
+    if [ -f "$RT_FILE" ]; then
+        cp "$RT_FILE" "${RT_FILE}.pre_restore"
+        log "当前运行时文件已备份: ${RT_FILE}.pre_restore"
     fi
 
     # 恢复（支持 .gz 和非 .gz）
@@ -65,6 +74,21 @@ do_restore() {
         gzip -dc "$RESTORE_FILE" > "$DB_FILE"
     else
         cp "$RESTORE_FILE" "$DB_FILE"
+    fi
+
+    # 按同名时间戳配对恢复运行时文件；缺失则跳过（计数器/索引可自愈，工作包以恢复后现状为准）
+    local RT_RESTORE=""
+    local base
+    base=$(basename "$RESTORE_FILE")
+    if [[ "$base" == reqman_db_*.json.gz ]]; then
+        local candidate="${BACKUP_DIR}/reqman_db_runtime_${base#reqman_db_}"
+        [ -f "$candidate" ] && RT_RESTORE="$candidate"
+    fi
+    if [ -n "$RT_RESTORE" ]; then
+        gzip -dc "$RT_RESTORE" > "$RT_FILE"
+        log "运行时文件已恢复: $RT_RESTORE"
+    else
+        log "警告: 未找到配对的运行时文件备份，next_id/code_index 将在应用启动时自愈"
     fi
 
     log "数据恢复完成"

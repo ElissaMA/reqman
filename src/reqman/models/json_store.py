@@ -198,11 +198,13 @@ class JsonStore:
         _atomic_write(self._path, core)
         _atomic_write(self._runtime_path, runtime)
 
-        # 备份核心文件
-        try:
-            shutil.copy2(self._path, self._path + ".bak")
-        except OSError:
-            logger.warning("核心文件备份失败: %s.bak", self._path)
+        # 备份核心与运行时文件（runtime 含计数器/索引/工作包，缺失会导致计数器回退）
+        for p in (self._path, self._runtime_path):
+            try:
+                if os.path.exists(p):
+                    shutil.copy2(p, p + ".bak")
+            except OSError:
+                logger.warning("备份失败: %s.bak", p)
 
     def _next_id(self, db: dict) -> int:
         """从 db dict 中取 next_id 并递增，跳过已占用的实体 ID（cards/sets/aircraft 共用计数器）。

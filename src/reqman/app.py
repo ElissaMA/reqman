@@ -126,26 +126,27 @@ app = create_app()
 
 
 def _backup_on_exit():
-    """应用关闭时自动备份数据库"""
+    """应用关闭时自动备份数据库（核心+运行时文件，路径基于项目根，不依赖启动 CWD）"""
     try:
-        db_file = Path("data/reqman_db.json")
-        if not db_file.exists():
-            return
-
-        backup_dir = Path("data/backups")
-        backup_dir.mkdir(exist_ok=True)
+        project_root = Path(__file__).resolve().parent.parent.parent
+        data_dir = project_root / "data"
+        backup_dir = data_dir / "backups"
+        backup_dir.mkdir(parents=True, exist_ok=True)
 
         # 生成带时间戳的备份文件名
         timestamp = datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y%m%d_%H%M%S")
-        backup_file = backup_dir / f"reqman_db_{timestamp}.json.gz"
 
-        # 压缩备份
-        with open(db_file, 'rb') as f_in, gzip.open(backup_file, 'wb') as f_out:
-            f_out.write(f_in.read())
+        targets = [data_dir / "reqman_db.json", data_dir / "reqman_db_runtime.json"]
+        for db_file in targets:
+            if not db_file.exists():
+                continue
+            backup_file = backup_dir / f"{db_file.stem}_{timestamp}.json.gz"
+            with open(db_file, 'rb') as f_in, gzip.open(backup_file, 'wb') as f_out:
+                f_out.write(f_in.read())
 
-        # 清理28天前的备份
+        # 清理28天前的备份（覆盖 core 与 runtime 两种命名）
         cutoff = datetime.now(ZoneInfo("Asia/Shanghai")) - timedelta(days=28)
-        for f in backup_dir.glob("reqman_db_*.json.gz"):
+        for f in backup_dir.glob("reqman_db*_*_*.json.gz"):
             if f.stat().st_mtime < cutoff.timestamp():
                 f.unlink()
     except OSError as e:
