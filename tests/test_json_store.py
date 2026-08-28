@@ -1,7 +1,10 @@
 """JsonStore 单元测试"""
+import json
 import os
 import shutil
 from pathlib import Path
+
+import pytest
 
 from reqman.models.json_store import JsonStore
 
@@ -223,3 +226,22 @@ class TestSyncSetReminder:
         assert synced["card_ok"] is True
         assert synced["reminder_confirmed"] is False
         assert synced["category"] == "发动机"
+
+
+class TestNextIdHeal:
+    def test_next_id_lag_does_not_overwrite(self, tmp_path):
+        """next_id 落后于现存实体时，新增不得覆盖现有实体（服务器数据实证：1032 vs 1036）"""
+        db_path = str(tmp_path / "lag.json")
+        with open(db_path, "w", encoding="utf-8") as f:
+            json.dump({
+                "next_id": 1032,
+                "cards": {str(i): {"id": i, "task_code": f"C-{i}"} for i in range(1028, 1033)},
+                "card_sets": {str(i): {"id": i, "name": f"S-{i}"} for i in range(1033, 1037)},
+                "aircraft": {},
+            }, f)
+        store = JsonStore(db_path)
+        r = store.add("NEW-001", "新卡", "机体", "", "")
+        assert r["id"] == 1037
+        # 现有实体原样保留
+        assert store.get(1032)["task_code"] == "C-1032"
+        assert store.get_set(1036)["name"] == "S-1036"

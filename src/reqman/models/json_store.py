@@ -169,6 +169,18 @@ class JsonStore:
             ci = db.get("code_index", {})
             if not ci or len(ci) < len(db["cards"]):
                 self._rebuild_index(db)
+        # 计数器自愈：next_id 落后于现存实体时修正（幂等；防止下次创建静默覆盖现有数据）
+        max_id = 0
+        for coll in ("cards", "card_sets", "aircraft"):
+            for k in db.get(coll, {}):
+                try:
+                    max_id = max(max_id, int(k))
+                except (TypeError, ValueError):
+                    pass
+        if db.get("next_id", 1) <= max_id:
+            logger.warning("next_id=%s 落后于现存实体最大ID=%d，自愈为 %d",
+                           db.get("next_id"), max_id, max_id + 1)
+            db["next_id"] = max_id + 1
         return db
 
     def _write(self, data: dict) -> None:
@@ -196,8 +208,14 @@ class JsonStore:
             logger.warning("核心文件备份失败: %s.bak", self._path)
 
     def _next_id(self, db: dict) -> int:
-        """从 db dict 中取 next_id 并递增。调用方需持有 _lock"""
-        nid = db["next_id"]
+        """从 db dict 中取 next_id 并递增，跳过已占用的实体 ID（cards/sets/aircraft 共用计数器）。
+        调用方需持有 _lock"""
+        nid = db.get("next_id", 1)
+        taken = set()
+        for coll in ("cards", "card_sets", "aircraft"):
+            taken.update(str(k) for k in db.get(coll, {}))
+        while str(nid) in taken:
+            nid += 1
         db["next_id"] = nid + 1
         return nid
 
