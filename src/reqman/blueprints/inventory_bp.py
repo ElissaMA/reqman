@@ -286,7 +286,7 @@ def _login_py_template(server_url: str) -> str:
 
 def _login_bat_template(server_url: str) -> str:
     return (
-        "\ufeff@echo off\r\n"
+        "@echo off\r\n"
         "chcp 65001 >nul\r\n"
         "setlocal\r\n"
         'cd /d "%~dp0"\r\n'
