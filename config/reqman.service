@@ -7,7 +7,7 @@ Type=simple
 User=root
 WorkingDirectory=/root/workspace/reqman
 Environment="PATH=/root/workspace/reqman/venv/bin"
-ExecStart=/root/workspace/reqman/venv/bin/gunicorn --bind 0.0.0.0:5001 --workers 4 --threads 2 --timeout 120 --access-logfile - --error-logfile - --log-level info reqman:create_app()
+ExecStart=/root/workspace/reqman/venv/bin/gunicorn --bind 0.0.0.0:5001 --workers 1 --threads 4 --timeout 120 --access-logfile - --error-logfile - --log-level info reqman:create_app()
 Restart=always
 RestartSec=5
 
