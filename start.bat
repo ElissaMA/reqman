@@ -4,5 +4,5 @@ cd /d "%~dp0"
 echo ================================================
 echo   ReqMan定检准备系统 V3.4.5
 echo ================================================
-python srceqmanpp.py
+python src\reqman\app.py
 pause
