@@ -16,7 +16,7 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
-from ..config import AMRO_AC_FLEET
+from ..config import AMRO_AC_FLEET, AMRO_CARD_FLEET
 from .connectors import amro
 
 logger = logging.getLogger(__name__)
@@ -340,20 +340,30 @@ async def list_amro_packages(client, cookies, *, base=None, days=7) -> list[dict
 
 # ---------- 工卡版本域 ----------
 
-async def _pull_card_versions(client, cookies, *, fetch=None) -> dict[str, dict]:
-    """拉 SMJC + EOJC 两清单（JC_STATUS=Y & ISSUED 由查询参数保证）→ {task_code: row}。
+async def _pull_card_versions(client, cookies, *, fetch=None, lists=("SMJC", "EOJC")) -> dict[str, dict]:
+    """拉卡片版本清单 → {task_code: row}。
 
-    WRITE_DATE 两清单零缺失（amro-research 实测）；EOJC 深分页 38~105s/页 → timeout=150。
+    WRITE_DATE 两清单零缺失（amro-research 实测）；EOJC 深分页 38~105s/页 → timeout=150，
+    加 fleet=AMRO_CARD_FLEET（已实测支持）缩小行集；SMJC 全量 3 页约 5s。
+    lists 可只拉 SMJC：逐包检查的工卡全为定检例行卡（CSCA 前缀）时跳过 EOJC 深分页。
     """
     fetch = fetch or amro.fetch_all_pages
-    base = {"status": "ISSUED", "jcStatus": "Y", "rows": 500}
-    smjc = await fetch(client, cookies, "TD_JC_SMJC_LIST", dict(base), timeout=150)
-    eojc = await fetch(client, cookies, "TD_JC_ALL_EOJC_LIST", dict(base), timeout=150)
     by_code: dict[str, dict] = {}
-    for row in smjc + eojc:
-        code = str(row.get("JC_NO", "")).strip()
-        if code:
-            by_code[code] = row
+    if "SMJC" in lists:
+        smjc = await fetch(client, cookies, "TD_JC_SMJC_LIST",
+                           {"status": "ISSUED", "jcStatus": "Y", "rows": 500}, timeout=150)
+        for row in smjc:
+            code = str(row.get("JC_NO", "")).strip()
+            if code:
+                by_code[code] = row
+    if "EOJC" in lists:
+        eojc = await fetch(client, cookies, "TD_JC_ALL_EOJC_LIST",
+                           {"status": "ISSUED", "jcStatus": "Y", "rows": 500,
+                            "fleet": AMRO_CARD_FLEET}, timeout=150)
+        for row in eojc:
+            code = str(row.get("JC_NO", "")).strip()
+            if code:
+                by_code[code] = row
     return by_code
 
 
@@ -385,12 +395,15 @@ async def full_version_check(store, client, cookies, *, fetch=None) -> dict:
 
 
 async def check_cards_against_amro(store, client, cookies, task_codes, *, fetch=None) -> dict:
-    """包级版本检查：拉两清单 → 对指定工卡比对 AMRO 编写日期 → {revised, cancelled}。
+    """包级版本检查：拉清单 → 对指定工卡比对 AMRO 编写日期 → {revised, cancelled}。
 
     仅处理卡库已存在的卡（包内新卡由匹配流程负责，不进版本报告）。
+    提速（v3.6.0）：wanted 全为定检例行卡（CSCA 前缀）时只拉 SMJC（3 页约 5 秒），
+    跳过 EOJC 深分页；含 EO/NRC/LS 等卡则两清单都拉（EOJC 另加 fleet 缩小行集）。
     """
     wanted = {str(c).strip() for c in task_codes if str(c).strip()}
-    versions = await _pull_card_versions(client, cookies, fetch=fetch)
+    lists = ("SMJC",) if all(c.startswith("CSCA") for c in wanted) else ("SMJC", "EOJC")
+    versions = await _pull_card_versions(client, cookies, fetch=fetch, lists=lists)
     all_cards = {c.get("task_code", ""): c for c in store.get_all()}
     revised, cancelled = [], []
     for code in sorted(wanted):

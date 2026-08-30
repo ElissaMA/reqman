@@ -67,6 +67,7 @@ AMRO_RATE_SECONDS: float = float(os.getenv("AMRO_RATE_SECONDS", "2"))  # 两次 
 AMRO_AUDIT_FILE: Path = BASE_DIR / os.getenv("AMRO_AUDIT_FILE", "data/amro_audit.jsonl")  # 只读调用审计留痕
 AMRO_AC_FLEET: str = os.getenv("AMRO_AC_FLEET", "A320")  # 飞机同步机族过滤（在册判定）
 AMRO_BASE_DEFAULT: str = os.getenv("AMRO_BASE_DEFAULT", "KM01")  # 工作包默认基地代码
+AMRO_CARD_FLEET: str = os.getenv("AMRO_CARD_FLEET", "A320")  # 工卡版本清单机队筛选（EOJC 已实测支持 fleet）
 
 # 库存查询输出暂存目录（gitignore 已忽略）
 OUTPUT_DIR: Path = BASE_DIR / os.getenv("OUTPUT_DIR", "output")

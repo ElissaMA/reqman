@@ -129,3 +129,59 @@ class TestCheckCardsAgainstAmro:
         assert can["task_name"] == "旧卡" and can["category"] == "机体"
         codes = {r["task_code"] for r in rep["revised"] + rep["cancelled"]}
         assert "EOJC-A320-99-2026-999-Z" not in codes
+
+
+class TestVersionPullSplit:
+    """v3.6.0 版本查询提速：EOJC 机队筛选 + 例行卡包跳过 EOJC 深分页"""
+
+    def test_pull_card_versions_fleet_filter(self, monkeypatch):
+        """EOJC 表单带 fleet=A320（缩小行集）；SMJC 保持全量（不加未验证参数）。"""
+        seen = {}
+
+        async def fetch(client, cookies, plugin, base_form, **kw):
+            seen[plugin] = dict(base_form)
+            if plugin == "TD_JC_SMJC_LIST":
+                return [_jcrow("CSCA320-256652-01-1-X", "2026-08-01 09:00:00")]
+            return []
+
+        _run(amro_sync._pull_card_versions(None, {}, fetch=fetch))
+        assert seen["TD_JC_ALL_EOJC_LIST"]["fleet"] == "A320"
+        assert "fleet" not in seen["TD_JC_SMJC_LIST"]
+
+    def test_csca_only_package_skips_eojc(self, json_store, monkeypatch):
+        """包内全为定检例行卡（CSCA 前缀）→ 只拉 SMJC，跳过 EOJC 深分页（秒级返回）。"""
+        monkeypatch.setattr(amro_sync.amro.time, "monotonic", lambda: 1e9)
+        monkeypatch.setattr(amro_sync.amro.time, "sleep", lambda s: None)
+        json_store.add("CSCA320-256652-01-1-X", "检查救生衣", "电子", "RST", "")
+        called = []
+
+        async def fetch(client, cookies, plugin, base_form, **kw):
+            called.append(plugin)
+            if plugin == "TD_JC_SMJC_LIST":
+                return [_jcrow("CSCA320-256652-01-1-X", "2026-08-01 09:00:00")]
+            return []
+
+        rep = _run(amro_sync.check_cards_against_amro(
+            json_store, None, {}, ["CSCA320-256652-01-1-X"], fetch=fetch))
+        assert called == ["TD_JC_SMJC_LIST"]
+        assert len(rep["revised"]) == 1
+
+    def test_eo_package_fetches_both_with_fleet(self, json_store, monkeypatch):
+        """含 EO 卡 → 两清单都拉；EOJC 表单带 fleet=A320 机队筛选。"""
+        monkeypatch.setattr(amro_sync.amro.time, "monotonic", lambda: 1e9)
+        monkeypatch.setattr(amro_sync.amro.time, "sleep", lambda s: None)
+        json_store.add("EOJC-A320-31-2026-007-A", "改装卡", "电子", "EO", "")
+        called = []
+
+        async def fetch(client, cookies, plugin, base_form, **kw):
+            called.append((plugin, dict(base_form)))
+            if plugin == "TD_JC_SMJC_LIST":
+                return [_jcrow("CSCA320-256652-01-1-X", "2026-08-01 09:00:00")]
+            return [_jcrow("EOJC-A320-31-2026-007-A", "2026-07-15 14:00:00", task="EO")]
+
+        _run(amro_sync.check_cards_against_amro(
+            json_store, None, {},
+            ["CSCA320-256652-01-1-X", "EOJC-A320-31-2026-007-A"], fetch=fetch))
+        plugins = [p for p, _ in called]
+        assert plugins == ["TD_JC_SMJC_LIST", "TD_JC_ALL_EOJC_LIST"]
+        assert dict(called[1][1])["fleet"] == "A320"
