@@ -1,5 +1,6 @@
 """AMRO 连接器单元测试（mock httpx）"""
 import asyncio
+import json
 
 import httpx
 import pytest
@@ -96,3 +97,56 @@ class TestCheckSession:
                 raise httpx.ConnectError("no net")
 
         assert _run(amro.check_session(_FailClient(), {}, "PN-1")) is True
+
+
+class TestQueryPlugin:
+    """v3.5.0 通用只读调用器：白名单/限速/审计/会话异常"""
+
+    def test_whitelist_rejects_write_plugin(self):
+        client, _ = _make_client({"code": 200, "data": []})
+        with pytest.raises(ValueError):
+            _run(amro.query_plugin(client, {}, "BM_RWJS_JS", {}))
+        assert client.data == {}  # 白名单外零外呼
+
+    def test_session_expired_raises(self, tmp_path, monkeypatch):
+        client, _ = _make_client({"code": 100, "msg": "会话过期"})
+        monkeypatch.setattr(amro, "_audit_path", lambda: tmp_path / "audit.jsonl")
+        monkeypatch.setattr(amro.time, "monotonic", lambda: 1e9)
+        monkeypatch.setattr(amro.time, "sleep", lambda s: None)
+        with pytest.raises(amro.AmroSessionExpired):
+            _run(amro.query_plugin(client, {}, "DA_ACREG_LIST", {"page": "1"}))
+
+    def test_audit_line_written(self, tmp_path, monkeypatch):
+        client, _ = _make_client({"code": 200, "data": []})
+        audit = tmp_path / "audit.jsonl"
+        monkeypatch.setattr(amro, "_audit_path", lambda: audit)
+        monkeypatch.setattr(amro.time, "monotonic", lambda: 1e9)
+        monkeypatch.setattr(amro.time, "sleep", lambda s: None)
+        _run(amro.query_plugin(client, {}, "DA_ACREG_LIST", {"page": "1"}))
+        line = json.loads(audit.read_text(encoding="utf-8").splitlines()[-1])
+        assert line["plugin"] == "DA_ACREG_LIST" and line["code"] == 200
+
+    def test_fetch_all_pages_zero_total_with_rows(self, tmp_path, monkeypatch):
+        """BM_TSK_LIST 语义：total 恒 0 但有行 → 按空页终止不空转"""
+        pages = {1: [{"i": i} for i in range(10)], 2: [{"i": 10}], 3: []}
+
+        class _Resp:
+            def __init__(self, body):
+                self._body = body
+
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return self._body
+
+        class _PagedClient:
+            async def post(self, url, data=None, cookies=None, timeout=None):
+                return _Resp({"code": 200, "total": 0, "data": pages[data["page"]]})
+
+        monkeypatch.setattr(amro, "_audit_path", lambda: tmp_path / "audit.jsonl")
+        monkeypatch.setattr(amro.time, "monotonic", lambda: 1e9)
+        monkeypatch.setattr(amro.time, "sleep", lambda s: None)
+        rows = _run(amro.fetch_all_pages(
+            _PagedClient(), {}, "BM_TSK_LIST", {"baseCode": "KM01", "rows": 10}))
+        assert len(rows) == 11

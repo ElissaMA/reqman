@@ -62,6 +62,12 @@ AMRO_LOGIN_VERSION: str = os.getenv("AMRO_LOGIN_VERSION", "2")
 # 登录脚本 ZIP 注入的公网地址（服务器部署建议配置，保证多用户下载的 ZIP 注入地址一致可达；未配置回退当前访问地址）
 AMRO_PUBLIC_URL: str = os.getenv("AMRO_PUBLIC_URL", "").rstrip("/")
 
+# ---------- AMRO 三域同步（v3.5.0） ----------
+AMRO_RATE_SECONDS: float = float(os.getenv("AMRO_RATE_SECONDS", "2"))  # 两次 AMRO 请求最小间隔（秒）
+AMRO_AUDIT_FILE: Path = BASE_DIR / os.getenv("AMRO_AUDIT_FILE", "data/amro_audit.jsonl")  # 只读调用审计留痕
+AMRO_AC_FLEET: str = os.getenv("AMRO_AC_FLEET", "A320")  # 飞机同步机族过滤（在册判定）
+AMRO_BASE_DEFAULT: str = os.getenv("AMRO_BASE_DEFAULT", "KM01")  # 工作包默认基地代码
+
 # 库存查询输出暂存目录（gitignore 已忽略）
 OUTPUT_DIR: Path = BASE_DIR / os.getenv("OUTPUT_DIR", "output")
 
