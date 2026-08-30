@@ -370,7 +370,7 @@ def reminder_download():
             _TASKS[task_id] = {"status": "done", "filename": filename,
                                "revised": len(report.get("revised", [])),
                                "cancelled": len(report.get("cancelled", []))}
-        except Exception as exc:  # noqa: BLE001 线程兜底：失败落任务状态供轮询
+        except Exception as exc:
             logger.exception("提醒单异步生成失败")
             _TASKS[task_id] = {"status": "error", "error": str(exc)}
 

@@ -244,6 +244,7 @@ class TestReminderAsync:
     def test_async_flow_done_and_download(self, client, store, app, ajax_headers,
                                           monkeypatch, tmp_path):
         import time as _time
+
         import reqman.blueprints.generate_bp as gb_mod
         monkeypatch.setattr(gb_mod, "OUTPUT_DIR", tmp_path)
 
