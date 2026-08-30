@@ -331,28 +331,42 @@ def test_generate_page_buttons_and_header(page, server_base):
     assert not js_errors, f"页面存在JS错误: {js_errors}"
 
 
-# ---------- 13. v3.6.0 步骤1：左侧竖向导航布局 ----------
+# ---------- 13. v3.6.0 步骤1：左侧竖向导航布局（数据管理折叠组） ----------
 def test_side_nav_layout(page, server_base):
-    """左侧竖向导航（数据管理组+顶级项）与顶部右侧登录框就位，无JS错误。"""
+    """左侧竖向导航（数据管理折叠组+顶级项）与顶部右侧登录框就位，无JS错误。"""
     js_errors = []
     page.on("pageerror", lambda e: js_errors.append(str(e)))
 
     page.goto(server_base + "/card/aircraft")
     page.wait_for_selector(".side-nav")
     page.wait_for_selector(".side-brand .brand-en")
-    # 六个菜单项
+    # 六个菜单项（3个在折叠组内）
     links = page.locator(".side-link")
     assert links.count() == 6, f"侧栏菜单项应为6个，实际{links.count()}"
     assert page.locator(".side-link.active", has_text="飞机信息").count() == 1
+    # 数据管理折叠组：当前页属数据管理 → 默认展开（show）且 aria-expanded=true
+    toggle = page.locator(".side-toggle")
+    assert toggle.count() == 1
+    assert toggle.get_attribute("aria-expanded") == "true"
+    assert "show" in (page.locator("#navDataMgmt").get_attribute("class") or "")
+    page.locator("#navDataMgmt .side-link", has_text="飞机信息").wait_for()
     # 顶部右侧登录框三件套
     page.wait_for_selector(".top-bar #amroStatus")
     page.wait_for_selector(".top-bar #amroQuickLogin")
     page.wait_for_selector(".top-bar a[href='/inventory/setup-package']")
     page.screenshot(path="output/e2e_s1_side_nav.png")
 
-    # 工卡列表页 → 工卡信息高亮
+    # 工卡列表页 → 工卡信息高亮，折叠组仍展开
     page.goto(server_base + "/card/list")
     page.wait_for_selector(".side-link.active")
     assert page.locator(".side-link.active", has_text="工卡信息").count() == 1
+    assert "show" in (page.locator("#navDataMgmt").get_attribute("class") or "")
+
+    # 工作包页 → 折叠组默认收起，点击展开后三个子链接可见
+    page.goto(server_base + "/upload")
+    page.locator(".side-link.active", has_text="工作包").wait_for()
+    assert "show" not in (page.locator("#navDataMgmt").get_attribute("class") or "")
+    page.click(".side-toggle")
+    page.locator("#navDataMgmt.show .side-link", has_text="飞机信息").wait_for()
 
     assert not js_errors, f"页面存在JS错误: {js_errors}"

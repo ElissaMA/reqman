@@ -16,6 +16,11 @@
         .side-brand .brand-zh { display: block; font-weight: 400; font-size: 12px; opacity: .85; letter-spacing: 1px; margin-top: 2px; }
         .side-nav nav { padding: 6px 0 14px; flex: 1; }
         .side-label { font-size: 11px; opacity: .55; padding: 12px 14px 4px; letter-spacing: 2px; }
+        .side-toggle { display: flex; width: 100%; align-items: center; justify-content: space-between;
+                       background: none; border: none; color: inherit; text-align: left; cursor: pointer; }
+        .side-toggle .toggle-caret { transition: transform .15s ease; font-size: 10px; }
+        .side-toggle[aria-expanded="true"] .toggle-caret { transform: rotate(180deg); }
+        .side-sub { padding-left: 26px; }
         .side-link { display: block; padding: 9px 14px; color: #e8eef5; text-decoration: none; font-size: 14px;
                      border-left: 3px solid transparent; white-space: nowrap; }
         .side-link:hover { background: rgba(255,255,255,.08); color: #fff; }
@@ -189,6 +194,9 @@
             .side-nav nav { display: flex; flex-wrap: wrap; padding: 4px 8px; }
             .side-link { padding: 8px 10px; border-left: none; border-bottom: 2px solid transparent; }
             .side-link.active { border-left-color: transparent; border-bottom-color: #6ea8fe; }
+            .side-toggle { display: none; }
+            #navDataMgmt.collapse { display: contents !important; }
+            .side-sub { padding-left: 10px; }
             .side-label { display: none; }
         }
         @media (max-width: 768px) {
@@ -209,10 +217,15 @@
         <div class="side-brand"><a href="/" style="color:inherit;text-decoration:none"><span class="brand-en">ReqMan</span><span class="brand-zh">定检准备系统</span></a></div>
         <nav>
             {% set p = request.path %}
-            <div class="side-label">数据管理</div>
-            <a class="side-link {{ 'active' if p.startswith('/card/aircraft') }}" href="/card/aircraft">✈ 飞机信息</a>
-            <a class="side-link {{ 'active' if (p.startswith('/card/') and not p.startswith('/card/aircraft') and not p.startswith('/card/sets') and not p.startswith('/card/logs')) }}" href="/card/list">📋 工卡信息</a>
-            <a class="side-link {{ 'active' if p.startswith('/card/sets') }}" href="/card/sets">📦 工卡组信息</a>
+            {% set in_data_mgmt = p.startswith('/card/') and not p.startswith('/card/logs') %}
+            <button class="side-label side-toggle" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navDataMgmt" aria-expanded="{{ 'true' if in_data_mgmt else 'false' }}"
+                    aria-controls="navDataMgmt">数据管理 <span class="toggle-caret">▾</span></button>
+            <div class="collapse {{ 'show' if in_data_mgmt }}" id="navDataMgmt">
+                <a class="side-link side-sub {{ 'active' if p.startswith('/card/aircraft') }}" href="/card/aircraft">✈ 飞机信息</a>
+                <a class="side-link side-sub {{ 'active' if (p.startswith('/card/') and not p.startswith('/card/aircraft') and not p.startswith('/card/sets') and not p.startswith('/card/logs')) }}" href="/card/list">📋 工卡信息</a>
+                <a class="side-link side-sub {{ 'active' if p.startswith('/card/sets') }}" href="/card/sets">📦 工卡组信息</a>
+            </div>
             <a class="side-link {{ 'active' if p.startswith('/upload') }}" href="/upload">🔄 工作包</a>
             <a class="side-link {{ 'active' if p.startswith('/inventory') }}" href="/inventory">📦 库存查询</a>
             <a class="side-link {{ 'active' if p.startswith('/card/logs') }}" href="/card/logs">📝 操作日志</a>
