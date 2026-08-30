@@ -86,3 +86,49 @@ class TestPackageItems:
     def test_empty_rows(self):
         out = amro_sync.package_items([], [])
         assert out["all_items"] == [] and out["aircraft_info"]["package"] == ""
+
+
+class TestGlobalQueryMutex:
+    """v3.6.0 全局查询互斥：一次只跑一个 AMRO 查询，不排队"""
+
+    def test_begin_end_roundtrip(self):
+        assert amro_sync.try_begin_query("查询飞机数据") is True
+        assert amro_sync.query_busy_message() is not None
+        assert "查询飞机数据" in amro_sync.query_busy_message()
+        amro_sync.end_query()
+        assert amro_sync.query_busy_message() is None
+
+    def test_second_query_rejected_while_busy(self):
+        assert amro_sync.try_begin_query("查询飞机数据") is True
+        try:
+            assert amro_sync.try_begin_query("查询库存") is False
+            msg = amro_sync.query_busy_message()
+            assert "查询飞机数据" in msg and "请等待完成后再查询" in msg
+        finally:
+            amro_sync.end_query()
+
+    def test_query_slot_context_raises_busy(self):
+        # 保持嵌套：外层占用槽、内层冲突抛 QueryBusyError（不可合并 with）
+        with amro_sync.query_slot("查询工作包"), pytest.raises(amro_sync.QueryBusyError):  # noqa: SIM117
+            with amro_sync.query_slot("查询库存"):
+                pass
+        assert amro_sync.query_busy_message() is None
+
+    def test_run_query_releases_slot_after_done(self):
+        release = amro_sync.run_query("aircraft", "查询飞机数据", lambda: {"added": 1})
+        assert release is True
+        # 等待 daemon 线程跑完并释放全局槽
+        import time as _time
+        deadline = _time.time() + 3
+        while amro_sync.query_busy_message() is not None and _time.time() < deadline:
+            _time.sleep(0.02)
+        assert amro_sync.query_busy_message() is None
+        assert amro_sync.get_query_status("aircraft")["status"] == "done"
+
+    def test_run_query_false_when_busy(self):
+        assert amro_sync.try_begin_query("查询飞机数据") is True
+        try:
+            assert amro_sync.run_query("busy_reject", "全量查询工卡版本", dict) is False
+            assert amro_sync.get_query_status("busy_reject") == {}  # 未启动不落状态
+        finally:
+            amro_sync.end_query()

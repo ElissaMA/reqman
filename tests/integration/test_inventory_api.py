@@ -269,6 +269,32 @@ class TestQuery:
         assert wb.active["G15"].value == 1
         wb.close()
 
+    def test_query_busy_conflict(self, app, client, tmp_path, monkeypatch, isolated_inventory):
+        """全局互斥：已有查询在跑 → 409 + busy 文案（不排队）。"""
+        import time as _time
+
+        from reqman.services import amro_sync
+        _mock_amro_query(monkeypatch, app)
+        deadline = _time.time() + 3
+        while not amro_sync.try_begin_query("查询飞机数据"):
+            if _time.time() > deadline:
+                pytest.fail("query slot still busy")
+            _time.sleep(0.02)
+        try:
+            src = _build_demand(tmp_path)
+            with src.open("rb") as f:
+                resp = client.post(
+                    "/inventory/query",
+                    data={"file": (f, "demand.xlsx")},
+                    headers={"X-Requested-With": "XMLHttpRequest"},
+                    content_type="multipart/form-data",
+                )
+            assert resp.status_code == 409
+            msg = resp.get_json()["message"]
+            assert "已有查询任务进行中" in msg and "查询飞机数据" in msg
+        finally:
+            amro_sync.end_query()
+
     def test_query_clears_old_staging(self, app, client, tmp_path, monkeypatch, isolated_inventory):
         """上传新需求单查询 → 旧的 *_库存已填_* 暂存被清除，output/ 仅存最新。"""
         _mock_amro_query(monkeypatch, app)

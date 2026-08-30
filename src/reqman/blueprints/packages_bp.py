@@ -229,7 +229,11 @@ def amro_package_list():
             return await amro_sync.list_amro_packages(client, cookies)
 
     try:
-        packages = asyncio.run(_inner())
+        with amro_sync.query_slot("查询工作包"):
+            packages = asyncio.run(_inner())
+    except amro_sync.QueryBusyError:
+        return jsonify({"success": False, "message": amro_sync.query_busy_message()
+                        or "已有查询任务进行中，请等待完成后再查询"}), 409
     except AmroSessionExpired as e:
         return jsonify({"success": False, "message": str(e)}), 401
     except (httpx.HTTPError, RuntimeError) as e:
@@ -256,7 +260,11 @@ def amro_package_fetch():
             return await amro_sync.import_amro_package(store, client, cookies, revnr, service)
 
     try:
-        summary = asyncio.run(_inner())
+        with amro_sync.query_slot("查询工作包"):
+            summary = asyncio.run(_inner())
+    except amro_sync.QueryBusyError:
+        return jsonify({"success": False, "message": amro_sync.query_busy_message()
+                        or "已有查询任务进行中，请等待完成后再查询"}), 409
     except AmroSessionExpired as e:
         return jsonify({"success": False, "message": str(e)}), 401
     except (httpx.HTTPError, RuntimeError) as e:

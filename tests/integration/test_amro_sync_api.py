@@ -95,13 +95,17 @@ class TestAircraftSyncApi:
         assert "查询结果" in html
 
     def test_sync_duplicate_start_conflict(self, client, app, ajax_headers, monkeypatch):
+        """全局互斥：已有查询在跑 → 409 + 统一 busy 文案（不排队）。"""
         import reqman.blueprints.cards_bp as cb_mod
-        from reqman.services import amro_sync
         monkeypatch.setattr(cb_mod, "_require_amro_session", lambda: True)
-        amro_sync.QUERY_STATUS["aircraft"] = {"status": "running"}
-        resp = client.post("/card/aircraft/amro-sync", headers=ajax_headers)
-        assert resp.status_code == 409
-        amro_sync.QUERY_STATUS["aircraft"] = {"status": "done"}
+        release = _occupy_query_slot("查询飞机数据")
+        try:
+            resp = client.post("/card/aircraft/amro-sync", headers=ajax_headers)
+            assert resp.status_code == 409
+            msg = resp.get_json()["message"]
+            assert "已有查询任务进行中" in msg and "查询飞机数据" in msg
+        finally:
+            release()
 
 
 class TestAmroPackageApi:
@@ -145,6 +149,31 @@ class TestAmroPackageApi:
         resp = client.post("/packages/amro-fetch", data={"revnr": "66A"}, headers=ajax_headers)
         assert resp.status_code == 401
 
+    def test_list_busy_conflict(self, client, ajax_headers, monkeypatch):
+        """全局互斥：查询工作包列表在已有查询时 → 409。"""
+        from reqman.services import amro_sync
+        monkeypatch.setattr(amro_sync, "require_amro_session", lambda: True)
+        release = _occupy_query_slot("查询飞机数据")
+        try:
+            resp = client.post("/packages/amro-list", headers=ajax_headers)
+            assert resp.status_code == 409
+            assert "已有查询任务进行中" in resp.get_json()["message"]
+        finally:
+            release()
+
+    def test_fetch_busy_conflict(self, client, ajax_headers, monkeypatch):
+        """全局互斥：导入工作包在已有查询时 → 409。"""
+        from reqman.services import amro_sync
+        monkeypatch.setattr(amro_sync, "require_amro_session", lambda: True)
+        release = _occupy_query_slot("查询飞机数据")
+        try:
+            resp = client.post("/packages/amro-fetch", data={"revnr": "66A"},
+                               headers=ajax_headers)
+            assert resp.status_code == 409
+            assert "已有查询任务进行中" in resp.get_json()["message"]
+        finally:
+            release()
+
     def test_version_logs_view(self, client, store):
         """版本变动日志：card_logs 筛选视图（JSON API + 页面区块）"""
         r = store.add("VLOG-1", "卡", "机体", "", "")
@@ -167,6 +196,19 @@ class TestVersionCheckApi:
         monkeypatch.setattr(amro_sync, "require_amro_session", lambda: False)
         resp = client.post("/card/amro-version-check", headers=ajax_headers)
         assert resp.status_code == 401
+
+    def test_check_busy_conflict(self, client, app, ajax_headers, monkeypatch):
+        """全局互斥：全量查询工卡版本在已有查询时 → 409（不排队）。"""
+        from reqman.services import amro_sync
+        monkeypatch.setattr(amro_sync, "require_amro_session", lambda: True)
+        release = _occupy_query_slot("查询库存")
+        try:
+            resp = client.post("/card/amro-version-check", headers=ajax_headers)
+            assert resp.status_code == 409
+            msg = resp.get_json()["message"]
+            assert "已有查询任务进行中" in msg and "查询库存" in msg
+        finally:
+            release()
 
     def test_check_start_status_and_report(self, client, app, ajax_headers, monkeypatch, tmp_path):
         import time as _time
@@ -209,6 +251,19 @@ def _jcrow(jcno, wd, **kw):
     row = {"JC_NO": jcno, "WRITE_DATE": wd}
     row.update(kw)
     return row
+
+
+def _occupy_query_slot(label: str):
+    """占用全局查询槽（带重试，等待前一任务 daemon 线程释放）。返回释放函数。"""
+    import time as _time
+
+    from reqman.services import amro_sync
+    deadline = _time.time() + 3
+    while _time.time() < deadline:
+        if amro_sync.try_begin_query(label):
+            return amro_sync.end_query
+        _time.sleep(0.02)
+    raise AssertionError(f"query slot still busy, cannot occupy for {label}")
 
 
 def store_add(app, code, name):

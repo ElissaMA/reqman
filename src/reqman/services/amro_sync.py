@@ -1,7 +1,8 @@
 """AMRO 三域同步编排 — 飞机 / 工作包 / 工卡版本（只读、零快照）
 
 所有 AMRO 调用经 connectors.amro.query_plugin（只读白名单 + 限速 + JSONL 审计）；
-长任务由 run_in_thread 包成 daemon 线程并写 amro_sync_meta 状态位（running/done/error）。
+长任务由 run_query 包成 daemon 线程并写 QUERY_STATUS 内存态（running/done/error）；
+全局查询互斥（try_begin_query）保证一次只跑一个 AMRO 查询，不排队。
 """
 from __future__ import annotations
 
@@ -9,6 +10,7 @@ import asyncio
 import io
 import logging
 import threading
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -33,13 +35,63 @@ def _norm_reg(value: str) -> str:
     return s
 
 
+# ---------- 全局查询互斥（v3.6.0：一次只跑一个 AMRO 查询，不排队） ----------
+
+_query_lock = threading.Lock()
+_running_query: dict | None = None  # {label, started_at}
+
+
+def try_begin_query(label: str) -> bool:
+    """尝试占用全局查询槽。成功返回 True；已有查询在跑返回 False（不排队）。"""
+    global _running_query
+    got = _query_lock.acquire(blocking=False)
+    if got:
+        _running_query = {"label": label, "started_at": _now()}
+    return got
+
+
+def end_query() -> None:
+    """释放全局查询槽。"""
+    global _running_query
+    _running_query = None
+    if _query_lock.locked():
+        _query_lock.release()
+
+
+def query_busy_message() -> str | None:
+    """有查询在跑时返回统一提示文案；空闲返回 None。"""
+    if _running_query:
+        return (f"已有查询任务进行中：{_running_query['label']}"
+                f"（{_running_query['started_at']}），请等待完成后再查询")
+    return None
+
+
+@contextmanager
+def query_slot(label: str):
+    """同步请求的查询槽上下文：进入时占用，退出时释放。"""
+    if not try_begin_query(label):
+        raise QueryBusyError(query_busy_message() or "已有查询任务进行中")
+    try:
+        yield
+    finally:
+        end_query()
+
+
+class QueryBusyError(RuntimeError):
+    """全局查询互斥冲突（已有查询在跑）。"""
+
+
 # 内存任务状态注册表（v3.6.0：统一承载各查询任务状态；服务重启即清空）
 QUERY_STATUS: dict[str, dict] = {}
 
 
-def run_query(key: str, label: str, job) -> None:
-    """daemon 线程执行 job，QUERY_STATUS 内存态：running → done(简要 summary) / error。"""
-    QUERY_STATUS[key] = {"status": "running", "label": label, "started_at": _now()}
+def run_query(key: str, label: str, job) -> bool:
+    """daemon 线程执行 job（占全局查询槽全程），QUERY_STATUS：running → done/error。
+
+    返回 False = 已有查询在跑（未启动）。
+    """
+    if not try_begin_query(label):
+        return False
 
     def runner():
         try:
@@ -50,8 +102,12 @@ def run_query(key: str, label: str, job) -> None:
             logger.exception("AMRO 查询任务失败: %s", label)
             QUERY_STATUS[key] = {"status": "error", "label": label,
                                  "finished_at": _now(), "error": str(exc)}
+        finally:
+            end_query()
 
+    QUERY_STATUS[key] = {"status": "running", "label": label, "started_at": _now()}
     threading.Thread(target=runner, daemon=True, name=f"amro-{key}").start()
+    return True
 
 
 def get_query_status(key: str) -> dict:
@@ -122,10 +178,7 @@ async def sync_aircraft(store, client, cookies, *, fetch=None) -> dict:
 
 
 def start_aircraft_sync(store, session_store) -> bool:
-    """启动飞机同步后台任务。返回 False = 同域任务已在跑（S1 防重复）。"""
-    if QUERY_STATUS.get("aircraft", {}).get("status") == "running":
-        return False
-
+    """启动飞机同步后台任务。返回 False = 已有查询在跑（全局互斥，不排队）。"""
     def job():
         cookies = (session_store.load() or {}).get("cookies", {})
 
@@ -137,8 +190,7 @@ def start_aircraft_sync(store, session_store) -> bool:
 
         return asyncio.run(_inner())
 
-    run_query("aircraft", "查询飞机数据", job)
-    return True
+    return run_query("aircraft", "查询飞机数据", job)
 
 
 # ---------- 工作包域 ----------
@@ -401,10 +453,7 @@ def apply_reminder_version_section(ws, report: dict) -> None:
 
 
 def start_full_version_check(store, session_store, output_dir) -> bool:
-    """启动全量查询工卡版本后台任务。返回 False = 已在跑（S1 防重复）。"""
-    if QUERY_STATUS.get("full_version", {}).get("status") == "running":
-        return False
-
+    """启动全量查询工卡版本后台任务。返回 False = 已有查询在跑（全局互斥，不排队）。"""
     def job():
         cookies = (session_store.load() or {}).get("cookies", {})
 
@@ -421,5 +470,4 @@ def start_full_version_check(store, session_store, output_dir) -> bool:
         return {"revised": len(rep["revised"]), "cancelled": len(rep["cancelled"]),
                 "total_amro": rep["total_amro"], "filename": rep["filename"]}
 
-    run_query("full_version", "全量查询工卡版本", job)
-    return True
+    return run_query("full_version", "全量查询工卡版本", job)

@@ -11,6 +11,7 @@ from pathlib import Path
 from flask import Blueprint, current_app, render_template, request, send_file
 
 from ..config import AMRO_LOGIN_VERSION, AMRO_PUBLIC_URL, OUTPUT_DIR
+from ..services import amro_sync
 from ..utils.error_handlers import ValidationError
 from ..utils.response import api_error, api_success
 
@@ -181,7 +182,11 @@ def query():
         demand_path = Path(tmpdir) / "inventory_input.xlsx"
         f.save(demand_path)
         try:
-            _dest, filename, result = svc.run_query(demand_path, output_stem=output_stem)
+            with amro_sync.query_slot("查询库存"):
+                _dest, filename, result = svc.run_query(demand_path, output_stem=output_stem)
+        except amro_sync.QueryBusyError:
+            return api_error(amro_sync.query_busy_message()
+                             or "已有查询任务进行中，请等待完成后再查询", status_code=409)
         except RuntimeError:
             return api_error(MESSAGES["P8"], error_code="LOGIN_EXPIRED", status_code=400)
         except ValueError as e:

@@ -498,7 +498,8 @@ def aircraft_amro_sync():
     store = current_app.extensions["store"]
     session_store = current_app.extensions["inventory_service"].session_store
     if not amro_sync.start_aircraft_sync(store, session_store):
-        return jsonify({"success": False, "message": "查询进行中，请勿重复操作"}), 409
+        return jsonify({"success": False, "message": amro_sync.query_busy_message()
+                        or "已有查询任务进行中，请等待完成后再查询"}), 409
     return jsonify({"success": True, "data": {"started": True}})
 
 
@@ -518,7 +519,8 @@ def amro_version_check():
     store = current_app.extensions["store"]
     session_store = current_app.extensions["inventory_service"].session_store
     if not amro_sync.start_full_version_check(store, session_store, OUTPUT_DIR):
-        return jsonify({"success": False, "message": "查询进行中，请勿重复操作"}), 409
+        return jsonify({"success": False, "message": amro_sync.query_busy_message()
+                        or "已有查询任务进行中，请等待完成后再查询"}), 409
     return jsonify({"success": True, "data": {"started": True}})
 
 
