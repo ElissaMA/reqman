@@ -5,9 +5,11 @@ import logging
 from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request
 
 from ..config import CATEGORIES, REMINDER_TYPES, TASK_TYPES, USAGE_TYPES
+from ..services import amro_sync
 from ..services.card_service import ServiceError
 from ..utils.error_handlers import ValidationError
 from ..utils.validators import validate_required
+from .inventory_bp import MESSAGES
 
 logger = logging.getLogger(__name__)
 
@@ -481,18 +483,42 @@ def card_set_reset_confirm(set_id):
 
 # ======================== 飞机信息 ========================
 
+def _require_amro_session() -> bool:
+    """AMRO 功能前置检查（spec §3.2）：真实探活一次，失效由路由层 401+P8 阻断。"""
+    svc = current_app.extensions["inventory_service"]
+    return svc.check_login()
+
+
+@cards_bp.route("/card/aircraft/amro-sync", methods=["POST"])
+def aircraft_amro_sync():
+    """从 AMRO 同步飞机信息（后台线程执行，立即返回 started）。"""
+    if not _require_amro_session():
+        return jsonify({"success": False, "message": MESSAGES["P8"]}), 401
+    if not amro_sync.start_aircraft_sync(current_app):
+        return jsonify({"success": False, "message": "同步进行中，请勿重复操作"}), 409
+    return jsonify({"success": True, "data": {"started": True}})
+
+
+@cards_bp.route("/card/aircraft/amro-status")
+def aircraft_amro_status():
+    """飞机同步进度/报告（amro_sync_meta.aircraft）。"""
+    meta = current_app.extensions["store"].get_amro_sync_meta().get("aircraft", {})
+    return jsonify({"success": True, "data": meta})
+
+
 @cards_bp.route("/card/aircraft")
 def aircraft_list():
     """飞机信息列表"""
     try:
         ac_list = current_app.extensions['card_service'].list_aircraft()
+        amro_meta = current_app.extensions['store'].get_amro_sync_meta().get("aircraft", {})
         return render_template("cards/aircraft.html",
-                               ac_list=ac_list)
+                               ac_list=ac_list, amro_meta=amro_meta)
     except Exception:
         logger.exception("获取飞机信息列表失败")
         flash("加载飞机信息失败", "error")
         return render_template("cards/aircraft.html",
-                               ac_list=[])
+                               ac_list=[], amro_meta={})
 
 
 @cards_bp.route("/card/aircraft/new", methods=["GET", "POST"])

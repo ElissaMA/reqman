@@ -52,3 +52,52 @@ class TestHeaderLogin:
         assert 'id="amroStatus"' in html             # 表头状态徽章
         assert "ReqManLogin://" in html              # 一键登录协议入口
         assert 'id="zoneDemand"' in html             # 查询区保留
+
+
+class TestAircraftSyncApi:
+    """Task 4: 飞机同步路由（前置检查/后台线程/状态轮询/防重复）"""
+
+    def test_sync_requires_session(self, client, ajax_headers, monkeypatch):
+        import reqman.blueprints.cards_bp as cb_mod
+        monkeypatch.setattr(cb_mod, "_require_amro_session", lambda: False)
+        resp = client.post("/card/aircraft/amro-sync", headers=ajax_headers)
+        assert resp.status_code == 401
+        assert "登录已失效" in resp.get_json()["message"]
+
+    def test_sync_start_and_status(self, client, app, ajax_headers, monkeypatch):
+        import time as _time
+
+        import reqman.blueprints.cards_bp as cb_mod
+        from reqman.services import amro_sync
+        monkeypatch.setattr(cb_mod, "_require_amro_session", lambda: True)
+
+        def fake_sync(store, client_, cookies):
+            async def _c():
+                return {"added": 1, "updated": 2, "removed": [], "total_amro": 3}
+            return _c()
+        monkeypatch.setattr(amro_sync, "sync_aircraft", fake_sync)
+
+        resp = client.post("/card/aircraft/amro-sync", headers=ajax_headers)
+        assert resp.status_code == 200
+        assert resp.get_json()["data"]["started"] is True
+
+        meta = {}
+        deadline = _time.time() + 5
+        while _time.time() < deadline:
+            meta = client.get("/card/aircraft/amro-status").get_json()["data"]
+            if meta.get("status") == "done":
+                break
+            _time.sleep(0.05)
+        assert meta.get("status") == "done", meta
+        assert meta["report"]["added"] == 1 and meta["report"]["updated"] == 2
+        # 飞机列表页渲染同步报告
+        html = client.get("/card/aircraft").get_data(as_text=True)
+        assert "同步报告" in html
+
+    def test_sync_duplicate_start_conflict(self, client, app, ajax_headers, monkeypatch):
+        import reqman.blueprints.cards_bp as cb_mod
+        monkeypatch.setattr(cb_mod, "_require_amro_session", lambda: True)
+        app.extensions["store"].set_amro_sync_meta("aircraft", {"status": "running"})
+        resp = client.post("/card/aircraft/amro-sync", headers=ajax_headers)
+        assert resp.status_code == 409
+        app.extensions["store"].set_amro_sync_meta("aircraft", {"status": "done"})
