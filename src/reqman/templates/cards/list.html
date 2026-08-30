@@ -6,9 +6,24 @@
 <div class="card mb-3">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">工卡信息 <span class="badge bg-secondary ms-2">{{ cards|length }}</span></h5>
-        <a href="javascript:void(0)" onclick="ListUI.openEditor('/card/new')" class="btn btn-primary btn-sm">+ 新增工卡</a>
+        <span class="d-flex gap-2">
+            <a href="javascript:void(0)" onclick="amroVerCheck()" id="amroVerCheckBtn" class="btn btn-outline-primary btn-sm">🔍 工卡版本检查</a>
+            <a href="javascript:void(0)" onclick="ListUI.openEditor('/card/new')" class="btn btn-primary btn-sm">+ 新增工卡</a>
+        </span>
     </div>
     <div class="card-body p-0">
+        {% if amro_meta and amro_meta.status == 'done' and amro_meta.report %}
+        <div class="alert alert-success m-3 mb-0 small d-flex justify-content-between align-items-center">
+            <span><b>版本检查报告</b>（{{ amro_meta.finished_at }}）：改版 {{ amro_meta.report.revised|length }} 张，作废 {{ amro_meta.report.cancelled|length }} 张</span>
+            {% if amro_meta.report.filename %}
+            <a class="btn btn-primary btn-sm" href="/card/amro-version-report/{{ amro_meta.report.filename.replace('amro_version_report_','').replace('.xlsx','') }}">⬇ 下载改版清单</a>
+            {% endif %}
+        </div>
+        {% elif amro_meta and amro_meta.status == 'error' %}
+        <div class="alert alert-danger m-3 mb-0 small">上次版本检查失败：{{ amro_meta.error }}（{{ amro_meta.finished_at }}）</div>
+        {% elif amro_meta and amro_meta.status == 'running' %}
+        <div class="alert alert-info m-3 mb-0 small">⏳ 版本检查进行中（实时比对 AMRO，约 3~15 分钟）…</div>
+        {% endif %}
         <div class="table-responsive">
             <table class="table table-hover mb-0" id="cardTable">
                 <thead>
@@ -83,6 +98,22 @@
     </div></div>
 </div>
 
+<!-- AMRO 版本检查确认弹窗 -->
+<div class="modal fade" id="amroVerModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+        <div class="modal-header"><h6 class="modal-title">工卡版本检查</h6>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body small">
+            将<b>实时比对 AMRO 编写日期</b>（全库 {{ cards|length }} 张卡），约需 <b>3~15 分钟</b>，后台执行、可离开页面。
+            发现改版将自动更新版本并生成改版清单 Excel；已作废工卡仅列出、不删除。确认开始？
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+            <button type="button" class="btn btn-primary btn-sm" id="amroVerGo">确认开始</button>
+        </div>
+    </div></div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -151,6 +182,63 @@ function showDetail(id) {
     var id = p.split(':')[0], col = p.split(':')[1];
     var el = document.getElementById(id);
     if (el) el.setAttribute('data-col', col);
+});
+
+// ===== AMRO 工卡版本检查（v3.5.0） =====
+function amroVerCheck() {
+    if (!window.amroSession || !window.amroSession.ready) {
+        window.safeToast('登录已失效（可能被其他登录挤掉），请重新运行登录脚本后重试', 'warning');
+        return;
+    }
+    new bootstrap.Modal(document.getElementById('amroVerModal')).show();
+}
+
+function pollVersionCheck() {
+    var deadline = Date.now() + 20 * 60 * 1000;
+    var timer = setInterval(function() {
+        if (Date.now() > deadline) { clearInterval(timer); return; }
+        fetch('/card/amro-version-status', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function(r) { return r.json(); }).then(function(d) {
+                var meta = (d && d.data) || {};
+                if (meta.status === 'done') {
+                    clearInterval(timer);
+                    var rp = meta.report || {};
+                    window.safeToast('版本检查完成：改版 ' + rp.revised.length + ' 张，作废 ' +
+                        rp.cancelled.length + ' 张，改版清单已生成（刷新页面可见下载）', 'success', 8000);
+                    setTimeout(function() { window.location.reload(); }, 1500);
+                } else if (meta.status === 'error') {
+                    clearInterval(timer);
+                    window.safeToast('版本检查失败：' + (meta.error || '未知错误'), 'error', 8000);
+                    var b = document.getElementById('amroVerCheckBtn');
+                    if (b) { b.disabled = false; b.textContent = '🔍 工卡版本检查'; }
+                }
+            }).catch(function(){});
+    }, 2000);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    {% if amro_meta and amro_meta.status == 'running' %}
+    pollVersionCheck();   // 页面加载时检查已在跑 → 自动恢复轮询
+    {% endif %}
+    var go = document.getElementById('amroVerGo');
+    if (go) go.addEventListener('click', function() {
+        go.disabled = true; go.textContent = '检查中…';
+        fetch('/card/amro-version-check', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function(r) { return r.json().then(function(d) { return {code: r.status, d: d}; }); })
+            .then(function(x) {
+                bootstrap.Modal.getInstance(document.getElementById('amroVerModal')).hide();
+                if (x.code === 200 && x.d.success) {
+                    window.safeToast('版本检查已启动，约 3~15 分钟，可离开本页', 'info', 6000);
+                    pollVersionCheck();
+                } else {
+                    go.disabled = false; go.textContent = '确认开始';
+                    window.safeToast((x.d && x.d.message) || '启动失败', 'error');
+                }
+            }).catch(function() {
+                go.disabled = false; go.textContent = '确认开始';
+                window.safeToast('启动失败', 'error');
+            });
+    });
 });
 </script>
 {% endblock %}

@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import asyncio
+import io
 import logging
 import threading
 from datetime import datetime, timedelta
@@ -234,3 +235,181 @@ async def list_amro_packages(client, cookies, *, base=None, days=7) -> list[dict
     }
     body = await amro.query_plugin(client, cookies, "BM_TSK_LIST", form)
     return body.get("data") or []
+
+
+# ---------- 工卡版本域 ----------
+
+async def _pull_card_versions(client, cookies, *, fetch=None) -> dict[str, dict]:
+    """拉 SMJC + EOJC 两清单（JC_STATUS=Y & ISSUED 由查询参数保证）→ {task_code: row}。
+
+    WRITE_DATE 两清单零缺失（amro-research 实测）；EOJC 深分页 38~105s/页 → timeout=150。
+    """
+    fetch = fetch or amro.fetch_all_pages
+    base = {"status": "ISSUED", "jcStatus": "Y", "rows": 500}
+    smjc = await fetch(client, cookies, "TD_JC_SMJC_LIST", dict(base), timeout=150)
+    eojc = await fetch(client, cookies, "TD_JC_ALL_EOJC_LIST", dict(base), timeout=150)
+    by_code: dict[str, dict] = {}
+    for row in smjc + eojc:
+        code = str(row.get("JC_NO", "")).strip()
+        if code:
+            by_code[code] = row
+    return by_code
+
+
+def _wd(row: dict | None) -> str:
+    return str((row or {}).get("WRITE_DATE", "")).strip()
+
+
+async def full_version_check(store, client, cookies, *, fetch=None) -> dict:
+    """全库版本检查：库内卡逐一比对 AMRO 编写日期；作废只入报告不删卡（决策#7/#8）。"""
+    versions = await _pull_card_versions(client, cookies, fetch=fetch)
+    revised, cancelled = [], []
+    for card in store.get_all():
+        code = card.get("task_code", "")
+        row = versions.get(code)
+        if row is None:
+            cancelled.append({"task_code": code, "task_name": card.get("task_name", "")})
+            continue
+        new_wd = _wd(row)
+        old_wd = str(card.get("write_date", "")).strip()
+        if new_wd and new_wd != old_wd:
+            store.update(card["id"], write_date=new_wd)
+            revised.append({"task_code": code, "old_wd": old_wd, "new_wd": new_wd})
+    return {"revised": revised, "cancelled": cancelled, "total_amro": len(versions)}
+
+
+async def check_cards_against_amro(store, client, cookies, task_codes, *, fetch=None) -> dict:
+    """提醒单用：实时拉两清单（客户端过滤到 task_codes）→ 比对更新 → {revised, cancelled, new_by_category}。"""
+    wanted = {str(c).strip() for c in task_codes if str(c).strip()}
+    versions = await _pull_card_versions(client, cookies, fetch=fetch)
+    all_cards = {c.get("task_code", ""): c for c in store.get_all()}
+    revised, cancelled = [], []
+    new_by_category: dict[str, list] = {}
+    for code in sorted(wanted):
+        card = all_cards.get(code)
+        row = versions.get(code)
+        if card is None:
+            # 新工卡：包内出现但卡库无 → 按专业分组（spec 决策#9）
+            cat = str((row or {}).get("ZY", "")).strip()
+            if cat == "机身":
+                cat = "机体"
+            new_by_category.setdefault(cat or "其他", []).append({
+                "task_code": code,
+                "task_name": str((row or {}).get("JCTITLE", "")).strip(),
+            })
+            continue
+        if row is None:
+            cancelled.append({"task_code": code, "task_name": card.get("task_name", "")})
+            continue
+        new_wd = _wd(row)
+        old_wd = str(card.get("write_date", "")).strip()
+        if new_wd and new_wd != old_wd:
+            store.update(card["id"], write_date=new_wd)
+            revised.append({"task_code": code, "old_wd": old_wd, "new_wd": new_wd})
+    return {"revised": revised, "cancelled": cancelled, "new_by_category": new_by_category}
+
+
+def build_version_report_excel(report: dict) -> bytes:
+    """改版清单 Excel：改版工卡 sheet + 作废工卡 sheet。"""
+    from openpyxl import Workbook
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "改版工卡"
+    ws.append(["工卡号", "旧编写日期", "新编写日期"])
+    for r in report.get("revised", []):
+        ws.append([r.get("task_code", ""), r.get("old_wd", ""), r.get("new_wd", "")])
+    ws2 = wb.create_sheet("作废工卡")
+    ws2.append(["工卡号", "工卡名称"])
+    for r in report.get("cancelled", []):
+        ws2.append([r.get("task_code", ""), r.get("task_name", "")])
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
+def apply_reminder_version_section(ws, report: dict) -> None:
+    """提醒单附加版本区块：改版/新工卡行蓝底(FF0000FF)，作废行浅红底(FFFFC7CE)+行首"已作废"。"""
+    from openpyxl.styles import Font, PatternFill
+
+    blue = PatternFill(fill_type="solid", start_color="FF0000FF", end_color="FF0000FF")
+    red = PatternFill(fill_type="solid", start_color="FFFFC7CE", end_color="FFFFC7CE")
+    white_bold = Font(color="FFFFFF", bold=True)
+
+    def section_title(text):
+        c = ws.cell(row=ws.max_row + 2, column=1, value=text)
+        c.font = Font(bold=True)
+
+    def fill_row(row_idx, cols, fill):
+        for col in range(1, cols + 1):
+            ws.cell(row=row_idx, column=col).fill = fill
+
+    revised = report.get("revised", [])
+    cancelled = report.get("cancelled", [])
+    new_by_category = report.get("new_by_category") or {}
+    if not revised and not cancelled and not new_by_category:
+        ws.cell(row=ws.max_row + 2, column=1, value="版本检查完成：无改版、无作废工卡")
+        return
+
+    section_title("⚠ 工卡版本检查（实时比对 AMRO 编写日期）")
+
+    if revised:
+        r = ws.max_row + 1
+        for col, head in enumerate(("改版工卡", "旧编写日期", "新编写日期"), start=1):
+            cell = ws.cell(row=r, column=col, value=head)
+            cell.fill = blue
+            cell.font = white_bold
+        for item in revised:
+            r += 1
+            ws.cell(row=r, column=1, value=item.get("task_code", ""))
+            ws.cell(row=r, column=2, value=item.get("old_wd", "") or "（无）")
+            ws.cell(row=r, column=3, value=item.get("new_wd", ""))
+            fill_row(r, 3, blue)
+
+    if new_by_category:
+        for cat, items in new_by_category.items():
+            r = ws.max_row + 1
+            cell = ws.cell(row=r, column=1, value=f"新工卡（{cat}）")
+            cell.fill = blue
+            cell.font = white_bold
+            for it in items:
+                r += 1
+                ws.cell(row=r, column=1, value=it.get("task_code", ""))
+                ws.cell(row=r, column=2, value=it.get("task_name", ""))
+                fill_row(r, 2, blue)
+
+    if cancelled:
+        r = ws.max_row + 1
+        for col, head in enumerate(("作废工卡", "工卡名称"), start=1):
+            cell = ws.cell(row=r, column=col, value=head)
+            cell.fill = red
+        for item in cancelled:
+            r += 1
+            ws.cell(row=r, column=1, value=f"已作废：{item.get('task_code', '')}")
+            ws.cell(row=r, column=2, value=item.get("task_name", ""))
+            fill_row(r, 2, red)
+
+
+def start_version_check(app, output_dir) -> bool:
+    """启动全库版本检查后台任务。返回 False = 已在跑（S1 防重复）。"""
+    store = app.extensions["store"]
+    if store.get_amro_sync_meta().get("version", {}).get("status") == "running":
+        return False
+    session_store = app.extensions["inventory_service"].session_store
+
+    def job():
+        cookies = (session_store.load() or {}).get("cookies", {})
+
+        async def _inner():
+            async with httpx.AsyncClient(verify=True, trust_env=False) as client:
+                return await full_version_check(store, client, cookies)
+
+        report = asyncio.run(_inner())
+        ts = datetime.now(BJ).strftime("%Y%m%d_%H%M%S")
+        filename = f"amro_version_report_{ts}.xlsx"
+        (output_dir / filename).write_bytes(build_version_report_excel(report))
+        report["filename"] = filename
+        return report
+
+    run_in_thread(app, "version", job)
+    return True

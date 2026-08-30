@@ -156,3 +156,61 @@ class TestAmroPackageApi:
 
         html = client.get("/upload").get_data(as_text=True)
         assert "工卡版本变动日志" in html and "VLOG-1" in html
+
+
+class TestVersionCheckApi:
+    """Task 6: 全库版本检查（后台线程 + 改版清单下载）"""
+
+    def test_check_requires_session(self, client, ajax_headers, monkeypatch):
+        from reqman.services import amro_sync
+        monkeypatch.setattr(amro_sync, "require_amro_session", lambda: False)
+        resp = client.post("/card/amro-version-check", headers=ajax_headers)
+        assert resp.status_code == 401
+
+    def test_check_start_status_and_report(self, client, app, ajax_headers, monkeypatch, tmp_path):
+        import time as _time
+
+        import reqman.blueprints.cards_bp as cb_mod
+        import reqman.services.connectors.amro as amro_mod
+        from reqman.services import amro_sync
+        monkeypatch.setattr(amro_sync, "require_amro_session", lambda: True)
+        monkeypatch.setattr(cb_mod, "OUTPUT_DIR", tmp_path)
+
+        async def fake_fetch(client_, cookies, plugin, base_form, **kw):
+            if plugin == "TD_JC_SMJC_LIST":
+                return [_jcrow("CSCA320-256652-01-1-X", "2026-08-01 09:00:00")]
+            return [_jcrow("EOJC-A320-31-2026-007-A", "2026-07-15 14:00:00", task="EO")]
+        monkeypatch.setattr(amro_mod, "fetch_all_pages", fake_fetch)
+
+        # 库内卡：1 张改版 + 1 张库内没有（作废）
+        store_add(app, "CSCA320-256652-01-1-X", "检查救生衣")
+        store_add(app, "EOJC-A320-57-2025-002-B", "旧EO卡")
+
+        resp = client.post("/card/amro-version-check", headers=ajax_headers)
+        assert resp.status_code == 200
+
+        meta = {}
+        deadline = _time.time() + 5
+        while _time.time() < deadline:
+            meta = client.get("/card/amro-version-status").get_json()["data"]
+            if meta.get("status") == "done":
+                break
+            _time.sleep(0.05)
+        assert meta.get("status") == "done", meta
+        assert meta["report"]["revised"] and meta["report"]["cancelled"]
+        fname = meta["report"]["filename"]
+
+        dl = client.get(f"/card/amro-version-report/{fname.replace('amro_version_report_', '').replace('.xlsx', '')}")
+        assert dl.status_code == 200
+        # 非法 ts 被拒（防路径穿越）
+        assert client.get("/card/amro-version-report/..%5Cevil").status_code in (400, 404)
+
+
+def _jcrow(jcno, wd, **kw):
+    row = {"JC_NO": jcno, "WRITE_DATE": wd}
+    row.update(kw)
+    return row
+
+
+def store_add(app, code, name):
+    return app.extensions["store"].add(code, name, "机体", "", "")
