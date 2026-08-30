@@ -1,19 +1,24 @@
-"""工作包蓝图 — 上传工作清单 + 工卡匹配"""
+"""工作包蓝图 — 上传工作清单 + 工卡匹配 + AMRO 直读拉包"""
 
+import asyncio
 import logging
 import os
 import tempfile
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
-from flask import Blueprint, current_app, flash, redirect, render_template, request
+import httpx
+from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request
 
 from ..config import CATEGORIES
+from ..services import amro_sync
+from ..services.connectors.amro import AmroSessionExpired
 from ..services.work_package_matcher import match_work_package_items
 from ..services.worklist_parser import WorklistError, merge_aircraft_info, parse_worklist
 from ..utils.error_handlers import NotFoundError, ValidationError
 from ..utils.response import api_success
 from ..utils.validators import validate_file_extension
+from .inventory_bp import MESSAGES
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +84,7 @@ def upload():
         return _handle_upload_post()
     store = current_app.extensions['store']
     work_packages = store.get_work_packages()
+    version_logs = _version_log_rows(store)
 
     # 自动删除过期>2天的工作包，并标记状态
     today = datetime.now(ZoneInfo("Asia/Shanghai")).date()
@@ -91,7 +97,23 @@ def upload():
         wp["status"] = _classify_package(wp)
         filtered.append(wp)
 
-    return render_template("packages/upload.html", work_packages=filtered)
+    return render_template("packages/upload.html", work_packages=filtered,
+                           version_logs=version_logs)
+
+
+def _version_log_rows(store, limit: int = 50) -> list[dict]:
+    """card_logs → 工卡版本变动清单行（时间|工卡号|旧编写日期|新编写日期|操作）。"""
+    rows = []
+    for l in store.get_version_logs(limit=limit):
+        change = next((c for c in l.get("changes", []) if c.get("field") == "write_date"), {})
+        rows.append({
+            "time": str(l.get("timestamp", ""))[:16].replace("T", " "),
+            "task_code": l.get("target_identifier", ""),
+            "old": change.get("old", ""),
+            "new": change.get("new", ""),
+            "operation": l.get("operation", ""),
+        })
+    return rows
 
 
 def _handle_upload_post():
@@ -134,30 +156,34 @@ def _handle_upload_post():
     cat_order = {c: i for i, c in enumerate(CATEGORIES)}
     all_items.sort(key=lambda x: cat_order.get(x.get("category", ""), 99))
 
-    routine_count = sum(1 for i in all_items if i.get("source") == "例行")
-    other_count = sum(1 for i in all_items if i.get("source") == "其他")
 
     package_data = {
         "reg": aircraft_info.get("reg", ""),
         "description": aircraft_info.get("description", ""),
         "date": aircraft_info.get("date", datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y.%m.%d")),
         "aircraft_info": aircraft_info,
-        "matched": [],
-        "new_cards": [],
-        "cancelled": [],
         "all_items": all_items,
-        "routine_count": routine_count,
-        "other_count": other_count,
-        "is_matched": False,
-        "generated_at": None,
     }
-    store.save_work_package(package_data)
+    package_data = _persist_package(store, package_data)
 
     if _is_ajax():
         return api_success(data={"package_id": package_data.get("package_id")},
                            message="工作包上传成功")
     flash("工作包上传成功，点击工作包即可匹配生成", "success")
     return redirect("/upload")
+
+
+def _persist_package(store, package_data: dict) -> dict:
+    """工作包入库（upload 兜底路径）：保存原始清单，匹配延后到生成页打开时。"""
+    package_data["matched"] = []
+    package_data["new_cards"] = []
+    package_data["cancelled"] = []
+    package_data["routine_count"] = sum(1 for i in package_data.get("all_items", []) if i.get("source") == "例行")
+    package_data["other_count"] = sum(1 for i in package_data.get("all_items", []) if i.get("source") == "其他")
+    package_data["is_matched"] = False
+    package_data["generated_at"] = None
+    store.save_work_package(package_data)
+    return package_data
 
 
 @packages_bp.route("/packages/<package_id>/rematch", methods=["POST"])
@@ -186,3 +212,63 @@ def package_rematch(package_id):
         return api_success(message="重新匹配完成")
     flash("重新匹配完成", "success")
     return redirect("/upload")
+
+
+# ======================== AMRO 直读（v3.5.0） ========================
+
+@packages_bp.route("/packages/amro-list", methods=["GET", "POST"])
+def amro_package_list():
+    """AMRO 任务接收包列表（BM_TSK_LIST，baseCode=KM01，日期窗今±7天）。"""
+    if not amro_sync.require_amro_session():
+        return jsonify({"success": False, "message": MESSAGES["P8"]}), 401
+    svc = current_app.extensions["inventory_service"]
+    cookies = (svc.session_store.load() or {}).get("cookies", {})
+
+    async def _inner():
+        async with httpx.AsyncClient(verify=True, trust_env=False) as client:
+            return await amro_sync.list_amro_packages(client, cookies)
+
+    try:
+        packages = asyncio.run(_inner())
+    except AmroSessionExpired as e:
+        return jsonify({"success": False, "message": str(e)}), 401
+    except (httpx.HTTPError, RuntimeError) as e:
+        logger.exception("AMRO 包列表拉取失败")
+        return jsonify({"success": False, "message": f"AMRO 请求失败: {e}"}), 502
+    return api_success(data={"packages": packages})
+
+
+@packages_bp.route("/packages/amro-fetch", methods=["POST"])
+def amro_package_fetch():
+    """revnr → 拉两清单 → 匹配入库 → package_id（同步请求，两清单约 10~25s）。"""
+    if not amro_sync.require_amro_session():
+        return jsonify({"success": False, "message": MESSAGES["P8"]}), 401
+    revnr = (request.form.get("revnr") or "").strip()
+    if not revnr:
+        raise ValidationError("缺少包号 revnr", "NO_REVNR")
+    store = current_app.extensions["store"]
+    service = current_app.extensions["card_service"]
+    svc = current_app.extensions["inventory_service"]
+    cookies = (svc.session_store.load() or {}).get("cookies", {})
+
+    async def _inner():
+        async with httpx.AsyncClient(verify=True, trust_env=False) as client:
+            return await amro_sync.import_amro_package(store, client, cookies, revnr, service)
+
+    try:
+        summary = asyncio.run(_inner())
+    except AmroSessionExpired as e:
+        return jsonify({"success": False, "message": str(e)}), 401
+    except (httpx.HTTPError, RuntimeError) as e:
+        logger.exception("AMRO 工作包 %s 导入失败", revnr)
+        return jsonify({"success": False, "message": f"AMRO 请求失败: {e}"}), 502
+    message = (f"工作包 {revnr} 已导入：例行 {summary['routine']} 项，其他 {summary['other']} 项，"
+               f"其中新工卡 {summary['new_cards']} 项")
+    return api_success(data=summary, message=message)
+
+
+@packages_bp.route("/packages/amro-version-logs")
+def amro_version_logs():
+    """版本变动日志（card_logs 筛选视图，倒序最近 50 条）。"""
+    logs = _version_log_rows(current_app.extensions["store"])
+    return api_success(data={"logs": logs})

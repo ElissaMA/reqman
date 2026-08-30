@@ -8,7 +8,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -46,6 +46,15 @@ def run_in_thread(app, domain: str, job) -> None:
             store.set_amro_sync_meta(domain, {"status": "error", "finished_at": _now(), "error": str(exc)})
 
     threading.Thread(target=runner, daemon=True, name=f"amro-{domain}").start()
+
+
+# ---------- AMRO 会话前置检查 ----------
+
+def require_amro_session() -> bool:
+    """AMRO 功能前置检查（spec §3.2）：真实探活一次，失效由路由层 401+P8 阻断。"""
+    from flask import current_app
+    svc = current_app.extensions["inventory_service"]
+    return svc.check_login()
 
 
 # ---------- 飞机域 ----------
@@ -119,3 +128,109 @@ def start_aircraft_sync(app) -> bool:
 
     run_in_thread(app, "aircraft", job)
     return True
+
+
+# ---------- 工作包域 ----------
+
+def _package_header(rows: list[dict]) -> dict:
+    """从清单行取包头（REVNR/ACNO/ACTYPE/ENGTYPE/REVTITLE/CHKTP/PLANSTD ↔ xlsx Row2）。"""
+    first = rows[0] if rows else {}
+    raw_date = str(first.get("PLANSTD", "")).strip()
+    return {
+        "package": str(first.get("REVNR", "")).strip(),
+        "reg": str(first.get("ACNO", "")).strip(),
+        "type": str(first.get("ACTYPE", "")).strip(),
+        "description": str(first.get("REVTITLE", "")).strip(),
+        "level": str(first.get("CHKTP", "")).strip(),
+        "date": raw_date.split()[0].replace("-", ".") if raw_date else "",  # 与解析器同语义
+        "engine": str(first.get("ENGTYPE", "")).strip(),
+    }
+
+
+def _item_from_row(row: dict, source: str) -> dict:
+    """AMRO 清单行 → item（JCNO/TASK/ZY/JCTITLE/PPCBZSM，机身→机体，撤销标记）。"""
+    category = str(row.get("ZY", "")).strip()
+    if category == "机身":
+        category = "机体"
+    remark = str(row.get("PPCBZSM", "")).strip()
+    return {
+        "task_code": str(row.get("JCNO", "")).strip(),
+        "task_name": str(row.get("JCTITLE", "")).strip(),
+        "category": category,
+        "task_type": str(row.get("TASK", "")).strip(),
+        "remark": remark,
+        "source": source,
+        "cancelled": "撤销" in remark,
+    }
+
+
+def package_items(rows_routine: list[dict], rows_other: list[dict]) -> dict:
+    """AMRO 两清单行 → 与 xlsx 解析同构的 {all_items, aircraft_info}。
+
+    例行来源 BM_TSK_002_LIST、其他来源 BM_TSK_002_LIST_QT（EO/NRC/LS）；
+    按 task_code 去重（保留首现），与解析器一致。
+    """
+    all_items = [_item_from_row(r, "例行") for r in rows_routine]
+    all_items += [_item_from_row(r, "其他") for r in rows_other]
+    all_items = [it for it in all_items if it["task_code"]]
+    seen, uniq = set(), []
+    for it in all_items:
+        if it["task_code"] in seen:
+            continue
+        seen.add(it["task_code"])
+        uniq.append(it)
+    return {"all_items": uniq, "aircraft_info": _package_header(rows_routine or rows_other)}
+
+
+def persist_amro_package(store, service, package_data: dict) -> dict:
+    """AMRO 直读入库：立即匹配（供 S3 计数）+ 保存。返回摘要 {package_id, routine, other, new_cards}。"""
+    from .work_package_matcher import match_work_package_items
+
+    all_items = package_data.get("all_items", [])
+    matched, new_cards, cancelled = match_work_package_items(all_items, store, service)
+    package_data.update({
+        "matched": matched, "new_cards": new_cards, "cancelled": cancelled,
+        "is_matched": True, "generated_at": _now(),
+        "routine_count": sum(1 for i in all_items if i.get("source") == "例行"),
+        "other_count": sum(1 for i in all_items if i.get("source") == "其他"),
+    })
+    store.save_work_package(package_data)
+    return {"package_id": package_data.get("package_id"),
+            "routine": package_data["routine_count"], "other": package_data["other_count"],
+            "new_cards": len(new_cards)}
+
+
+async def import_amro_package(store, client, cookies, revnr, service=None, *, fetch=None) -> dict:
+    """拉 BM_TSK_002_LIST + BM_TSK_002_LIST_QT → package_items → 入库 → 摘要。"""
+    fetch = fetch or amro.fetch_all_pages
+    base = {"revnr": str(revnr), "rows": 50}
+    rows_routine = await fetch(client, cookies, "BM_TSK_002_LIST", dict(base), timeout=60)
+    rows_other = await fetch(client, cookies, "BM_TSK_002_LIST_QT", dict(base), timeout=60)
+    out = package_items(rows_routine, rows_other)
+    info = out["aircraft_info"]
+    package_data = {
+        "reg": info.get("reg", ""),
+        "description": info.get("description", ""),
+        "date": info.get("date", "") or datetime.now(BJ).strftime("%Y.%m.%d"),
+        "aircraft_info": info,
+        "all_items": out["all_items"],
+        "source": "AMRO",
+    }
+    return persist_amro_package(store, service, package_data)
+
+
+async def list_amro_packages(client, cookies, *, base=None, days=7) -> list[dict]:
+    """BM_TSK_LIST 任务接收包列表（total 恒 0 单页返回；日期窗今±days）。"""
+    from ..config import AMRO_BASE_DEFAULT
+    base = base or AMRO_BASE_DEFAULT
+    today = datetime.now(BJ).date()
+    form = {
+        "gjzStr": "", "initBase": "", "baseCode1": "", "baseCode": base,
+        "chktp": "",
+        "planstdstr": (today - timedelta(days=days)).isoformat(),
+        "planstdEnd": (today + timedelta(days=days)).isoformat(),
+        "revst": "WJS|ZB|YZB|KG", "xfdw": "", "actype": "", "acno": "",
+        "gjz": "", "iftj": "", "ifgzrz": "", "page": 1, "rows": 50,
+    }
+    body = await amro.query_plugin(client, cookies, "BM_TSK_LIST", form)
+    return body.get("data") or []

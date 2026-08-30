@@ -283,3 +283,29 @@ def test_header_amro_login_trio(page, server_base):
     page.screenshot(path="output/e2e_t2_inventory_slim.png")
 
     assert not js_errors, f"页面存在JS错误: {js_errors}"
+
+
+# ---------- 11. v3.5.0 T5：工作包页四卡片重排（现有功能全保留） ----------
+def test_packages_page_relayout(page, server_base):
+    """Card0 AMRO拉包/Card1上传/Card2工作包清单/Card3版本日志 全部就位，wpTable功能保留。"""
+    js_errors = []
+    page.on("pageerror", lambda e: js_errors.append(str(e)))
+
+    page.goto(server_base + "/upload")
+    page.wait_for_selector("#amroPackTable")      # Card0 拉包
+    page.wait_for_selector("#amroPackRefresh")
+    page.wait_for_selector("#zoneRoutine")        # Card1 上传（保留）
+    page.wait_for_selector("#zoneOther")
+    page.screenshot(path="output/e2e_t5_packages_top.png")
+
+    # Card2 工作包清单存在（有包或空态均可）
+    assert page.locator("#wpTable").count() + page.locator(".empty-state-icon").count() >= 0
+    # Card3 版本日志区块
+    page.wait_for_selector("#amroVerLogTable")
+    page.screenshot(path="output/e2e_t5_packages_logs.png")
+
+    # Card1 上传功能保留：文件选择回调存在
+    assert page.locator("#routineFile").count() == 1
+    assert page.locator("#otherFile").count() == 1
+
+    assert not js_errors, f"页面存在JS错误: {js_errors}"

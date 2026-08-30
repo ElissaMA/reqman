@@ -50,3 +50,39 @@ class TestSyncAircraft:
         rep = _run(amro_sync.sync_aircraft(json_store, None, {}, fetch=fetch))
         assert rep["total_amro"] == 1
         assert [a["reg"] for a in json_store.get_all_aircraft()] == ["B-1662"]
+
+
+@pytest.fixture
+def routine_row():
+    return {"REVNR": "66A", "ACNO": "B-1662", "ACTYPE": "A320-232", "ENGTYPE": "V2500",
+            "REVTITLE": "A320 4C检", "CHKTP": "4C", "PLANSTD": "2026-09-01",
+            "JCNO": "CSCA320-256652-01-1-X", "TASK": "RST", "ZY": "电子",
+            "JCTITLE": "检查救生衣", "PPCBZSM": ""}
+
+
+class TestPackageItems:
+    """T5 工作包直读：AMRO 清单行 → 与 xlsx 解析同构的 item"""
+
+    def test_mapping_and_prefix(self, routine_row):
+        routine_row["ZY"] = "机身"
+        out = amro_sync.package_items([routine_row], [])
+        it = out["all_items"][0]
+        assert (it["task_code"], it["task_type"], it["category"], it["source"]) == (
+            routine_row["JCNO"], routine_row["TASK"], "机体", "例行")
+        assert out["aircraft_info"]["package"] == "66A"
+        assert out["aircraft_info"]["reg"] == "B-1662"
+        assert out["aircraft_info"]["date"] == "2026.09.01"   # 与解析器同语义（- → .）
+
+    def test_cancelled_by_remark(self, routine_row):
+        routine_row["PPCBZSM"] = "该卡已撤销|"
+        it = amro_sync.package_items([routine_row], [])["all_items"][0]
+        assert it["cancelled"] is True and "撤销" in it["remark"]
+
+    def test_qt_rows_other_source_and_dedup(self, routine_row):
+        other = dict(routine_row, JCNO="EOJC-A320-31-2026-007-A")
+        out = amro_sync.package_items([routine_row, dict(routine_row)], [other])
+        assert [i["source"] for i in out["all_items"]] == ["例行", "其他"]  # 重复行去重+来源标注
+
+    def test_empty_rows(self):
+        out = amro_sync.package_items([], [])
+        assert out["all_items"] == [] and out["aircraft_info"]["package"] == ""

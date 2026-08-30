@@ -101,3 +101,58 @@ class TestAircraftSyncApi:
         resp = client.post("/card/aircraft/amro-sync", headers=ajax_headers)
         assert resp.status_code == 409
         app.extensions["store"].set_amro_sync_meta("aircraft", {"status": "done"})
+
+
+class TestAmroPackageApi:
+    """Task 5: 工作包直读（amro-fetch）与版本变动日志"""
+
+    def test_fetch_imports_and_matches(self, client, app, ajax_headers, monkeypatch):
+        import reqman.services.connectors.amro as amro_mod
+        from reqman.services import amro_sync
+        monkeypatch.setattr(amro_sync, "require_amro_session", lambda: True)
+
+        base_row = {"REVNR": "66A", "ACNO": "B-1662", "ACTYPE": "A320-232", "ENGTYPE": "V2500",
+                    "REVTITLE": "A320 4C检", "CHKTP": "4C", "PLANSTD": "2026-09-01"}
+
+        async def fake_fetch(client_, cookies, plugin, base_form, **kw):
+            if plugin == "BM_TSK_002_LIST":
+                return [dict(base_row, JCNO="CSCA320-256652-01-1-X", TASK="RST",
+                             ZY="机身", JCTITLE="检查救生衣", PPCBZSM="")]
+            return [dict(base_row, JCNO="EOJC-A320-31-2026-007-A", TASK="EO",
+                         ZY="电子", JCTITLE="实时数据改装", PPCBZSM="")]
+        monkeypatch.setattr(amro_mod, "fetch_all_pages", fake_fetch)
+
+        resp = client.post("/packages/amro-fetch", data={"revnr": "66A"}, headers=ajax_headers)
+        assert resp.status_code == 200
+        summary = resp.get_json()["data"]
+        assert summary["routine"] == 1 and summary["other"] == 1
+
+        pkg = app.extensions["store"].get_work_package(summary["package_id"])
+        assert pkg["is_matched"] is True
+        assert pkg["routine_count"] == 1 and pkg["other_count"] == 1
+        # 机身→机体 映射与来源标注
+        codes = {i["task_code"]: i for i in pkg["all_items"]}
+        assert codes["CSCA320-256652-01-1-X"]["category"] == "机体"
+        assert codes["EOJC-A320-31-2026-007-A"]["source"] == "其他"
+        # 同 reg+description 重复导入覆盖（沿用现有幂等语义）
+        resp2 = client.post("/packages/amro-fetch", data={"revnr": "66A"}, headers=ajax_headers)
+        assert resp2.get_json()["data"]["package_id"] == summary["package_id"]
+
+    def test_fetch_requires_session(self, client, ajax_headers, monkeypatch):
+        from reqman.services import amro_sync
+        monkeypatch.setattr(amro_sync, "require_amro_session", lambda: False)
+        resp = client.post("/packages/amro-fetch", data={"revnr": "66A"}, headers=ajax_headers)
+        assert resp.status_code == 401
+
+    def test_version_logs_view(self, client, store):
+        """版本变动日志：card_logs 筛选视图（JSON API + 页面区块）"""
+        r = store.add("VLOG-1", "卡", "机体", "", "")
+        store.update(r["id"], task_name="改名")                    # 非版本日志
+        store.update(r["id"], write_date="2026-08-01 09:00:00")   # 版本日志
+        data = client.get("/packages/amro-version-logs").get_json()["data"]
+        assert len(data["logs"]) == 1
+        row = data["logs"][0]
+        assert row["task_code"] == "VLOG-1" and row["new"] == "2026-08-01 09:00:00"
+
+        html = client.get("/upload").get_data(as_text=True)
+        assert "工卡版本变动日志" in html and "VLOG-1" in html

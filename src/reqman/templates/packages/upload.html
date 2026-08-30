@@ -8,6 +8,30 @@
 .wp-danger td { background-color: #f8d7da !important; }
 </style>
 
+<!-- Card 0：从 AMRO 拉取工作包（v3.5.0 新增） -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">🔄 从 AMRO 拉取工作包</h5>
+        <button class="btn btn-primary btn-sm" id="amroPackRefresh">刷新包列表</button>
+    </div>
+    <div class="card-body">
+        <p class="text-muted small mb-2">从 AMRO「任务接收」直读工卡清单（基地 KM01，日期窗今±7天），替代人工打印上传；需先在表头完成 AMRO 登录。</p>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0" id="amroPackTable">
+                <thead><tr>
+                    <th>包号</th><th>机号</th><th>机型</th><th>描述</th>
+                    <th>级别</th><th>计划开工</th><th>计划完成</th>
+                    <th class="text-center" style="width:90px">操作</th>
+                </tr></thead>
+                <tbody>
+                    <tr class="empty-state-row"><td colspan="8" class="text-center text-muted py-3">点击「刷新包列表」从 AMRO 获取</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Card 1：上传工作清单（保留不动） -->
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">上传工作清单</h5>
@@ -95,10 +119,40 @@
 <div class="card text-center py-5">
     <div class="card-body text-muted">
         <div class="empty-state-icon">📋</div>
-        <p class="mt-2 mb-0">暂无工作包，请上传工作清单</p>
+        <p class="mt-2 mb-0">暂无工作包，请上传工作清单或从 AMRO 拉取</p>
     </div>
 </div>
 {% endif %}
+
+<!-- Card 3：工卡版本变动日志（v3.5.0 新增，card_logs 筛选视图） -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">🕘 工卡版本变动日志 <span class="badge bg-secondary ms-2">{{ version_logs|length }}</span></h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0" id="amroVerLogTable">
+                <thead><tr>
+                    <th style="width:140px">时间</th><th>工卡号</th>
+                    <th>旧编写日期</th><th>新编写日期</th><th style="width:90px">操作</th>
+                </tr></thead>
+                <tbody>
+                {% for l in version_logs %}
+                    <tr>
+                        <td>{{ l.time }}</td>
+                        <td><strong>{{ l.task_code }}</strong></td>
+                        <td>{{ l.old or '—' }}</td>
+                        <td>{{ l.new }}</td>
+                        <td>{{ l.operation }}</td>
+                    </tr>
+                {% else %}
+                    <tr class="empty-state-row"><td colspan="5" class="text-center text-muted py-3">暂无版本变动记录（版本检查发现改版后自动记录）</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
 {% endblock %}
 
@@ -148,6 +202,63 @@ function setupDragDrop(zoneId, inputId) {
 document.addEventListener('DOMContentLoaded', function() {
     setupDragDrop('zoneRoutine', 'routineFile');
     setupDragDrop('zoneOther', 'otherFile');
+});
+
+// ===== Card 0：AMRO 拉取工作包（v3.5.0） =====
+function amroRequireLogin() {
+    if (window.amroSession && window.amroSession.ready) return true;
+    window.safeToast('登录已失效（可能被其他登录挤掉），请重新运行登录脚本后重试', 'warning');
+    return false;
+}
+
+function refreshAmroPacks() {
+    if (!amroRequireLogin()) return;
+    window.showLoader();
+    fetch('/packages/amro-list', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function(r) { return r.json(); }).then(function(d) {
+            window.hideLoader();
+            if (!d.success) { window.safeToast(d.message || '拉取失败', 'error'); return; }
+            var rows = (d.data && d.data.packages) || [];
+            var tbody = document.querySelector('#amroPackTable tbody');
+            if (!rows.length) {
+                tbody.innerHTML = '<tr class="empty-state-row"><td colspan="8" class="text-center text-muted py-3">日期窗内暂无任务包</td></tr>';
+                return;
+            }
+            tbody.innerHTML = rows.map(function(p) {
+                return '<tr><td><strong>' + (p.REVNR || '') + '</strong></td>' +
+                    '<td>' + (p.ACNO || '') + '</td><td>' + (p.ACTYPE || '') + '</td>' +
+                    '<td>' + (p.REVTITLE || '') + '</td><td>' + (p.CHKTP || '') + '</td>' +
+                    '<td>' + (p.PLANSTD || '') + '</td><td>' + (p.PLANEND || '') + '</td>' +
+                    '<td class="text-center"><button class="btn btn-outline-primary btn-sm py-0" ' +
+                    'onclick="importPack(\'' + (p.REVNR || '') + '\', this)">导入</button></td></tr>';
+            }).join('');
+        }).catch(function() { window.hideLoader(); window.safeToast('拉取包列表失败', 'error'); });
+}
+
+function importPack(revnr, btn) {
+    if (!amroRequireLogin()) return;
+    btn.disabled = true; btn.textContent = '导入中…';
+    var fd = new FormData();
+    fd.append('revnr', revnr);
+    fetch('/packages/amro-fetch', { method: 'POST', body: fd,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function(r) { return r.json(); }).then(function(d) {
+            if (d.success) {
+                window.safeToast(d.message, 'success', 6000);
+                btn.textContent = '✅ 已导入';
+            } else {
+                window.safeToast(d.message || '导入失败', 'error', 6000);
+                btn.disabled = false; btn.textContent = '导入';
+            }
+        }).catch(function() {
+            window.safeToast('导入失败', 'error');
+            btn.disabled = false; btn.textContent = '导入';
+        });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var refreshBtn = document.getElementById('amroPackRefresh');
+    if (refreshBtn) refreshBtn.addEventListener('click', refreshAmroPacks);
 });
 </script>
 {% endblock %}
