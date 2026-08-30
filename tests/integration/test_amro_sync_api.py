@@ -1,5 +1,6 @@
 """AMRO 三域同步集成测试 — Task 2: 表头登录三件套 + /inventory 简化"""
 import io
+import json
 import zipfile
 
 import pytest
@@ -117,7 +118,8 @@ class TestAmroPackageApi:
         monkeypatch.setattr(amro_sync, "require_amro_session", lambda: True)
 
         base_row = {"REVNR": "66A", "ACNO": "B-1662", "ACTYPE": "A320-232", "ENGTYPE": "V2500",
-                    "REVTITLE": "A320 4C检", "CHKTP": "4C", "PLANSTD": "2026-09-01"}
+                    "REVTITLE": "A320 4C检", "CHKTP": "4C", "PLANSTD": "2026-09-01 08:00:00",
+                    "ZRFD": "云南定检中队一分队(主),云南定检中队二分队", "LIMH": "170"}
 
         async def fake_fetch(client_, cookies, plugin, base_form, **kw):
             if plugin == "BM_TSK_002_LIST":
@@ -127,20 +129,30 @@ class TestAmroPackageApi:
                          ZY="电子", JCTITLE="实时数据改装", PPCBZSM="")]
         monkeypatch.setattr(amro_mod, "fetch_all_pages", fake_fetch)
 
-        resp = client.post("/packages/amro-fetch", data={"revnr": "66A"}, headers=ajax_headers)
+        form = {"revnr": "66A", "header": json.dumps(base_row)}
+        resp = client.post("/packages/amro-fetch", data=form, headers=ajax_headers)
         assert resp.status_code == 200
         summary = resp.get_json()["data"]
         assert summary["routine"] == 1 and summary["other"] == 1
 
         pkg = app.extensions["store"].get_work_package(summary["package_id"])
-        assert pkg["is_matched"] is True
+        assert pkg["is_matched"] is False          # 导入仅入库，不匹配（与 Excel 一致）
+        assert pkg["generated_at"] is None         # 生成日期匹配后才记
         assert pkg["routine_count"] == 1 and pkg["other_count"] == 1
+        # 包头字段来自前端选中的列表行（机号/描述/日期/分队/工时）
+        assert pkg["reg"] == "B-1662"
+        assert pkg["description"] == "A320 4C检"
+        assert pkg["date"] == "2026.09.01"
+        info = pkg["aircraft_info"]
+        assert info["type"] == "A320-232" and info["engine"] == "V2500"
+        assert info["squadron"] == "云南定检中队一分队"          # 剥掉“(主)”
+        assert info["plan_hours"] == "170"
         # 机身→机体 映射与来源标注
         codes = {i["task_code"]: i for i in pkg["all_items"]}
         assert codes["CSCA320-256652-01-1-X"]["category"] == "机体"
         assert codes["EOJC-A320-31-2026-007-A"]["source"] == "其他"
         # 同 reg+description 重复导入覆盖（沿用现有幂等语义）
-        resp2 = client.post("/packages/amro-fetch", data={"revnr": "66A"}, headers=ajax_headers)
+        resp2 = client.post("/packages/amro-fetch", data=form, headers=ajax_headers)
         assert resp2.get_json()["data"]["package_id"] == summary["package_id"]
 
     def test_fetch_requires_session(self, client, ajax_headers, monkeypatch):

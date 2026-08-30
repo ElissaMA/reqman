@@ -65,13 +65,27 @@ class TestPackageItems:
 
     def test_mapping_and_prefix(self, routine_row):
         routine_row["ZY"] = "机身"
-        out = amro_sync.package_items([routine_row], [])
+        out = amro_sync.package_items([routine_row], [], header_row=routine_row)
         it = out["all_items"][0]
         assert (it["task_code"], it["task_type"], it["category"], it["source"]) == (
             routine_row["JCNO"], routine_row["TASK"], "机体", "例行")
         assert out["aircraft_info"]["package"] == "66A"
         assert out["aircraft_info"]["reg"] == "B-1662"
         assert out["aircraft_info"]["date"] == "2026.09.01"   # 与解析器同语义（- → .）
+
+    def test_squadron_and_plan_hours(self):
+        row = {"REVNR": "66A", "PLANSTD": "2026-09-01 08:00:00",
+               "ZRFD": "云南定检中队一分队(主),云南定检中队二分队（主）,云南定检中队三分队",
+               "LIMH": "170"}
+        info = amro_sync.package_items([], [], header_row=row)["aircraft_info"]
+        assert info["squadron"] == "云南定检中队一分队"      # 首个带“(主)”项，剥后缀
+        assert info["plan_hours"] == "170"
+
+    def test_squadron_no_mark_uses_first(self):
+        row = {"ZRFD": "云南定检中队一分队,云南定检中队二分队", "LIMH": ""}
+        info = amro_sync.package_items([], [], header_row=row)["aircraft_info"]
+        assert info["squadron"] == "云南定检中队一分队"      # 无主标记取首项
+        assert info["plan_hours"] == ""
 
     def test_cancelled_by_remark(self, routine_row):
         routine_row["PPCBZSM"] = "该卡已撤销|"

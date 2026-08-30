@@ -195,18 +195,35 @@ def start_aircraft_sync(store, session_store) -> bool:
 
 # ---------- 工作包域 ----------
 
-def _package_header(rows: list[dict]) -> dict:
-    """从清单行取包头（REVNR/ACNO/ACTYPE/ENGTYPE/REVTITLE/CHKTP/PLANSTD ↔ xlsx Row2）。"""
-    first = rows[0] if rows else {}
-    raw_date = str(first.get("PLANSTD", "")).strip()
+def _main_squadron(zrfd: str) -> str:
+    """ZRFD 责任分队串（逗号分隔，主责带“(主)”）→ 主分队名（剥掉“(主)”，无标记取首项）。"""
+    parts = [p.strip() for p in str(zrfd or "").replace("，", ",").split(",") if p.strip()]
+    for name in parts:
+        if name.endswith(("（主）", "(主)")):
+            return name[:-3].strip()
+    return parts[0] if parts else ""
+
+
+def _package_header(row: dict | None) -> dict:
+    """BM_TSK_LIST 选中行 → 包头（ACNO/ACTYPE/ENGTYPE/REVTITLE/CHKTP/PLANSTD/ZRFD/LIMH）。
+
+    包头字段只存在于包列表端点（BM_TSK_LIST 41 字段）；包内容清单（BM_TSK_002_LIST）无这些键，
+    必须由列表行构建（2026-08-31 修复：此前从清单行取包头导致机号/描述空、日期兜底成导入日）。
+    """
+    row = row or {}
+    raw_date = str(row.get("PLANSTD", "")).strip()
+    raw_end = str(row.get("PLANEND", "")).strip()
     return {
-        "package": str(first.get("REVNR", "")).strip(),
-        "reg": str(first.get("ACNO", "")).strip(),
-        "type": str(first.get("ACTYPE", "")).strip(),
-        "description": str(first.get("REVTITLE", "")).strip(),
-        "level": str(first.get("CHKTP", "")).strip(),
+        "package": str(row.get("REVNR", "")).strip(),
+        "reg": str(row.get("ACNO", "")).strip(),
+        "type": str(row.get("ACTYPE", "")).strip(),
+        "description": str(row.get("REVTITLE", "")).strip(),
+        "level": str(row.get("CHKTP", "")).strip(),
         "date": raw_date.split()[0].replace("-", ".") if raw_date else "",  # 与解析器同语义
-        "engine": str(first.get("ENGTYPE", "")).strip(),
+        "engine": str(row.get("ENGTYPE", "")).strip(),
+        "plan_end": raw_end.split()[0].replace("-", ".") if raw_end else "",
+        "squadron": _main_squadron(str(row.get("ZRFD", ""))),
+        "plan_hours": str(row.get("LIMH", "")).strip(),  # 语义待真实冒烟校准
     }
 
 
@@ -227,7 +244,7 @@ def _item_from_row(row: dict, source: str) -> dict:
     }
 
 
-def package_items(rows_routine: list[dict], rows_other: list[dict]) -> dict:
+def package_items(rows_routine: list[dict], rows_other: list[dict], header_row: dict | None = None) -> dict:
     """AMRO 两清单行 → 与 xlsx 解析同构的 {all_items, aircraft_info}。
 
     例行来源 BM_TSK_002_LIST、其他来源 BM_TSK_002_LIST_QT（EO/NRC/LS）；
@@ -242,34 +259,41 @@ def package_items(rows_routine: list[dict], rows_other: list[dict]) -> dict:
             continue
         seen.add(it["task_code"])
         uniq.append(it)
-    return {"all_items": uniq, "aircraft_info": _package_header(rows_routine or rows_other)}
+    return {"all_items": uniq, "aircraft_info": _package_header(header_row)}
 
 
 def persist_amro_package(store, service, package_data: dict) -> dict:
-    """AMRO 直读入库：立即匹配（供 S3 计数）+ 保存。返回摘要 {package_id, routine, other, new_cards}。"""
-    from .work_package_matcher import match_work_package_items
+    """AMRO 直读入库：仅入库不匹配（与 Excel 导入一致），生成日期留空待匹配时再记。
 
+    匹配动作由「重新匹配」或打开生成页触发；摘要返回 routine/other 计数（不再有 new_cards）。
+    """
     all_items = package_data.get("all_items", [])
-    matched, new_cards, cancelled = match_work_package_items(all_items, store, service)
     package_data.update({
-        "matched": matched, "new_cards": new_cards, "cancelled": cancelled,
-        "is_matched": True, "generated_at": _now(),
+        "matched": [], "new_cards": [], "cancelled": [],
+        "is_matched": False, "generated_at": None,
         "routine_count": sum(1 for i in all_items if i.get("source") == "例行"),
         "other_count": sum(1 for i in all_items if i.get("source") == "其他"),
     })
     store.save_work_package(package_data)
     return {"package_id": package_data.get("package_id"),
-            "routine": package_data["routine_count"], "other": package_data["other_count"],
-            "new_cards": len(new_cards)}
+            "routine": package_data["routine_count"], "other": package_data["other_count"]}
 
 
-async def import_amro_package(store, client, cookies, revnr, service=None, *, fetch=None) -> dict:
-    """拉 BM_TSK_002_LIST + BM_TSK_002_LIST_QT → package_items → 入库 → 摘要。"""
+async def import_amro_package(store, client, cookies, revnr, service=None, *, fetch=None,
+                              header_row: dict | None = None) -> dict:
+    """拉 BM_TSK_002_LIST + BM_TSK_002_LIST_QT → package_items → 入库 → 摘要。
+
+    header_row 为前端选中的 BM_TSK_LIST 行（含 ACNO/REVTITLE/PLANSTD 等包头字段）；
+    未传时兜底调 list_amro_packages 按 REVNR 匹配。
+    """
     fetch = fetch or amro.fetch_all_pages
     base = {"revnr": str(revnr), "rows": 50}
     rows_routine = await fetch(client, cookies, "BM_TSK_002_LIST", dict(base), timeout=60)
     rows_other = await fetch(client, cookies, "BM_TSK_002_LIST_QT", dict(base), timeout=60)
-    out = package_items(rows_routine, rows_other)
+    if not header_row:
+        listing = await list_amro_packages(client, cookies)
+        header_row = next((r for r in listing if str(r.get("REVNR", "")) == str(revnr)), None)
+    out = package_items(rows_routine, rows_other, header_row)
     info = out["aircraft_info"]
     package_data = {
         "reg": info.get("reg", ""),

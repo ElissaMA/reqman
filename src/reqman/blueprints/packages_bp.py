@@ -1,6 +1,7 @@
 """工作包蓝图 — 上传工作清单 + 工卡匹配 + AMRO 直读拉包"""
 
 import asyncio
+import json
 import logging
 import os
 import tempfile
@@ -244,12 +245,19 @@ def amro_package_list():
 
 @packages_bp.route("/packages/amro-fetch", methods=["POST"])
 def amro_package_fetch():
-    """revnr → 拉两清单 → 匹配入库 → package_id（同步请求，两清单约 10~25s）。"""
+    """revnr + header（BM_TSK_LIST 选中行）→ 拉两清单 → 入库 → package_id（同步请求）。"""
     if not amro_sync.require_amro_session():
         return jsonify({"success": False, "message": MESSAGES["P8"]}), 401
     revnr = (request.form.get("revnr") or "").strip()
     if not revnr:
         raise ValidationError("缺少包号 revnr", "NO_REVNR")
+    header_row = None
+    raw_header = request.form.get("header", "")
+    if raw_header:
+        try:
+            header_row = json.loads(raw_header)
+        except (ValueError, TypeError):
+            header_row = None
     store = current_app.extensions["store"]
     service = current_app.extensions["card_service"]
     svc = current_app.extensions["inventory_service"]
@@ -257,7 +265,8 @@ def amro_package_fetch():
 
     async def _inner():
         async with httpx.AsyncClient(verify=True, trust_env=False) as client:
-            return await amro_sync.import_amro_package(store, client, cookies, revnr, service)
+            return await amro_sync.import_amro_package(store, client, cookies, revnr, service,
+                                                       header_row=header_row)
 
     try:
         with amro_sync.query_slot("查询工作包"):
@@ -270,8 +279,8 @@ def amro_package_fetch():
     except (httpx.HTTPError, RuntimeError) as e:
         logger.exception("AMRO 工作包 %s 导入失败", revnr)
         return jsonify({"success": False, "message": f"AMRO 请求失败: {e}"}), 502
-    message = (f"工作包 {revnr} 已导入：例行 {summary['routine']} 项，其他 {summary['other']} 项，"
-               f"其中新工卡 {summary['new_cards']} 项")
+    message = (f"工作包 {revnr} 已导入：例行 {summary['routine']} 项，其他 {summary['other']} 项"
+               "（请在表格中重新匹配或打开预览页完成匹配）")
     return api_success(data=summary, message=message)
 
 
