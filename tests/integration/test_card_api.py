@@ -403,3 +403,62 @@ class TestConfirmSymmetry:
             "confirm_no_tools": "1", "confirm_no_mats": "1",
         })
         assert resp.get_json()["success"] is False
+
+
+class TestWriteDateApi:
+    """编写日期（工卡版本日期）：新建/编辑全链路 + 清单列 + 操作日志标签"""
+
+    def _post_new(self, client, task_code="WD-001", extra=None):
+        payload = {
+            "task_code": task_code, "task_name": "编写日期卡", "category": "电子",
+            "confirm_no_tools": "1", "confirm_no_mats": "1",
+            "reminder_type": "一般提醒",
+        }
+        if extra:
+            payload.update(extra)
+        return client.post("/card/new", data=payload,
+                           headers={"X-Requested-With": "XMLHttpRequest"})
+
+    def test_new_card_with_write_date(self, client, store):
+        """新建工卡带编写日期 → 入库（YYYY-MM-DD）且清单页显示该列"""
+        resp = self._post_new(client, extra={"write_date": "2026-08-05"})
+        assert resp.get_json()["success"] is True
+        card = store.find_by_code("WD-001")
+        assert card["write_date"] == "2026-08-05"
+        html = client.get("/card/list").get_data(as_text=True)
+        assert "编写日期" in html and "2026-08-05" in html
+
+    def test_new_card_write_date_blank(self, client, store):
+        """留空 → 存空串（待 AMRO 同步）"""
+        resp = self._post_new(client, task_code="WD-002")
+        assert resp.get_json()["success"] is True
+        assert store.find_by_code("WD-002")["write_date"] == ""
+
+    def test_edit_card_write_date(self, client, store):
+        """编辑工卡可改编写日期，清空则存空"""
+        self._post_new(client, task_code="WD-003", extra={"write_date": "2026-08-01"})
+        card = store.find_by_code("WD-003")
+        resp = client.post(f"/card/{card['id']}/edit", data={
+            "task_code": "WD-003", "task_name": "编写日期卡", "category": "电子",
+            "confirm_no_tools": "1", "confirm_no_mats": "1",
+            "reminder_type": "一般提醒", "write_date": "2026-08-10",
+        }, headers={"X-Requested-With": "XMLHttpRequest"})
+        assert resp.get_json()["success"] is True
+        assert store.find_by_code("WD-003")["write_date"] == "2026-08-10"
+        # 清空 → 空串
+        client.post(f"/card/{card['id']}/edit", data={
+            "task_code": "WD-003", "task_name": "编写日期卡", "category": "电子",
+            "confirm_no_tools": "1", "confirm_no_mats": "1",
+            "reminder_type": "一般提醒", "write_date": "",
+        }, headers={"X-Requested-With": "XMLHttpRequest"})
+        assert store.find_by_code("WD-003")["write_date"] == ""
+
+    def test_invalid_write_date_rejected(self, client):
+        """编写日期格式非法 → 校验失败"""
+        resp = self._post_new(client, task_code="WD-004", extra={"write_date": "abc"})
+        assert resp.get_json()["success"] is False
+
+    def test_operation_log_label(self):
+        """操作日志页 write_date 字段显示中文标签"""
+        from reqman.blueprints.logs_bp import FIELD_LABELS
+        assert FIELD_LABELS["write_date"] == "编写日期"

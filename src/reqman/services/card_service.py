@@ -94,7 +94,7 @@ class CardService:
                  tools_confirmed: bool = False,
                  materials_confirmed: bool = False,
                  reminder_type: str = "", reminder_confirmed: bool = False,
-                 card_ok: bool = False) -> dict:
+                 write_date: str = "", card_ok: bool = False) -> dict:
         """新增工卡。code 重复时抛出 ServiceError"""
         if is_blank(task_code):
             raise ServiceError("工卡号不能为空", "task_code")
@@ -113,6 +113,7 @@ class CardService:
         updates["materials_confirmed"] = materials_confirmed
         updates["reminder_type"] = reminder_type
         updates["reminder_confirmed"] = reminder_confirmed
+        updates["write_date"] = write_date
         updates["card_ok"] = card_ok
         self.store.update(card["id"], **updates)
 

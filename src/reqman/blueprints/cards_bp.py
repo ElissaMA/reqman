@@ -1,6 +1,7 @@
 """工卡管理蓝图 — 工卡 CRUD + 工卡组管理"""
 
 import logging
+from datetime import datetime
 
 from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request, send_file
 
@@ -83,6 +84,17 @@ def _parse_reminder():
     return reminder_type, reminder_confirmed, None
 
 
+def _parse_write_date() -> str:
+    """编写日期（date 输入 → YYYY-MM-DD；留空返回空串）。"""
+    v = (request.form.get("write_date") or "").strip()
+    if not v:
+        return ""
+    try:
+        return datetime.fromisoformat(v).date().isoformat()
+    except ValueError as e:
+        raise ValidationError("编写日期格式不正确，应为 YYYY-MM-DD", "write_date") from e
+
+
 @cards_bp.route("/card/new", methods=["GET", "POST"])
 def card_new():
     """新增工卡"""
@@ -110,6 +122,7 @@ def card_new():
                 materials_confirmed=materials_confirmed,
                 reminder_type=reminder_type,
                 reminder_confirmed=reminder_confirmed,
+                write_date=_parse_write_date(),
                 card_ok=True,
             )
             if _is_ajax():
@@ -176,6 +189,7 @@ def card_edit(card_id):
                 materials_confirmed=materials_confirmed,
                 reminder_type=reminder_type,
                 reminder_confirmed=reminder_confirmed,
+                write_date=_parse_write_date(),
                 card_ok=True,
             )
             if _is_ajax():

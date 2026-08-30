@@ -38,6 +38,7 @@ FIELD_LABELS = {
     "materials": "航材",
     "name": "名称",
     "description": "描述",
+    "write_date": "编写日期",
 }
 
 

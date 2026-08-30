@@ -58,6 +58,25 @@ class TestFullVersionCheck:
         assert rep["revised"] == []
         assert len(json_store.get_version_logs()) == logs_before   # 不重复记版本日志
 
+    def test_same_date_different_time_not_relogged(self, json_store, fake_amro_cards, monkeypatch):
+        """日期部分比对：界面 date 只存 YYYY-MM-DD，AMRO 同日不同时间不再误报版本变动。"""
+        monkeypatch.setattr(amro_sync.amro.time, "monotonic", lambda: 1e9)
+        monkeypatch.setattr(amro_sync.amro.time, "sleep", lambda s: None)
+        r = json_store.add("CSCA320-256652-01-1-X", "检查救生衣", "电子", "RST", "")
+        json_store.update(r["id"], write_date="2026-08-01")   # 手动录入仅日期
+        logs_before = len(json_store.get_version_logs())
+        rep = _run(amro_sync.full_version_check(json_store, None, {}, fetch=fake_amro_cards))
+        assert rep["revised"] == []
+        assert len(json_store.get_version_logs()) == logs_before
+
+        async def fetch_revised(client, cookies, plugin, base_form, **kw):  # 真正跨日期改版
+            if plugin == "TD_JC_SMJC_LIST":
+                return [_jcrow("CSCA320-256652-01-1-X", "2026-08-05 09:00:00")]
+            return []
+        rep2 = _run(amro_sync.full_version_check(json_store, None, {}, fetch=fetch_revised))
+        assert len(rep2["revised"]) == 1
+        assert json_store.get(r["id"])["write_date"] == "2026-08-05 09:00:00"
+
 
 class TestVersionReportExcel:
     def test_report_excel_grouped_by_category(self):

@@ -375,7 +375,7 @@ async def full_version_check(store, client, cookies, *, fetch=None) -> dict:
             continue
         new_wd = _wd(row)
         old_wd = str(card.get("write_date", "")).strip()
-        if new_wd and new_wd != old_wd:
+        if new_wd and new_wd[:10] != old_wd[:10]:   # 按日期部分比对（界面 date 只存 YYYY-MM-DD）
             store.update(card["id"], write_date=new_wd)
             revised.append({"task_code": code,
                             "task_name": card.get("task_name", ""),
@@ -405,7 +405,7 @@ async def check_cards_against_amro(store, client, cookies, task_codes, *, fetch=
             continue
         new_wd = _wd(row)
         old_wd = str(card.get("write_date", "")).strip()
-        if new_wd and new_wd != old_wd:
+        if new_wd and new_wd[:10] != old_wd[:10]:   # 按日期部分比对（界面 date 只存 YYYY-MM-DD）
             store.update(card["id"], write_date=new_wd)
             revised.append({"task_code": code,
                             "task_name": card.get("task_name", ""),
