@@ -18,11 +18,13 @@
 - 总工负责审查并上报，最终决策权归项目负责人
 - 此规则适用于但不限于：UI风格、模板结构、CSS方案、数据库模型、API接口
 
-## 二、分支工作流
+## 二、分支工作流（dev → 本地 main 试用 → 推送 main）
 
-- 数据更新走 `main`；UI/小改走 `dev`；大改走 `feature`
-- 开始 dev/feature 工作前：先 `git merge main` 同步最新数据
-- 提交前先 `git branch` 确认当前分支
+- **所有代码改动一律在 `dev` 分支进行**（小步提交，禁止直接在 main 上改代码）
+- dev 验证通过（pytest 全量 + ruff + 冒烟）→ 合并进本地 `main` **试用**（本地启动实际使用验证）
+- 试用通过 → `git push origin main` → 服务器 `git pull origin main` 部署
+- feature 分支流程已废除；数据更新（scp data/）不走分支，仍按 SERVER_README §5 流程
+- 开始工作前先 `git branch` 确认当前在 dev；dev 落后 main 时先 `git merge main` 同步
 
 ## 三、团队协作流程（所有任务统一执行）
 

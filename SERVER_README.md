@@ -1,6 +1,6 @@
 # ReqMan定检准备系统 — 服务器运维手册
 
-> 版本：V3.4.0 | 目标环境：Ubuntu 22.04 LTS (阿里云)
+> 版本：V3.4.5 | 目标环境：Ubuntu 22.04 LTS (阿里云)
 
 ---
 
@@ -16,13 +16,13 @@
 ```
 用户 → http://服务器IP:80 (Nginx)
           ↓ 反向代理
-      http://127.0.0.1:5001 (Gunicorn 4w×2t)
+      http://127.0.0.1:5001 (Gunicorn 1w×4t)
           ↓
       Flask应用 → data/reqman_db.json
 ```
 
 **技术栈：**
-- 运行时：Python 3.11 + Gunicorn (4 workers × 2 threads)
+- 运行时：Python 3.11 + Gunicorn (1 worker × 4 threads，单进程模型——JSON 存储锁为进程内锁)
 - 反向代理：Nginx (80端口)
 - 进程管理：systemd
 
@@ -124,24 +124,27 @@ bash scripts/db.sh clean 28
 
 > **操作方式：** 服务器仅通过阿里云 Workbench 终端操作，不使用本地 SSH。
 
-通用流程：本地改代码 + 同步数据 → 提交推送 GitHub main → 服务器丢弃本地 data 差异后拉取 → 重启
+通用流程：**本地 dev 开发提交 → 验证 → 合并本地 main 试用 → 试用通过推送 GitHub main** → 服务器拉取 → 重启
 
 ### GitHub 仓库地址
 
 - **仓库：** https://github.com/ElissaMA/reqman
 - **服务器配置：** `git remote set-url origin https://github.com/ElissaMA/reqman.git`
 
-### 5.1 本地操作（更新代码并同步数据）
+### 5.1 本地操作（开发与发布）
 
 ```bash
-# 1. 从服务器下载最新数据替换本地
-scp root@8.137.15.167:/root/workspace/reqman/data/reqman_db.json data/reqman_db.json
+# 1. 所有改动在 dev 分支进行（小步提交）
+git checkout dev
+# ……修改代码、pytest 全量 + ruff 验证……
 
-# 2. 本地修改代码……
-# 3. 提交并推送（仅代码，数据不入库）
-git add .
-git commit -m "feat/fix/chore: 描述"
+# 2. 验证通过后合并进本地 main 试用（本地启动实际使用）
+git checkout main && git merge dev
+
+# 3. 试用通过后推送 main（feature 分支流程已废除；dev 仅本地不推送）
 git push origin main
+
+# 4. 数据同步不走分支：按需 scp data/ 双文件（见 5.2 第 4 步）
 ```
 
 ### 5.2 服务器操作（拉取最新代码并同步数据）
@@ -152,16 +155,19 @@ cd /root/workspace/reqman
 # 1. 拉取最新代码
 git pull origin main
 
-# 2. 更新依赖（引入新依赖时执行，幂等安全）
+# 2. 仓库改过 config/reqman.service 时，刷新 systemd 单元（单元文件不随 pull 更新！）
+cp config/reqman.service /etc/systemd/system/reqman.service && systemctl daemon-reload
+
+# 3. 更新依赖（引入新依赖时执行，幂等安全）
 ./venv/bin/pip install -e .
 
-# 3. 重启服务
+# 4. 重启服务
 sudo systemctl restart reqman
 
-# 4. 上传最新数据（从本地 scp 上传）
-scp data/reqman_db.json root@8.137.15.167:/root/workspace/reqman/data/reqman_db.json
+# 5. 上传最新数据（从本地 scp 上传双文件）
+#    本地执行：scp data/reqman_db.json data/reqman_db_runtime.json root@8.137.15.167:/root/workspace/reqman/data/
 
-# 5. 验证
+# 6. 验证
 curl -s -o /dev/null -w "%{http_code}" http://localhost:5001/
 ```
 
@@ -183,16 +189,24 @@ bash scripts/db.sh restore
 bash scripts/db.sh restore data/backups/reqman_db_20260820_120000.json.gz
 ```
 
-### 5.4 分支开发提示（简化 feature 工作流）
+### 5.4 分支工作流（dev → 本地 main 试用 → 推送 main）
 
 ```bash
-git checkout main && git checkout -b feature/xxx
-# 开发 → 测试通过后合并回 main
-git checkout main && git merge feature/xxx && git push origin main
-git branch -d feature/xxx
+# 1. 所有改动在 dev 进行（feature 分支流程已废除）
+git checkout dev
+# ……开发 → pytest 全量 + ruff → 提交……
+
+# 2. 验证通过 → 合并本地 main 试用（本地启动实际使用验证）
+git checkout main && git merge dev
+
+# 3. 试用通过 → 推送 main → 服务器按 5.2 拉取部署
+git push origin main
+
+# 4. 回到 dev 继续开发（落后 main 时先 git merge main 同步）
+git checkout dev && git merge main
 ```
 
-> 注意：feature 分支不直接推送到服务器；合并到 main 推送后，服务器拉取需同步更新依赖（`./venv/bin/pip install -e .`），否则服务 502。
+> 注意：dev 分支仅本地存在、不推送；只有 main 发布到 GitHub。合并 main 前必须完成全量测试；数据文件（data/）不入分支，始终按 5.2 第 5 步 scp 同步。
 
 
 ---

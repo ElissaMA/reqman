@@ -1,6 +1,12 @@
 # Changelog
 
-## [3.4.5] - Unreleased
+## [3.4.6] - Unreleased
+### Changed
+- 分支工作流调整：所有改动在 `dev` 分支进行 → 验证通过合并本地 `main` 试用 → 试用通过推送 `main`；feature 分支流程废除，`dev` 仅本地不推送
+- 文档同步：agent.md §二、SERVER_README §5.1/§5.2/§5.4 按新流程重写；SERVER_README 版本与架构描述纠偏（Gunicorn 1w×4t）
+- 服务器部署流程补充：仓库改过 `config/reqman.service` 时，pull 后必须手动刷新 systemd 单元（`cp` + `daemon-reload`）
+
+## [3.4.5] - 2026-08-30
 ### Fixed（数据安全四项严重缺陷，均经服务器最新数据实证）
 - next_id 计数器落后于现存实体（1032 vs 1036），新建工卡/工卡组会静默覆盖现有数据。读取时自愈为 max(实体ID)+1，分配时跳过已占用 ID
 - code_index 索引悬挂/错映射（`CSCA320-783200-W1-1-1` 误指向卡 1023），原条数检查查不出。改为双向校验（键→卡存在且工卡号匹配、数量一致），不一致即重建
