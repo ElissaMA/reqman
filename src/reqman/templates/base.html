@@ -26,9 +26,15 @@
         .side-link:hover { background: rgba(255,255,255,.08); color: #fff; }
         .side-link.active { background: rgba(255,255,255,.12); border-left-color: #6ea8fe; font-weight: 600; }
         .main-area { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-        .top-bar { display: flex; justify-content: flex-end; align-items: center; gap: 8px; padding: 8px 16px;
+        .top-bar { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px;
+                   padding: 8px 16px;
                    background: #fff; border-bottom: 1px solid #e3e9f0; position: sticky; top: 0; z-index: 100;
                    box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+        /* 登录状态提示条：内联在顶栏左侧，与登录按钮同一行；小屏放不下时自然折行 */
+        .topbar-alert { flex: 1 1 auto; min-width: 0; margin: 0; padding: 4px 10px;
+                        font-size: 12px; line-height: 1.4; border-radius: 6px; }
+        .topbar-alert.topbar-warn { background: #fff3cd; color: #664d03; }
+        .topbar-alert.topbar-info { background: #f0f4f8; color: #52677a; }
         .main-content { padding: 16px 20px 24px; }
         .card { border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: none; transition: box-shadow 0.2s; }
         .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
@@ -233,13 +239,13 @@
     </aside>
     <div class="main-area">
         <div class="top-bar">
-            <span class="d-flex align-items-center gap-2 ms-auto">
+            <div id="amroAlert" class="topbar-alert" style="display:none"></div>
+            <span class="d-flex align-items-center gap-2">
                 <span class="badge rounded-pill bg-secondary" id="amroStatus" style="cursor:pointer" title="点击立即检查 AMRO 登录状态">AMRO …</span>
                 <button class="btn btn-outline-secondary btn-sm" id="amroQuickLogin" title="唤起桌面一键登录脚本（需一次性注册 ReqManLogin 协议）">⚡一键登录</button>
                 <a class="btn btn-outline-secondary btn-sm" href="/inventory/setup-package" title="下载 AMRO 登录脚本配置包">🛠新建配置</a>
             </span>
         </div>
-        <div id="amroAlert" class="alert alert-warning py-2 px-3 small mb-3" style="display:none"></div>
         <div class="main-content">
             {% block content %}{% endblock %}
         </div>
@@ -358,10 +364,10 @@
                 }
                 if (alertBox) {
                     if (data.ready) {
-                        alertBox.className = 'alert alert-light py-1 px-3 small mb-3';
+                        alertBox.className = 'topbar-alert topbar-info';
                         alertBox.innerHTML = '<span class="text-muted">' + AMRO_P6 + '</span>';
                     } else {
-                        alertBox.className = 'alert alert-warning py-2 px-3 small mb-3';
+                        alertBox.className = 'topbar-alert topbar-warn';
                         alertBox.textContent = data.message || 'AMRO 未登录';
                     }
                     alertBox.style.display = 'block';

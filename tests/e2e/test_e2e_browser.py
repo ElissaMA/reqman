@@ -350,10 +350,11 @@ def test_side_nav_layout(page, server_base):
     assert toggle.get_attribute("aria-expanded") == "true"
     assert "show" in (page.locator("#navDataMgmt").get_attribute("class") or "")
     page.locator("#navDataMgmt .side-link", has_text="飞机信息").wait_for()
-    # 顶部右侧登录框三件套
+    # 顶部右侧登录框三件套 + 登录状态提示条内联进顶栏（与按钮同一行，sticky 置顶）
     page.wait_for_selector(".top-bar #amroStatus")
     page.wait_for_selector(".top-bar #amroQuickLogin")
     page.wait_for_selector(".top-bar a[href='/inventory/setup-package']")
+    assert page.locator(".top-bar #amroAlert").count() == 1
     page.screenshot(path="output/e2e_s1_side_nav.png")
 
     # 工卡列表页 → 工卡信息高亮，折叠组仍展开
