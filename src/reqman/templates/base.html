@@ -15,7 +15,6 @@
         .side-brand .brand-en { font-weight: 700; font-size: 19px; letter-spacing: .5px; }
         .side-brand .brand-zh { display: block; font-weight: 400; font-size: 12px; opacity: .85; letter-spacing: 1px; margin-top: 2px; }
         .side-nav nav { padding: 6px 0 14px; flex: 1; }
-        .side-label { font-size: 11px; opacity: .55; padding: 12px 14px 4px; letter-spacing: 2px; }
         .side-toggle { display: flex; width: 100%; align-items: center; justify-content: space-between;
                        background: none; border: none; color: inherit; text-align: left; cursor: pointer; }
         .side-toggle .toggle-caret { transition: transform .15s ease; font-size: 10px; }
@@ -25,6 +24,8 @@
                      border-left: 3px solid transparent; white-space: nowrap; }
         .side-link:hover { background: rgba(255,255,255,.08); color: #fff; }
         .side-link.active { background: rgba(255,255,255,.12); border-left-color: #6ea8fe; font-weight: 600; }
+        /* 数据管理折叠钮与顶级项同级（side-link 同款样式），flex 保住箭头右对齐 */
+        .side-link.side-toggle { display: flex; }
         .main-area { flex: 1; min-width: 0; display: flex; flex-direction: column; }
         .top-bar { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px;
                    padding: 8px 16px;
@@ -203,7 +204,6 @@
             .side-toggle { display: none; }
             #navDataMgmt.collapse { display: contents !important; }
             .side-sub { padding-left: 10px; }
-            .side-label { display: none; }
         }
         @media (max-width: 768px) {
             .toast-container { right: 10px; left: 10px; }
@@ -224,7 +224,8 @@
         <nav>
             {% set p = request.path %}
             {% set in_data_mgmt = p.startswith('/card/') and not p.startswith('/card/logs') %}
-            <button class="side-label side-toggle" type="button" data-bs-toggle="collapse"
+            <button class="side-link side-toggle {{ 'active' if in_data_mgmt }}" type="button"
+                    data-bs-toggle="collapse"
                     data-bs-target="#navDataMgmt" aria-expanded="{{ 'true' if in_data_mgmt else 'false' }}"
                     aria-controls="navDataMgmt">数据管理 <span class="toggle-caret">▾</span></button>
             <div class="collapse {{ 'show' if in_data_mgmt }}" id="navDataMgmt">
