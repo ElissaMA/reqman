@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.6.0] - Unreleased
+### Added（UI 大改：侧栏布局 + 查询体验统一 + 版本域重构）
+- 左侧垂直侧边栏导航：品牌区 + 数据管理组（飞机/工卡/工卡组）+ 顶级（工作包/库存查询/操作日志），当前页蓝条高亮；小屏（<992px）自动变顶部横排；主区顶部右侧白底 sticky 登录框（AMRO 状态徽章 + ⚡一键登录 + 🛠新建配置）
+- QueryCard 公共进度助手：四页查询按钮统一接入（running 条纹进度条+已用时 / done 绿色简要 / fail 红色原因）
+- 工作包行级「🔍 查询工作包工卡版本」按钮：同步比对包内工卡（10~25s），生成逐包改版清单 `amro_pkg_version_report_<id>.xlsx`（同包覆盖）
+- 预览页「📥 生成工卡改版下载」按钮：`GET /generate/package-version-report?package_id=`，未查询时 404 提示先在工作包页执行
+### Changed
+- 查询按钮统一命名：查询飞机数据 / 全量查询工卡版本 / 查询工作包 / 查询库存
+- 全局查询互斥：一次只允许一个 AMRO 查询（飞机同步/全量版本/工作包拉取/逐包版本/库存查询），不排队，冲突 409「已有查询任务进行中：{查询名}（{开始时间}）」
+- 同步状态迁内存：QUERY_STATUS 注册表取代 `amro_sync_meta` 持久键（重启即清空），全量版本检查后台线程与状态接口统一走 QUERY_STATUS
+- 版本报告格式重写（全量/逐包同款）：改版工卡 sheet 按专业分节（发动机→机体→电子→其他），行 = 工卡号|工卡名称|编写日期（旧→新）；作废工卡 sheet 同样分专业；不再使用蓝底标色
+- 提醒单回归单一功能：`/generate/reminder` 纯同步返回 xlsx；移除版本检查勾选框与 T7 异步机器（_TASKS/线程/`/generate/task` 两路由/apply_reminder_version_section），版本检查职责由逐包按钮承担
+- `check_cards_against_amro`：移除 new_by_category（包内新卡由匹配流程负责）；版本比对仅对库内已存在的卡
+### Removed
+- 库存查询页登录区块迁移表头（沿用 3.5.0 收尾），「检查配置」相关表述清理完毕
+
 ## [3.5.0] - Unreleased
 ### Added（AMRO 三域数据同步——基于 amro-research 实测的 7 个只读端点，全程只读+审计留痕）
 - 通用只读调用器 `query_plugin`：端点白名单硬编码（写/导出/生成类一律拒绝）、全局限速 ≥2s、JSONL 审计（`data/amro_audit.jsonl`）、会话失效统一 401+P8 文案

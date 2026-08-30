@@ -1,6 +1,8 @@
 # AMRO 三域数据同步实施计划（v3.5.0）v2
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+>
+> **v3.6.0 变更记录**：T7（提醒单异步版本检查）实施后于 v3.6.0 废弃——提醒单回退纯同步，删除 _TASKS/线程/`/generate/task` 路由与 apply_reminder_version_section；版本检查改为工作包行级同步按钮 + 预览页改版清单下载，报告分专业节、日期旧→新、无蓝底；本计划 T7 任务仅存档。
 
 **Goal:** 接入 7 个已验证 AMRO 只读端点：飞机信息页内嵌同步（AMRO 覆盖+在册外清理）、工作包页直读导入+版本变动日志区块、工卡数据页全库版本检查（改版清单 Excel）+ 提醒单实时版本检查（异步化，改版/作废/新工卡蓝底）；AMRO 登录三件套常驻表头。
 
