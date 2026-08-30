@@ -35,7 +35,8 @@ class TestHeaderLogin:
             bat = zf.read("register_protocol.bat").decode("utf-8")
             assert "ReqManLogin" in bat          # 协议名
             assert "reg add" in bat              # 注册动作
-            assert "Desktop" in bat              # 桌面路径检测
+            assert "%~dp0start_login.bat" in bat  # 协议自定位（解压任意位置有效）
+            assert "Desktop" not in bat          # 不再依赖桌面路径
 
     def test_session_endpoint_unchanged(self, client):
         resp = client.get("/inventory/session")

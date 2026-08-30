@@ -116,6 +116,23 @@ class TestSetupPackage:
         assert ":done" in bat
         assert "pause" in bat
 
+    def test_register_protocol_bat_self_locating(self, client):
+        """register_protocol.bat 协议自定位（%~dp0，解压任意位置有效）+ 注册后立即启动登录，无桌面硬编码。"""
+        resp = client.get("/inventory/setup-package")
+        assert resp.status_code == 200
+        zf = zipfile.ZipFile(io.BytesIO(resp.data))
+        bat = zf.read("register_protocol.bat").decode("utf-8")
+        assert 'reg add "HKCU\\Software\\Classes\\ReqManLogin\\shell\\open\\command" /ve /d' in bat
+        assert '"%~dp0start_login.bat"' in bat          # 协议指向自身目录
+        assert '%%1' in bat                             # 保留 URL 参数占位
+        assert "%DESK%" not in bat                      # 不再探测桌面路径
+        assert "amro_login_setup" not in bat
+        assert 'call "%~dp0start_login.bat"' in bat     # 注册完成后立即启动登录
+        assert "pause" in bat
+        readme = zf.read("README.txt").decode("utf-8")
+        assert "解压到【任意位置】" in readme
+        assert "注册+登录一步完成" in readme or "注册一键登录协议并立即启动登录" in readme
+
     def test_bat_install_compat(self, client):
         """ZIP 内 start_login.bat 安装兼容性：引号 cd、新镜像、代理豁免、免 Python 装 uv、venv 实跑校验。"""
         resp = client.get("/inventory/setup-package")

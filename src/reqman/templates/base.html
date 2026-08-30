@@ -383,7 +383,7 @@
         setTimeout(function() {
             window.removeEventListener('blur', onBlur);
             if (!launched) {
-                window.safeToast('一键登录未响应：可能尚未注册协议。请点击「新建配置」下载 ZIP，解压到桌面后双击 register_protocol.bat（每台机器一次），或直接双击其中的 start_login.bat 登录', 'warning', 8000);
+                window.safeToast('一键登录未响应：可能尚未注册协议。请点击「新建配置」下载 ZIP，解压到任意位置后双击 register_protocol.bat（每台机器一次，注册+登录一步完成），或直接双击其中的 start_login.bat 登录', 'warning', 8000);
             }
         }, 8000);
         window.location.href = 'ReqManLogin://login';
