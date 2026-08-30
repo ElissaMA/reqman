@@ -195,6 +195,18 @@ def start_aircraft_sync(store, session_store) -> bool:
 
 # ---------- 工作包域 ----------
 
+# 最近一次工作包列表查询快照（内存态，重启清空）：跨页面/刷新保留查询结果
+_last_package_query: dict = {}
+
+
+def get_last_package_query() -> dict:
+    """最近一次工作包查询快照（rows + fetched_at），供 /upload 渲染注入。"""
+    if not _last_package_query:
+        return {}
+    return {"rows": list(_last_package_query.get("rows", [])),
+            "fetched_at": _last_package_query.get("fetched_at", "")}
+
+
 def _main_squadron(zrfd: str) -> str:
     """ZRFD 责任分队串（逗号分隔，主责带“(主)”）→ 主分队名（剥掉“(主)”，无标记取首项）。"""
     parts = [p.strip() for p in str(zrfd or "").replace("，", ",").split(",") if p.strip()]
@@ -320,7 +332,10 @@ async def list_amro_packages(client, cookies, *, base=None, days=7) -> list[dict
         "gjz": "", "iftj": "", "ifgzrz": "", "page": 1, "rows": 50,
     }
     body = await amro.query_plugin(client, cookies, "BM_TSK_LIST", form)
-    return body.get("data") or []
+    rows = body.get("data") or []
+    _last_package_query.clear()
+    _last_package_query.update({"rows": rows, "fetched_at": _now()})
+    return rows
 
 
 # ---------- 工卡版本域 ----------

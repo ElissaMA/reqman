@@ -99,7 +99,8 @@ def upload():
         filtered.append(wp)
 
     return render_template("packages/upload.html", work_packages=filtered,
-                           version_logs=version_logs)
+                           version_logs=version_logs,
+                           amro_pkg_query=amro_sync.get_last_package_query())
 
 
 def _version_log_rows(store, limit: int = 50) -> list[dict]:
@@ -240,7 +241,8 @@ def amro_package_list():
     except (httpx.HTTPError, RuntimeError) as e:
         logger.exception("AMRO 包列表拉取失败")
         return jsonify({"success": False, "message": f"AMRO 请求失败: {e}"}), 502
-    return api_success(data={"packages": packages})
+    return api_success(data={"packages": packages,
+                             "fetched_at": amro_sync.get_last_package_query().get("fetched_at", "")})
 
 
 @packages_bp.route("/packages/amro-fetch", methods=["POST"])

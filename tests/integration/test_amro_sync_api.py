@@ -161,6 +161,30 @@ class TestAmroPackageApi:
         resp = client.post("/packages/amro-fetch", data={"revnr": "66A"}, headers=ajax_headers)
         assert resp.status_code == 401
 
+    def test_upload_keeps_last_package_query(self, client, ajax_headers, monkeypatch):
+        """查询结果跨页保留：amro-list 成功后 /upload 注入快照行 + fetched_at 摘要。"""
+        import reqman.services.connectors.amro as amro_mod
+        from reqman.services import amro_sync
+        monkeypatch.setattr(amro_sync, "require_amro_session", lambda: True)
+        monkeypatch.setattr(amro_sync, "_last_package_query", {})
+
+        row = {"REVNR": "66B", "ACNO": "B-1662", "ACTYPE": "A320-232", "ENGTYPE": "V2500",
+               "REVTITLE": "A320 4C检", "CHKTP": "4C", "PLANSTD": "2026-09-01",
+               "ZRFD": "云南定检中队一分队(主)", "LIMH": "170"}
+
+        async def fake_fetch(client_, cookies, plugin, base_form, **kw):
+            return {"code": 200, "data": [row]}
+        monkeypatch.setattr(amro_mod, "query_plugin", fake_fetch)
+
+        resp = client.post("/packages/amro-list", headers=ajax_headers)
+        assert resp.status_code == 200
+        data = resp.get_json()["data"]
+        assert len(data["packages"]) == 1 and data["fetched_at"]
+
+        html = client.get("/upload").get_data(as_text=True)
+        assert '"66B"' in html and '"B-1662"' in html   # 快照行注入页面
+        assert '"fetched_at"' in html                   # 日期摘要数据随页面注入
+
     def test_list_busy_conflict(self, client, ajax_headers, monkeypatch):
         """全局互斥：查询工作包列表在已有查询时 → 409。"""
         from reqman.services import amro_sync

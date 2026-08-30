@@ -233,6 +233,24 @@ function mainSquadron(zrfd) {
     return parts[0] || '';
 }
 
+function renderAmroPacks(rows) {
+    window._amroPacks = rows || [];
+    var tbody = document.querySelector('#amroPackTable tbody');
+    if (!tbody) return;
+    if (!window._amroPacks.length) {
+        tbody.innerHTML = '<tr class="empty-state-row"><td colspan="8" class="text-center text-muted py-3">日期窗内暂无任务包</td></tr>';
+        return;
+    }
+    tbody.innerHTML = window._amroPacks.map(function(p, i) {
+        return '<tr><td><strong>' + (p.ACNO || '') + '</strong></td>' +
+            '<td>' + (p.REVTITLE || '') + '</td><td>' + (p.ACTYPE || '') + '</td>' +
+            '<td>' + (p.ENGTYPE || '') + '</td><td>' + mainSquadron(p.ZRFD) + '</td>' +
+            '<td>' + ((p.PLANSTD || '').slice(0, 10)) + '</td><td>' + (p.LIMH || '') + '</td>' +
+            '<td class="text-center"><button class="btn btn-outline-primary btn-sm" ' +
+            'onclick="importPack(this, ' + i + ')">导入</button></td></tr>';
+    }).join('');
+}
+
 function refreshAmroPacks() {
     if (!amroRequireLogin()) return;
     var card = window.QueryCard.run('qCardPackages', '查询工作包');
@@ -240,21 +258,8 @@ function refreshAmroPacks() {
         .then(function(r) { return r.json(); }).then(function(d) {
             if (!d.success) { card.fail(d.message || '查询失败'); return; }
             var rows = (d.data && d.data.packages) || [];
-            card.done('查询完成：获取到 ' + rows.length + ' 个任务包');
-            var tbody = document.querySelector('#amroPackTable tbody');
-            if (!rows.length) {
-                tbody.innerHTML = '<tr class="empty-state-row"><td colspan="8" class="text-center text-muted py-3">日期窗内暂无任务包</td></tr>';
-                return;
-            }
-            window._amroPacks = rows;
-            tbody.innerHTML = rows.map(function(p, i) {
-                return '<tr><td><strong>' + (p.ACNO || '') + '</strong></td>' +
-                    '<td>' + (p.REVTITLE || '') + '</td><td>' + (p.ACTYPE || '') + '</td>' +
-                    '<td>' + (p.ENGTYPE || '') + '</td><td>' + mainSquadron(p.ZRFD) + '</td>' +
-                    '<td>' + ((p.PLANSTD || '').slice(0, 10)) + '</td><td>' + (p.LIMH || '') + '</td>' +
-                    '<td class="text-center"><button class="btn btn-outline-primary btn-sm" ' +
-                    'onclick="importPack(this, ' + i + ')">导入</button></td></tr>';
-            }).join('');
+            card.done('查询结果（' + ((d.data && d.data.fetched_at) || '') + '）：获取到 ' + rows.length + ' 个任务包');
+            renderAmroPacks(rows);
         }).catch(function() { card.fail('查询工作包失败'); });
 }
 
@@ -301,9 +306,17 @@ function pkgVersionCheck(packageId, btn) {
         });
 }
 
+// 服务端注入的上次查询快照（内存态，重启清空）：跨页面/刷新保留查询结果
+var amroPkgQuery = {{ (amro_pkg_query or {})|tojson }};
+
 document.addEventListener('DOMContentLoaded', function() {
     var refreshBtn = document.getElementById('amroPackRefresh');
     if (refreshBtn) refreshBtn.addEventListener('click', refreshAmroPacks);
+    if (amroPkgQuery && amroPkgQuery.rows) {   // 保留上次查询结果 + 带日期摘要
+        var card = window.QueryCard.run('qCardPackages', '查询工作包');
+        card.done('查询结果（' + (amroPkgQuery.fetched_at || '') + '）：获取到 ' + amroPkgQuery.rows.length + ' 个任务包');
+        renderAmroPacks(amroPkgQuery.rows);
+    }
 });
 </script>
 {% endblock %}
