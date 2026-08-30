@@ -68,25 +68,50 @@ def setup_package():
     server_url = AMRO_PUBLIC_URL or request.host_url.rstrip("/")
     py_source = _login_py_template(server_url)
     bat_source = _login_bat_template(server_url)
+    protocol_source = _protocol_bat_template()
     readme_source = (
         "川航 AMRO 登录脚本配置包\n"
         "=======================\n"
-        "1. 将本文件夹解压到任意位置\n"
-        "2. 双击 start_login.bat\n"
-        "3. 按提示关闭已登录的川航 AMRO 页面，点击确认后完成登录\n"
+        "1. 请将本文件夹解压到【桌面】，保持文件夹名 amro_login_setup 不变\n"
+        "2. （推荐，一次性）双击 register_protocol.bat 注册一键登录协议\n"
+        "   —— 注册后可直接点击系统表头的「⚡一键登录」唤起登录\n"
+        "3. 双击 start_login.bat\n"
+        "4. 按提示关闭已登录的川航 AMRO 页面，点击确认后完成登录\n"
         "登录成功后脚本将自动上传凭证，本系统页面即可开始查询。\n"
         "首次运行约 1-2 分钟自动安装运行环境，使用系统自带 Chrome/Edge 浏览器，无需下载浏览器。\n"
         "注意：请勿将 .runtime 文件夹拷贝到其他机器，每台机器首次运行脚本会自动安装运行环境。\n"
+        "未注册协议不影响登录：随时可双击 start_login.bat 完成登录。\n"
     )
 
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         zf.writestr("amro_login.py", py_source)
         zf.writestr("start_login.bat", bat_source)
+        zf.writestr("register_protocol.bat", protocol_source)
         zf.writestr("README.txt", readme_source)
     buf.seek(0)
     return send_file(buf, as_attachment=True, download_name="amro_login_setup.zip",
                      mimetype="application/zip")
+
+
+def _protocol_bat_template() -> str:
+    """一次性注册 ReqManLogin:// 协议的批处理（检测真实桌面路径，含 OneDrive 重定向）。"""
+    return (
+        "@echo off\r\n"
+        "chcp 65001 >nul\r\n"
+        "rem 一次性注册 ReqManLogin:// 一键登录协议（指向桌面配置目录）\r\n"
+        "set \"DESK=%USERPROFILE%\\Desktop\"\r\n"
+        "if not exist \"%DESK%\" set \"DESK=%OneDrive%\\Desktop\"\r\n"
+        "if not exist \"%DESK%\" for /f \"tokens=2,*\" %%a in ('reg query \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders\" /v Desktop 2^>nul') do set \"DESK=%%b\"\r\n"
+        "reg add \"HKCU\\Software\\Classes\\ReqManLogin\" /ve /d \"URL:ReqManLogin Protocol\" /f\r\n"
+        "reg add \"HKCU\\Software\\Classes\\ReqManLogin\" /v \"URL Protocol\" /f\r\n"
+        "reg add \"HKCU\\Software\\Classes\\ReqManLogin\\shell\\open\\command\" /ve /d \"\\\"%DESK%\\amro_login_setup\\start_login.bat\\\" \\\"%%1\\\"\" /f\r\n"
+        "echo.\r\n"
+        "echo 已注册一键登录协议，指向: %DESK%\\amro_login_setup\\start_login.bat\r\n"
+        "echo 如杀毒软件拦截，请允许本次操作\r\n"
+        "echo 未注册不影响登录：可随时双击 start_login.bat\r\n"
+        "pause\r\n"
+    )
 
 
 @inventory_bp.route("/inventory/check-config", methods=["POST"])

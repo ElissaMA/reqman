@@ -251,3 +251,35 @@ def test_set_form_selected_persist(page, server_base):
     assert page.locator(f"#cardTableBody input[value=\"{code}\"]").count() == 1, "搜索不匹配词后已选卡消失"
     assert page.locator(f"#cardTableBody input[value=\"{code}\"]").is_checked(), "搜索不匹配词后已选卡未保持勾选"
 
+
+
+# ---------- 10. v3.5.0 T2：表头 AMRO 登录三件套 + 库存页瘦身 ----------
+def test_header_amro_login_trio(page, server_base):
+    """表头状态徽章/一键登录/新建配置就位；点击徽章立即检查；库存页无登录卡（T2）。"""
+    js_errors = []
+    page.on("pageerror", lambda e: js_errors.append(str(e)))
+
+    page.goto(server_base + "/card/list")
+    page.wait_for_selector("#amroStatus")
+    page.wait_for_selector("#amroQuickLogin")
+    assert "新建配置" in page.locator("a[href='/inventory/setup-package']").inner_text()
+
+    # 点击徽章立即检查 → 徽章渲染为 ✅/❌ 两态之一（隔离DB无cookie → ❌）
+    page.click("#amroStatus")
+    page.wait_for_function(
+        "document.getElementById('amroStatus').textContent.indexOf('…') < 0", timeout=5000)
+    badge = page.locator("#amroStatus").inner_text()
+    assert ("✅" in badge) or ("❌" in badge), f"徽章未渲染状态: {badge!r}"
+    # 提示条显示（未登录=P4/P7 文案；登录=P6 常驻小字）
+    assert page.locator("#amroAlert").is_visible()
+    page.screenshot(path="output/e2e_t2_header_amro.png")
+
+    # 库存页：登录卡/配置区移除，查询区保留，表头三件套仍在
+    page.goto(server_base + "/inventory")
+    assert page.locator("#sessionCard").count() == 0, "库存页登录卡未移除"
+    assert page.locator("#checkConfigBtn").count() == 0, "库存页检查配置未移除"
+    assert page.locator("#zoneDemand").count() == 1, "查询区应保留"
+    assert page.locator("#amroStatus").count() == 1, "表头徽章应在"
+    page.screenshot(path="output/e2e_t2_inventory_slim.png")
+
+    assert not js_errors, f"页面存在JS错误: {js_errors}"

@@ -205,11 +205,17 @@
                 </li>
 
             </ul>
+            <span class="d-flex align-items-center gap-2 ms-lg-3 mt-2 mt-lg-0">
+                <span class="badge rounded-pill bg-secondary" id="amroStatus" style="cursor:pointer" title="点击立即检查 AMRO 登录状态">AMRO …</span>
+                <button class="btn btn-outline-light btn-sm" id="amroQuickLogin" title="唤起桌面一键登录脚本（需一次性注册 ReqManLogin 协议）">⚡一键登录</button>
+                <a class="btn btn-outline-light btn-sm" href="/inventory/setup-package" title="下载 AMRO 登录脚本配置包">🛠新建配置</a>
+            </span>
         </div>
     </div>
 </nav>
 
 <div class="container">
+    <div id="amroAlert" class="alert alert-warning py-2 px-3 small mb-3" style="display:none"></div>
     {% block content %}{% endblock %}
 </div>
 
@@ -222,7 +228,7 @@
     window.hideLoader = function() {
         document.getElementById('globalLoader').classList.remove('active');
     };
-    window.showToast = function(message, type) {
+    window.showToast = function(message, type, duration) {
         type = type || 'info';
         var container = document.getElementById('toastContainer');
         var toast = document.createElement('div');
@@ -231,10 +237,10 @@
         var icon = icons[type] || '\u2139';
         toast.innerHTML = '<span>' + icon + '</span> ' + message;
         container.appendChild(toast);
-        setTimeout(function() { toast.remove(); }, 4000);
+        setTimeout(function() { toast.remove(); }, duration || 4000);
     };
     // safeToast 兜底：showToast 异常（如容器缺失/JS 版本不匹配）时降级 alert，绝不静默失败
-    window.safeToast = function(message, type) {
+    window.safeToast = function(message, type, duration) {
         try {
             if (typeof window.showToast === 'function' && document.getElementById('toastContainer')) {
                 window.showToast(message, type);
@@ -262,6 +268,56 @@
     } else {
         window.renderFlashes();
     }
+
+    // ===== AMRO 登录状态（表头常驻：10 分钟轮询 + 点击徽章立即检查）=====
+    window.amroSession = { ready: false, message: '', remaining: 0 };
+    var AMRO_P6 = '⚠️ 登录有效期内若在其他浏览器/设备登录川航 AMRO，当前登录将被挤掉失效，需重新运行登录脚本';
+    window.amroCheckNow = function() {
+        return fetch('/inventory/session', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                var data = (d && d.data) || {};
+                window.amroSession = { ready: !!data.ready, message: data.message || '', remaining: data.remaining_seconds || 0 };
+                var badge = document.getElementById('amroStatus');
+                var alertBox = document.getElementById('amroAlert');
+                if (badge) {
+                    if (data.ready) {
+                        var mins = Math.max(Math.round((data.remaining_seconds || 0) / 60), 1);
+                        badge.textContent = 'AMRO ✅ 剩余' + mins + '分';
+                        badge.className = 'badge rounded-pill bg-success';
+                    } else {
+                        badge.textContent = 'AMRO ❌ 未登录';
+                        badge.className = 'badge rounded-pill bg-danger';
+                    }
+                }
+                if (alertBox) {
+                    if (data.ready) {
+                        alertBox.className = 'alert alert-light py-1 px-3 small mb-3';
+                        alertBox.innerHTML = '<span class="text-muted">' + AMRO_P6 + '</span>';
+                    } else {
+                        alertBox.className = 'alert alert-warning py-2 px-3 small mb-3';
+                        alertBox.textContent = data.message || 'AMRO 未登录';
+                    }
+                    alertBox.style.display = 'block';
+                }
+                return window.amroSession;
+            }).catch(function() { return window.amroSession; });
+    };
+    document.getElementById('amroStatus').addEventListener('click', function() { window.amroCheckNow(); });
+    document.getElementById('amroQuickLogin').addEventListener('click', function() {
+        var launched = false;
+        var onBlur = function() { launched = true; };
+        window.addEventListener('blur', onBlur);
+        setTimeout(function() {
+            window.removeEventListener('blur', onBlur);
+            if (!launched) {
+                window.safeToast('一键登录未响应：可能尚未注册协议。请点击「新建配置」下载 ZIP，解压到桌面后双击 register_protocol.bat（每台机器一次），或直接双击其中的 start_login.bat 登录', 'warning', 8000);
+            }
+        }, 8000);
+        window.location.href = 'ReqManLogin://login';
+    });
+    window.amroCheckNow();
+    setInterval(window.amroCheckNow, 600000);
 </script>
 
 {# 公共列表筛选/排序：供各列表页复用 #}
