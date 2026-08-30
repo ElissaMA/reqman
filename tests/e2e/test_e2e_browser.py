@@ -327,3 +327,30 @@ def test_generate_reminder_version_ui(page, server_base):
     page.wait_for_selector("#amroStatus")
     page.screenshot(path="output/e2e_t7_session_header.png")
     assert not js_errors, f"页面存在JS错误: {js_errors}"
+
+
+# ---------- 13. v3.6.0 步骤1：左侧竖向导航布局 ----------
+def test_side_nav_layout(page, server_base):
+    """左侧竖向导航（数据管理组+顶级项）与顶部右侧登录框就位，无JS错误。"""
+    js_errors = []
+    page.on("pageerror", lambda e: js_errors.append(str(e)))
+
+    page.goto(server_base + "/card/aircraft")
+    page.wait_for_selector(".side-nav")
+    page.wait_for_selector(".side-brand .brand-en")
+    # 六个菜单项
+    links = page.locator(".side-link")
+    assert links.count() == 6, f"侧栏菜单项应为6个，实际{links.count()}"
+    assert page.locator(".side-link.active", has_text="飞机信息").count() == 1
+    # 顶部右侧登录框三件套
+    page.wait_for_selector(".top-bar #amroStatus")
+    page.wait_for_selector(".top-bar #amroQuickLogin")
+    page.wait_for_selector(".top-bar a[href='/inventory/setup-package']")
+    page.screenshot(path="output/e2e_s1_side_nav.png")
+
+    # 工卡列表页 → 工卡信息高亮
+    page.goto(server_base + "/card/list")
+    page.wait_for_selector(".side-link.active")
+    assert page.locator(".side-link.active", has_text="工卡信息").count() == 1
+
+    assert not js_errors, f"页面存在JS错误: {js_errors}"
