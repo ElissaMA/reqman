@@ -214,3 +214,75 @@ def _jcrow(jcno, wd, **kw):
 
 def store_add(app, code, name):
     return app.extensions["store"].add(code, name, "机体", "", "")
+
+
+class TestReminderAsync:
+    """Task 7: 提醒单异步版本检查（task 状态机 + 蓝底区块 + 旧同步路径保留）"""
+
+    @staticmethod
+    def _make_package(store):
+        store.add(task_code="E-001", task_name="电子例行卡", category="电子")
+        store.update(store.find_by_code("E-001")["id"], tools_confirmed=True,
+                     materials_confirmed=True, reminder_type="重点提醒",
+                     reminder_confirmed=True, card_ok=True)
+        store.save_work_package({
+            "reg": "B-1234", "description": "46A", "date": "2026.08.23",
+            "aircraft_info": {"reg": "B-1234", "type": "A320", "description": "46A",
+                              "date": "2026.08.23"},
+            "matched": [{"task_code": "E-001", "task_name": "电子例行卡",
+                         "category": "电子", "reminder_type": "重点提醒",
+                         "card_ok": True, "reminder_confirmed": True,
+                         "source": "例行", "tools": [], "materials": []}],
+            "new_cards": [], "cancelled": [],
+            "all_items": [{"task_code": "E-001", "task_name": "电子例行卡",
+                           "category": "电子", "source": "例行"}],
+            "routine_count": 1, "other_count": 0,
+            "is_matched": True, "generated_at": "2026.08.23 10:00",
+        })
+        return store.get_work_packages()[0]["package_id"]
+
+    def test_async_flow_done_and_download(self, client, store, app, ajax_headers,
+                                          monkeypatch, tmp_path):
+        import time as _time
+        import reqman.blueprints.generate_bp as gb_mod
+        monkeypatch.setattr(gb_mod, "OUTPUT_DIR", tmp_path)
+
+        # mock 在 AMRO 层：真实 check_cards_against_amro 会更新卡的 write_date
+        import reqman.services.connectors.amro as amro_mod
+
+        async def fake_fetch(client_, cookies, plugin, base_form, **kw):
+            return [{"JC_NO": "E-001", "WRITE_DATE": "2026-08-01 09:00:00", "ZY": "电子",
+                     "JCTITLE": "电子例行卡", "TASK": "RST"}]
+        monkeypatch.setattr(amro_mod, "fetch_all_pages", fake_fetch)
+
+        pkg_id = self._make_package(store)
+        resp = client.post("/generate/reminder",
+                           data={"package_id": pkg_id, "version_check": "1"},
+                           headers=ajax_headers)
+        assert resp.status_code == 200
+        task_id = resp.get_json()["data"]["task_id"]
+
+        meta = {}
+        deadline = _time.time() + 5
+        while _time.time() < deadline:
+            meta = client.get(f"/generate/task/{task_id}").get_json()["data"]
+            if meta.get("status") == "done":
+                break
+            _time.sleep(0.05)
+        assert meta.get("status") == "done", meta
+        assert meta["revised"] == 1
+        # 卡的 write_date 已被实时检查更新
+        assert store.find_by_code("E-001")["write_date"] == "2026-08-01 09:00:00"
+        # 下载含版本区块的提醒单
+        dl = client.get(f"/generate/task/{task_id}/download")
+        assert dl.status_code == 200 and "spreadsheetml" in dl.mimetype
+
+    def test_unknown_task_404(self, client, ajax_headers):
+        resp = client.get("/generate/task/nonexistent", headers=ajax_headers)
+        assert resp.status_code == 404
+
+    def test_sync_path_preserved_without_checkbox(self, client, store):
+        """不勾选版本检查 → 旧同步路径直接返回 xlsx（保留一个版本的开关）"""
+        pkg_id = self._make_package(store)
+        resp = client.post("/generate/reminder", data={"package_id": pkg_id})
+        assert resp.status_code == 200 and "spreadsheetml" in resp.mimetype

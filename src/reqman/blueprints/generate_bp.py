@@ -1,12 +1,19 @@
-"""生成需求单蓝图 — 预览 + 下载 Excel"""
+"""生成需求单蓝图 — 预览 + 下载 Excel + 提醒单（可选实时版本检查）"""
 
+import asyncio
+import io
 import logging
+import threading
+import uuid
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+import httpx
+import openpyxl
 from flask import Blueprint, current_app, flash, redirect, render_template, request, send_file
 
-from ..config import CATEGORIES, CONDITIONS
+from ..config import CATEGORIES, CONDITIONS, OUTPUT_DIR
+from ..services.amro_sync import apply_reminder_version_section, check_cards_against_amro
 from ..services.form_generator import generate_form
 from ..services.reminder_generator import generate_reminder
 from ..services.work_package_matcher import match_work_package_items
@@ -16,6 +23,9 @@ from ..utils.response import api_error, api_success
 generate_bp = Blueprint("generate", __name__)
 
 logger = logging.getLogger(__name__)
+
+# 进程内提醒单异步任务注册表（v3.5.0；服务重启即清空，任务本身一次性）
+_TASKS: dict[str, dict] = {}
 
 
 def _get_store():
@@ -273,7 +283,7 @@ def _handle_generate_preview(pkg_data: dict, package_id: str):
 
 @generate_bp.route("/generate/reminder", methods=["POST"])
 def reminder_download():
-    """生成并下载《定检工作提醒单》"""
+    """生成《定检工作提醒单》。勾选版本检查时异步执行（返回 task_id 轮询下载），否则走旧同步路径。"""
     package_id = request.form.get("package_id", "")
     if not package_id:
         return api_error("缺少工作包参数", "MISSING_PACKAGE_ID", 400)
@@ -318,8 +328,80 @@ def reminder_download():
         "routine_count": pkg_data.get("routine_count", 0),
         "other_count": pkg_data.get("other_count", 0),
     }
-    buffer, filename = generate_reminder(form_data, items)
-    return send_file(
-        buffer, as_attachment=True, download_name=filename,
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    )
+
+    if request.form.get("version_check") != "1":
+        buffer, filename = generate_reminder(form_data, items)
+        return send_file(
+            buffer, as_attachment=True, download_name=filename,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
+    # —— 异步路径：实时拉 AMRO 比对包内工卡版本（约 3~15 分钟） ——
+    task_codes = []
+    for section in ("all_items", "matched", "new_cards", "cancelled"):
+        for it in pkg_data.get(section, []):
+            code = it.get("task_code")
+            if code:
+                task_codes.append(code)
+    task_codes = list(dict.fromkeys(task_codes))
+
+    task_id = uuid.uuid4().hex[:12]
+    _TASKS[task_id] = {"status": "pending"}
+    app = current_app._get_current_object()
+
+    def job():
+        _TASKS[task_id].update(status="running")
+        try:
+            store = app.extensions["store"]
+            svc = app.extensions["inventory_service"]
+            cookies = (svc.session_store.load() or {}).get("cookies", {})
+
+            async def _inner():
+                async with httpx.AsyncClient(verify=True, trust_env=False) as client:
+                    return await check_cards_against_amro(store, client, cookies, task_codes)
+
+            report = asyncio.run(_inner())
+            buffer, filename = generate_reminder(form_data, items)
+            wb = openpyxl.load_workbook(buffer)
+            apply_reminder_version_section(wb["工卡提醒"], report)
+            out = io.BytesIO()
+            wb.save(out)
+            (OUTPUT_DIR / filename).write_bytes(out.getvalue())
+            _TASKS[task_id] = {"status": "done", "filename": filename,
+                               "revised": len(report.get("revised", [])),
+                               "cancelled": len(report.get("cancelled", []))}
+        except Exception as exc:  # noqa: BLE001 线程兜底：失败落任务状态供轮询
+            logger.exception("提醒单异步生成失败")
+            _TASKS[task_id] = {"status": "error", "error": str(exc)}
+
+    threading.Thread(target=job, daemon=True, name=f"reminder-{task_id}").start()
+    return api_success(data={"task_id": task_id}, message="提醒单生成中（含版本检查），完成后可下载")
+
+
+@generate_bp.route("/generate/task/<task_id>", methods=["GET"])
+def reminder_task_status(task_id):
+    """提醒单异步任务状态：pending/running/done/error。"""
+    task = _TASKS.get(task_id)
+    if not task:
+        raise NotFoundError("任务不存在或已失效（服务重启会清空任务）")
+    data = {"status": task["status"]}
+    if task["status"] == "done":
+        data["filename"] = task.get("filename", "")
+        data["revised"] = task.get("revised", 0)
+        data["cancelled"] = task.get("cancelled", 0)
+    if task.get("error"):
+        data["error"] = task["error"]
+    return api_success(data=data)
+
+
+@generate_bp.route("/generate/task/<task_id>/download", methods=["GET"])
+def reminder_task_download(task_id):
+    """下载已完成的提醒单（含版本区块）。"""
+    task = _TASKS.get(task_id)
+    if not task or task["status"] != "done":
+        raise NotFoundError("任务未完成或不存在")
+    path = OUTPUT_DIR / task["filename"]
+    if not path.exists():
+        raise NotFoundError("文件不存在或已清理")
+    return send_file(path, as_attachment=True, download_name=task["filename"],
+                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")

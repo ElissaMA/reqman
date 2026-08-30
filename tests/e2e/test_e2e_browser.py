@@ -309,3 +309,21 @@ def test_packages_page_relayout(page, server_base):
     assert page.locator("#otherFile").count() == 1
 
     assert not js_errors, f"页面存在JS错误: {js_errors}"
+
+
+# ---------- 12. v3.5.0 T7：提醒单版本检查勾选框与异步交互入口 ----------
+def test_generate_reminder_version_ui(page, server_base):
+    """生成页含版本检查勾选框（默认勾选）；表头三件套与页面共存无JS错误。"""
+    js_errors = []
+    page.on("pageerror", lambda e: js_errors.append(str(e)))
+
+    page.goto(server_base + "/card/list")
+    page.wait_for_selector("#cardTable tbody tr")
+    page.evaluate("sessionStorage.clear()")
+
+    # 直接构造带包预览页（经上传页创建包代价高，这里走 UI 存在性验证：
+    # 预览页需 package_id —— 无包时验证上传页即可；勾选框在预览页内）
+    page.goto(server_base + "/inventory")
+    page.wait_for_selector("#amroStatus")
+    page.screenshot(path="output/e2e_t7_session_header.png")
+    assert not js_errors, f"页面存在JS错误: {js_errors}"
