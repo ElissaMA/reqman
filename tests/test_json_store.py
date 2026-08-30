@@ -379,3 +379,35 @@ class TestLogAutoTrim:
         ids = {l["id"] for l in logs}
         assert 505 in ids  # 最新保留
         assert 1 not in ids and 5 not in ids  # 最旧丢弃
+
+
+class TestAmroRuntime:
+    """v3.5.0 T3：卡版本字段 + 同步状态键 + 版本日志筛选"""
+
+    def test_card_write_date_backcompat(self, json_store):
+        """write_date 字段 _norm 自动补默认，旧数据零迁移"""
+        r = json_store.add("NEW-100", "卡", "机体", "", "")
+        assert r["write_date"] == ""
+        got = json_store.get(r["id"])
+        assert got["write_date"] == ""
+
+    def test_update_write_date_changes_logged(self, json_store):
+        """update 支持 write_date 且产生版本日志所需的 changes 条目"""
+        r = json_store.add("WD-1", "卡", "机体", "", "")
+        json_store.update(r["id"], write_date="2026-08-01 09:00:00")
+        logs = json_store.get_logs()
+        assert any(c["field"] == "write_date" for l in logs for c in l["changes"])
+
+    def test_sync_meta_roundtrip(self, json_store):
+        json_store.set_amro_sync_meta("aircraft", {"added": 3})
+        assert json_store.get_amro_sync_meta()["aircraft"]["added"] == 3
+        json_store.set_amro_sync_meta("aircraft", {"added": 5, "updated": 1})
+        assert json_store.get_amro_sync_meta()["aircraft"] == {"added": 5, "updated": 1}
+
+    def test_version_logs_filters_card_logs(self, json_store):
+        """版本日志=card_logs 中 changes 含 write_date 的条目（无新存储）"""
+        r = json_store.add("C-1", "卡", "机体", "", "")
+        json_store.update(r["id"], task_name="改名")          # 非版本日志
+        json_store.update(r["id"], write_date="2026-08-01 09:00:00")  # 版本日志
+        logs = json_store.get_version_logs()
+        assert len(logs) == 1 and logs[0]["target_identifier"] == "C-1"

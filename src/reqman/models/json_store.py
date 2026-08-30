@@ -66,6 +66,7 @@ _RUNTIME_KEYS = {
     "work_packages",
     "next_id",
     "code_index",
+    "amro_sync_meta",
 }
 
 
@@ -84,6 +85,7 @@ class JsonStore:
             "task_type": "", "remark": "", "tools": [], "materials": [],
             "tools_confirmed": False, "materials_confirmed": False,
             "set_id": None, "reminder_type": "", "card_ok": False, "reminder_confirmed": False,
+            "write_date": "",
         },
         "set": {
             "id": None, "name": "", "description": "", "category": "机体",
@@ -100,7 +102,7 @@ class JsonStore:
     # 字段映射表（用于变更检测）
     _CARD_FIELDS: ClassVar[list] = ["task_code", "task_name", "category", "task_type", "remark",
                     "tools", "materials", "tools_confirmed", "materials_confirmed",
-                    "set_id", "reminder_type", "card_ok", "reminder_confirmed"]
+                    "set_id", "reminder_type", "card_ok", "reminder_confirmed", "write_date"]
     _SET_FIELDS: ClassVar[list] = ["name", "description", "category", "tools", "materials",
                    "tools_confirmed", "materials_confirmed",
                    "reminder_type", "card_ok", "reminder_confirmed"]
@@ -400,7 +402,7 @@ class JsonStore:
             for key in ("task_code", "task_name", "category",
                         "task_type", "remark", "tools", "materials",
                         "set_id", "tools_confirmed", "materials_confirmed",
-                        "reminder_type", "card_ok", "reminder_confirmed"):
+                        "reminder_type", "card_ok", "reminder_confirmed", "write_date"):
                 if key in kwargs:
                     card[key] = kwargs[key]
 
@@ -673,6 +675,27 @@ class JsonStore:
                 db["card_logs"] = new_logs
                 self._write(db)
             return deleted
+
+    # ---------- AMRO 同步状态与版本日志（v3.5.0） ----------
+
+    def get_amro_sync_meta(self) -> dict:
+        """各 AMRO 同步功能的运行状态/报告（runtime 键，无数据返回空 dict）。"""
+        return self._read().get("amro_sync_meta", {})
+
+    def set_amro_sync_meta(self, domain: str, payload: dict) -> None:
+        """按域写入同步状态（aircraft / packages / version），整域覆盖。"""
+        with self._lock:
+            db = self._read()
+            db.setdefault("amro_sync_meta", {})[domain] = payload
+            self._write(db)
+
+    def get_version_logs(self, limit: int = 100) -> list[dict]:
+        """版本变动日志：card_logs 倒序筛选 changes 含 write_date 的条目（不建新存储）。"""
+        db = self._read()
+        logs = [log for log in db.get("card_logs", [])
+                if any(c.get("field") == "write_date" for c in log.get("changes", []))]
+        logs.sort(key=lambda log: (log.get("timestamp", ""), log.get("id", 0)), reverse=True)
+        return logs[:limit]
 
     def trim_logs(self, max_count: int = MAX_LOGS) -> int:
         """保留最新N条日志，删除多余的，返回删除数量"""
