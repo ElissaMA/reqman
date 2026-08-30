@@ -330,126 +330,92 @@ async def full_version_check(store, client, cookies, *, fetch=None) -> dict:
         code = card.get("task_code", "")
         row = versions.get(code)
         if row is None:
-            cancelled.append({"task_code": code, "task_name": card.get("task_name", "")})
+            cancelled.append({"task_code": code,
+                              "task_name": card.get("task_name", ""),
+                              "category": card.get("category", "")})
             continue
         new_wd = _wd(row)
         old_wd = str(card.get("write_date", "")).strip()
         if new_wd and new_wd != old_wd:
             store.update(card["id"], write_date=new_wd)
-            revised.append({"task_code": code, "old_wd": old_wd, "new_wd": new_wd})
+            revised.append({"task_code": code,
+                            "task_name": card.get("task_name", ""),
+                            "category": card.get("category", ""),
+                            "old_wd": old_wd, "new_wd": new_wd})
     return {"revised": revised, "cancelled": cancelled, "total_amro": len(versions)}
 
 
 async def check_cards_against_amro(store, client, cookies, task_codes, *, fetch=None) -> dict:
-    """提醒单用：实时拉两清单（客户端过滤到 task_codes）→ 比对更新 → {revised, cancelled, new_by_category}。"""
+    """包级版本检查：拉两清单 → 对指定工卡比对 AMRO 编写日期 → {revised, cancelled}。
+
+    仅处理卡库已存在的卡（包内新卡由匹配流程负责，不进版本报告）。
+    """
     wanted = {str(c).strip() for c in task_codes if str(c).strip()}
     versions = await _pull_card_versions(client, cookies, fetch=fetch)
     all_cards = {c.get("task_code", ""): c for c in store.get_all()}
     revised, cancelled = [], []
-    new_by_category: dict[str, list] = {}
     for code in sorted(wanted):
         card = all_cards.get(code)
-        row = versions.get(code)
         if card is None:
-            # 新工卡：包内出现但卡库无 → 按专业分组（spec 决策#9）
-            cat = str((row or {}).get("ZY", "")).strip()
-            if cat == "机身":
-                cat = "机体"
-            new_by_category.setdefault(cat or "其他", []).append({
-                "task_code": code,
-                "task_name": str((row or {}).get("JCTITLE", "")).strip(),
-            })
             continue
+        row = versions.get(code)
         if row is None:
-            cancelled.append({"task_code": code, "task_name": card.get("task_name", "")})
+            cancelled.append({"task_code": code,
+                              "task_name": card.get("task_name", ""),
+                              "category": card.get("category", "")})
             continue
         new_wd = _wd(row)
         old_wd = str(card.get("write_date", "")).strip()
         if new_wd and new_wd != old_wd:
             store.update(card["id"], write_date=new_wd)
-            revised.append({"task_code": code, "old_wd": old_wd, "new_wd": new_wd})
-    return {"revised": revised, "cancelled": cancelled, "new_by_category": new_by_category}
+            revised.append({"task_code": code,
+                            "task_name": card.get("task_name", ""),
+                            "category": card.get("category", ""),
+                            "old_wd": old_wd, "new_wd": new_wd})
+    return {"revised": revised, "cancelled": cancelled}
+
+
+def _group_by_category(rows: list[dict]) -> list[tuple[str, list[dict]]]:
+    """按专业分组（发动机→机体→电子→其他，稳定顺序）—— 与提醒单分专业同构。"""
+    grouped: dict[str, list[dict]] = {}
+    for r in rows:
+        cat = str(r.get("category", "")).strip() or "其他"
+        grouped.setdefault(cat, []).append(r)
+    priority = {"发动机": 0, "机体": 1, "电子": 2}
+    return [(c, grouped[c]) for c in sorted(grouped, key=lambda c: (priority.get(c, 99), c))]
 
 
 def build_version_report_excel(report: dict) -> bytes:
-    """改版清单 Excel：改版工卡 sheet + 作废工卡 sheet。"""
+    """改版清单 Excel（提醒单式分专业，两处查询同款格式，不标底色）。
+
+    「改版工卡」sheet 分专业，行 = 工卡号 | 工卡名称 | 编写日期（旧→新）；
+    「作废工卡」sheet 分专业，行 = 工卡号 | 工卡名称。
+    """
     from openpyxl import Workbook
+
+    def _date_span(wd: str) -> str:
+        return (wd or "").strip()[:10]
+
+    def write_sections(ws, rows: list[dict], with_dates: bool) -> None:
+        ws.append(["工卡号", "工卡名称"] + (["编写日期"] if with_dates else []))
+        for cat, items in _group_by_category(rows):
+            ws.append([f"【{cat}】"])
+            for it in items:
+                row = [it.get("task_code", ""), it.get("task_name", "")]
+                if with_dates:
+                    old, new = _date_span(it.get("old_wd", "")), _date_span(it.get("new_wd", ""))
+                    row.append(f"{old}→{new}" if old and new else (new or old))
+                ws.append(row)
 
     wb = Workbook()
     ws = wb.active
     ws.title = "改版工卡"
-    ws.append(["工卡号", "旧编写日期", "新编写日期"])
-    for r in report.get("revised", []):
-        ws.append([r.get("task_code", ""), r.get("old_wd", ""), r.get("new_wd", "")])
+    write_sections(ws, report.get("revised", []), with_dates=True)
     ws2 = wb.create_sheet("作废工卡")
-    ws2.append(["工卡号", "工卡名称"])
-    for r in report.get("cancelled", []):
-        ws2.append([r.get("task_code", ""), r.get("task_name", "")])
+    write_sections(ws2, report.get("cancelled", []), with_dates=False)
     buf = io.BytesIO()
     wb.save(buf)
     return buf.getvalue()
-
-
-def apply_reminder_version_section(ws, report: dict) -> None:
-    """提醒单附加版本区块：改版/新工卡行蓝底(FF0000FF)，作废行浅红底(FFFFC7CE)+行首"已作废"。"""
-    from openpyxl.styles import Font, PatternFill
-
-    blue = PatternFill(fill_type="solid", start_color="FF0000FF", end_color="FF0000FF")
-    red = PatternFill(fill_type="solid", start_color="FFFFC7CE", end_color="FFFFC7CE")
-    white_bold = Font(color="FFFFFF", bold=True)
-
-    def section_title(text):
-        c = ws.cell(row=ws.max_row + 2, column=1, value=text)
-        c.font = Font(bold=True)
-
-    def fill_row(row_idx, cols, fill):
-        for col in range(1, cols + 1):
-            ws.cell(row=row_idx, column=col).fill = fill
-
-    revised = report.get("revised", [])
-    cancelled = report.get("cancelled", [])
-    new_by_category = report.get("new_by_category") or {}
-    if not revised and not cancelled and not new_by_category:
-        ws.cell(row=ws.max_row + 2, column=1, value="版本检查完成：无改版、无作废工卡")
-        return
-
-    section_title("⚠ 工卡版本检查（实时比对 AMRO 编写日期）")
-
-    if revised:
-        r = ws.max_row + 1
-        for col, head in enumerate(("改版工卡", "旧编写日期", "新编写日期"), start=1):
-            cell = ws.cell(row=r, column=col, value=head)
-            cell.fill = blue
-            cell.font = white_bold
-        for item in revised:
-            r += 1
-            ws.cell(row=r, column=1, value=item.get("task_code", ""))
-            ws.cell(row=r, column=2, value=item.get("old_wd", "") or "（无）")
-            ws.cell(row=r, column=3, value=item.get("new_wd", ""))
-            fill_row(r, 3, blue)
-
-    if new_by_category:
-        for cat, items in new_by_category.items():
-            r = ws.max_row + 1
-            cell = ws.cell(row=r, column=1, value=f"新工卡（{cat}）")
-            cell.fill = blue
-            cell.font = white_bold
-            for it in items:
-                r += 1
-                ws.cell(row=r, column=1, value=it.get("task_code", ""))
-                ws.cell(row=r, column=2, value=it.get("task_name", ""))
-                fill_row(r, 2, blue)
-
-    if cancelled:
-        r = ws.max_row + 1
-        for col, head in enumerate(("作废工卡", "工卡名称"), start=1):
-            cell = ws.cell(row=r, column=col, value=head)
-            cell.fill = red
-        for item in cancelled:
-            r += 1
-            ws.cell(row=r, column=1, value=f"已作废：{item.get('task_code', '')}")
-            ws.cell(row=r, column=2, value=item.get("task_name", ""))
-            fill_row(r, 2, red)
 
 
 def start_full_version_check(store, session_store, output_dir) -> bool:

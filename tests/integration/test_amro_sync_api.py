@@ -270,74 +270,111 @@ def store_add(app, code, name):
     return app.extensions["store"].add(code, name, "机体", "", "")
 
 
-class TestReminderAsync:
-    """Task 7: 提醒单异步版本检查（task 状态机 + 蓝底区块 + 旧同步路径保留）"""
+class TestPackageVersionApi:
+    """步骤4：工作包行级版本检查（同步）+ 预览页改版清单下载 + 提醒单回退纯同步"""
 
     @staticmethod
-    def _make_package(store):
-        store.add(task_code="E-001", task_name="电子例行卡", category="电子")
-        store.update(store.find_by_code("E-001")["id"], tools_confirmed=True,
-                     materials_confirmed=True, reminder_type="重点提醒",
-                     reminder_confirmed=True, card_ok=True)
-        store.save_work_package({
-            "reg": "B-1234", "description": "46A", "date": "2026.08.23",
+    def _make_package(store, days_ahead: int = 1):
+        from datetime import datetime, timedelta
+        from zoneinfo import ZoneInfo
+
+        today = datetime.now(ZoneInfo("Asia/Shanghai")).date()
+        pkg_date = (today + timedelta(days=days_ahead)).strftime("%Y.%m.%d")
+        for code, name, cat in (("E-001", "电子例行卡", "电子"), ("J-001", "机体例行卡", "机体")):
+            store.add(task_code=code, task_name=name, category=cat)
+            store.update(store.find_by_code(code)["id"], tools_confirmed=True,
+                         materials_confirmed=True, reminder_type="重点提醒",
+                         reminder_confirmed=True, card_ok=True)
+        return store.save_work_package({
+            "reg": "B-1234", "description": "46A", "date": pkg_date,
             "aircraft_info": {"reg": "B-1234", "type": "A320", "description": "46A",
-                              "date": "2026.08.23"},
-            "matched": [{"task_code": "E-001", "task_name": "电子例行卡",
-                         "category": "电子", "reminder_type": "重点提醒",
-                         "card_ok": True, "reminder_confirmed": True,
-                         "source": "例行", "tools": [], "materials": []}],
+                              "date": pkg_date},
+            "matched": [{"task_code": code, "task_name": name, "category": cat,
+                         "reminder_type": "重点提醒", "card_ok": True,
+                         "reminder_confirmed": True, "source": "例行",
+                         "tools": [], "materials": []}
+                        for code, name, cat in (("E-001", "电子例行卡", "电子"),
+                                                ("J-001", "机体例行卡", "机体"))],
             "new_cards": [], "cancelled": [],
-            "all_items": [{"task_code": "E-001", "task_name": "电子例行卡",
-                           "category": "电子", "source": "例行"}],
-            "routine_count": 1, "other_count": 0,
+            "all_items": [{"task_code": code, "task_name": name, "category": cat, "source": "例行"}
+                          for code, name, cat in (("E-001", "电子例行卡", "电子"),
+                                                  ("J-001", "机体例行卡", "机体"))],
+            "routine_count": 2, "other_count": 0,
             "is_matched": True, "generated_at": "2026.08.23 10:00",
-        })
-        return store.get_work_packages()[0]["package_id"]
+        })["package_id"]
 
-    def test_async_flow_done_and_download(self, client, store, app, ajax_headers,
-                                          monkeypatch, tmp_path):
-        import time as _time
-
-        import reqman.blueprints.generate_bp as gb_mod
-        monkeypatch.setattr(gb_mod, "OUTPUT_DIR", tmp_path)
-
-        # mock 在 AMRO 层：真实 check_cards_against_amro 会更新卡的 write_date
+    def test_package_version_check_sync(self, client, app, ajax_headers, monkeypatch, tmp_path):
+        """行级查询工作包工卡版本：同步比对 → 更新版本 → 生成逐包改版清单（同包覆盖）。"""
+        import reqman.blueprints.packages_bp as pb_mod
         import reqman.services.connectors.amro as amro_mod
+        from reqman.services import amro_sync
+        monkeypatch.setattr(amro_sync, "require_amro_session", lambda: True)
+        monkeypatch.setattr(pb_mod, "OUTPUT_DIR", tmp_path)
 
         async def fake_fetch(client_, cookies, plugin, base_form, **kw):
-            return [{"JC_NO": "E-001", "WRITE_DATE": "2026-08-01 09:00:00", "ZY": "电子",
-                     "JCTITLE": "电子例行卡", "TASK": "RST"}]
+            if plugin == "TD_JC_SMJC_LIST":
+                return [{"JC_NO": "E-001", "WRITE_DATE": "2026-08-01 09:00:00", "ZY": "电子",
+                         "JCTITLE": "电子例行卡", "TASK": "RST"}]
+            return [{"JC_NO": "J-001", "WRITE_DATE": "2026-08-01 09:00:00", "ZY": "机体",
+                     "JCTITLE": "机体例行卡", "TASK": "RST"}]
         monkeypatch.setattr(amro_mod, "fetch_all_pages", fake_fetch)
 
+        store = app.extensions["store"]
         pkg_id = self._make_package(store)
-        resp = client.post("/generate/reminder",
-                           data={"package_id": pkg_id, "version_check": "1"},
-                           headers=ajax_headers)
+        resp = client.post(f"/packages/{pkg_id}/amro-version-check", headers=ajax_headers)
         assert resp.status_code == 200
-        task_id = resp.get_json()["data"]["task_id"]
-
-        meta = {}
-        deadline = _time.time() + 5
-        while _time.time() < deadline:
-            meta = client.get(f"/generate/task/{task_id}").get_json()["data"]
-            if meta.get("status") == "done":
-                break
-            _time.sleep(0.05)
-        assert meta.get("status") == "done", meta
-        assert meta["revised"] == 1
-        # 卡的 write_date 已被实时检查更新
+        data = resp.get_json()["data"]
+        assert data["revised"] == 2 and data["cancelled"] == 0
+        assert data["filename"] == f"amro_pkg_version_report_{pkg_id}.xlsx"
+        assert (tmp_path / data["filename"]).exists()
         assert store.find_by_code("E-001")["write_date"] == "2026-08-01 09:00:00"
-        # 下载含版本区块的提醒单
-        dl = client.get(f"/generate/task/{task_id}/download")
-        assert dl.status_code == 200 and "spreadsheetml" in dl.mimetype
 
-    def test_unknown_task_404(self, client, ajax_headers):
-        resp = client.get("/generate/task/nonexistent", headers=ajax_headers)
+    def test_package_version_check_busy_409(self, client, app, ajax_headers, monkeypatch):
+        from reqman.services import amro_sync
+        monkeypatch.setattr(amro_sync, "require_amro_session", lambda: True)
+        pkg_id = self._make_package(app.extensions["store"])
+        release = _occupy_query_slot("查询飞机数据")
+        try:
+            resp = client.post(f"/packages/{pkg_id}/amro-version-check", headers=ajax_headers)
+            assert resp.status_code == 409
+            assert "已有查询任务进行中" in resp.get_json()["message"]
+        finally:
+            release()
+
+    def test_package_version_check_missing_404(self, client, ajax_headers, monkeypatch):
+        from reqman.services import amro_sync
+        monkeypatch.setattr(amro_sync, "require_amro_session", lambda: True)
+        resp = client.post("/packages/nope/amro-version-check", headers=ajax_headers)
         assert resp.status_code == 404
 
-    def test_sync_path_preserved_without_checkbox(self, client, store):
-        """不勾选版本检查 → 旧同步路径直接返回 xlsx（保留一个版本的开关）"""
+    def test_report_download_404_without_query(self, client, monkeypatch, tmp_path):
+        import reqman.blueprints.generate_bp as gb_mod
+        monkeypatch.setattr(gb_mod, "OUTPUT_DIR", tmp_path)
+        resp = client.get("/generate/package-version-report?package_id=p1")
+        assert resp.status_code == 404
+        assert "尚未查询" in resp.get_json()["message"]
+
+    def test_report_download_ok(self, client, monkeypatch, tmp_path):
+        import reqman.blueprints.generate_bp as gb_mod
+        monkeypatch.setattr(gb_mod, "OUTPUT_DIR", tmp_path)
+        (tmp_path / "amro_pkg_version_report_p1.xlsx").write_bytes(b"xlsx")
+        resp = client.get("/generate/package-version-report?package_id=p1")
+        assert resp.status_code == 200 and resp.data == b"xlsx"
+
+    def test_reminder_pure_sync(self, client, store):
+        """提醒单回归单一功能：直接返回 xlsx（版本检查已独立为按钮下载）。"""
         pkg_id = self._make_package(store)
         resp = client.post("/generate/reminder", data={"package_id": pkg_id})
         assert resp.status_code == 200 and "spreadsheetml" in resp.mimetype
+
+    def test_upload_row_button_and_generate_buttons(self, client, store):
+        """工作包行内「查询工作包工卡版本」按钮 + 预览页按钮排（生成工卡改版下载），勾选框已移除。"""
+        pkg_id = self._make_package(store)
+        html = client.get("/upload").get_data(as_text=True)
+        # 行内按钮为 JS 拼装 URL：onclick="pkgVersionCheck('<package_id>', this)"
+        assert f"pkgVersionCheck('{pkg_id}'" in html
+        assert "查询工作包工卡版本" in html
+        html2 = client.get(f"/generate?package_id={pkg_id}").get_data(as_text=True)
+        assert "生成工卡改版下载" in html2
+        assert "生成提醒单下载" in html2
+        assert "versionCheck" not in html2   # 版本检查勾选框已移除

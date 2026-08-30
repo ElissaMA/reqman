@@ -311,9 +311,12 @@ def test_packages_page_relayout(page, server_base):
     assert not js_errors, f"页面存在JS错误: {js_errors}"
 
 
-# ---------- 12. v3.5.0 T7：提醒单版本检查勾选框与异步交互入口 ----------
-def test_generate_reminder_version_ui(page, server_base):
-    """生成页含版本检查勾选框（默认勾选）；表头三件套与页面共存无JS错误。"""
+# ---------- 12. v3.6.0：预览页按钮排 + 表头登录框共存 ----------
+def test_generate_page_buttons_and_header(page, server_base):
+    """预览页含「生成需求单/生成提醒单/生成工卡改版下载」按钮排；表头三件套与页面共存无JS错误。
+
+    提醒单已回退纯同步（无版本检查勾选框）；改版清单独立按钮下载（需先在工作包页查询）。
+    """
     js_errors = []
     page.on("pageerror", lambda e: js_errors.append(str(e)))
 
@@ -321,8 +324,7 @@ def test_generate_reminder_version_ui(page, server_base):
     page.wait_for_selector("#cardTable tbody tr")
     page.evaluate("sessionStorage.clear()")
 
-    # 直接构造带包预览页（经上传页创建包代价高，这里走 UI 存在性验证：
-    # 预览页需 package_id —— 无包时验证上传页即可；勾选框在预览页内）
+    # 预览页需 package_id —— 无包时验证上传页即可；按钮排存在性由 form.html 保证
     page.goto(server_base + "/inventory")
     page.wait_for_selector("#amroStatus")
     page.screenshot(path="output/e2e_t7_session_header.png")

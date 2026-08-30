@@ -291,17 +291,13 @@
         </div>
     </div>
 
-    <div class="text-center mb-2">
-        <label class="small text-muted">
-            <input type="checkbox" id="versionCheck" checked>
-            工卡版本检查（实时比对 AMRO 编写日期，约 3~15 分钟，后台执行；改版/作废/新工卡列入提醒单）
-        </label>
-    </div>
     <div class="text-center mb-4">
         <button type="submit" class="btn btn-primary btn-sm px-4"
                 onclick="return confirmGen()">✅ 生成需求单下载</button>
         <button type="button" class="btn btn-outline-primary btn-sm px-4"
                 onclick="downloadReminder()">📋 生成提醒单下载</button>
+        <a href="/generate/package-version-report?package_id={{ package_id }}"
+           class="btn btn-outline-primary btn-sm px-4">📥 生成工卡改版下载</a>
     </div>
 </form>
 
@@ -318,50 +314,12 @@ function confirmGen() {
     return confirm('确认生成并下载需求单？');
 }
 function downloadReminder() {
-    var wantCheck = document.getElementById('versionCheck')
-        && document.getElementById('versionCheck').checked;
-    if (!wantCheck) {
-        // 旧同步路径（不勾选版本检查时保留）
-        var form = document.createElement('form');
-        form.method = 'POST'; form.action = '/generate/reminder';
-        var inp = document.createElement('input');
-        inp.type = 'hidden'; inp.name = 'package_id'; inp.value = '{{ package_id }}';
-        form.appendChild(inp); document.body.appendChild(form); form.submit();
-        return;
-    }
-    // 异步路径：实时版本检查 + 后台生成 + 轮询下载
-    if (window.amroSession && !window.amroSession.ready) {
-        window.safeToast('登录已失效（可能被其他登录挤掉），请重新运行登录脚本后重试', 'warning');
-        return;
-    }
-    var fd = new FormData();
-    fd.append('package_id', '{{ package_id }}');
-    fd.append('version_check', '1');
-    window.showLoader();
-    fetch('/generate/reminder', { method: 'POST', body: fd,
-        headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-        .then(function(r) { return r.json(); }).then(function(d) {
-            window.hideLoader();
-            if (!d.success) { window.safeToast(d.message || '启动失败', 'error'); return; }
-            var taskId = d.data.task_id;
-            window.safeToast('提醒单生成中（含版本检查），完成后自动开始下载', 'info', 6000);
-            var deadline = Date.now() + 20 * 60 * 1000;
-            var timer = setInterval(function() {
-                if (Date.now() > deadline) { clearInterval(timer); window.hideLoader(); return; }
-                fetch('/generate/task/' + taskId, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                    .then(function(r) { return r.json(); }).then(function(d2) {
-                        var t = (d2.data || {}).status;
-                        if (t === 'done') {
-                            clearInterval(timer); window.hideLoader();
-                            window.safeToast('提醒单已生成（含版本检查），开始下载', 'success', 6000);
-                            window.location.href = '/generate/task/' + taskId + '/download';
-                        } else if (t === 'error') {
-                            clearInterval(timer); window.hideLoader();
-                            window.safeToast('生成失败：' + ((d2.data || {}).error || '未知错误'), 'error', 8000);
-                        }
-                    }).catch(function(){});
-            }, 2000);
-        }).catch(function() { window.hideLoader(); window.safeToast('启动失败', 'error'); });
+    // 纯同步生成提醒单（v3.6.0 起不再内嵌版本检查，改版清单走独立按钮下载）
+    var form = document.createElement('form');
+    form.method = 'POST'; form.action = '/generate/reminder';
+    var inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = 'package_id'; inp.value = '{{ package_id }}';
+    form.appendChild(inp); document.body.appendChild(form); form.submit();
 }
 
 // 监听子窗口保存成功消息 → 刷新预览页（新增/编辑工卡后同步）

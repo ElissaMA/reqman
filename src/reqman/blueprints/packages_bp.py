@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 import httpx
 from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request
 
-from ..config import CATEGORIES
+from ..config import CATEGORIES, OUTPUT_DIR
 from ..services import amro_sync
 from ..services.connectors.amro import AmroSessionExpired
 from ..services.work_package_matcher import match_work_package_items
@@ -280,3 +280,44 @@ def amro_version_logs():
     """版本变动日志（card_logs 筛选视图，倒序最近 50 条）。"""
     logs = _version_log_rows(current_app.extensions["store"])
     return api_success(data={"logs": logs})
+
+
+@packages_bp.route("/packages/<package_id>/amro-version-check", methods=["POST"])
+def package_amro_version_check(package_id):
+    """查询工作包工卡版本（同步请求）：实时比对包内工卡 → 更新版本 → 生成逐包改版清单（同包覆盖）。"""
+    if not amro_sync.require_amro_session():
+        return jsonify({"success": False, "message": MESSAGES["P8"]}), 401
+    store = current_app.extensions["store"]
+    pkg_data = store.get_work_package(package_id)
+    if not pkg_data:
+        raise NotFoundError("工作包不存在")
+    svc = current_app.extensions["inventory_service"]
+    cookies = (svc.session_store.load() or {}).get("cookies", {})
+
+    task_codes = list(dict.fromkeys(
+        it.get("task_code") for it in pkg_data.get("all_items", []) if it.get("task_code")
+    ))
+
+    async def _inner():
+        async with httpx.AsyncClient(verify=True, trust_env=False) as client:
+            return await amro_sync.check_cards_against_amro(store, client, cookies, task_codes)
+
+    try:
+        with amro_sync.query_slot("查询工作包工卡版本"):
+            report = asyncio.run(_inner())
+    except amro_sync.QueryBusyError:
+        return jsonify({"success": False, "message": amro_sync.query_busy_message()
+                        or "已有查询任务进行中，请等待完成后再查询"}), 409
+    except AmroSessionExpired as e:
+        return jsonify({"success": False, "message": str(e)}), 401
+    except (httpx.HTTPError, RuntimeError) as e:
+        logger.exception("工作包 %s 版本检查失败", package_id)
+        return jsonify({"success": False, "message": f"AMRO 请求失败: {e}"}), 502
+
+    filename = f"amro_pkg_version_report_{package_id}.xlsx"
+    (OUTPUT_DIR / filename).write_bytes(amro_sync.build_version_report_excel(report))
+    summary = {"revised": len(report["revised"]), "cancelled": len(report["cancelled"]),
+               "filename": filename}
+    message = (f"版本检查完成：改版 {summary['revised']} 张，作废 {summary['cancelled']} 张"
+               "（预览页可下载改版清单）")
+    return api_success(data=summary, message=message)

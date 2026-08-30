@@ -108,6 +108,8 @@
                             <button type="submit" class="btn btn-outline-secondary btn-sm py-0"
                                     onclick="return confirm('重新匹配将使用当前数据库刷新匹配状态，确认？')">🔄 重新匹配</button>
                         </form>
+                        <button type="button" class="btn btn-outline-primary btn-sm py-0"
+                                onclick="pkgVersionCheck('{{ wp.package_id }}', this)">🔍 查询工作包工卡版本</button>
                     </td>
                 </tr>
                 {% endfor %}
@@ -254,6 +256,24 @@ function importPack(revnr, btn) {
         }).catch(function() {
             window.safeToast('导入失败', 'error');
             btn.disabled = false; btn.textContent = '导入';
+        });
+}
+
+// ===== 工作包行级：查询工作包工卡版本（同步请求，行内按钮显示比对进度） =====
+function pkgVersionCheck(packageId, btn) {
+    if (!amroRequireLogin()) return;
+    btn.disabled = true; btn.textContent = '比对中…';
+    var fd = new FormData();
+    fd.append('package_id', packageId);
+    fetch('/packages/' + packageId + '/amro-version-check', { method: 'POST', body: fd,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function(r) { return r.json(); }).then(function(d) {
+            btn.disabled = false; btn.textContent = '🔍 查询工作包工卡版本';
+            window.safeToast(d.message || (d.success ? '版本检查完成' : '查询失败'),
+                             d.success ? 'success' : 'error', 8000);
+        }).catch(function() {
+            btn.disabled = false; btn.textContent = '🔍 查询工作包工卡版本';
+            window.safeToast('查询失败', 'error');
         });
 }
 

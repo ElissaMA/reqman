@@ -60,39 +60,53 @@ class TestFullVersionCheck:
 
 
 class TestVersionReportExcel:
-    def test_report_excel_has_two_sheets(self):
+    def test_report_excel_grouped_by_category(self):
         buf = amro_sync.build_version_report_excel({
-            "revised": [{"task_code": "C-1", "old_wd": "", "new_wd": "2026-08-01"}],
-            "cancelled": [{"task_code": "C-2"}],
+            "revised": [
+                {"task_code": "C-1", "task_name": "卡一", "category": "电子",
+                 "old_wd": "2026-07-01 09:00:00", "new_wd": "2026-08-01 09:00:00"},
+                {"task_code": "C-2", "task_name": "卡二", "category": "发动机",
+                 "old_wd": "", "new_wd": "2026-08-01 09:00:00"},
+            ],
+            "cancelled": [
+                {"task_code": "C-3", "task_name": "卡三", "category": "机体"},
+            ],
         })
         wb = openpyxl.load_workbook(io.BytesIO(buf))
         assert wb.sheetnames == ["改版工卡", "作废工卡"]
+        ws = wb["改版工卡"]
+        assert ws["A1"].value == "工卡号" and ws["C1"].value == "编写日期"  # 卡号|卡名|日期
+        rows = [[ws.cell(row=r, column=c).value for c in range(1, 4)]
+                for r in range(1, ws.max_row + 1)]
+        assert ["【发动机】", None, None] in rows          # 分专业分节（发动机优先）
+        assert ["C-1", "卡一", "2026-07-01→2026-08-01"] in rows  # 旧→新
+        assert ["C-2", "卡二", "2026-08-01"] in rows              # 旧为空仅显新日期
+        ws2 = wb["作废工卡"]
+        assert ws2["A1"].value == "工卡号" and ws2.max_column == 2  # 无日期列
+        rows2 = [[ws2.cell(row=r, column=c).value for c in range(1, 3)]
+                 for r in range(1, ws2.max_row + 1)]
+        assert ["【机体】", None] in rows2 and ["C-3", "卡三"] in rows2
 
 
-class TestApplyReminderVersionSection:
-    def test_revised_and_new_cards_blue_fill(self):
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        report = {"revised": [{"task_code": "CSCA320-256652-01-1-X", "old_wd": "",
-                               "new_wd": "2026-08-01 09:00:00"}],
-                  "cancelled": [{"task_code": "EOJC-A320-57-2025-002-B"}],
-                  "new_by_category": {"电子": [{"task_code": "EOJC-A320-31-2026-007-A",
-                                               "task_name": "实时数据改装"}]}}
-        amro_sync.apply_reminder_version_section(ws, report)
+class TestCheckCardsAgainstAmro:
+    """包级版本检查（工作包行级查询）：条目含 task_name/category，无 new_by_category"""
 
-        def blue_rows():
-            out = set()
-            for row in ws.iter_rows():
-                for c in row:
-                    fill = getattr(c, "fill", None)
-                    rgb = getattr(getattr(fill, "fgColor", None), "rgb", None)
-                    if rgb in ("FF0000FF", "0000FF"):
-                        out.add(c.row)
-            return out
-
-        codes_by_row = {r: ws.cell(row=r, column=1).value for r in range(1, ws.max_row + 1)}
-        assert "CSCA320-256652-01-1-X" in {codes_by_row[r] for r in blue_rows()}   # 改版蓝底
-        assert "EOJC-A320-31-2026-007-A" in {codes_by_row[r] for r in blue_rows()}  # 新工卡蓝底
-        cancelled_rows = [r for r, v in codes_by_row.items()
-                          if "EOJC-A320-57-2025-002-B" in str(v) and "已作废" in str(v)]
-        assert cancelled_rows, "作废工卡应列出（行首已作废标注）"
+    def test_revised_and_cancelled_with_fields(self, json_store, fake_amro_cards, monkeypatch):
+        monkeypatch.setattr(amro_sync.amro.time, "monotonic", lambda: 1e9)
+        monkeypatch.setattr(amro_sync.amro.time, "sleep", lambda s: None)
+        json_store.add("CSCA320-256652-01-1-X", "检查救生衣", "电子", "RST", "")
+        json_store.add("EOJC-A320-57-2025-002-B", "旧卡", "机体", "EO", "")
+        rep = _run(amro_sync.check_cards_against_amro(
+            json_store, None, {},
+            ["CSCA320-256652-01-1-X", "EOJC-A320-57-2025-002-B",
+             "EOJC-A320-99-2026-999-Z"],   # 库内无此卡（AMRO 有）→ 跳过
+            fetch=fake_amro_cards))
+        assert "new_by_category" not in rep
+        rev = rep["revised"][0]
+        assert rev["task_code"] == "CSCA320-256652-01-1-X"
+        assert rev["task_name"] == "检查救生衣" and rev["category"] == "电子"
+        can = rep["cancelled"][0]
+        assert can["task_code"] == "EOJC-A320-57-2025-002-B"
+        assert can["task_name"] == "旧卡" and can["category"] == "机体"
+        codes = {r["task_code"] for r in rep["revised"] + rep["cancelled"]}
+        assert "EOJC-A320-99-2026-999-Z" not in codes
