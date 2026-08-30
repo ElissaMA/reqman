@@ -33,20 +33,30 @@ def _norm_reg(value: str) -> str:
     return s
 
 
-def run_in_thread(app, domain: str, job) -> None:
-    """daemon 线程执行 job，写 amro_sync_meta 状态位：running → done(含 report) / error。"""
-    store = app.extensions["store"]
+# 内存任务状态注册表（v3.6.0：统一承载各查询任务状态；服务重启即清空）
+QUERY_STATUS: dict[str, dict] = {}
+
+
+def run_query(key: str, label: str, job) -> None:
+    """daemon 线程执行 job，QUERY_STATUS 内存态：running → done(简要 summary) / error。"""
+    QUERY_STATUS[key] = {"status": "running", "label": label, "started_at": _now()}
 
     def runner():
-        store.set_amro_sync_meta(domain, {"status": "running", "started_at": _now()})
         try:
-            report = job()
-            store.set_amro_sync_meta(domain, {"status": "done", "finished_at": _now(), "report": report})
+            summary = job()
+            QUERY_STATUS[key] = {"status": "done", "label": label,
+                                 "finished_at": _now(), "summary": summary}
         except Exception as exc:
-            logger.exception("AMRO 同步任务失败: %s", domain)
-            store.set_amro_sync_meta(domain, {"status": "error", "finished_at": _now(), "error": str(exc)})
+            logger.exception("AMRO 查询任务失败: %s", label)
+            QUERY_STATUS[key] = {"status": "error", "label": label,
+                                 "finished_at": _now(), "error": str(exc)}
 
-    threading.Thread(target=runner, daemon=True, name=f"amro-{domain}").start()
+    threading.Thread(target=runner, daemon=True, name=f"amro-{key}").start()
+
+
+def get_query_status(key: str) -> dict:
+    """读取某查询任务的内存状态（无记录返回空 dict）。"""
+    return QUERY_STATUS.get(key, {})
 
 
 # ---------- AMRO 会话前置检查 ----------
@@ -111,23 +121,23 @@ async def sync_aircraft(store, client, cookies, *, fetch=None) -> dict:
             "total_amro": len(amro_by_key)}
 
 
-def start_aircraft_sync(app) -> bool:
+def start_aircraft_sync(store, session_store) -> bool:
     """启动飞机同步后台任务。返回 False = 同域任务已在跑（S1 防重复）。"""
-    store = app.extensions["store"]
-    if store.get_amro_sync_meta().get("aircraft", {}).get("status") == "running":
+    if QUERY_STATUS.get("aircraft", {}).get("status") == "running":
         return False
-    session_store = app.extensions["inventory_service"].session_store
 
     def job():
         cookies = (session_store.load() or {}).get("cookies", {})
 
         async def _inner():
             async with httpx.AsyncClient(verify=True, trust_env=False) as client:
-                return await sync_aircraft(store, client, cookies)
+                rep = await sync_aircraft(store, client, cookies)
+            return {"added": rep["added"], "updated": rep["updated"],
+                    "removed": len(rep["removed"]), "total_amro": rep["total_amro"]}
 
         return asyncio.run(_inner())
 
-    run_in_thread(app, "aircraft", job)
+    run_query("aircraft", "查询飞机数据", job)
     return True
 
 
@@ -390,26 +400,26 @@ def apply_reminder_version_section(ws, report: dict) -> None:
             fill_row(r, 2, red)
 
 
-def start_version_check(app, output_dir) -> bool:
-    """启动全库版本检查后台任务。返回 False = 已在跑（S1 防重复）。"""
-    store = app.extensions["store"]
-    if store.get_amro_sync_meta().get("version", {}).get("status") == "running":
+def start_full_version_check(store, session_store, output_dir) -> bool:
+    """启动全量查询工卡版本后台任务。返回 False = 已在跑（S1 防重复）。"""
+    if QUERY_STATUS.get("full_version", {}).get("status") == "running":
         return False
-    session_store = app.extensions["inventory_service"].session_store
 
     def job():
         cookies = (session_store.load() or {}).get("cookies", {})
 
         async def _inner():
             async with httpx.AsyncClient(verify=True, trust_env=False) as client:
-                return await full_version_check(store, client, cookies)
+                rep = await full_version_check(store, client, cookies)
+            ts = datetime.now(BJ).strftime("%Y%m%d_%H%M%S")
+            filename = f"amro_full_version_report_{ts}.xlsx"
+            (output_dir / filename).write_bytes(build_version_report_excel(rep))
+            rep["filename"] = filename
+            return rep
 
-        report = asyncio.run(_inner())
-        ts = datetime.now(BJ).strftime("%Y%m%d_%H%M%S")
-        filename = f"amro_version_report_{ts}.xlsx"
-        (output_dir / filename).write_bytes(build_version_report_excel(report))
-        report["filename"] = filename
-        return report
+        rep = asyncio.run(_inner())
+        return {"revised": len(rep["revised"]), "cancelled": len(rep["cancelled"]),
+                "total_amro": rep["total_amro"], "filename": rep["filename"]}
 
-    run_in_thread(app, "version", job)
+    run_query("full_version", "全量查询工卡版本", job)
     return True

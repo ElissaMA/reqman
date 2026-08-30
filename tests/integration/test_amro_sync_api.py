@@ -81,26 +81,27 @@ class TestAircraftSyncApi:
         assert resp.status_code == 200
         assert resp.get_json()["data"]["started"] is True
 
-        meta = {}
+        status = {}
         deadline = _time.time() + 5
         while _time.time() < deadline:
-            meta = client.get("/card/aircraft/amro-status").get_json()["data"]
-            if meta.get("status") == "done":
+            status = client.get("/card/aircraft/amro-status").get_json()["data"]
+            if status.get("status") == "done":
                 break
             _time.sleep(0.05)
-        assert meta.get("status") == "done", meta
-        assert meta["report"]["added"] == 1 and meta["report"]["updated"] == 2
-        # 飞机列表页渲染同步报告
+        assert status.get("status") == "done", status
+        assert status["summary"]["added"] == 1 and status["summary"]["updated"] == 2
+        # 飞机列表页渲染查询结果简要
         html = client.get("/card/aircraft").get_data(as_text=True)
-        assert "同步报告" in html
+        assert "查询结果" in html
 
     def test_sync_duplicate_start_conflict(self, client, app, ajax_headers, monkeypatch):
         import reqman.blueprints.cards_bp as cb_mod
+        from reqman.services import amro_sync
         monkeypatch.setattr(cb_mod, "_require_amro_session", lambda: True)
-        app.extensions["store"].set_amro_sync_meta("aircraft", {"status": "running"})
+        amro_sync.QUERY_STATUS["aircraft"] = {"status": "running"}
         resp = client.post("/card/aircraft/amro-sync", headers=ajax_headers)
         assert resp.status_code == 409
-        app.extensions["store"].set_amro_sync_meta("aircraft", {"status": "done"})
+        amro_sync.QUERY_STATUS["aircraft"] = {"status": "done"}
 
 
 class TestAmroPackageApi:
@@ -197,13 +198,11 @@ class TestVersionCheckApi:
                 break
             _time.sleep(0.05)
         assert meta.get("status") == "done", meta
-        assert meta["report"]["revised"] and meta["report"]["cancelled"]
-        fname = meta["report"]["filename"]
+        assert meta["summary"]["revised"] and meta["summary"]["cancelled"]
+        assert meta["summary"]["filename"].startswith("amro_full_version_report_")
 
-        dl = client.get(f"/card/amro-version-report/{fname.replace('amro_version_report_', '').replace('.xlsx', '')}")
+        dl = client.get("/card/amro-version-report")
         assert dl.status_code == 200
-        # 非法 ts 被拒（防路径穿越）
-        assert client.get("/card/amro-version-report/..%5Cevil").status_code in (400, 404)
 
 
 def _jcrow(jcno, wd, **kw):

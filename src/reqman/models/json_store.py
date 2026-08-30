@@ -66,7 +66,6 @@ _RUNTIME_KEYS = {
     "work_packages",
     "next_id",
     "code_index",
-    "amro_sync_meta",
 }
 
 
@@ -184,6 +183,7 @@ class JsonStore:
                 logger.warning("运行时数据库读取失败: %s", self._runtime_path)
         # 清理历史遗留的死键（无任何读者，飞机与工卡共用 next_id）
         db.pop("next_ac_id", None)
+        db.pop("amro_sync_meta", None)  # v3.6.0 起查询状态改为内存态，防旧键迁入核心文件
         # 内存中修复不完整/错误的索引（不持久化，下次 _write() 时自动保存）
         if db.get("cards") and not self._index_ok(db):
             logger.warning("code_index 校验失败，已重建索引")
@@ -676,18 +676,7 @@ class JsonStore:
                 self._write(db)
             return deleted
 
-    # ---------- AMRO 同步状态与版本日志（v3.5.0） ----------
-
-    def get_amro_sync_meta(self) -> dict:
-        """各 AMRO 同步功能的运行状态/报告（runtime 键，无数据返回空 dict）。"""
-        return self._read().get("amro_sync_meta", {})
-
-    def set_amro_sync_meta(self, domain: str, payload: dict) -> None:
-        """按域写入同步状态（aircraft / packages / version），整域覆盖。"""
-        with self._lock:
-            db = self._read()
-            db.setdefault("amro_sync_meta", {})[domain] = payload
-            self._write(db)
+    # ---------- AMRO 版本日志（v3.5.0） ----------
 
     def get_version_logs(self, limit: int = 100) -> list[dict]:
         """版本变动日志：card_logs 倒序筛选 changes 含 write_date 的条目（不建新存储）。"""

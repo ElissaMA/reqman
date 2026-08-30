@@ -11,11 +11,12 @@
 <!-- Card 0：从 AMRO 拉取工作包（v3.5.0 新增） -->
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">🔄 从 AMRO 拉取工作包</h5>
-        <button class="btn btn-primary btn-sm" id="amroPackRefresh">刷新包列表</button>
+        <h5 class="mb-0">查询工作包</h5>
+        <button class="btn btn-primary btn-sm" id="amroPackRefresh">查询工作包</button>
     </div>
     <div class="card-body">
         <p class="text-muted small mb-2">从 AMRO「任务接收」直读工卡清单（基地 KM01，日期窗今±7天），替代人工打印上传；需先在表头完成 AMRO 登录。</p>
+        <div class="q-card" id="qCardPackages" style="display:none"></div>
         <div class="table-responsive">
             <table class="table table-sm table-hover mb-0" id="amroPackTable">
                 <thead><tr>
@@ -24,7 +25,7 @@
                     <th class="text-center" style="width:90px">操作</th>
                 </tr></thead>
                 <tbody>
-                    <tr class="empty-state-row"><td colspan="8" class="text-center text-muted py-3">点击「刷新包列表」从 AMRO 获取</td></tr>
+                    <tr class="empty-state-row"><td colspan="8" class="text-center text-muted py-3">点击「查询工作包」从 AMRO 获取</td></tr>
                 </tbody>
             </table>
         </div>
@@ -213,12 +214,12 @@ function amroRequireLogin() {
 
 function refreshAmroPacks() {
     if (!amroRequireLogin()) return;
-    window.showLoader();
+    var card = window.QueryCard.run('qCardPackages', '查询工作包');
     fetch('/packages/amro-list', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then(function(r) { return r.json(); }).then(function(d) {
-            window.hideLoader();
-            if (!d.success) { window.safeToast(d.message || '拉取失败', 'error'); return; }
+            if (!d.success) { card.fail(d.message || '查询失败'); return; }
             var rows = (d.data && d.data.packages) || [];
+            card.done('查询完成：获取到 ' + rows.length + ' 个任务包');
             var tbody = document.querySelector('#amroPackTable tbody');
             if (!rows.length) {
                 tbody.innerHTML = '<tr class="empty-state-row"><td colspan="8" class="text-center text-muted py-3">日期窗内暂无任务包</td></tr>';
@@ -232,7 +233,7 @@ function refreshAmroPacks() {
                     '<td class="text-center"><button class="btn btn-outline-primary btn-sm py-0" ' +
                     'onclick="importPack(\'' + (p.REVNR || '') + '\', this)">导入</button></td></tr>';
             }).join('');
-        }).catch(function() { window.hideLoader(); window.safeToast('拉取包列表失败', 'error'); });
+        }).catch(function() { card.fail('查询工作包失败'); });
 }
 
 function importPack(revnr, btn) {
