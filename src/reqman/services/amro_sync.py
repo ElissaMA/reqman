@@ -426,11 +426,16 @@ def _wd(row: dict | None) -> str:
 
 
 async def full_version_check(store, client, cookies, *, fetch=None) -> dict:
-    """全库版本检查：库内卡逐一比对 AMRO 编写日期；作废只入报告不删卡（决策#7/#8）。"""
+    """全库版本检查：库内卡逐一比对 AMRO 编写日期；作废只入报告不删卡（决策#7/#8）。
+
+    DP 开头工卡（DP 项目）不在 AMRO 清单体系内，跳过不比对、不报作废。
+    """
     versions = await _pull_card_versions(client, cookies, fetch=fetch)
     revised, cancelled = [], []
     for card in store.get_all():
         code = card.get("task_code", "")
+        if code.startswith("DP"):
+            continue
         row = versions.get(code)
         if row is None:
             cancelled.append({"task_code": code,
@@ -456,8 +461,10 @@ async def check_cards_against_amro(store, client, cookies, task_codes, *, fetch=
     - 定检例行卡（CSCA 前缀）→ SMJC 全量拉（fleet=A320，3 页约 5 秒）
     - 其余（EO/NRC/LS 等）→ 逐个 TD_JC_ALL_GET_ENTITY_BY_JCNO 直查（~50 张 ≈ 2 分钟），
       不再全量拉 EOJC 深分页（此前约 8 分钟）；实体端点两族通用，分类不精确也不会漏查
+    DP 开头工卡（DP 项目）不在 AMRO 清单体系内，直接排除：不查询、不误报作废。
     """
-    wanted = {str(c).strip() for c in task_codes if str(c).strip()}
+    wanted = {str(c).strip() for c in task_codes
+              if str(c).strip() and not str(c).strip().startswith("DP")}
     versions: dict[str, dict] = {}
     routine = {c for c in wanted if c.startswith("CSCA")}
     other = wanted - routine

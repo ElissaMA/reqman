@@ -78,6 +78,17 @@ class TestFullVersionCheck:
         assert json_store.get(r["id"])["write_date"] == "2026-08-05 09:00:00"
 
 
+    def test_dp_cards_skipped(self, json_store, fake_amro_cards, monkeypatch):
+        """DP 开头工卡（DP 项目）不在 AMRO 清单体系内：全库检查跳过不比对、不报作废。"""
+        monkeypatch.setattr(amro_sync.amro.time, "monotonic", lambda: 1e9)
+        monkeypatch.setattr(amro_sync.amro.time, "sleep", lambda s: None)
+        r = json_store.add("DP1000000739", "DP项目卡", "机体", "", "")
+        rep = _run(amro_sync.full_version_check(json_store, None, {}, fetch=fake_amro_cards))
+        assert all(c["task_code"] != "DP1000000739"
+                   for c in rep["revised"] + rep["cancelled"])
+        assert json_store.get(r["id"]) is not None
+
+
 class TestVersionReportExcel:
     def test_report_excel_grouped_by_category(self):
         buf = amro_sync.build_version_report_excel({
@@ -109,6 +120,23 @@ class TestVersionReportExcel:
 
 class TestCheckCardsAgainstAmro:
     """包级版本检查（工作包行级查询）：条目含 task_name/category，无 new_by_category"""
+
+    def test_dp_codes_excluded(self, json_store, monkeypatch):
+        """DP 开头工卡不参与包级版本检查：不发查询、不误报作废。"""
+        json_store.add("DP1000000739", "DP项目卡", "机体", "", "")
+        json_store.add("EOJC-A320-57-2025-002-B", "旧卡", "机体", "EO", "")
+        queried = []
+
+        async def query(client, cookies, plugin, form, **kw):
+            queried.append(form.get("jcno"))
+            return {"code": 200, "data": {}}   # 查无 → 作废
+
+        rep = _run(amro_sync.check_cards_against_amro(
+            json_store, None, {}, ["DP1000000739", "EOJC-A320-57-2025-002-B"], query=query))
+        assert queried == ["EOJC-A320-57-2025-002-B"]   # DP 不发任何查询
+        assert [c["task_code"] for c in rep["cancelled"]] == ["EOJC-A320-57-2025-002-B"]
+        assert all(c["task_code"] != "DP1000000739"
+                   for c in rep["revised"] + rep["cancelled"])
 
     def test_revised_and_cancelled_with_fields(self, json_store, fake_amro_cards, monkeypatch):
         monkeypatch.setattr(amro_sync.amro.time, "monotonic", lambda: 1e9)
