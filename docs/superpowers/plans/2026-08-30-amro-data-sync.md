@@ -33,6 +33,14 @@
 | `BM_TSK_002_LIST_QT` | 同上 | 66A 包 43 条（EO/NRC/LS）；用户 2026-08-30 确认只读 |
 | `DA_MPACTYPE_HELP` | FunctionCode=DA_MPACTYPE_HELP&page=1&rows=50 | 15 行机型对照（备用） |
 
+**2026-09-01 补充验证（决定取数路径）：**
+| 验证 | 结果 |
+|---|---|
+| `TD_JC_SMJC_LIST + fleet=A320` | **支持服务端过滤**，total=1319→745（A320 子集） |
+| `TD_JC_ALL_EOJC_LIST + fleet=A320` | 支持，total=5579→4627（已验证） |
+| `EM_EMEO_LIST beginDate/endDate` | **无日期过滤**（仅 acfleet），`eoStatus=ISSUED` 亦 0 条 → 不采用 |
+| `TD_JC_ALL_GET_ENTITY_BY_JCNO`（allowlist 已入） | **可用**：data 单对象含 WRITE_DATE/JOBCARD_VER/STATUS/PDF_PATH/REV_REASON；单次 0.25~0.34s；定检/EO 两族通用 |
+
 ---
 
 ### Task 1: query_plugin 通用只读调用器
@@ -229,7 +237,7 @@ class TestAmroVersionLogsView:
 
 **Interfaces (Produces):**
 - `async def full_version_check(store, client, cookies) -> dict`
-  （拉两清单→过滤库内卡→逐卡比对 write_date：变化→更新+card_logs；作废=库内码不在已发布有效集合→不入卡字段、仅入报告；产出 `{revised:[{task_code,old_wd,new_wd}], cancelled:[...]}`）
+  （拉两清单 **各加 `fleet=A320` 服务端过滤**：SMJC total≈745（3 页）、EO total≈4627（10 页，timeout=150、去 writer）；客户端过滤到库内卡→逐卡比对 write_date：变化→更新+card_logs；作废=库内码不在已发布有效集合→不入卡字段、仅入报告；产出 `{revised:[{task_code,old_wd,new_wd}], cancelled:[...]}`）
 - `def build_version_report_excel(report) -> bytes`（openpyxl：改版 sheet + 作废 sheet）
 - 路由：`POST /card/amro-version-check`（daemon 线程）、`GET /card/amro-version-status`、`GET /card/amro-version-report/<ts>`（xlsx 下载）
 
@@ -274,7 +282,11 @@ class TestFullVersionCheck:
 
 **Interfaces (Produces):**
 - 提醒单生成异步化：`POST /generate/reminder` → `{task_id}`；`GET /generate/task/<id>` 状态；`GET /generate/task/<id>/download`
-- `async def check_cards_against_amro(store, client, cookies, task_codes) -> dict`（实时拉两清单，客户端过滤到 task_codes；比对后更新卡 write_date；返回 revised/cancelled/new_by_category）
+- `async def check_cards_against_amro(store, client, cookies, task_codes) -> dict`
+  （**两族取数方式不同**：
+  ① 定检工卡 = `TD_JC_SMJC_LIST + fleet=A320` 拉取（total≈745）→ 客户端过滤到包内定检卡；
+  ② **EO 工卡 = 实体按卡号直查** `TD_JC_ALL_GET_ENTITY_BY_JCNO`（`jcno=<EO卡号>` 逐张，已入 allowlist，单次 ~0.3s，包内 ~50 张 × 2s ≈ 2 分钟）；
+  比对后更新卡 write_date；返回 revised/cancelled/new_by_category）
 - 提醒单 Excel 附加：「改版工卡」区块（工卡号/旧/新编写日期）与**新工卡按专业分组区块，两种行均为蓝色底色（0000FF）**；作废工卡浅红底（FFC7CE）+行首"已作废"（openpyxl PatternFill）
 
 - [ ] **Step 1: 失败测试**
