@@ -17,8 +17,9 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
-from ..config import AMRO_AC_FLEET, AMRO_CARD_FLEET, OUTPUT_DIR
+from ..config import AMRO_AC_FLEET, AMRO_CARD_FLEET, OUTPUT_DIR, REMINDER_TEMPLATE_FILE
 from .connectors import amro
+from .reminder_generator import COL_MAP, _next_row
 
 logger = logging.getLogger(__name__)
 
@@ -507,36 +508,63 @@ def _group_by_category(rows: list[dict]) -> list[tuple[str, list[dict]]]:
     return [(c, grouped[c]) for c in sorted(grouped, key=lambda c: (priority.get(c, 99), c))]
 
 
-def build_version_report_excel(report: dict) -> bytes:
-    """改版清单 Excel（提醒单式分专业，两处查询同款格式，不标底色）。
+def _dot_date(ts: str) -> str:
+    """时间戳 YYYYMMDD[_HHMMSS] → 提醒单同款点分日期 2026.09.01（非法输入返回空串）。"""
+    d = (ts or "").strip()[:8]
+    return f"{d[:4]}.{d[4:6]}.{d[6:8]}" if len(d) == 8 and d.isdigit() else ""
 
-    「改版工卡」sheet 分专业，行 = 工卡号 | 工卡名称 | 编写日期（旧→新）；
-    「作废工卡」sheet 分专业，行 = 工卡号 | 工卡名称。
+
+def build_version_report_excel(report: dict, title_label: str = "",
+                               finished_date: str = "") -> bytes:
+    """改版清单 Excel —— 以提醒单模板输出《工卡改版提醒单》（两处查询共用）。
+
+    单 sheet「改版清单」：行1 标题（工卡改版提醒单（标识）日期，下载文件名主体与之一致）；
+    行2-4 飞机/工作包信息栏留空（可不填）；行5 图例。行6 专业表头沿用模板
+    （A 电子 / B 发动机 / C 机体，与提醒单一致，特检/支援/其他不输出）；行7+ 按专业列
+    堆叠，同列先改版后作废——改版 = 工卡名称（旧→新日期）+ 蓝底；作废 = 工卡名称 + 红底。
     """
-    from openpyxl import Workbook
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill
 
     def _date_span(wd: str) -> str:
         return (wd or "").strip()[:10]
 
-    def write_sections(ws, rows: list[dict], with_dates: bool) -> None:
-        ws.append(["工卡号", "工卡名称"] + (["编写日期"] if with_dates else []))
+    label_part = f"（{title_label}）" if title_label else ""
+    title = f"工卡改版提醒单{label_part}{finished_date}"
+
+    wb = openpyxl.load_workbook(REMINDER_TEMPLATE_FILE)
+    ws = wb["工卡提醒"]
+    ws.title = "改版清单"
+    ws["A1"] = title
+    ws["A5"] = "蓝色底色为改版工卡，红色底色为作废工卡"
+
+    blue_fill = PatternFill(start_color="FFBDD7EE", end_color="FFBDD7EE", fill_type="solid")
+    red_fill = PatternFill(start_color="FFFFC7CE", end_color="FFFFC7CE", fill_type="solid")
+    body_font = Font(name="宋体", size=11, color="FF000000")
+
+    def write_entries(rows: list[dict], *, with_dates: bool, fill: PatternFill) -> None:
         for cat, items in _group_by_category(rows):
-            ws.append([f"【{cat}】"])
+            col = COL_MAP.get(cat)
+            if col is None:   # 特检/支援/其他：与提醒单一致不输出
+                continue
             for it in items:
-                row = [it.get("task_code", ""), it.get("task_name", "")]
+                cell = ws.cell(row=_next_row(ws, col), column=col)
+                name = str(it.get("task_name", ""))
                 if with_dates:
                     old, new = _date_span(it.get("old_wd", "")), _date_span(it.get("new_wd", ""))
-                    row.append(f"{old}→{new}" if old and new else (new or old))
-                ws.append(row)
+                    span = f"{old}→{new}" if old and new else (new or old)
+                    cell.value = f"{name}（{span}）" if span else name
+                else:
+                    cell.value = name
+                cell.font = body_font
+                cell.fill = fill
 
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "改版工卡"
-    write_sections(ws, report.get("revised", []), with_dates=True)
-    ws2 = wb.create_sheet("作废工卡")
-    write_sections(ws2, report.get("cancelled", []), with_dates=False)
+    write_entries(report.get("revised", []), with_dates=True, fill=blue_fill)
+    write_entries(report.get("cancelled", []), with_dates=False, fill=red_fill)
     buf = io.BytesIO()
     wb.save(buf)
+    wb.close()
+    buf.seek(0)
     return buf.getvalue()
 
 
@@ -550,7 +578,9 @@ def start_full_version_check(store, session_store, output_dir) -> bool:
                 rep = await full_version_check(store, client, cookies)
             ts = datetime.now(BJ).strftime("%Y%m%d_%H%M%S")
             filename = f"amro_full_version_report_{ts}.xlsx"
-            (output_dir / filename).write_bytes(build_version_report_excel(rep))
+            (output_dir / filename).write_bytes(
+                build_version_report_excel(rep, title_label="全量",
+                                           finished_date=_dot_date(ts)))
             rep["filename"] = filename
             return rep
 

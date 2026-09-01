@@ -330,11 +330,13 @@ def package_amro_version_check(package_id):
         logger.exception("工作包 %s 版本检查失败", package_id)
         return jsonify({"success": False, "message": f"AMRO 请求失败: {e}"}), 502
 
+    label = amro_sync.package_display_label(pkg_data) or package_id
+    finished_date = datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y.%m.%d")
     filename = f"amro_pkg_version_report_{package_id}.xlsx"
-    (OUTPUT_DIR / filename).write_bytes(amro_sync.build_version_report_excel(report))
+    (OUTPUT_DIR / filename).write_bytes(amro_sync.build_version_report_excel(
+        report, title_label=label, finished_date=finished_date))
     summary = {"revised": len(report["revised"]), "cancelled": len(report["cancelled"]),
                "filename": filename}
-    label = amro_sync.package_display_label(pkg_data) or package_id
     amro_sync.save_last_query_result(
         "package_version", "查询工作包工卡版本",
         f"包 {label}：改版 {summary['revised']} 张，作废 {summary['cancelled']} 张",

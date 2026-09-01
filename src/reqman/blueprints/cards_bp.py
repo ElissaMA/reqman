@@ -2,6 +2,7 @@
 
 import logging
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request, send_file
 
@@ -553,7 +554,10 @@ def amro_version_report_latest():
     if not reports:
         return jsonify({"success": False, "message": "尚无改版清单，请先执行「全量查询工卡版本」"}), 404
     path = reports[-1]
-    return send_file(path, as_attachment=True, download_name=path.name,
+    finished = datetime.fromtimestamp(
+        path.stat().st_mtime, ZoneInfo("Asia/Shanghai")).strftime("%Y.%m.%d")
+    return send_file(path, as_attachment=True,
+                     download_name=f"工卡改版提醒单（全量）{finished}.xlsx",
                      mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 

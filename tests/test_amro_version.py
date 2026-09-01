@@ -90,7 +90,13 @@ class TestFullVersionCheck:
 
 
 class TestVersionReportExcel:
-    def test_report_excel_grouped_by_category(self):
+    def test_dot_date(self):
+        assert amro_sync._dot_date("20260901_143025") == "2026.09.01"
+        assert amro_sync._dot_date("") == ""
+        assert amro_sync._dot_date("bad") == ""
+
+    def test_report_excel_reminder_template_layout(self):
+        """改版清单以提醒单模板输出：单 sheet、标题带标识+日期、三专业列、蓝底改版/红底作废。"""
         buf = amro_sync.build_version_report_excel({
             "revised": [
                 {"task_code": "C-1", "task_name": "卡一", "category": "电子",
@@ -100,22 +106,23 @@ class TestVersionReportExcel:
             ],
             "cancelled": [
                 {"task_code": "C-3", "task_name": "卡三", "category": "机体"},
+                {"task_code": "C-4", "task_name": "特检卡", "category": "特检"},
             ],
-        })
+        }, title_label="B-1234 46A", finished_date="2026.09.01")
         wb = openpyxl.load_workbook(io.BytesIO(buf))
-        assert wb.sheetnames == ["改版工卡", "作废工卡"]
-        ws = wb["改版工卡"]
-        assert ws["A1"].value == "工卡号" and ws["C1"].value == "编写日期"  # 卡号|卡名|日期
-        rows = [[ws.cell(row=r, column=c).value for c in range(1, 4)]
-                for r in range(1, ws.max_row + 1)]
-        assert ["【发动机】", None, None] in rows          # 分专业分节（发动机优先）
-        assert ["C-1", "卡一", "2026-07-01→2026-08-01"] in rows  # 旧→新
-        assert ["C-2", "卡二", "2026-08-01"] in rows              # 旧为空仅显新日期
-        ws2 = wb["作废工卡"]
-        assert ws2["A1"].value == "工卡号" and ws2.max_column == 2  # 无日期列
-        rows2 = [[ws2.cell(row=r, column=c).value for c in range(1, 3)]
-                 for r in range(1, ws2.max_row + 1)]
-        assert ["【机体】", None] in rows2 and ["C-3", "卡三"] in rows2
+        assert wb.sheetnames == ["改版清单"]
+        ws = wb["改版清单"]
+        assert ws["A1"].value == "工卡改版提醒单（B-1234 46A）2026.09.01"
+        assert ws["A5"].value == "蓝色底色为改版工卡，红色底色为作废工卡"
+        assert (ws["A6"].value, ws["B6"].value, ws["C6"].value) == ("电子", "发动机", "机体")
+        a7 = ws["A7"]   # 电子列：改版卡一（旧→新）蓝底
+        assert a7.value == "卡一（2026-07-01→2026-08-01）"
+        assert a7.fill.start_color.rgb == "FFBDD7EE"
+        assert ws["B7"].value == "卡二（2026-08-01）"   # 旧为空仅显新日期
+        c7 = ws["C7"]   # 机体列：作废卡三红底
+        assert c7.value == "卡三"
+        assert c7.fill.start_color.rgb == "FFFFC7CE"
+        assert ws["D6"].value is None and ws["D7"].value is None   # 特检不输出
 
 
 class TestCheckCardsAgainstAmro:
