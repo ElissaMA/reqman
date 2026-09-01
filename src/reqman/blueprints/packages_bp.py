@@ -334,9 +334,10 @@ def package_amro_version_check(package_id):
     (OUTPUT_DIR / filename).write_bytes(amro_sync.build_version_report_excel(report))
     summary = {"revised": len(report["revised"]), "cancelled": len(report["cancelled"]),
                "filename": filename}
+    label = amro_sync.package_display_label(pkg_data) or package_id
     amro_sync.save_last_query_result(
         "package_version", "查询工作包工卡版本",
-        f"包 {package_id}：改版 {summary['revised']} 张，作废 {summary['cancelled']} 张",
+        f"包 {label}：改版 {summary['revised']} 张，作废 {summary['cancelled']} 张",
         download_url=f"/generate/package-version-report?package_id={package_id}",
         output_dir=OUTPUT_DIR)
     message = (f"版本检查完成：改版 {summary['revised']} 张，作废 {summary['cancelled']} 张"

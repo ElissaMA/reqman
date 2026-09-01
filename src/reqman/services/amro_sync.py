@@ -144,6 +144,14 @@ def get_last_query_result(key: str, output_dir=None) -> dict:
         return {}
 
 
+def package_display_label(pkg_data: dict) -> str:
+    """工作包展示标识：机号+描述（aircraft_info 优先、顶层兜底），用于提示与下载文件名。"""
+    info = pkg_data.get("aircraft_info") or {}
+    reg = str(info.get("reg") or pkg_data.get("reg") or "").strip()
+    desc = str(info.get("description") or pkg_data.get("description") or "").strip()
+    return " ".join(x for x in (reg, desc) if x)
+
+
 # ---------- AMRO 会话前置检查 ----------
 
 def require_amro_session() -> bool:

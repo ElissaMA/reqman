@@ -373,6 +373,10 @@ class TestPackageVersionApi:
         assert data["filename"] == f"amro_pkg_version_report_{pkg_id}.xlsx"
         assert (tmp_path / data["filename"]).exists()
         assert store.find_by_code("E-001")["write_date"] == "2026-08-01 09:00:00"
+        # 持久摘要显示机号+描述，而非 package_id 编号串
+        last = amro_sync.get_last_query_result("package_version", output_dir=tmp_path)
+        assert "B-1234 46A" in last["summary"]
+        assert pkg_id not in last["summary"]
 
     def test_package_version_check_busy_409(self, client, app, ajax_headers, monkeypatch):
         from reqman.services import amro_sync
