@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import io
+import json
 import logging
 import threading
 from contextlib import contextmanager
@@ -16,7 +17,7 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
-from ..config import AMRO_AC_FLEET, AMRO_CARD_FLEET
+from ..config import AMRO_AC_FLEET, AMRO_CARD_FLEET, OUTPUT_DIR
 from .connectors import amro
 
 logger = logging.getLogger(__name__)
@@ -115,6 +116,34 @@ def get_query_status(key: str) -> dict:
     return QUERY_STATUS.get(key, {})
 
 
+# 最近一次查询结果简述持久化（output/last_query_<key>.json，重启保留）——
+# 学习库存查询模式：每次查询结果可恢复显示在页面状态栏，报告类附下载链接。
+def save_last_query_result(key: str, label: str, summary: str, download_url: str = "",
+                           output_dir=None) -> None:
+    """写入最近一次查询结果简述（只留最新一份）。"""
+    out = output_dir or OUTPUT_DIR
+    try:
+        out.mkdir(parents=True, exist_ok=True)
+        (out / f"last_query_{key}.json").write_text(json.dumps(
+            {"label": label, "finished_at": _now(),
+             "summary": summary, "download_url": download_url},
+            ensure_ascii=False), encoding="utf-8")
+    except OSError:
+        logger.warning("查询结果简述写入失败: last_query_%s", key)
+
+
+def get_last_query_result(key: str, output_dir=None) -> dict:
+    """读取最近一次查询结果简述（无记录返回空 dict）。"""
+    out = output_dir or OUTPUT_DIR
+    path = out / f"last_query_{key}.json"
+    if not path.is_file():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (ValueError, OSError):
+        return {}
+
+
 # ---------- AMRO 会话前置检查 ----------
 
 def require_amro_session() -> bool:
@@ -188,7 +217,11 @@ def start_aircraft_sync(store, session_store) -> bool:
             return {"added": rep["added"], "updated": rep["updated"],
                     "removed": len(rep["removed"]), "total_amro": rep["total_amro"]}
 
-        return asyncio.run(_inner())
+        summary = asyncio.run(_inner())
+        save_last_query_result("aircraft", "查询飞机数据",
+                               f"新增 {summary['added']} 架，更新 {summary['updated']} 架，"
+                               f"清理 {summary['removed']} 架（AMRO 在册 {summary['total_amro']} 架）")
+        return summary
 
     return run_query("aircraft", "查询飞机数据", job)
 
@@ -507,6 +540,10 @@ def start_full_version_check(store, session_store, output_dir) -> bool:
             return rep
 
         rep = asyncio.run(_inner())
+        save_last_query_result("full_version", "全量查询工卡版本",
+                               f"改版 {len(rep['revised'])} 张，作废 {len(rep['cancelled'])} 张"
+                               f"（AMRO 在册 {rep['total_amro']} 张）",
+                               download_url="/card/amro-version-report", output_dir=output_dir)
         return {"revised": len(rep["revised"]), "cancelled": len(rep["cancelled"]),
                 "total_amro": rep["total_amro"], "filename": rep["filename"]}
 

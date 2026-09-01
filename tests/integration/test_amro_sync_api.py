@@ -21,6 +21,8 @@ def isolated_inventory(app, tmp_path, monkeypatch):
     monkeypatch.setattr(bp_mod, "OUTPUT_DIR", out_dir)
     import reqman.services.inventory_service as inv_mod
     monkeypatch.setattr(inv_mod, "OUTPUT_DIR", out_dir)
+    import reqman.services.amro_sync as amro_sync_mod
+    monkeypatch.setattr(amro_sync_mod, "OUTPUT_DIR", out_dir)   # 查询结果简述持久化隔离
     yield out_dir
 
 
@@ -92,9 +94,9 @@ class TestAircraftSyncApi:
             _time.sleep(0.05)
         assert status.get("status") == "done", status
         assert status["summary"]["added"] == 1 and status["summary"]["updated"] == 2
-        # 飞机列表页渲染查询结果简要
+        # 飞机列表页渲染持久状态栏（上次查询简述）
         html = client.get("/card/aircraft").get_data(as_text=True)
-        assert "查询结果" in html
+        assert "上次查询" in html and "新增 1 架" in html
 
     def test_sync_duplicate_start_conflict(self, client, app, ajax_headers, monkeypatch):
         """全局互斥：已有查询在跑 → 409 + 统一 busy 文案（不排队）。"""

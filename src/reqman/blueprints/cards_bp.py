@@ -37,12 +37,14 @@ def card_list():
                                cards=cards,
                                categories=CATEGORIES, task_types=TASK_TYPES,
                                reminder_types=REMINDER_TYPES,
-                               amro_status=amro_sync.get_query_status("full_version"))
+                               amro_status=amro_sync.get_query_status("full_version"),
+                               amro_last_query=amro_sync.get_last_query_result("full_version"))
     except Exception:
         logger.exception("获取工卡列表失败")
         flash("加载工卡列表失败，请稍后重试", "error")
         return render_template("cards/list.html", cards=[],
-                               reminder_types=REMINDER_TYPES, amro_status={})
+                               reminder_types=REMINDER_TYPES, amro_status={},
+                               amro_last_query=amro_sync.get_last_query_result("full_version"))
 
 
 def _is_ajax():
@@ -561,13 +563,16 @@ def aircraft_list():
     try:
         ac_list = current_app.extensions['card_service'].list_aircraft()
         amro_status = amro_sync.get_query_status("aircraft")
+        amro_last_query = amro_sync.get_last_query_result("aircraft")
         return render_template("cards/aircraft.html",
-                               ac_list=ac_list, amro_status=amro_status)
+                               ac_list=ac_list, amro_status=amro_status,
+                               amro_last_query=amro_last_query)
     except Exception:
         logger.exception("获取飞机信息列表失败")
         flash("加载飞机信息失败", "error")
         return render_template("cards/aircraft.html",
-                               ac_list=[], amro_status={})
+                               ac_list=[], amro_status={},
+                               amro_last_query=amro_sync.get_last_query_result("aircraft"))
 
 
 @cards_bp.route("/card/aircraft/new", methods=["GET", "POST"])

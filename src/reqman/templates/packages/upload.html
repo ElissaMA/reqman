@@ -16,6 +16,11 @@
     </div>
     <div class="card-body">
         <p class="text-muted small mb-2">从 AMRO「任务接收」直读工卡清单（基地 KM01，日期窗今±7天），替代人工打印上传；需先在表头完成 AMRO 登录。</p>
+        {% if amro_last_pkg_query %}
+        <div class="alert alert-success py-2 px-3 small mb-2">
+            上次查询（{{ amro_last_pkg_query.finished_at }}）：{{ amro_last_pkg_query.summary }}
+        </div>
+        {% endif %}
         <div class="q-card" id="qCardPackages" style="display:none"></div>
         <div class="table-responsive">
             <table class="table table-sm table-hover mb-0" id="amroPackTable">
@@ -78,6 +83,12 @@
         <h5 class="mb-0">📦 已导入工作包 <span class="badge bg-secondary ms-2">{{ work_packages|length }}</span></h5>
     </div>
     <div class="card-body p-0">
+        {% if amro_last_pkg_ver %}
+        <div class="alert alert-success py-2 px-3 small mb-0" style="border-radius:0">
+            上次查询（{{ amro_last_pkg_ver.finished_at }}）：{{ amro_last_pkg_ver.summary }}
+            {% if amro_last_pkg_ver.download_url %}<a class="btn btn-outline-primary btn-sm ms-2 py-0" href="{{ amro_last_pkg_ver.download_url }}">⬇下载逐包改版清单</a>{% endif %}
+        </div>
+        {% endif %}
         <div class="table-responsive">
             <table class="table table-hover mb-0" id="wpTable">
                 <thead>
@@ -312,9 +323,7 @@ var amroPkgQuery = {{ (amro_pkg_query or {})|tojson }};
 document.addEventListener('DOMContentLoaded', function() {
     var refreshBtn = document.getElementById('amroPackRefresh');
     if (refreshBtn) refreshBtn.addEventListener('click', refreshAmroPacks);
-    if (amroPkgQuery && amroPkgQuery.rows) {   // 保留上次查询结果 + 带日期摘要
-        var card = window.QueryCard.run('qCardPackages', '查询工作包');
-        card.done('查询结果（' + (amroPkgQuery.fetched_at || '') + '）：获取到 ' + amroPkgQuery.rows.length + ' 个任务包');
+    if (amroPkgQuery && amroPkgQuery.rows) {   // 保留上次查询结果表格（持久状态栏已由服务器端渲染）
         renderAmroPacks(amroPkgQuery.rows);
     }
 });

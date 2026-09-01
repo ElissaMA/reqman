@@ -100,7 +100,9 @@ def upload():
 
     return render_template("packages/upload.html", work_packages=filtered,
                            version_logs=version_logs,
-                           amro_pkg_query=amro_sync.get_last_package_query())
+                           amro_pkg_query=amro_sync.get_last_package_query(),
+                           amro_last_pkg_query=amro_sync.get_last_query_result("package"),
+                           amro_last_pkg_ver=amro_sync.get_last_query_result("package_version"))
 
 
 def _version_log_rows(store, limit: int = 50) -> list[dict]:
@@ -241,6 +243,9 @@ def amro_package_list():
     except (httpx.HTTPError, RuntimeError) as e:
         logger.exception("AMRO 包列表拉取失败")
         return jsonify({"success": False, "message": f"AMRO 请求失败: {e}"}), 502
+    amro_sync.save_last_query_result("package", "查询工作包",
+                                     f"获取到 {len(packages)} 个任务包",
+                                     output_dir=OUTPUT_DIR)
     return api_success(data={"packages": packages,
                              "fetched_at": amro_sync.get_last_package_query().get("fetched_at", "")})
 
@@ -329,6 +334,11 @@ def package_amro_version_check(package_id):
     (OUTPUT_DIR / filename).write_bytes(amro_sync.build_version_report_excel(report))
     summary = {"revised": len(report["revised"]), "cancelled": len(report["cancelled"]),
                "filename": filename}
+    amro_sync.save_last_query_result(
+        "package_version", "查询工作包工卡版本",
+        f"包 {package_id}：改版 {summary['revised']} 张，作废 {summary['cancelled']} 张",
+        download_url=f"/generate/package-version-report?package_id={package_id}",
+        output_dir=OUTPUT_DIR)
     message = (f"版本检查完成：改版 {summary['revised']} 张，作废 {summary['cancelled']} 张"
                "（预览页可下载改版清单）")
     return api_success(data=summary, message=message)

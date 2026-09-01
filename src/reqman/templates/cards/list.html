@@ -13,14 +13,15 @@
         </span>
     </div>
     <div class="card-body p-0">
-        {% if amro_status and amro_status.status == 'done' and amro_status.summary %}
-        <div class="alert alert-success m-3 mb-0 small">
-            查询结果（{{ amro_status.finished_at }}）：改版 {{ amro_status.summary.revised }} 张，作废 {{ amro_status.summary.cancelled }} 张
-        </div>
+        {% if amro_status and amro_status.status == 'running' %}
+        <div class="alert alert-info m-3 mb-0 small">⏳ 全量查询工卡版本进行中（约 3~15 分钟，后台执行）…</div>
         {% elif amro_status and amro_status.status == 'error' %}
         <div class="alert alert-danger m-3 mb-0 small">上次全量查询工卡版本失败：{{ amro_status.error }}（{{ amro_status.finished_at }}）</div>
-        {% elif amro_status and amro_status.status == 'running' %}
-        <div class="alert alert-info m-3 mb-0 small">⏳ 全量查询工卡版本进行中（约 3~15 分钟，后台执行）…</div>
+        {% elif amro_last_query %}
+        <div class="alert alert-success m-3 mb-0 small">
+            上次查询（{{ amro_last_query.finished_at }}）：{{ amro_last_query.summary }}
+            {% if amro_last_query.download_url %}<a class="btn btn-outline-primary btn-sm ms-2 py-0" href="{{ amro_last_query.download_url }}">⬇下载改版清单</a>{% endif %}
+        </div>
         {% endif %}
         <div class="q-card" id="qCardVersion" style="display:none"></div>
         <div class="table-responsive">

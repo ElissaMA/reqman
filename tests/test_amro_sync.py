@@ -146,3 +146,35 @@ class TestGlobalQueryMutex:
             assert amro_sync.get_query_status("busy_reject") == {}  # 未启动不落状态
         finally:
             amro_sync.end_query()
+
+
+class TestLastQueryResult:
+    """v3.6.0 查询结果简述持久化：output/last_query_<key>.json（重启保留）"""
+
+    def test_save_and_get_roundtrip(self, tmp_path):
+        amro_sync.save_last_query_result("aircraft", "查询飞机数据",
+                                         "新增 1 架，更新 2 架，清理 0 架",
+                                         output_dir=tmp_path)
+        meta = amro_sync.get_last_query_result("aircraft", output_dir=tmp_path)
+        assert meta["label"] == "查询飞机数据"
+        assert meta["summary"] == "新增 1 架，更新 2 架，清理 0 架"
+        assert meta["finished_at"]
+        assert meta["download_url"] == ""
+
+    def test_save_with_download_url(self, tmp_path):
+        amro_sync.save_last_query_result(
+            "full_version", "全量查询工卡版本", "改版 2 张，作废 0 张",
+            download_url="/card/amro-version-report", output_dir=tmp_path)
+        meta = amro_sync.get_last_query_result("full_version", output_dir=tmp_path)
+        assert meta["download_url"] == "/card/amro-version-report"
+
+    def test_get_missing_returns_empty(self, tmp_path):
+        assert amro_sync.get_last_query_result("nope", output_dir=tmp_path) == {}
+
+    def test_overwrite_keeps_latest(self, tmp_path):
+        amro_sync.save_last_query_result("package", "查询工作包", "获取到 1 个任务包",
+                                         output_dir=tmp_path)
+        amro_sync.save_last_query_result("package", "查询工作包", "获取到 5 个任务包",
+                                         output_dir=tmp_path)
+        meta = amro_sync.get_last_query_result("package", output_dir=tmp_path)
+        assert meta["summary"] == "获取到 5 个任务包"   # 只留最近一份

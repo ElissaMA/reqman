@@ -12,14 +12,14 @@
         </span>
     </div>
     <div class="card-body p-0">
-        {% if amro_status and amro_status.status == 'done' and amro_status.summary %}
-        <div class="alert alert-success m-3 mb-0 small">
-            查询结果（{{ amro_status.finished_at }}）：新增 {{ amro_status.summary.added }} 架，更新 {{ amro_status.summary.updated }} 架，清理 {{ amro_status.summary.removed }} 架（AMRO 在册 {{ amro_status.summary.total_amro }} 架）
-        </div>
+        {% if amro_status and amro_status.status == 'running' %}
+        <div class="alert alert-info m-3 mb-0 small">⏳ 查询飞机数据进行中（{{ amro_status.started_at }}）…</div>
         {% elif amro_status and amro_status.status == 'error' %}
         <div class="alert alert-danger m-3 mb-0 small">上次查询飞机数据失败：{{ amro_status.error }}（{{ amro_status.finished_at }}）</div>
-        {% elif amro_status and amro_status.status == 'running' %}
-        <div class="alert alert-info m-3 mb-0 small">⏳ 查询飞机数据进行中（{{ amro_status.started_at }}）…</div>
+        {% elif amro_last_query %}
+        <div class="alert alert-success m-3 mb-0 small">
+            上次查询（{{ amro_last_query.finished_at }}）：{{ amro_last_query.summary }}
+        </div>
         {% endif %}
         <div class="q-card" id="qCardAircraft" style="display:none"></div>
         <div class="table-responsive">
