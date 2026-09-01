@@ -89,6 +89,7 @@
             {% if amro_last_pkg_ver.download_url %}<a class="btn btn-outline-primary btn-sm ms-2 py-0" href="{{ amro_last_pkg_ver.download_url }}">⬇下载逐包改版清单</a>{% endif %}
         </div>
         {% endif %}
+        <div class="q-card" id="qCardPkgVerCheck" style="display:none;margin:12px"></div>
         <div class="table-responsive">
             <table class="table table-hover mb-0" id="wpTable">
                 <thead>
@@ -270,6 +271,7 @@ function refreshAmroPacks() {
             if (!d.success) { card.fail(d.message || '查询失败'); return; }
             var rows = (d.data && d.data.packages) || [];
             card.done('查询结果（' + ((d.data && d.data.fetched_at) || '') + '）：获取到 ' + rows.length + ' 个任务包');
+            window.safeToast('查询完成：获取到 ' + rows.length + ' 个任务包', 'success', 6000);
             renderAmroPacks(rows);
         }).catch(function() { card.fail('查询工作包失败'); });
 }
@@ -302,17 +304,24 @@ function importPack(btn, idx) {
 // ===== 工作包行级：查询工作包工卡版本（同步请求，行内按钮显示比对进度） =====
 function pkgVersionCheck(packageId, btn) {
     if (!amroRequireLogin()) return;
-    btn.disabled = true; btn.textContent = '比对中…';
+    btn.disabled = true;
+    var card = window.QueryCard.run('qCardPkgVerCheck', '查询工作包工卡版本 - ' + packageId);
     var fd = new FormData();
     fd.append('package_id', packageId);
     fetch('/packages/' + packageId + '/amro-version-check', { method: 'POST', body: fd,
         headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then(function(r) { return r.json(); }).then(function(d) {
             btn.disabled = false; btn.textContent = '🔍 查询工作包工卡版本';
-            window.safeToast(d.message || (d.success ? '版本检查完成' : '查询失败'),
-                             d.success ? 'success' : 'error', 8000);
+            if (d.success) {
+                card.done(d.message || '版本检查完成');
+                window.safeToast(d.message || '版本检查完成', 'success', 8000);
+            } else {
+                card.fail(d.message || '查询失败');
+                window.safeToast(d.message || '查询失败', 'error', 8000);
+            }
         }).catch(function() {
             btn.disabled = false; btn.textContent = '🔍 查询工作包工卡版本';
+            card.fail('查询失败');
             window.safeToast('查询失败', 'error');
         });
 }
