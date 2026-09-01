@@ -95,8 +95,18 @@ class TestVersionReportExcel:
         assert amro_sync._dot_date("") == ""
         assert amro_sync._dot_date("bad") == ""
 
+    def test_package_report_label(self):
+        """版本报告标识：机号+描述+开工日期，日期归一化点分、可缺项。"""
+        assert amro_sync.package_report_label(
+            {"aircraft_info": {"reg": "B-1234", "description": "46A", "date": "2026-09-05"}}
+        ) == "B-1234 46A 2026.09.05"
+        assert amro_sync.package_report_label(
+            {"reg": "B-1", "description": "D", "date": "2026.09.05"}) == "B-1 D 2026.09.05"
+        assert amro_sync.package_report_label({"reg": "B-1", "description": "D"}) == "B-1 D"
+        assert amro_sync.package_report_label({}) == ""
+
     def test_report_excel_reminder_template_layout(self):
-        """改版清单以提醒单模板输出：单 sheet、标题带标识+日期、三专业列、蓝底改版/红底作废。"""
+        """改版清单以提醒单模板输出：删行2-5、标题含「查询日期」、单单元格三行、无底色。"""
         buf = amro_sync.build_version_report_excel({
             "revised": [
                 {"task_code": "C-1", "task_name": "卡一", "category": "电子",
@@ -108,21 +118,22 @@ class TestVersionReportExcel:
                 {"task_code": "C-3", "task_name": "卡三", "category": "机体"},
                 {"task_code": "C-4", "task_name": "特检卡", "category": "特检"},
             ],
-        }, title_label="B-1234 46A", finished_date="2026.09.01")
+        }, title_label="B-1234 46A 2026.09.05", finished_date="2026.09.01")
         wb = openpyxl.load_workbook(io.BytesIO(buf))
         assert wb.sheetnames == ["改版清单"]
         ws = wb["改版清单"]
-        assert ws["A1"].value == "工卡改版提醒单（B-1234 46A）2026.09.01"
-        assert ws["A5"].value == "蓝色底色为改版工卡，红色底色为作废工卡"
-        assert (ws["A6"].value, ws["B6"].value, ws["C6"].value) == ("电子", "发动机", "机体")
-        a7 = ws["A7"]   # 电子列：改版卡一（旧→新）蓝底
-        assert a7.value == "卡一（2026-07-01→2026-08-01）"
-        assert a7.fill.start_color.rgb == "FFBDD7EE"
-        assert ws["B7"].value == "卡二（2026-08-01）"   # 旧为空仅显新日期
-        c7 = ws["C7"]   # 机体列：作废卡三红底
-        assert c7.value == "卡三"
-        assert c7.fill.start_color.rgb == "FFFFC7CE"
-        assert ws["D6"].value is None and ws["D7"].value is None   # 特检不输出
+        assert ws["A1"].value == "工卡改版清单（B-1234 46A 2026.09.05）查询日期2026.09.01"
+        assert (ws["A2"].value, ws["B2"].value, ws["C2"].value) == ("电子", "发动机", "机体")
+        a3 = ws["A3"]   # 电子列：改版卡一，单单元格三行
+        assert a3.value == "C-1\n卡一\n2026-07-01→2026-08-01"
+        assert a3.fill.start_color.rgb not in ("FFBDD7EE", "FFFFC7CE")   # 无自定义底色
+        assert a3.alignment.wrap_text is True
+        assert ws["B3"].value == "C-2\n卡二\n2026-08-01"   # 旧为空仅显新日期
+        c3 = ws["C3"]   # 机体列：作废卡三
+        assert c3.value == "C-3\n卡三\n作废"
+        assert c3.fill.start_color.rgb not in ("FFBDD7EE", "FFFFC7CE")
+        assert ws["D2"].value is None and ws["D3"].value is None   # 特检不输出
+        assert sorted(str(r) for r in ws.merged_cells.ranges) == ["A1:C1"]   # 仅标题合并保留
 
 
 class TestCheckCardsAgainstAmro:

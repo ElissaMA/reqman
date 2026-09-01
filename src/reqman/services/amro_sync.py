@@ -19,7 +19,7 @@ import httpx
 
 from ..config import AMRO_AC_FLEET, AMRO_CARD_FLEET, OUTPUT_DIR, REMINDER_TEMPLATE_FILE
 from .connectors import amro
-from .reminder_generator import COL_MAP, _next_row
+from .reminder_generator import COL_MAP
 
 logger = logging.getLogger(__name__)
 
@@ -151,6 +151,15 @@ def package_display_label(pkg_data: dict) -> str:
     reg = str(info.get("reg") or pkg_data.get("reg") or "").strip()
     desc = str(info.get("description") or pkg_data.get("description") or "").strip()
     return " ".join(x for x in (reg, desc) if x)
+
+
+def package_report_label(pkg_data: dict) -> str:
+    """版本报告标识：机号+描述+开工日期（空格连接，可缺项；日期归一化为点分格式）。"""
+    info = pkg_data.get("aircraft_info") or {}
+    reg = str(info.get("reg") or pkg_data.get("reg") or "").strip()
+    desc = str(info.get("description") or pkg_data.get("description") or "").strip()
+    date = str(pkg_data.get("date") or info.get("date") or "").strip().replace("-", ".")
+    return " ".join(x for x in (reg, desc, date) if x)
 
 
 # ---------- AMRO 会话前置检查 ----------
@@ -516,51 +525,63 @@ def _dot_date(ts: str) -> str:
 
 def build_version_report_excel(report: dict, title_label: str = "",
                                finished_date: str = "") -> bytes:
-    """改版清单 Excel —— 以提醒单模板输出《工卡改版提醒单》（两处查询共用）。
+    """改版清单 Excel —— 以提醒单模板输出《工卡改版清单》（两处查询共用）。
 
-    单 sheet「改版清单」：行1 标题（工卡改版提醒单（标识）日期，下载文件名主体与之一致）；
-    行2-4 飞机/工作包信息栏留空（可不填）；行5 图例。行6 专业表头沿用模板
-    （A 电子 / B 发动机 / C 机体，与提醒单一致，特检/支援/其他不输出）；行7+ 按专业列
-    堆叠，同列先改版后作废——改版 = 工卡名称（旧→新日期）+ 蓝底；作废 = 工卡名称 + 红底。
+    删除模板行 2-5（飞机/工作包信息块+图例行）后：行1 标题 = 工卡改版清单（标识）
+    查询日期XXXX.XX.XX（下载文件名主体与之一致）；行2 专业表头沿用模板（A 电子 /
+    B 发动机 / C 机体，与提醒单一致，特检/支援/其他不输出）；行3+ 按专业列堆叠，
+    同列先改版后作废——每个条目单个单元格内三行（自动换行，无底色）：
+    改版 = 工卡号/工卡名称/旧→新；作废 = 工卡号/工卡名称/作废。
     """
     import openpyxl
-    from openpyxl.styles import Font, PatternFill
+    from openpyxl.styles import Alignment, Font
 
     def _date_span(wd: str) -> str:
         return (wd or "").strip()[:10]
 
+    def _next_row(ws, col: int, start: int = 3) -> int:
+        """找到该列数据区下一个空行（从 start 起）。"""
+        row = start
+        while ws.cell(row=row, column=col).value not in (None, ""):
+            row += 1
+        return row
+
     label_part = f"（{title_label}）" if title_label else ""
-    title = f"工卡改版提醒单{label_part}{finished_date}"
+    title = f"工卡改版清单{label_part}查询日期{finished_date}"
 
     wb = openpyxl.load_workbook(REMINDER_TEMPLATE_FILE)
     ws = wb["工卡提醒"]
     ws.title = "改版清单"
+    ws.delete_rows(2, 4)   # 去除飞机/工作包信息块（行2-4）与图例行（行5）
+    for rng in [str(r) for r in ws.merged_cells.ranges]:   # 清理残留合并，仅保留标题
+        if rng != "A1:C1":
+            ws.unmerge_cells(rng)
     ws["A1"] = title
-    ws["A5"] = "蓝色底色为改版工卡，红色底色为作废工卡"
 
-    blue_fill = PatternFill(start_color="FFBDD7EE", end_color="FFBDD7EE", fill_type="solid")
-    red_fill = PatternFill(start_color="FFFFC7CE", end_color="FFFFC7CE", fill_type="solid")
     body_font = Font(name="宋体", size=11, color="FF000000")
+    wrap = Alignment(wrap_text=True, vertical="center")
 
-    def write_entries(rows: list[dict], *, with_dates: bool, fill: PatternFill) -> None:
+    def write_entries(rows: list[dict], *, with_dates: bool) -> None:
         for cat, items in _group_by_category(rows):
             col = COL_MAP.get(cat)
             if col is None:   # 特检/支援/其他：与提醒单一致不输出
                 continue
             for it in items:
                 cell = ws.cell(row=_next_row(ws, col), column=col)
-                name = str(it.get("task_name", ""))
+                lines = [str(it.get("task_code", "")), str(it.get("task_name", ""))]
                 if with_dates:
                     old, new = _date_span(it.get("old_wd", "")), _date_span(it.get("new_wd", ""))
                     span = f"{old}→{new}" if old and new else (new or old)
-                    cell.value = f"{name}（{span}）" if span else name
+                    if span:
+                        lines.append(span)
                 else:
-                    cell.value = name
+                    lines.append("作废")
+                cell.value = "\n".join(lines)
                 cell.font = body_font
-                cell.fill = fill
+                cell.alignment = wrap
 
-    write_entries(report.get("revised", []), with_dates=True, fill=blue_fill)
-    write_entries(report.get("cancelled", []), with_dates=False, fill=red_fill)
+    write_entries(report.get("revised", []), with_dates=True)
+    write_entries(report.get("cancelled", []), with_dates=False)
     buf = io.BytesIO()
     wb.save(buf)
     wb.close()

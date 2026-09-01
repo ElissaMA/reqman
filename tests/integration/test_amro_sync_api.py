@@ -287,7 +287,7 @@ class TestVersionCheckApi:
         dl = client.get("/card/amro-version-report")
         assert dl.status_code == 200
         from urllib.parse import unquote
-        assert "工卡改版提醒单（全量）" in unquote(dl.headers["Content-Disposition"])
+        assert "工卡改版清单（全量）查询日期" in unquote(dl.headers["Content-Disposition"])
 
 
 def _jcrow(jcno, wd, **kw):
@@ -408,7 +408,7 @@ class TestPackageVersionApi:
         assert "尚未查询" in resp.get_json()["message"]
 
     def test_report_download_chinese_name(self, client, app, monkeypatch, tmp_path):
-        """逐包改版清单下载名 = 工卡改版提醒单（机号 描述）日期.xlsx（与预览页同路由同文件名）。"""
+        """逐包改版清单下载名 = 工卡改版清单（机号 描述 开工日期）查询日期.xlsx。"""
         from urllib.parse import unquote
 
         import reqman.blueprints.generate_bp as gb_mod
@@ -418,7 +418,8 @@ class TestPackageVersionApi:
         resp = client.get(f"/generate/package-version-report?package_id={pkg_id}")
         assert resp.status_code == 200
         disp = unquote(resp.headers["Content-Disposition"])
-        assert "工卡改版提醒单（B-1234 46A）" in disp
+        assert "工卡改版清单（B-1234 46A " in disp   # 括号内含机号+描述+开工日期（fixture 动态）
+        assert "查询日期" in disp
         assert ".xlsx" in disp
 
     def test_report_download_ok(self, client, monkeypatch, tmp_path):

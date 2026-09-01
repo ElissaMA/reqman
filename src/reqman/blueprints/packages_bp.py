@@ -335,7 +335,8 @@ def package_amro_version_check(package_id):
     finished_date = datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y.%m.%d")
     filename = f"amro_pkg_version_report_{package_id}.xlsx"
     (OUTPUT_DIR / filename).write_bytes(amro_sync.build_version_report_excel(
-        report, title_label=label, finished_date=finished_date))
+        report, title_label=amro_sync.package_report_label(pkg_data) or package_id,
+        finished_date=finished_date))
     summary = {"revised": len(report["revised"]), "cancelled": len(report["cancelled"]),
                "filename": filename}
     amro_sync.save_last_query_result(

@@ -557,7 +557,7 @@ def amro_version_report_latest():
     finished = datetime.fromtimestamp(
         path.stat().st_mtime, ZoneInfo("Asia/Shanghai")).strftime("%Y.%m.%d")
     return send_file(path, as_attachment=True,
-                     download_name=f"工卡改版提醒单（全量）{finished}.xlsx",
+                     download_name=f"工卡改版清单（全量）查询日期{finished}.xlsx",
                      mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 

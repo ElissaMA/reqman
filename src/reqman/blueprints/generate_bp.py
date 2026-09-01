@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 from flask import Blueprint, current_app, flash, redirect, render_template, request, send_file
 
 from ..config import CATEGORIES, CONDITIONS, OUTPUT_DIR
-from ..services.amro_sync import package_display_label
+from ..services.amro_sync import package_report_label
 from ..services.form_generator import generate_form
 from ..services.reminder_generator import generate_reminder
 from ..services.work_package_matcher import match_work_package_items
@@ -338,9 +338,9 @@ def package_version_report():
         return api_error("尚未查询该工作包的工卡版本，请先在工作包页点击「查询工作包工卡版本」",
                          "NO_VERSION_REPORT", 404)
     pkg_data = _get_store().get_work_package(package_id) or {}
-    label = package_display_label(pkg_data) or package_id
+    label = package_report_label(pkg_data) or package_id
     finished = datetime.fromtimestamp(
         path.stat().st_mtime, ZoneInfo("Asia/Shanghai")).strftime("%Y.%m.%d")
     return send_file(path, as_attachment=True,
-                     download_name=f"工卡改版提醒单（{label}）{finished}.xlsx",
+                     download_name=f"工卡改版清单（{label}）查询日期{finished}.xlsx",
                      mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
