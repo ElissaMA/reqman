@@ -214,7 +214,7 @@ class TestAmroPackageApi:
             release()
 
     def test_version_logs_view(self, client, store):
-        """版本变动日志：card_logs 筛选视图（JSON API + 页面区块）"""
+        """版本变动日志：card_logs 筛选视图（JSON API + 页面区块，含工卡名称列）"""
         r = store.add("VLOG-1", "卡", "机体", "", "")
         store.update(r["id"], task_name="改名")                    # 非版本日志
         store.update(r["id"], write_date="2026-08-01 09:00:00")   # 版本日志
@@ -222,9 +222,11 @@ class TestAmroPackageApi:
         assert len(data["logs"]) == 1
         row = data["logs"][0]
         assert row["task_code"] == "VLOG-1" and row["new"] == "2026-08-01 09:00:00"
+        assert row["task_name"] == "改名"   # 名称列取日志 target_name
 
         html = client.get("/upload").get_data(as_text=True)
         assert "工卡版本变动日志" in html and "VLOG-1" in html
+        assert "工卡名称" in html and "改名" in html   # 表头列 + 名称值
 
 
 class TestVersionCheckApi:

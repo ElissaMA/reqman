@@ -106,13 +106,14 @@ def upload():
 
 
 def _version_log_rows(store, limit: int = 50) -> list[dict]:
-    """card_logs → 工卡版本变动清单行（时间|工卡号|旧编写日期|新编写日期|操作）。"""
+    """card_logs → 工卡版本变动清单行（时间|工卡号|工卡名称|旧编写日期|新编写日期|操作）。"""
     rows = []
     for l in store.get_version_logs(limit=limit):
         change = next((c for c in l.get("changes", []) if c.get("field") == "write_date"), {})
         rows.append({
             "time": str(l.get("timestamp", ""))[:16].replace("T", " "),
             "task_code": l.get("target_identifier", ""),
+            "task_name": l.get("target_name", ""),
             "old": change.get("old", ""),
             "new": change.get("new", ""),
             "operation": l.get("operation", ""),

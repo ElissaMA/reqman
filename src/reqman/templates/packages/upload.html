@@ -156,7 +156,7 @@
         <div class="table-responsive">
             <table class="table table-sm table-hover mb-0" id="amroVerLogTable">
                 <thead><tr>
-                    <th style="width:140px">时间</th><th>工卡号</th>
+                    <th style="width:140px">时间</th><th>工卡号</th><th>工卡名称</th>
                     <th>旧编写日期</th><th>新编写日期</th><th style="width:90px">操作</th>
                 </tr></thead>
                 <tbody>
@@ -164,12 +164,13 @@
                     <tr>
                         <td>{{ l.time }}</td>
                         <td><strong>{{ l.task_code }}</strong></td>
+                        <td>{{ l.task_name or '—' }}</td>
                         <td>{{ l.old or '—' }}</td>
                         <td>{{ l.new }}</td>
                         <td>{{ l.operation }}</td>
                     </tr>
                 {% else %}
-                    <tr class="empty-state-row"><td colspan="5" class="text-center text-muted py-3">暂无版本变动记录（版本检查发现改版后自动记录）</td></tr>
+                    <tr class="empty-state-row"><td colspan="6" class="text-center text-muted py-3">暂无版本变动记录（版本检查发现改版后自动记录）</td></tr>
                 {% endfor %}
                 </tbody>
             </table>
