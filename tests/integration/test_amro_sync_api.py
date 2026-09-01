@@ -381,6 +381,8 @@ class TestPackageVersionApi:
         last = amro_sync.get_last_query_result("package_version", output_dir=tmp_path)
         assert "B-1234 46A" in last["summary"]
         assert pkg_id not in last["summary"]
+        # 查询完成提示与持久摘要一致：同样含机号+描述
+        assert "B-1234 46A" in resp.get_json()["message"]
 
     def test_package_version_check_busy_409(self, client, app, ajax_headers, monkeypatch):
         from reqman.services import amro_sync

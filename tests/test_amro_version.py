@@ -106,7 +106,7 @@ class TestVersionReportExcel:
         assert amro_sync.package_report_label({}) == ""
 
     def test_report_excel_reminder_template_layout(self):
-        """改版清单以提醒单模板输出：删行2-5、标题含「查询日期」、单单元格三行、无底色。"""
+        """改版清单以专用模板输出：标题含「查询日期」、单单元格三行、黑字保留绿底。"""
         buf = amro_sync.build_version_report_excel({
             "revised": [
                 {"task_code": "C-1", "task_name": "卡一", "category": "电子",
@@ -124,16 +124,19 @@ class TestVersionReportExcel:
         ws = wb["改版清单"]
         assert ws["A1"].value == "工卡改版清单（B-1234 46A 2026.09.05）查询日期2026.09.01"
         assert (ws["A2"].value, ws["B2"].value, ws["C2"].value) == ("电子", "发动机", "机体")
+        assert ws["A2"].fill.start_color.rgb == "FF00703C"   # 表头深绿白字样式保留
         a3 = ws["A3"]   # 电子列：改版卡一，单单元格三行
         assert a3.value == "C-1\n卡一\n2026-07-01→2026-08-01"
-        assert a3.fill.start_color.rgb not in ("FFBDD7EE", "FFFFC7CE")   # 无自定义底色
-        assert a3.alignment.wrap_text is True
-        assert ws["B3"].value == "C-2\n卡二\n2026-08-01"   # 旧为空仅显新日期
+        assert a3.font.color.rgb == "FF000000"               # 黑字覆盖预置红字
+        assert a3.fill.start_color.rgb == "FFAAD296"         # 保留原绿底
+        assert ws["B3"].value == "C-2\n卡二\n2026-08-01"     # 旧为空仅显新日期
+        assert ws["B3"].fill.start_color.rgb == "FFC8DCB4"
         c3 = ws["C3"]   # 机体列：作废卡三
         assert c3.value == "C-3\n卡三\n作废"
-        assert c3.fill.start_color.rgb not in ("FFBDD7EE", "FFFFC7CE")
+        assert c3.font.color.rgb == "FF000000"
         assert ws["D2"].value is None and ws["D3"].value is None   # 特检不输出
-        assert sorted(str(r) for r in ws.merged_cells.ranges) == ["A1:C1"]   # 仅标题合并保留
+        assert sorted(str(r) for r in ws.merged_cells.ranges) == ["A1:C1"]   # 仅标题合并
+        assert ws["A5"].value is None and ws["B5"].value is None and ws["C5"].value is None
 
 
 class TestCheckCardsAgainstAmro:

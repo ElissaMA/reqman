@@ -20,6 +20,7 @@ DEBUG: bool = os.getenv("FLASK_ENV", "development") == "development"
 DB_FILE: Path = BASE_DIR / os.getenv("DB_FILE", "data/reqman_db.json")
 TEMPLATE_FILE: Path = BASE_DIR / os.getenv("TEMPLATE_FILE", "assets/demand_template.xlsx")
 REMINDER_TEMPLATE_FILE: Path = BASE_DIR / os.getenv("REMINDER_TEMPLATE_FILE", "assets/reminder_template.xlsx")
+CHECK_TEMPLATE_FILE: Path = BASE_DIR / os.getenv("CHECK_TEMPLATE_FILE", "assets/check_template.xlsx")
 
 CATEGORIES: list[str] = os.getenv(
     "CATEGORIES", "发动机,机体,电子,特检,支援"

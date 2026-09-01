@@ -306,7 +306,11 @@ function importPack(btn, idx) {
 function pkgVersionCheck(packageId, btn) {
     if (!amroRequireLogin()) return;
     btn.disabled = true;
-    var card = window.QueryCard.run('qCardPkgVerCheck', '查询工作包工卡版本 - ' + packageId);
+    var tr = btn.closest('tr');
+    var reg = tr && tr.cells[0] ? (tr.cells[0].textContent || '').trim() : '';
+    var desc = tr && tr.cells[1] ? (tr.cells[1].textContent || '').trim() : '';
+    var label = (reg + ' ' + desc).trim() || packageId;   // 进度条显示机号+描述，不再显示编号
+    var card = window.QueryCard.run('qCardPkgVerCheck', '查询工作包工卡版本 - ' + label);
     var fd = new FormData();
     fd.append('package_id', packageId);
     fetch('/packages/' + packageId + '/amro-version-check', { method: 'POST', body: fd,

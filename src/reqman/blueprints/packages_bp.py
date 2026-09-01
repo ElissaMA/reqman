@@ -344,6 +344,6 @@ def package_amro_version_check(package_id):
         f"包 {label}：改版 {summary['revised']} 张，作废 {summary['cancelled']} 张",
         download_url=f"/generate/package-version-report?package_id={package_id}",
         output_dir=OUTPUT_DIR)
-    message = (f"版本检查完成：改版 {summary['revised']} 张，作废 {summary['cancelled']} 张"
+    message = (f"版本检查完成（{label}）：改版 {summary['revised']} 张，作废 {summary['cancelled']} 张"
                "（预览页可下载改版清单）")
     return api_success(data=summary, message=message)

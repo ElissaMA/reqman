@@ -17,7 +17,7 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
-from ..config import AMRO_AC_FLEET, AMRO_CARD_FLEET, OUTPUT_DIR, REMINDER_TEMPLATE_FILE
+from ..config import AMRO_AC_FLEET, AMRO_CARD_FLEET, CHECK_TEMPLATE_FILE, OUTPUT_DIR
 from .connectors import amro
 from .reminder_generator import COL_MAP
 
@@ -525,16 +525,16 @@ def _dot_date(ts: str) -> str:
 
 def build_version_report_excel(report: dict, title_label: str = "",
                                finished_date: str = "") -> bytes:
-    """改版清单 Excel —— 以提醒单模板输出《工卡改版清单》（两处查询共用）。
+    """改版清单 Excel —— 以专用模板《工卡改版清单》输出（两处查询共用）。
 
-    删除模板行 2-5（飞机/工作包信息块+图例行）后：行1 标题 = 工卡改版清单（标识）
-    查询日期XXXX.XX.XX（下载文件名主体与之一致）；行2 专业表头沿用模板（A 电子 /
-    B 发动机 / C 机体，与提醒单一致，特检/支援/其他不输出）；行3+ 按专业列堆叠，
-    同列先改版后作废——每个条目单个单元格内三行（自动换行，无底色）：
-    改版 = 工卡号/工卡名称/旧→新；作废 = 工卡号/工卡名称/作废。
+    模板（assets/check_template.xlsx）结构：行1 标题（A1:C1 合并）、行2 专业表头
+    （A 电子 / B 发动机 / C 机体，深绿白字）、行3+ 数据区（已删飞机信息块与图例，
+    每列预置绿底）。条目从行 3 起按专业列堆叠，同列先改版后作废——每个条目单单元格
+    三行：改版 = 工卡号/工卡名称/旧→新；作废 = 工卡号/工卡名称/作废。字体统一
+    宋体 11 黑字（覆盖模板预置红字），保留每列原绿底，wrap_text 沿用模板。
     """
     import openpyxl
-    from openpyxl.styles import Alignment, Font
+    from openpyxl.styles import Font
 
     def _date_span(wd: str) -> str:
         return (wd or "").strip()[:10]
@@ -549,17 +549,11 @@ def build_version_report_excel(report: dict, title_label: str = "",
     label_part = f"（{title_label}）" if title_label else ""
     title = f"工卡改版清单{label_part}查询日期{finished_date}"
 
-    wb = openpyxl.load_workbook(REMINDER_TEMPLATE_FILE)
-    ws = wb["工卡提醒"]
-    ws.title = "改版清单"
-    ws.delete_rows(2, 4)   # 去除飞机/工作包信息块（行2-4）与图例行（行5）
-    for rng in [str(r) for r in ws.merged_cells.ranges]:   # 清理残留合并，仅保留标题
-        if rng != "A1:C1":
-            ws.unmerge_cells(rng)
+    wb = openpyxl.load_workbook(CHECK_TEMPLATE_FILE)
+    ws = wb["改版清单"]
     ws["A1"] = title
 
     body_font = Font(name="宋体", size=11, color="FF000000")
-    wrap = Alignment(wrap_text=True, vertical="center")
 
     def write_entries(rows: list[dict], *, with_dates: bool) -> None:
         for cat, items in _group_by_category(rows):
@@ -578,7 +572,6 @@ def build_version_report_excel(report: dict, title_label: str = "",
                     lines.append("作废")
                 cell.value = "\n".join(lines)
                 cell.font = body_font
-                cell.alignment = wrap
 
     write_entries(report.get("revised", []), with_dates=True)
     write_entries(report.get("cancelled", []), with_dates=False)
