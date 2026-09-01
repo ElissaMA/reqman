@@ -22,10 +22,10 @@ API_URL = "https://me.sichuanair.com/api/v1/plugins/MM_PARTNUMBERCHAXUN_LIST"
 
 AMRO_API_BASE = "https://me.sichuanair.com/api/v1/plugins"
 
-# 只读白名单：仅允许调用以下 7 个已实测验证的查询端点（写/导出/生成类端点一律拒绝）
+# 只读白名单：仅允许调用以下 8 个已实测验证的查询端点（写/导出/生成类端点一律拒绝）
 READONLY_PLUGINS: frozenset[str] = frozenset({
     "DA_ACREG_LIST", "DA_MPACTYPE_HELP",
-    "TD_JC_SMJC_LIST", "TD_JC_ALL_EOJC_LIST",
+    "TD_JC_SMJC_LIST", "TD_JC_ALL_EOJC_LIST", "TD_JC_ALL_GET_ENTITY_BY_JCNO",
     "BM_TSK_LIST", "BM_TSK_002_LIST", "BM_TSK_002_LIST_QT",
 })
 

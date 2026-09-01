@@ -341,20 +341,26 @@ class TestPackageVersionApi:
         })["package_id"]
 
     def test_package_version_check_sync(self, client, app, ajax_headers, monkeypatch, tmp_path):
-        """行级查询工作包工卡版本：同步比对 → 更新版本 → 生成逐包改版清单（同包覆盖）。"""
+        """行级查询工作包工卡版本：同步比对 → 更新版本 → 生成逐包改版清单（同包覆盖）。
+
+        包内卡非 CSCA 前缀（E/J 例）→ 走 TD_JC_ALL_GET_ENTITY_BY_JCNO 逐卡直查。
+        """
         import reqman.blueprints.packages_bp as pb_mod
         import reqman.services.connectors.amro as amro_mod
         from reqman.services import amro_sync
         monkeypatch.setattr(amro_sync, "require_amro_session", lambda: True)
         monkeypatch.setattr(pb_mod, "OUTPUT_DIR", tmp_path)
 
-        async def fake_fetch(client_, cookies, plugin, base_form, **kw):
-            if plugin == "TD_JC_SMJC_LIST":
-                return [{"JC_NO": "E-001", "WRITE_DATE": "2026-08-01 09:00:00", "ZY": "电子",
-                         "JCTITLE": "电子例行卡", "TASK": "RST"}]
-            return [{"JC_NO": "J-001", "WRITE_DATE": "2026-08-01 09:00:00", "ZY": "机体",
-                     "JCTITLE": "机体例行卡", "TASK": "RST"}]
-        monkeypatch.setattr(amro_mod, "fetch_all_pages", fake_fetch)
+        entity_rows = {
+            "E-001": {"JC_NO": "E-001", "WRITE_DATE": "2026-08-01 09:00:00", "ZY": "电子",
+                      "JCTITLE": "电子例行卡", "TASK": "RST"},
+            "J-001": {"JC_NO": "J-001", "WRITE_DATE": "2026-08-01 09:00:00", "ZY": "机体",
+                      "JCTITLE": "机体例行卡", "TASK": "RST"},
+        }
+
+        async def fake_query(client_, cookies, plugin, form, **kw):
+            return {"code": 200, "data": entity_rows.get(form.get("jcno"), {})}
+        monkeypatch.setattr(amro_mod, "query_plugin", fake_query)
 
         store = app.extensions["store"]
         pkg_id = self._make_package(store)
