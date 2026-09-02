@@ -664,7 +664,8 @@ def start_package_version_check(store, session_store, package_id: str, pkg_data:
                    "filename": filename}
         save_last_query_result(
             "package_version", "查询工作包工卡版本",
-            f"包 {label}：改版 {summary['revised']} 张，作废 {summary['cancelled']} 张",
+            f"版本检查完成（{label}）：改版 {summary['revised']} 张，作废 {summary['cancelled']} 张"
+            f"（预览页可下载改版清单）",
             download_url=f"/generate/package-version-report?package_id={package_id}",
             output_dir=OUTPUT_DIR)
         return summary

@@ -333,6 +333,12 @@ function pkgVersionCheck(packageId, btn) {
         });
 }
 
+function buildVersionSummary(label, s) {
+    s = s || {};
+    return '版本检查完成（' + (label || '') + '）：改版 ' + (s.revised || 0) + ' 张，作废 '
+            + (s.cancelled || 0) + ' 张（预览页可下载改版清单）';
+}
+
 function pollPkgVersionCheck(packageId, card) {
     var btn = document.querySelector('button[data-package-id="' + packageId + '"]');
     var deadline = Date.now() + 30 * 60 * 1000;
@@ -349,9 +355,7 @@ function pollPkgVersionCheck(packageId, card) {
                 if (status.status === 'done') {
                     clearInterval(timer);
                     if (btn) btn.disabled = false;
-                    var s = status.summary || {};
-                    var msg = '版本检查完成（' + (status.label || packageId) + '）：改版 ' + s.revised
-                            + ' 张，作废 ' + s.cancelled + ' 张（预览页可下载改版清单）';
+                    var msg = buildVersionSummary(status.label || packageId, status.summary);
                     card.done(msg);
                     window.safeToast(msg, 'success', 8000);
                 } else if (status.status === 'error') {

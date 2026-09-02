@@ -115,7 +115,7 @@ function pollAircraftSync(card) {
                     clearInterval(timer);
                     var s = status.summary || {};
                     card.done('查询完成：新增 ' + s.added + ' 架，更新 ' + s.updated + ' 架，清理 ' + s.removed + ' 架');
-                    window.safeToast('查询完成：新增 ' + s.added + '，更新 ' + s.updated + '，清理 ' + s.removed, 'success', 6000);
+                    window.safeToast('查询完成：新增 ' + s.added + ' 架，更新 ' + s.updated + ' 架，清理 ' + s.removed + ' 架', 'success', 6000);
                     setTimeout(function() { window.location.reload(); }, 1500);
                 } else if (status.status === 'error') {
                     clearInterval(timer);
