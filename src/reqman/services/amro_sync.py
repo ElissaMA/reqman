@@ -19,6 +19,7 @@ from zoneinfo import ZoneInfo
 import httpx
 
 from ..config import AMRO_AC_FLEET, AMRO_CARD_FLEET, CHECK_TEMPLATE_FILE, OUTPUT_DIR
+from ..utils.template_cache import load_template
 from .connectors import amro
 from .reminder_generator import COL_MAP
 
@@ -544,7 +545,6 @@ def build_version_report_excel(report: dict, title_label: str = "",
     三行：改版 = 工卡号/工卡名称/旧→新；作废 = 工卡号/工卡名称/作废。字体统一
     宋体 11 黑字（覆盖模板预置红字），保留每列原绿底，wrap_text 沿用模板。
     """
-    import openpyxl
     from openpyxl.styles import Font
 
     def _date_span(wd: str) -> str:
@@ -560,7 +560,7 @@ def build_version_report_excel(report: dict, title_label: str = "",
     label_part = f"（{title_label}）" if title_label else ""
     title = f"工卡改版清单{label_part}查询日期{finished_date}"
 
-    wb = openpyxl.load_workbook(CHECK_TEMPLATE_FILE)
+    wb = load_template(CHECK_TEMPLATE_FILE)
     ws = wb["改版清单"]
     ws["A1"] = title
 

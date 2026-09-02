@@ -13,10 +13,10 @@ import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-import openpyxl
 from openpyxl.styles import Font, PatternFill
 
 from ..config import REMINDER_TEMPLATE_FILE
+from ..utils.template_cache import load_template
 
 COL_MAP = {"电子": 1, "发动机": 2, "机体": 3}   # A / B / C
 DATA_START = 7
@@ -34,7 +34,7 @@ def generate_reminder(form_data: dict, items: list[dict]) -> tuple[io.BytesIO, s
     desc = form_data.get("description", "")
     filename = f"定检工作提醒单（B-{reg} {desc}）{date_str}.xlsx"
 
-    wb = openpyxl.load_workbook(REMINDER_TEMPLATE_FILE)
+    wb = load_template(REMINDER_TEMPLATE_FILE)
     ws = wb["工卡提醒"]
 
     ws["A2"].value = f"时间：{date_str}"
