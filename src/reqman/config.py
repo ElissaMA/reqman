@@ -26,6 +26,9 @@ CATEGORIES: list[str] = os.getenv(
     "CATEGORIES", "发动机,机体,电子,特检,支援"
 ).split(",")
 
+# 专业排序优先级（越小越靠前）：报告分组/改版清单分专业共用单一来源
+CATEGORY_ORDER: dict[str, int] = {"发动机": 0, "机体": 1, "电子": 2}
+
 TASK_TYPES: list[str] = os.getenv(
     "TASK_TYPES", "A,EO分段,DP项目,20MO,24MO"
 ).split(",")

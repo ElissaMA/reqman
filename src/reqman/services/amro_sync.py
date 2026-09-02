@@ -18,7 +18,13 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
-from ..config import AMRO_AC_FLEET, AMRO_CARD_FLEET, CHECK_TEMPLATE_FILE, OUTPUT_DIR
+from ..config import (
+    AMRO_AC_FLEET,
+    AMRO_CARD_FLEET,
+    CATEGORY_ORDER,
+    CHECK_TEMPLATE_FILE,
+    OUTPUT_DIR,
+)
 from ..utils.template_cache import load_template
 from .connectors import amro
 from .reminder_generator import COL_MAP
@@ -157,21 +163,30 @@ def get_last_query_result(key: str, output_dir=None) -> dict:
         return {}
 
 
-def package_display_label(pkg_data: dict) -> str:
-    """工作包展示标识：机号+描述（aircraft_info 优先、顶层兜底），用于提示与下载文件名。"""
+def build_package_label(pkg_data: dict, *, with_date: bool = False) -> str:
+    """工作包标识：机号+描述（aircraft_info 优先、顶层兜底），可选附开工日期。
+
+    统一替代原 package_display_label / package_report_label：提示、下载文件名、
+    版本报告标题共用同一构造，避免两处散落的字符串拼接再漂移。日期归一化为点分格式。
+    """
     info = pkg_data.get("aircraft_info") or {}
     reg = str(info.get("reg") or pkg_data.get("reg") or "").strip()
     desc = str(info.get("description") or pkg_data.get("description") or "").strip()
-    return " ".join(x for x in (reg, desc) if x)
+    parts = [x for x in (reg, desc) if x]
+    if with_date:
+        date = str(pkg_data.get("date") or info.get("date") or "").strip().replace("-", ".")
+        if date:
+            parts.append(date)
+    return " ".join(parts)
+
+
+# 向后兼容别名（内部调用请直接用 build_package_label）
+def package_display_label(pkg_data: dict) -> str:
+    return build_package_label(pkg_data)
 
 
 def package_report_label(pkg_data: dict) -> str:
-    """版本报告标识：机号+描述+开工日期（空格连接，可缺项；日期归一化为点分格式）。"""
-    info = pkg_data.get("aircraft_info") or {}
-    reg = str(info.get("reg") or pkg_data.get("reg") or "").strip()
-    desc = str(info.get("description") or pkg_data.get("description") or "").strip()
-    date = str(pkg_data.get("date") or info.get("date") or "").strip().replace("-", ".")
-    return " ".join(x for x in (reg, desc, date) if x)
+    return build_package_label(pkg_data, with_date=True)
 
 
 # ---------- AMRO 会话前置检查 ----------
@@ -520,13 +535,15 @@ async def check_cards_against_amro(store, client, cookies, task_codes, *, fetch=
 
 
 def _group_by_category(rows: list[dict]) -> list[tuple[str, list[dict]]]:
-    """按专业分组（发动机→机体→电子→其他，稳定顺序）—— 与提醒单分专业同构。"""
+    """按专业分组（发动机→机体→电子→其他，稳定顺序）—— 与提醒单分专业同构。
+
+    排序优先级统一取自 config.CATEGORY_ORDER（单一来源）。
+    """
     grouped: dict[str, list[dict]] = {}
     for r in rows:
         cat = str(r.get("category", "")).strip() or "其他"
         grouped.setdefault(cat, []).append(r)
-    priority = {"发动机": 0, "机体": 1, "电子": 2}
-    return [(c, grouped[c]) for c in sorted(grouped, key=lambda c: (priority.get(c, 99), c))]
+    return [(c, grouped[c]) for c in sorted(grouped, key=lambda c: (CATEGORY_ORDER.get(c, 99), c))]
 
 
 def _dot_date(ts: str) -> str:
@@ -626,7 +643,7 @@ def start_package_version_check(store, session_store, package_id: str, pkg_data:
     长任务（逐卡直查 EO/NRC 约 2 分钟/50 张）移出请求线程，前端轮询
     get_query_status("package_version") 获取进度，避免 gunicorn 120s 杀请求。
     """
-    label = package_display_label(pkg_data) or package_id
+    label = build_package_label(pkg_data) or package_id
     cookies = (session_store.load() or {}).get("cookies", {})
     finished_date = datetime.now(BJ).strftime("%Y.%m.%d")
 
@@ -641,7 +658,7 @@ def start_package_version_check(store, session_store, package_id: str, pkg_data:
         report = asyncio.run(_inner())
         filename = f"amro_pkg_version_report_{package_id}.xlsx"
         (OUTPUT_DIR / filename).write_bytes(build_version_report_excel(
-            report, title_label=package_report_label(pkg_data) or package_id,
+            report, title_label=build_package_label(pkg_data, with_date=True) or package_id,
             finished_date=finished_date))
         summary = {"revised": len(report["revised"]), "cancelled": len(report["cancelled"]),
                    "filename": filename}
