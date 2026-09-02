@@ -55,7 +55,8 @@ MAX_CONTENT_LENGTH: int = 16 * 1024 * 1024
 DB_FILE.parent.mkdir(parents=True, exist_ok=True)
 
 # ---------- AMRO 库存查询 ----------
-AMRO_API_URL: str = os.getenv("AMRO_API_URL", "https://me.sichuanair.com/api/v1/plugins/MM_PARTNUMBERCHAXUN_LIST")
+# 只读白名单与端点基座集中在 connectors/amro.py（READONLY_PLUGINS / AMRO_API_BASE），
+# 库存实际调用经 query_plugin，此处仅保留配置项。
 AMRO_COOKIE_FILE: Path = BASE_DIR / os.getenv("AMRO_COOKIE_FILE", "data/cookie/amro_cookies.json")
 AMRO_MAX_CONCURRENT: int = int(os.getenv("AMRO_MAX_CONCURRENT", "10"))
 AMRO_SESSION_TTL: int = int(os.getenv("AMRO_SESSION_TTL", "7200"))  # 2 小时

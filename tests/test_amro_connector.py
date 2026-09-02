@@ -12,6 +12,17 @@ def _run(coro):
     return asyncio.run(coro)
 
 
+@pytest.fixture(autouse=True)
+def _isolate_amro(monkeypatch, tmp_path):
+    """隔离 AMRO 审计落盘与限速：所有调用写临时审计文件且不真实等待。"""
+    monkeypatch.setattr(amro, "_audit_path", lambda: tmp_path / "amro_audit.jsonl")
+    monkeypatch.setattr(amro.time, "monotonic", lambda: 1e9)
+    # 不真实等待：限速用 asyncio.sleep，mock 为异步空操作，避免测试中累积休眠
+    async def _no_sleep(_):
+        return None
+    monkeypatch.setattr(amro.asyncio, "sleep", _no_sleep)
+
+
 def _make_client(json_body):
     class _FakeResp:
         def __init__(self, body, status=200):
@@ -150,3 +161,26 @@ class TestQueryPlugin:
         rows = _run(amro.fetch_all_pages(
             _PagedClient(), {}, "BM_TSK_LIST", {"baseCode": "KM01", "rows": 10}))
         assert len(rows) == 11
+
+
+class TestInventoryReadonlyRouting:
+    """库存查询必须经由通用只读调用器（白名单 + 审计），不可直连 AMRO。"""
+
+    def test_inventory_writes_mm_audit(self, tmp_path):
+        body = {"code": 200, "data": [
+            {"swerk": "KM01", "clabs": 5, "meins": "EA", "maktx": "螺钉"},
+        ]}
+        client, _ = _make_client(body)
+        _run(amro.query_kunming_stock(client, {"k": "v"}, "PN-1"))
+        lines = (tmp_path / "amro_audit.jsonl").read_text(encoding="utf-8").splitlines()
+        plugins = [json.loads(l)["plugin"] for l in lines]
+        # 库存类型仅 "01" → 恰好一次 MM_PARTNUMBERCHAXUN_LIST 调用
+        assert plugins.count("MM_PARTNUMBERCHAXUN_LIST") == 1
+
+    def test_inventory_blocked_if_dropped_from_whitelist(self, monkeypatch):
+        # 反向校验：白名单移除该端点时，库存查询被通用只读调用器拦截，零外呼
+        monkeypatch.setattr(amro, "READONLY_PLUGINS", frozenset())
+        client, _ = _make_client({"code": 200, "data": []})
+        result = _run(amro.query_kunming_stock(client, {}, "PN-1"))
+        assert result is None  # 被拦截，无任何库存数据
+        assert client.data == {}  # 白名单外零外呼
