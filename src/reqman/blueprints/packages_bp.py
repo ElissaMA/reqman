@@ -16,7 +16,7 @@ from ..services import amro_sync
 from ..services.connectors.amro import AmroSessionExpired
 from ..services.work_package_matcher import match_work_package_items
 from ..services.worklist_parser import WorklistError, merge_aircraft_info, parse_worklist
-from ..utils.error_handlers import NotFoundError, ValidationError
+from ..utils.error_handlers import NotFoundError, ValidationError, is_ajax
 from ..utils.response import api_success
 from ..utils.validators import validate_file_extension
 from .inventory_bp import MESSAGES
@@ -28,9 +28,6 @@ packages_bp = Blueprint("packages", __name__)
 
 # ======================== 辅助函数 ========================
 
-
-def _is_ajax():
-    return request.headers.get("X-Requested-With") == "XMLHttpRequest"
 
 
 def _parse_wp_date(date_str):
@@ -171,7 +168,7 @@ def _handle_upload_post():
     }
     package_data = _persist_package(store, package_data)
 
-    if _is_ajax():
+    if is_ajax():
         return api_success(data={"package_id": package_data.get("package_id")},
                            message="工作包上传成功")
     flash("工作包上传成功，点击工作包即可匹配生成", "success")
@@ -213,7 +210,7 @@ def package_rematch(package_id):
     pkg_data["generated_at"] = now_str
     store.save_work_package(pkg_data)
 
-    if _is_ajax():
+    if is_ajax():
         return api_success(message="重新匹配完成")
     flash("重新匹配完成", "success")
     return redirect("/upload")

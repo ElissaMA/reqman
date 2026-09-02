@@ -11,7 +11,7 @@ from ..services.amro_sync import build_package_label
 from ..services.form_generator import generate_form
 from ..services.reminder_generator import generate_reminder
 from ..services.work_package_matcher import match_work_package_items
-from ..utils.error_handlers import NotFoundError
+from ..utils.error_handlers import NotFoundError, is_ajax
 from ..utils.response import api_error, api_success
 
 generate_bp = Blueprint("generate", __name__)
@@ -22,9 +22,6 @@ logger = logging.getLogger(__name__)
 def _get_store():
     return current_app.extensions['store']
 
-
-def _is_ajax():
-    return request.headers.get("X-Requested-With") == "XMLHttpRequest"
 
 
 def _ensure_package_matched(pkg_data):
@@ -78,7 +75,7 @@ def generate():
     package_id = request.args.get("package_id", "") or request.form.get("package_id", "")
 
     if not package_id:
-        if _is_ajax():
+        if is_ajax():
             return api_error("缺少工作包参数", "MISSING_PACKAGE_ID", 400)
         return render_template("generate/form.html", has_data=False)
 
@@ -98,7 +95,7 @@ def generate():
             return redirect("/generate?package_id=" + package_id)
 
     # GET: 预览
-    if _is_ajax():
+    if is_ajax():
         return _handle_generate_json_preview(pkg_data, package_id)
     return _handle_generate_preview(pkg_data, package_id)
 

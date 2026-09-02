@@ -173,10 +173,7 @@ function showDetail(id) {
 
 // ===== AMRO 全量查询工卡版本（v3.6.0） =====
 function amroVerCheck() {
-    if (!window.amroSession || !window.amroSession.ready) {
-        window.safeToast('登录已失效（可能被其他登录挤掉），请重新运行登录脚本后重试', 'warning');
-        return;
-    }
+    if (!window.amroRequireLogin()) return;
     var btn = document.getElementById('amroVerCheckBtn');
     btn.disabled = true;
     var card = window.QueryCard.run('qCardVersion', '全量查询工卡版本（约 3~15 分钟，后台执行）');
@@ -196,26 +193,24 @@ function amroVerCheck() {
 }
 
 function pollVersionCheck(card) {
-    var deadline = Date.now() + 20 * 60 * 1000;
-    var timer = setInterval(function() {
-        if (Date.now() > deadline) { clearInterval(timer); card.fail('等待超时，请重新查询'); return; }
-        fetch('/card/amro-version-status', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(function(r) { return r.json(); }).then(function(d) {
-                var status = (d && d.data) || {};
-                if (status.status === 'done') {
-                    clearInterval(timer);
-                    var s = status.summary || {};
-                    card.done('查询完成：改版 ' + s.revised + ' 张，作废 ' + s.cancelled + ' 张');
-                    window.safeToast('查询完成：改版 ' + s.revised + ' 张，作废 ' + s.cancelled + ' 张', 'success', 8000);
-                    setTimeout(function() { window.location.reload(); }, 1500);
-                } else if (status.status === 'error') {
-                    clearInterval(timer);
-                    card.fail(status.error || '未知错误');
-                    var b = document.getElementById('amroVerCheckBtn');
-                    if (b) { b.disabled = false; }
-                }
-            }).catch(function(){});
-    }, 2000);
+    window.Poller.poll({
+        statusUrl: '/card/amro-version-status',
+        card: card,
+        deadlineMin: 20,
+        intervalMs: 2000,
+        onDone: function(status, card) {
+            var s = status.summary || {};
+            var msg = '查询完成：改版 ' + s.revised + ' 张，作废 ' + s.cancelled + ' 张';
+            card.done(msg);
+            window.safeToast(msg, 'success', 8000);
+            setTimeout(function() { window.location.reload(); }, 1500);
+        },
+        onError: function(err, card) {
+            card.fail(err || '未知错误');
+            var b = document.getElementById('amroVerCheckBtn');
+            if (b) { b.disabled = false; }
+        }
+    });
 }
 
 document.addEventListener('DOMContentLoaded', function() {

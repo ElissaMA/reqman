@@ -230,11 +230,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ===== Card 0：AMRO 拉取工作包（v3.5.0） =====
-function amroRequireLogin() {
-    if (window.amroSession && window.amroSession.ready) return true;
-    window.safeToast('登录已失效（可能被其他登录挤掉），请重新运行登录脚本后重试', 'warning');
-    return false;
-}
 
 function mainSquadron(zrfd) {
     if (!zrfd) return '';
@@ -340,32 +335,22 @@ function buildVersionSummary(label, s) {
 }
 
 function pollPkgVersionCheck(packageId, card) {
-    var btn = document.querySelector('button[data-package-id="' + packageId + '"]');
-    var deadline = Date.now() + 30 * 60 * 1000;
-    var timer = setInterval(function() {
-        if (Date.now() > deadline) {
-            clearInterval(timer);
-            if (btn) btn.disabled = false;
-            card.fail('等待超时，请重新查询');
-            return;
+    window.Poller.poll({
+        statusUrl: '/packages/amro-version-status',
+        card: card,
+        deadlineMin: 30,
+        intervalMs: 2000,
+        buttonSelector: 'button[data-package-id="' + packageId + '"]',
+        onDone: function(status, card) {
+            var msg = buildVersionSummary(status.label || packageId, status.summary);
+            card.done(msg);
+            window.safeToast(msg, 'success', 8000);
+        },
+        onError: function(err, card) {
+            card.fail(err || '未知错误');
+            window.safeToast(err || '查询失败', 'error', 8000);
         }
-        fetch('/packages/amro-version-status', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(function(r) { return r.json(); }).then(function(d) {
-                var status = (d && d.data) || {};
-                if (status.status === 'done') {
-                    clearInterval(timer);
-                    if (btn) btn.disabled = false;
-                    var msg = buildVersionSummary(status.label || packageId, status.summary);
-                    card.done(msg);
-                    window.safeToast(msg, 'success', 8000);
-                } else if (status.status === 'error') {
-                    clearInterval(timer);
-                    if (btn) btn.disabled = false;
-                    card.fail(status.error || '未知错误');
-                    window.safeToast(status.error || '查询失败', 'error', 8000);
-                }
-            }).catch(function(){});
-    }, 2000);
+    });
 }
 
 // 服务端注入的上次查询快照（内存态，重启清空）：跨页面/刷新保留查询结果

@@ -216,31 +216,6 @@ confirmNoMats.addEventListener("change", function() {
     document.getElementById("matSection").classList.toggle("section-disabled", this.checked);
 })
 
-function watchTable(tableId, checkbox) {
-    var table = document.getElementById(tableId);
-    if (!table) return;
-    table.addEventListener("input", function() {
-        var tbody = table.querySelector("tbody");
-        if (tbody) {
-            var hasVal = false;
-            tbody.querySelectorAll("input[type=text]").forEach(function(inp) {
-                if (!isBlank(inp.value)) hasVal = true;
-            });
-            if (hasVal) checkbox.checked = false;
-        }
-    });
-    var observer = new MutationObserver(function() {
-        var tbody = table.querySelector("tbody");
-        if (!tbody || tbody.children.length === 0) return;
-        var hasVal = false;
-        tbody.querySelectorAll("input[type=text]").forEach(function(inp) {
-            if (!isBlank(inp.value)) hasVal = true;
-        });
-        if (hasVal) checkbox.checked = false;
-    });
-    observer.observe(table, { childList: true, subtree: true });
-}
-
 function loadAllCards() {
     var q = document.getElementById("cardSearch").value.trim().toLowerCase();
     var selectedCodes = {};
@@ -405,12 +380,6 @@ function addRow(type) {
             '<td><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest(\'tr\').remove()">&times;</button></td>';
     }
     tbody.appendChild(tr);
-}
-
-// 空值判断：null/undefined/空串/纯空白/不可见字符（全角空格、零宽、BOM） → true
-function isBlank(s) {
-    if (s === null || s === undefined) return true;
-    return /^[\s\u00a0\u3000\u200b\u200c\u200d\u200e\u200f\u2028\u2029\u202f\u205f\u2060\ufeff]*$/.test(String(s));
 }
 
 // 逐行校验：名称空但其他有值 → 缺少名称

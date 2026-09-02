@@ -393,6 +393,80 @@
     setInterval(window.amroCheckNow, 600000);
 </script>
 
+{# 公共前端辅助：统一判空 / 表格监听 / 登录态校验 / 后台查询轮询收敛 #}
+<script>
+window.isBlank = function(s) {
+    if (s === null || s === undefined) return true;
+    return /^[\s\u00a0\u3000\u200b\u200c\u200d\u200e\u200f\u2028\u2029\u202f\u205f\u2060\ufeff]*$/.test(String(s));
+};
+
+window.watchTable = function(tableId, checkbox) {
+    var table = document.getElementById(tableId);
+    if (!table) return;
+    function hasValue() {
+        var tbody = table.querySelector("tbody");
+        if (!tbody) return false;
+        var hasVal = false;
+        tbody.querySelectorAll("input[type=text]").forEach(function(inp) {
+            if (!window.isBlank(inp.value)) hasVal = true;
+        });
+        return hasVal;
+    }
+    table.addEventListener("input", function() {
+        if (hasValue()) checkbox.checked = false;
+    });
+    var observer = new MutationObserver(function() {
+        if (hasValue()) checkbox.checked = false;
+    });
+    observer.observe(table, { childList: true, subtree: true });
+};
+
+window.amroRequireLogin = function() {
+    if (window.amroSession && window.amroSession.ready) return true;
+    window.safeToast('登录已失效（可能被其他登录挤掉），请重新运行登录脚本后重试', 'warning');
+    return false;
+};
+
+// 统一后台查询轮询：收敛 aircraft / 工卡版本 / 库存 / 工作包 四个结构相同的进度轮询
+window.Poller = (function() {
+    function reenable(sel) {
+        if (!sel) return;
+        var b = document.querySelector(sel);
+        if (b) b.disabled = false;
+    }
+    function poll(opts) {
+        var deadline = Date.now() + (opts.deadlineMin || 30) * 60 * 1000;
+        var timer = setInterval(function() {
+            if (Date.now() > deadline) {
+                clearInterval(timer);
+                reenable(opts.buttonSelector);
+                if (opts.onTimeout) opts.onTimeout(opts.card);
+                else opts.card.fail('等待超时，请重新查询');
+                return;
+            }
+            fetch(opts.statusUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r) { return r.json(); })
+                .then(function(d) {
+                    var status = (d && d.data) || {};
+                    if (status.status === 'done') {
+                        clearInterval(timer);
+                        reenable(opts.buttonSelector);
+                        if (opts.onDone) opts.onDone(status, opts.card);
+                    } else if (status.status === 'error') {
+                        clearInterval(timer);
+                        reenable(opts.buttonSelector);
+                        var err = status.error;
+                        if (opts.onError) opts.onError(err, opts.card);
+                        else opts.card.fail(err || '查询失败');
+                    }
+                }).catch(function(){});
+        }, opts.intervalMs || 2000);
+        return timer;
+    }
+    return { poll: poll };
+})();
+</script>
+
 {# 公共列表筛选/排序：供各列表页复用 #}
 <script>
 window.AppFilter = (function () {

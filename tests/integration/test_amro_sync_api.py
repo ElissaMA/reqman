@@ -62,8 +62,8 @@ class TestAircraftSyncApi:
     """Task 4: 飞机同步路由（前置检查/后台线程/状态轮询/防重复）"""
 
     def test_sync_requires_session(self, client, ajax_headers, monkeypatch):
-        import reqman.blueprints.cards_bp as cb_mod
-        monkeypatch.setattr(cb_mod, "_require_amro_session", lambda: False)
+        from reqman.services import amro_sync
+        monkeypatch.setattr(amro_sync, "require_amro_session", lambda: False)
         resp = client.post("/card/aircraft/amro-sync", headers=ajax_headers)
         assert resp.status_code == 401
         assert "登录已失效" in resp.get_json()["message"]
@@ -71,9 +71,8 @@ class TestAircraftSyncApi:
     def test_sync_start_and_status(self, client, app, ajax_headers, monkeypatch):
         import time as _time
 
-        import reqman.blueprints.cards_bp as cb_mod
         from reqman.services import amro_sync
-        monkeypatch.setattr(cb_mod, "_require_amro_session", lambda: True)
+        monkeypatch.setattr(amro_sync, "require_amro_session", lambda: True)
 
         def fake_sync(store, client_, cookies):
             async def _c():
@@ -100,8 +99,8 @@ class TestAircraftSyncApi:
 
     def test_sync_duplicate_start_conflict(self, client, app, ajax_headers, monkeypatch):
         """全局互斥：已有查询在跑 → 409 + 统一 busy 文案（不排队）。"""
-        import reqman.blueprints.cards_bp as cb_mod
-        monkeypatch.setattr(cb_mod, "_require_amro_session", lambda: True)
+        from reqman.services import amro_sync
+        monkeypatch.setattr(amro_sync, "require_amro_session", lambda: True)
         release = _occupy_query_slot("查询飞机数据")
         try:
             resp = client.post("/card/aircraft/amro-sync", headers=ajax_headers)

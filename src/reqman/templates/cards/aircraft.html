@@ -81,10 +81,7 @@
 var ac_list = [{% for ac in ac_list %}{{ ac|tojson }}{% if not loop.last %},{% endif %}{% endfor %}];
 
 function amroSyncAircraft() {
-    if (!window.amroSession || !window.amroSession.ready) {
-        window.safeToast('登录已失效（可能被其他登录挤掉），请重新运行登录脚本后重试', 'warning');
-        return;
-    }
+    if (!window.amroRequireLogin()) return;
     if (!confirm('将以 AMRO 在册机队覆盖更新飞机信息，不在册的飞机将被删除。确认查询飞机数据？')) return;
     var btn = document.getElementById('amroSyncAir');
     btn.disabled = true;
@@ -105,26 +102,24 @@ function amroSyncAircraft() {
 }
 
 function pollAircraftSync(card) {
-    var deadline = Date.now() + 10 * 60 * 1000;
-    var timer = setInterval(function() {
-        if (Date.now() > deadline) { clearInterval(timer); card.fail('等待超时，请重新查询'); return; }
-        fetch('/card/aircraft/amro-status', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(function(r) { return r.json(); }).then(function(d) {
-                var status = (d && d.data) || {};
-                if (status.status === 'done') {
-                    clearInterval(timer);
-                    var s = status.summary || {};
-                    card.done('查询完成：新增 ' + s.added + ' 架，更新 ' + s.updated + ' 架，清理 ' + s.removed + ' 架');
-                    window.safeToast('查询完成：新增 ' + s.added + ' 架，更新 ' + s.updated + ' 架，清理 ' + s.removed + ' 架', 'success', 6000);
-                    setTimeout(function() { window.location.reload(); }, 1500);
-                } else if (status.status === 'error') {
-                    clearInterval(timer);
-                    card.fail(status.error || '未知错误');
-                    var b = document.getElementById('amroSyncAir');
-                    if (b) { b.disabled = false; }
-                }
-            }).catch(function(){});
-    }, 1000);
+    window.Poller.poll({
+        statusUrl: '/card/aircraft/amro-status',
+        card: card,
+        deadlineMin: 10,
+        intervalMs: 1000,
+        onDone: function(status, card) {
+            var s = status.summary || {};
+            var msg = '查询完成：新增 ' + s.added + ' 架，更新 ' + s.updated + ' 架，清理 ' + s.removed + ' 架';
+            card.done(msg);
+            window.safeToast(msg, 'success', 6000);
+            setTimeout(function() { window.location.reload(); }, 1500);
+        },
+        onError: function(err, card) {
+            card.fail(err || '未知错误');
+            var b = document.getElementById('amroSyncAir');
+            if (b) { b.disabled = false; }
+        }
+    });
 }
 
 document.addEventListener('DOMContentLoaded', function() {
