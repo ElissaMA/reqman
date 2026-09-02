@@ -7,24 +7,21 @@
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">飞机信息 <span class="badge bg-secondary ms-2">{{ ac_list|length }}</span></h5>
         <span class="d-flex gap-2">
-            <a href="javascript:void(0)" onclick="amroSyncAircraft()" id="amroSyncAir" class="btn btn-outline-primary btn-sm">⟳ 从 AMRO 同步</a>
+            <a href="javascript:void(0)" onclick="amroSyncAircraft()" id="amroSyncAir" class="btn btn-outline-primary btn-sm">查询飞机数据</a>
             <a href="javascript:void(0)" onclick="ListUI.openEditor('/card/aircraft/new')" class="btn btn-primary btn-sm">+ 新增飞机</a>
         </span>
     </div>
     <div class="card-body p-0">
-        {% if amro_meta and amro_meta.status == 'done' and amro_meta.report %}
+        {% if amro_status and amro_status.status == 'running' %}
+        <div class="alert alert-info m-3 mb-0 small">⏳ 查询飞机数据进行中（{{ amro_status.started_at }}）…</div>
+        {% elif amro_status and amro_status.status == 'error' %}
+        <div class="alert alert-danger m-3 mb-0 small">上次查询飞机数据失败：{{ amro_status.error }}（{{ amro_status.finished_at }}）</div>
+        {% elif amro_last_query %}
         <div class="alert alert-success m-3 mb-0 small">
-            <b>同步报告</b>（{{ amro_meta.finished_at }}）：新增 {{ amro_meta.report.added }} 架，更新 {{ amro_meta.report.updated }} 架，清理 {{ amro_meta.report.removed|length }} 架
-            {% if amro_meta.report.removed %}
-                <details class="mt-1"><summary class="text-muted">被删清单（{{ amro_meta.report.removed|length }}）</summary>
-                    {{ amro_meta.report.removed|join('、') }}</details>
-            {% endif %}
+            上次查询（{{ amro_last_query.finished_at }}）：{{ amro_last_query.summary }}
         </div>
-        {% elif amro_meta and amro_meta.status == 'error' %}
-        <div class="alert alert-danger m-3 mb-0 small">上次 AMRO 飞机同步失败：{{ amro_meta.error }}（{{ amro_meta.finished_at }}）</div>
-        {% elif amro_meta and amro_meta.status == 'running' %}
-        <div class="alert alert-info m-3 mb-0 small">⏳ AMRO 飞机同步进行中（{{ amro_meta.started_at }}）…</div>
         {% endif %}
+        <div class="q-card" id="qCardAircraft" style="display:none"></div>
         <div class="table-responsive">
             <table class="table table-hover mb-0" id="acTable">
                 <thead>
@@ -77,22 +74,6 @@
     </div></div>
 </div>
 
-<!-- AMRO 同步确认弹窗 -->
-<div class="modal fade" id="amroSyncModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
-        <div class="modal-header"><h6 class="modal-title">从 AMRO 同步飞机信息</h6>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body small">
-            将以 AMRO 在册机队（A320 且有效）为准：<b>覆盖更新</b>在册飞机的机型/发动机/FSN/MSN/APU，
-            <b class="text-danger">不在册的飞机将被删除</b>（被删清单见同步报告）。确认同步？
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">取消</button>
-            <button type="button" class="btn btn-primary btn-sm" id="amroSyncGo">确认同步</button>
-        </div>
-    </div></div>
-</div>
-
 {% endblock %}
 
 {% block scripts %}
@@ -104,54 +85,52 @@ function amroSyncAircraft() {
         window.safeToast('登录已失效（可能被其他登录挤掉），请重新运行登录脚本后重试', 'warning');
         return;
     }
-    new bootstrap.Modal(document.getElementById('amroSyncModal')).show();
+    if (!confirm('将以 AMRO 在册机队覆盖更新飞机信息，不在册的飞机将被删除。确认查询飞机数据？')) return;
+    var btn = document.getElementById('amroSyncAir');
+    btn.disabled = true;
+    var card = window.QueryCard.run('qCardAircraft', '查询飞机数据');
+    fetch('/card/aircraft/amro-sync', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function(r) { return r.json().then(function(d) { return {code: r.status, d: d}; }); })
+        .then(function(x) {
+            if (x.code === 200 && x.d.success) {
+                pollAircraftSync(card);
+            } else {
+                btn.disabled = false;
+                card.fail((x.d && x.d.message) || '启动失败');
+            }
+        }).catch(function() {
+            btn.disabled = false;
+            card.fail('启动失败');
+        });
 }
 
-function pollAircraftSync() {
+function pollAircraftSync(card) {
     var deadline = Date.now() + 10 * 60 * 1000;
     var timer = setInterval(function() {
-        if (Date.now() > deadline) { clearInterval(timer); return; }
+        if (Date.now() > deadline) { clearInterval(timer); card.fail('等待超时，请重新查询'); return; }
         fetch('/card/aircraft/amro-status', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
             .then(function(r) { return r.json(); }).then(function(d) {
-                var meta = (d && d.data) || {};
-                if (meta.status === 'done') {
+                var status = (d && d.data) || {};
+                if (status.status === 'done') {
                     clearInterval(timer);
-                    var rp = meta.report || {};
-                    window.safeToast('飞机同步完成：新增 ' + rp.added + '，更新 ' + rp.updated +
-                        '，清理 ' + (rp.removed || []).length, 'success', 6000);
-                    setTimeout(function() { window.location.reload(); }, 1200);
-                } else if (meta.status === 'error') {
+                    var s = status.summary || {};
+                    card.done('查询完成：新增 ' + s.added + ' 架，更新 ' + s.updated + ' 架，清理 ' + s.removed + ' 架');
+                    window.safeToast('查询完成：新增 ' + s.added + '，更新 ' + s.updated + '，清理 ' + s.removed, 'success', 6000);
+                    setTimeout(function() { window.location.reload(); }, 1500);
+                } else if (status.status === 'error') {
                     clearInterval(timer);
-                    window.safeToast('同步失败：' + (meta.error || '未知错误'), 'error', 8000);
+                    card.fail(status.error || '未知错误');
                     var b = document.getElementById('amroSyncAir');
-                    if (b) { b.disabled = false; b.textContent = '⟳ 从 AMRO 同步'; }
+                    if (b) { b.disabled = false; }
                 }
             }).catch(function(){});
     }, 1000);
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    {% if amro_meta and amro_meta.status == 'running' %}
-    pollAircraftSync();   // 页面加载时同步已在跑 → 自动恢复轮询
+    {% if amro_status and amro_status.status == 'running' %}
+    pollAircraftSync(window.QueryCard.run('qCardAircraft', '查询飞机数据'));   // 页面加载时查询已在跑 → 恢复进度卡
     {% endif %}
-    var go = document.getElementById('amroSyncGo');
-    if (go) go.addEventListener('click', function() {
-        go.disabled = true; go.textContent = '同步中…';
-        fetch('/card/aircraft/amro-sync', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(function(r) { return r.json().then(function(d) { return {code: r.status, d: d}; }); })
-            .then(function(x) {
-                bootstrap.Modal.getInstance(document.getElementById('amroSyncModal')).hide();
-                if (x.code === 200 && x.d.success) {
-                    pollAircraftSync();
-                } else {
-                    go.disabled = false; go.textContent = '确认同步';
-                    window.safeToast((x.d && x.d.message) || '启动失败', 'error');
-                }
-            }).catch(function() {
-                go.disabled = false; go.textContent = '确认同步';
-                window.safeToast('启动同步失败', 'error');
-            });
-    });
 });
 </script>
 

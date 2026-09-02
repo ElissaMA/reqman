@@ -1,21 +1,25 @@
 """AMRO 三域同步编排 — 飞机 / 工作包 / 工卡版本（只读、零快照）
 
 所有 AMRO 调用经 connectors.amro.query_plugin（只读白名单 + 限速 + JSONL 审计）；
-长任务由 run_in_thread 包成 daemon 线程并写 amro_sync_meta 状态位（running/done/error）。
+长任务由 run_query 包成 daemon 线程并写 QUERY_STATUS 内存态（running/done/error）；
+全局查询互斥（try_begin_query）保证一次只跑一个 AMRO 查询，不排队。
 """
 from __future__ import annotations
 
 import asyncio
 import io
+import json
 import logging
 import threading
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import httpx
 
-from ..config import AMRO_AC_FLEET
+from ..config import AMRO_AC_FLEET, AMRO_CARD_FLEET, CHECK_TEMPLATE_FILE, OUTPUT_DIR
 from .connectors import amro
+from .reminder_generator import COL_MAP
 
 logger = logging.getLogger(__name__)
 
@@ -33,20 +37,129 @@ def _norm_reg(value: str) -> str:
     return s
 
 
-def run_in_thread(app, domain: str, job) -> None:
-    """daemon 线程执行 job，写 amro_sync_meta 状态位：running → done(含 report) / error。"""
-    store = app.extensions["store"]
+# ---------- 全局查询互斥（v3.6.0：一次只跑一个 AMRO 查询，不排队） ----------
+
+_query_lock = threading.Lock()
+_running_query: dict | None = None  # {label, started_at}
+
+
+def try_begin_query(label: str) -> bool:
+    """尝试占用全局查询槽。成功返回 True；已有查询在跑返回 False（不排队）。"""
+    global _running_query
+    got = _query_lock.acquire(blocking=False)
+    if got:
+        _running_query = {"label": label, "started_at": _now()}
+    return got
+
+
+def end_query() -> None:
+    """释放全局查询槽。"""
+    global _running_query
+    _running_query = None
+    if _query_lock.locked():
+        _query_lock.release()
+
+
+def query_busy_message() -> str | None:
+    """有查询在跑时返回统一提示文案；空闲返回 None。"""
+    if _running_query:
+        return (f"已有查询任务进行中：{_running_query['label']}"
+                f"（{_running_query['started_at']}），请等待完成后再查询")
+    return None
+
+
+@contextmanager
+def query_slot(label: str):
+    """同步请求的查询槽上下文：进入时占用，退出时释放。"""
+    if not try_begin_query(label):
+        raise QueryBusyError(query_busy_message() or "已有查询任务进行中")
+    try:
+        yield
+    finally:
+        end_query()
+
+
+class QueryBusyError(RuntimeError):
+    """全局查询互斥冲突（已有查询在跑）。"""
+
+
+# 内存任务状态注册表（v3.6.0：统一承载各查询任务状态；服务重启即清空）
+QUERY_STATUS: dict[str, dict] = {}
+
+
+def run_query(key: str, label: str, job) -> bool:
+    """daemon 线程执行 job（占全局查询槽全程），QUERY_STATUS：running → done/error。
+
+    返回 False = 已有查询在跑（未启动）。
+    """
+    if not try_begin_query(label):
+        return False
 
     def runner():
-        store.set_amro_sync_meta(domain, {"status": "running", "started_at": _now()})
         try:
-            report = job()
-            store.set_amro_sync_meta(domain, {"status": "done", "finished_at": _now(), "report": report})
+            summary = job()
+            QUERY_STATUS[key] = {"status": "done", "label": label,
+                                 "finished_at": _now(), "summary": summary}
         except Exception as exc:
-            logger.exception("AMRO 同步任务失败: %s", domain)
-            store.set_amro_sync_meta(domain, {"status": "error", "finished_at": _now(), "error": str(exc)})
+            logger.exception("AMRO 查询任务失败: %s", label)
+            QUERY_STATUS[key] = {"status": "error", "label": label,
+                                 "finished_at": _now(), "error": str(exc)}
+        finally:
+            end_query()
 
-    threading.Thread(target=runner, daemon=True, name=f"amro-{domain}").start()
+    QUERY_STATUS[key] = {"status": "running", "label": label, "started_at": _now()}
+    threading.Thread(target=runner, daemon=True, name=f"amro-{key}").start()
+    return True
+
+
+def get_query_status(key: str) -> dict:
+    """读取某查询任务的内存状态（无记录返回空 dict）。"""
+    return QUERY_STATUS.get(key, {})
+
+
+# 最近一次查询结果简述持久化（output/last_query_<key>.json，重启保留）——
+# 学习库存查询模式：每次查询结果可恢复显示在页面状态栏，报告类附下载链接。
+def save_last_query_result(key: str, label: str, summary: str, download_url: str = "",
+                           output_dir=None) -> None:
+    """写入最近一次查询结果简述（只留最新一份）。"""
+    out = output_dir or OUTPUT_DIR
+    try:
+        out.mkdir(parents=True, exist_ok=True)
+        (out / f"last_query_{key}.json").write_text(json.dumps(
+            {"label": label, "finished_at": _now(),
+             "summary": summary, "download_url": download_url},
+            ensure_ascii=False), encoding="utf-8")
+    except OSError:
+        logger.warning("查询结果简述写入失败: last_query_%s", key)
+
+
+def get_last_query_result(key: str, output_dir=None) -> dict:
+    """读取最近一次查询结果简述（无记录返回空 dict）。"""
+    out = output_dir or OUTPUT_DIR
+    path = out / f"last_query_{key}.json"
+    if not path.is_file():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (ValueError, OSError):
+        return {}
+
+
+def package_display_label(pkg_data: dict) -> str:
+    """工作包展示标识：机号+描述（aircraft_info 优先、顶层兜底），用于提示与下载文件名。"""
+    info = pkg_data.get("aircraft_info") or {}
+    reg = str(info.get("reg") or pkg_data.get("reg") or "").strip()
+    desc = str(info.get("description") or pkg_data.get("description") or "").strip()
+    return " ".join(x for x in (reg, desc) if x)
+
+
+def package_report_label(pkg_data: dict) -> str:
+    """版本报告标识：机号+描述+开工日期（空格连接，可缺项；日期归一化为点分格式）。"""
+    info = pkg_data.get("aircraft_info") or {}
+    reg = str(info.get("reg") or pkg_data.get("reg") or "").strip()
+    desc = str(info.get("description") or pkg_data.get("description") or "").strip()
+    date = str(pkg_data.get("date") or info.get("date") or "").strip().replace("-", ".")
+    return " ".join(x for x in (reg, desc, date) if x)
 
 
 # ---------- AMRO 会话前置检查 ----------
@@ -111,40 +224,69 @@ async def sync_aircraft(store, client, cookies, *, fetch=None) -> dict:
             "total_amro": len(amro_by_key)}
 
 
-def start_aircraft_sync(app) -> bool:
-    """启动飞机同步后台任务。返回 False = 同域任务已在跑（S1 防重复）。"""
-    store = app.extensions["store"]
-    if store.get_amro_sync_meta().get("aircraft", {}).get("status") == "running":
-        return False
-    session_store = app.extensions["inventory_service"].session_store
-
+def start_aircraft_sync(store, session_store) -> bool:
+    """启动飞机同步后台任务。返回 False = 已有查询在跑（全局互斥，不排队）。"""
     def job():
         cookies = (session_store.load() or {}).get("cookies", {})
 
         async def _inner():
             async with httpx.AsyncClient(verify=True, trust_env=False) as client:
-                return await sync_aircraft(store, client, cookies)
+                rep = await sync_aircraft(store, client, cookies)
+            return {"added": rep["added"], "updated": rep["updated"],
+                    "removed": len(rep["removed"]), "total_amro": rep["total_amro"]}
 
-        return asyncio.run(_inner())
+        summary = asyncio.run(_inner())
+        save_last_query_result("aircraft", "查询飞机数据",
+                               f"新增 {summary['added']} 架，更新 {summary['updated']} 架，"
+                               f"清理 {summary['removed']} 架（AMRO 在册 {summary['total_amro']} 架）")
+        return summary
 
-    run_in_thread(app, "aircraft", job)
-    return True
+    return run_query("aircraft", "查询飞机数据", job)
 
 
 # ---------- 工作包域 ----------
 
-def _package_header(rows: list[dict]) -> dict:
-    """从清单行取包头（REVNR/ACNO/ACTYPE/ENGTYPE/REVTITLE/CHKTP/PLANSTD ↔ xlsx Row2）。"""
-    first = rows[0] if rows else {}
-    raw_date = str(first.get("PLANSTD", "")).strip()
+# 最近一次工作包列表查询快照（内存态，重启清空）：跨页面/刷新保留查询结果
+_last_package_query: dict = {}
+
+
+def get_last_package_query() -> dict:
+    """最近一次工作包查询快照（rows + fetched_at），供 /upload 渲染注入。"""
+    if not _last_package_query:
+        return {}
+    return {"rows": list(_last_package_query.get("rows", [])),
+            "fetched_at": _last_package_query.get("fetched_at", "")}
+
+
+def _main_squadron(zrfd: str) -> str:
+    """ZRFD 责任分队串（逗号分隔，主责带“(主)”）→ 主分队名（剥掉“(主)”，无标记取首项）。"""
+    parts = [p.strip() for p in str(zrfd or "").replace("，", ",").split(",") if p.strip()]
+    for name in parts:
+        if name.endswith(("（主）", "(主)")):
+            return name[:-3].strip()
+    return parts[0] if parts else ""
+
+
+def _package_header(row: dict | None) -> dict:
+    """BM_TSK_LIST 选中行 → 包头（ACNO/ACTYPE/ENGTYPE/REVTITLE/CHKTP/PLANSTD/ZRFD/LIMH）。
+
+    包头字段只存在于包列表端点（BM_TSK_LIST 41 字段）；包内容清单（BM_TSK_002_LIST）无这些键，
+    必须由列表行构建（2026-08-31 修复：此前从清单行取包头导致机号/描述空、日期兜底成导入日）。
+    """
+    row = row or {}
+    raw_date = str(row.get("PLANSTD", "")).strip()
+    raw_end = str(row.get("PLANEND", "")).strip()
     return {
-        "package": str(first.get("REVNR", "")).strip(),
-        "reg": str(first.get("ACNO", "")).strip(),
-        "type": str(first.get("ACTYPE", "")).strip(),
-        "description": str(first.get("REVTITLE", "")).strip(),
-        "level": str(first.get("CHKTP", "")).strip(),
+        "package": str(row.get("REVNR", "")).strip(),
+        "reg": str(row.get("ACNO", "")).strip(),
+        "type": str(row.get("ACTYPE", "")).strip(),
+        "description": str(row.get("REVTITLE", "")).strip(),
+        "level": str(row.get("CHKTP", "")).strip(),
         "date": raw_date.split()[0].replace("-", ".") if raw_date else "",  # 与解析器同语义
-        "engine": str(first.get("ENGTYPE", "")).strip(),
+        "engine": str(row.get("ENGTYPE", "")).strip(),
+        "plan_end": raw_end.split()[0].replace("-", ".") if raw_end else "",
+        "squadron": _main_squadron(str(row.get("ZRFD", ""))),
+        "plan_hours": str(row.get("LIMH", "")).strip(),  # 语义待真实冒烟校准
     }
 
 
@@ -165,7 +307,7 @@ def _item_from_row(row: dict, source: str) -> dict:
     }
 
 
-def package_items(rows_routine: list[dict], rows_other: list[dict]) -> dict:
+def package_items(rows_routine: list[dict], rows_other: list[dict], header_row: dict | None = None) -> dict:
     """AMRO 两清单行 → 与 xlsx 解析同构的 {all_items, aircraft_info}。
 
     例行来源 BM_TSK_002_LIST、其他来源 BM_TSK_002_LIST_QT（EO/NRC/LS）；
@@ -180,34 +322,41 @@ def package_items(rows_routine: list[dict], rows_other: list[dict]) -> dict:
             continue
         seen.add(it["task_code"])
         uniq.append(it)
-    return {"all_items": uniq, "aircraft_info": _package_header(rows_routine or rows_other)}
+    return {"all_items": uniq, "aircraft_info": _package_header(header_row)}
 
 
 def persist_amro_package(store, service, package_data: dict) -> dict:
-    """AMRO 直读入库：立即匹配（供 S3 计数）+ 保存。返回摘要 {package_id, routine, other, new_cards}。"""
-    from .work_package_matcher import match_work_package_items
+    """AMRO 直读入库：仅入库不匹配（与 Excel 导入一致），生成日期留空待匹配时再记。
 
+    匹配动作由「重新匹配」或打开生成页触发；摘要返回 routine/other 计数（不再有 new_cards）。
+    """
     all_items = package_data.get("all_items", [])
-    matched, new_cards, cancelled = match_work_package_items(all_items, store, service)
     package_data.update({
-        "matched": matched, "new_cards": new_cards, "cancelled": cancelled,
-        "is_matched": True, "generated_at": _now(),
+        "matched": [], "new_cards": [], "cancelled": [],
+        "is_matched": False, "generated_at": None,
         "routine_count": sum(1 for i in all_items if i.get("source") == "例行"),
         "other_count": sum(1 for i in all_items if i.get("source") == "其他"),
     })
     store.save_work_package(package_data)
     return {"package_id": package_data.get("package_id"),
-            "routine": package_data["routine_count"], "other": package_data["other_count"],
-            "new_cards": len(new_cards)}
+            "routine": package_data["routine_count"], "other": package_data["other_count"]}
 
 
-async def import_amro_package(store, client, cookies, revnr, service=None, *, fetch=None) -> dict:
-    """拉 BM_TSK_002_LIST + BM_TSK_002_LIST_QT → package_items → 入库 → 摘要。"""
+async def import_amro_package(store, client, cookies, revnr, service=None, *, fetch=None,
+                              header_row: dict | None = None) -> dict:
+    """拉 BM_TSK_002_LIST + BM_TSK_002_LIST_QT → package_items → 入库 → 摘要。
+
+    header_row 为前端选中的 BM_TSK_LIST 行（含 ACNO/REVTITLE/PLANSTD 等包头字段）；
+    未传时兜底调 list_amro_packages 按 REVNR 匹配。
+    """
     fetch = fetch or amro.fetch_all_pages
     base = {"revnr": str(revnr), "rows": 50}
     rows_routine = await fetch(client, cookies, "BM_TSK_002_LIST", dict(base), timeout=60)
     rows_other = await fetch(client, cookies, "BM_TSK_002_LIST_QT", dict(base), timeout=60)
-    out = package_items(rows_routine, rows_other)
+    if not header_row:
+        listing = await list_amro_packages(client, cookies)
+        header_row = next((r for r in listing if str(r.get("REVNR", "")) == str(revnr)), None)
+    out = package_items(rows_routine, rows_other, header_row)
     info = out["aircraft_info"]
     package_data = {
         "reg": info.get("reg", ""),
@@ -234,26 +383,52 @@ async def list_amro_packages(client, cookies, *, base=None, days=7) -> list[dict
         "gjz": "", "iftj": "", "ifgzrz": "", "page": 1, "rows": 50,
     }
     body = await amro.query_plugin(client, cookies, "BM_TSK_LIST", form)
-    return body.get("data") or []
+    rows = body.get("data") or []
+    _last_package_query.clear()
+    _last_package_query.update({"rows": rows, "fetched_at": _now()})
+    return rows
 
 
 # ---------- 工卡版本域 ----------
 
-async def _pull_card_versions(client, cookies, *, fetch=None) -> dict[str, dict]:
-    """拉 SMJC + EOJC 两清单（JC_STATUS=Y & ISSUED 由查询参数保证）→ {task_code: row}。
+async def _pull_card_versions(client, cookies, *, fetch=None, lists=("SMJC", "EOJC")) -> dict[str, dict]:
+    """拉卡片版本清单 → {task_code: row}。
 
-    WRITE_DATE 两清单零缺失（amro-research 实测）；EOJC 深分页 38~105s/页 → timeout=150。
+    WRITE_DATE 两清单零缺失（amro-research 实测）；EOJC 深分页 38~105s/页 → timeout=150，
+    两清单均加 fleet=AMRO_CARD_FLEET（2026-09-01 实测 SMJC 1319→745、EOJC 5579→4627）。
+    lists 可只拉 SMJC：逐包检查的工卡全为定检例行卡（CSCA 前缀）时跳过 EOJC 深分页。
     """
     fetch = fetch or amro.fetch_all_pages
-    base = {"status": "ISSUED", "jcStatus": "Y", "rows": 500}
-    smjc = await fetch(client, cookies, "TD_JC_SMJC_LIST", dict(base), timeout=150)
-    eojc = await fetch(client, cookies, "TD_JC_ALL_EOJC_LIST", dict(base), timeout=150)
     by_code: dict[str, dict] = {}
-    for row in smjc + eojc:
-        code = str(row.get("JC_NO", "")).strip()
-        if code:
-            by_code[code] = row
+    if "SMJC" in lists:
+        smjc = await fetch(client, cookies, "TD_JC_SMJC_LIST",
+                           {"status": "ISSUED", "jcStatus": "Y", "rows": 500,
+                            "fleet": AMRO_CARD_FLEET}, timeout=150)
+        for row in smjc:
+            code = str(row.get("JC_NO", "")).strip()
+            if code:
+                by_code[code] = row
+    if "EOJC" in lists:
+        eojc = await fetch(client, cookies, "TD_JC_ALL_EOJC_LIST",
+                           {"status": "ISSUED", "jcStatus": "Y", "rows": 500,
+                            "fleet": AMRO_CARD_FLEET}, timeout=150)
+        for row in eojc:
+            code = str(row.get("JC_NO", "")).strip()
+            if code:
+                by_code[code] = row
     return by_code
+
+
+async def _get_entity_by_jcno(client, cookies, jcno, *, query=None) -> dict | None:
+    """TD_JC_ALL_GET_ENTITY_BY_JCNO 按卡号直查工卡实体 → row（查无返回 None）。
+
+    单次 0.25~0.34s（2026-09-01 amro-research 实测）；定检 CSCA-* 与 EOJC-* 两族通用。
+    响应 data 为单对象 dict（total 恒 0 属正常）；空 data 视为查无此卡。
+    """
+    query = query or amro.query_plugin
+    body = await query(client, cookies, "TD_JC_ALL_GET_ENTITY_BY_JCNO", {"jcno": str(jcno)})
+    data = body.get("data") if isinstance(body, dict) else None
+    return data if isinstance(data, dict) and data else None
 
 
 def _wd(row: dict | None) -> str:
@@ -261,155 +436,174 @@ def _wd(row: dict | None) -> str:
 
 
 async def full_version_check(store, client, cookies, *, fetch=None) -> dict:
-    """全库版本检查：库内卡逐一比对 AMRO 编写日期；作废只入报告不删卡（决策#7/#8）。"""
+    """全库版本检查：库内卡逐一比对 AMRO 编写日期；作废只入报告不删卡（决策#7/#8）。
+
+    DP 开头工卡（DP 项目）不在 AMRO 清单体系内，跳过不比对、不报作废。
+    """
     versions = await _pull_card_versions(client, cookies, fetch=fetch)
     revised, cancelled = [], []
     for card in store.get_all():
         code = card.get("task_code", "")
+        if code.startswith("DP"):
+            continue
         row = versions.get(code)
         if row is None:
-            cancelled.append({"task_code": code, "task_name": card.get("task_name", "")})
+            cancelled.append({"task_code": code,
+                              "task_name": card.get("task_name", ""),
+                              "category": card.get("category", "")})
             continue
         new_wd = _wd(row)
         old_wd = str(card.get("write_date", "")).strip()
-        if new_wd and new_wd != old_wd:
+        if new_wd and new_wd[:10] != old_wd[:10]:   # 按日期部分比对（界面 date 只存 YYYY-MM-DD）
             store.update(card["id"], write_date=new_wd)
-            revised.append({"task_code": code, "old_wd": old_wd, "new_wd": new_wd})
+            revised.append({"task_code": code,
+                            "task_name": card.get("task_name", ""),
+                            "category": card.get("category", ""),
+                            "old_wd": old_wd, "new_wd": new_wd})
     return {"revised": revised, "cancelled": cancelled, "total_amro": len(versions)}
 
 
-async def check_cards_against_amro(store, client, cookies, task_codes, *, fetch=None) -> dict:
-    """提醒单用：实时拉两清单（客户端过滤到 task_codes）→ 比对更新 → {revised, cancelled, new_by_category}。"""
-    wanted = {str(c).strip() for c in task_codes if str(c).strip()}
-    versions = await _pull_card_versions(client, cookies, fetch=fetch)
+async def check_cards_against_amro(store, client, cookies, task_codes, *, fetch=None, query=None) -> dict:
+    """包级版本检查：拉清单 → 对指定工卡比对 AMRO 编写日期 → {revised, cancelled}。
+
+    仅处理卡库已存在的卡（包内新卡由匹配流程负责，不进版本报告）。
+    取数提速（v3.6.0，amro-research 2026-09-01 结论）：
+    - 定检例行卡（CSCA 前缀）→ SMJC 全量拉（fleet=A320，3 页约 5 秒）
+    - 其余（EO/NRC/LS 等）→ 逐个 TD_JC_ALL_GET_ENTITY_BY_JCNO 直查（~50 张 ≈ 2 分钟），
+      不再全量拉 EOJC 深分页（此前约 8 分钟）；实体端点两族通用，分类不精确也不会漏查
+    DP 开头工卡（DP 项目）不在 AMRO 清单体系内，直接排除：不查询、不误报作废。
+    """
+    wanted = {str(c).strip() for c in task_codes
+              if str(c).strip() and not str(c).strip().startswith("DP")}
+    versions: dict[str, dict] = {}
+    routine = {c for c in wanted if c.startswith("CSCA")}
+    other = wanted - routine
+    if routine:
+        versions.update(await _pull_card_versions(client, cookies, fetch=fetch, lists=("SMJC",)))
+    for code in sorted(other):
+        row = await _get_entity_by_jcno(client, cookies, code, query=query)
+        if row is not None:
+            versions[code] = row
     all_cards = {c.get("task_code", ""): c for c in store.get_all()}
     revised, cancelled = [], []
-    new_by_category: dict[str, list] = {}
     for code in sorted(wanted):
         card = all_cards.get(code)
-        row = versions.get(code)
         if card is None:
-            # 新工卡：包内出现但卡库无 → 按专业分组（spec 决策#9）
-            cat = str((row or {}).get("ZY", "")).strip()
-            if cat == "机身":
-                cat = "机体"
-            new_by_category.setdefault(cat or "其他", []).append({
-                "task_code": code,
-                "task_name": str((row or {}).get("JCTITLE", "")).strip(),
-            })
             continue
+        row = versions.get(code)
         if row is None:
-            cancelled.append({"task_code": code, "task_name": card.get("task_name", "")})
+            cancelled.append({"task_code": code,
+                              "task_name": card.get("task_name", ""),
+                              "category": card.get("category", "")})
             continue
         new_wd = _wd(row)
         old_wd = str(card.get("write_date", "")).strip()
-        if new_wd and new_wd != old_wd:
+        if new_wd and new_wd[:10] != old_wd[:10]:   # 按日期部分比对（界面 date 只存 YYYY-MM-DD）
             store.update(card["id"], write_date=new_wd)
-            revised.append({"task_code": code, "old_wd": old_wd, "new_wd": new_wd})
-    return {"revised": revised, "cancelled": cancelled, "new_by_category": new_by_category}
+            revised.append({"task_code": code,
+                            "task_name": card.get("task_name", ""),
+                            "category": card.get("category", ""),
+                            "old_wd": old_wd, "new_wd": new_wd})
+    return {"revised": revised, "cancelled": cancelled}
 
 
-def build_version_report_excel(report: dict) -> bytes:
-    """改版清单 Excel：改版工卡 sheet + 作废工卡 sheet。"""
-    from openpyxl import Workbook
+def _group_by_category(rows: list[dict]) -> list[tuple[str, list[dict]]]:
+    """按专业分组（发动机→机体→电子→其他，稳定顺序）—— 与提醒单分专业同构。"""
+    grouped: dict[str, list[dict]] = {}
+    for r in rows:
+        cat = str(r.get("category", "")).strip() or "其他"
+        grouped.setdefault(cat, []).append(r)
+    priority = {"发动机": 0, "机体": 1, "电子": 2}
+    return [(c, grouped[c]) for c in sorted(grouped, key=lambda c: (priority.get(c, 99), c))]
 
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "改版工卡"
-    ws.append(["工卡号", "旧编写日期", "新编写日期"])
-    for r in report.get("revised", []):
-        ws.append([r.get("task_code", ""), r.get("old_wd", ""), r.get("new_wd", "")])
-    ws2 = wb.create_sheet("作废工卡")
-    ws2.append(["工卡号", "工卡名称"])
-    for r in report.get("cancelled", []):
-        ws2.append([r.get("task_code", ""), r.get("task_name", "")])
+
+def _dot_date(ts: str) -> str:
+    """时间戳 YYYYMMDD[_HHMMSS] → 提醒单同款点分日期 2026.09.01（非法输入返回空串）。"""
+    d = (ts or "").strip()[:8]
+    return f"{d[:4]}.{d[4:6]}.{d[6:8]}" if len(d) == 8 and d.isdigit() else ""
+
+
+def build_version_report_excel(report: dict, title_label: str = "",
+                               finished_date: str = "") -> bytes:
+    """改版清单 Excel —— 以专用模板《工卡改版清单》输出（两处查询共用）。
+
+    模板（assets/check_template.xlsx）结构：行1 标题（A1:C1 合并）、行2 专业表头
+    （A 电子 / B 发动机 / C 机体，深绿白字）、行3+ 数据区（已删飞机信息块与图例，
+    每列预置绿底）。条目从行 3 起按专业列堆叠，同列先改版后作废——每个条目单单元格
+    三行：改版 = 工卡号/工卡名称/旧→新；作废 = 工卡号/工卡名称/作废。字体统一
+    宋体 11 黑字（覆盖模板预置红字），保留每列原绿底，wrap_text 沿用模板。
+    """
+    import openpyxl
+    from openpyxl.styles import Font
+
+    def _date_span(wd: str) -> str:
+        return (wd or "").strip()[:10]
+
+    def _next_row(ws, col: int, start: int = 3) -> int:
+        """找到该列数据区下一个空行（从 start 起）。"""
+        row = start
+        while ws.cell(row=row, column=col).value not in (None, ""):
+            row += 1
+        return row
+
+    label_part = f"（{title_label}）" if title_label else ""
+    title = f"工卡改版清单{label_part}查询日期{finished_date}"
+
+    wb = openpyxl.load_workbook(CHECK_TEMPLATE_FILE)
+    ws = wb["改版清单"]
+    ws["A1"] = title
+
+    body_font = Font(name="宋体", size=11, color="FF000000")
+
+    def write_entries(rows: list[dict], *, with_dates: bool) -> None:
+        for cat, items in _group_by_category(rows):
+            col = COL_MAP.get(cat)
+            if col is None:   # 特检/支援/其他：与提醒单一致不输出
+                continue
+            for it in items:
+                cell = ws.cell(row=_next_row(ws, col), column=col)
+                lines = [str(it.get("task_code", "")), str(it.get("task_name", ""))]
+                if with_dates:
+                    old, new = _date_span(it.get("old_wd", "")), _date_span(it.get("new_wd", ""))
+                    span = f"{old}→{new}" if old and new else (new or old)
+                    if span:
+                        lines.append(span)
+                else:
+                    lines.append("作废")
+                cell.value = "\n".join(lines)
+                cell.font = body_font
+
+    write_entries(report.get("revised", []), with_dates=True)
+    write_entries(report.get("cancelled", []), with_dates=False)
     buf = io.BytesIO()
     wb.save(buf)
+    wb.close()
+    buf.seek(0)
     return buf.getvalue()
 
 
-def apply_reminder_version_section(ws, report: dict) -> None:
-    """提醒单附加版本区块：改版/新工卡行蓝底(FF0000FF)，作废行浅红底(FFFFC7CE)+行首"已作废"。"""
-    from openpyxl.styles import Font, PatternFill
-
-    blue = PatternFill(fill_type="solid", start_color="FF0000FF", end_color="FF0000FF")
-    red = PatternFill(fill_type="solid", start_color="FFFFC7CE", end_color="FFFFC7CE")
-    white_bold = Font(color="FFFFFF", bold=True)
-
-    def section_title(text):
-        c = ws.cell(row=ws.max_row + 2, column=1, value=text)
-        c.font = Font(bold=True)
-
-    def fill_row(row_idx, cols, fill):
-        for col in range(1, cols + 1):
-            ws.cell(row=row_idx, column=col).fill = fill
-
-    revised = report.get("revised", [])
-    cancelled = report.get("cancelled", [])
-    new_by_category = report.get("new_by_category") or {}
-    if not revised and not cancelled and not new_by_category:
-        ws.cell(row=ws.max_row + 2, column=1, value="版本检查完成：无改版、无作废工卡")
-        return
-
-    section_title("⚠ 工卡版本检查（实时比对 AMRO 编写日期）")
-
-    if revised:
-        r = ws.max_row + 1
-        for col, head in enumerate(("改版工卡", "旧编写日期", "新编写日期"), start=1):
-            cell = ws.cell(row=r, column=col, value=head)
-            cell.fill = blue
-            cell.font = white_bold
-        for item in revised:
-            r += 1
-            ws.cell(row=r, column=1, value=item.get("task_code", ""))
-            ws.cell(row=r, column=2, value=item.get("old_wd", "") or "（无）")
-            ws.cell(row=r, column=3, value=item.get("new_wd", ""))
-            fill_row(r, 3, blue)
-
-    if new_by_category:
-        for cat, items in new_by_category.items():
-            r = ws.max_row + 1
-            cell = ws.cell(row=r, column=1, value=f"新工卡（{cat}）")
-            cell.fill = blue
-            cell.font = white_bold
-            for it in items:
-                r += 1
-                ws.cell(row=r, column=1, value=it.get("task_code", ""))
-                ws.cell(row=r, column=2, value=it.get("task_name", ""))
-                fill_row(r, 2, blue)
-
-    if cancelled:
-        r = ws.max_row + 1
-        for col, head in enumerate(("作废工卡", "工卡名称"), start=1):
-            cell = ws.cell(row=r, column=col, value=head)
-            cell.fill = red
-        for item in cancelled:
-            r += 1
-            ws.cell(row=r, column=1, value=f"已作废：{item.get('task_code', '')}")
-            ws.cell(row=r, column=2, value=item.get("task_name", ""))
-            fill_row(r, 2, red)
-
-
-def start_version_check(app, output_dir) -> bool:
-    """启动全库版本检查后台任务。返回 False = 已在跑（S1 防重复）。"""
-    store = app.extensions["store"]
-    if store.get_amro_sync_meta().get("version", {}).get("status") == "running":
-        return False
-    session_store = app.extensions["inventory_service"].session_store
-
+def start_full_version_check(store, session_store, output_dir) -> bool:
+    """启动全量查询工卡版本后台任务。返回 False = 已有查询在跑（全局互斥，不排队）。"""
     def job():
         cookies = (session_store.load() or {}).get("cookies", {})
 
         async def _inner():
             async with httpx.AsyncClient(verify=True, trust_env=False) as client:
-                return await full_version_check(store, client, cookies)
+                rep = await full_version_check(store, client, cookies)
+            ts = datetime.now(BJ).strftime("%Y%m%d_%H%M%S")
+            filename = f"amro_full_version_report_{ts}.xlsx"
+            (output_dir / filename).write_bytes(
+                build_version_report_excel(rep, title_label="全量",
+                                           finished_date=_dot_date(ts)))
+            rep["filename"] = filename
+            return rep
 
-        report = asyncio.run(_inner())
-        ts = datetime.now(BJ).strftime("%Y%m%d_%H%M%S")
-        filename = f"amro_version_report_{ts}.xlsx"
-        (output_dir / filename).write_bytes(build_version_report_excel(report))
-        report["filename"] = filename
-        return report
+        rep = asyncio.run(_inner())
+        save_last_query_result("full_version", "全量查询工卡版本",
+                               f"改版 {len(rep['revised'])} 张，作废 {len(rep['cancelled'])} 张"
+                               f"（AMRO 在册 {rep['total_amro']} 张）",
+                               download_url="/card/amro-version-report", output_dir=output_dir)
+        return {"revised": len(rep["revised"]), "cancelled": len(rep["cancelled"]),
+                "total_amro": rep["total_amro"], "filename": rep["filename"]}
 
-    run_in_thread(app, "version", job)
-    return True
+    return run_query("full_version", "全量查询工卡版本", job)

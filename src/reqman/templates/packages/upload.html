@@ -11,20 +11,26 @@
 <!-- Card 0：从 AMRO 拉取工作包（v3.5.0 新增） -->
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">🔄 从 AMRO 拉取工作包</h5>
-        <button class="btn btn-primary btn-sm" id="amroPackRefresh">刷新包列表</button>
+        <h5 class="mb-0">查询工作包</h5>
+        <button class="btn btn-primary btn-sm" id="amroPackRefresh">查询工作包</button>
     </div>
     <div class="card-body">
         <p class="text-muted small mb-2">从 AMRO「任务接收」直读工卡清单（基地 KM01，日期窗今±7天），替代人工打印上传；需先在表头完成 AMRO 登录。</p>
+        {% if amro_last_pkg_query %}
+        <div class="alert alert-success py-2 px-3 small mb-2">
+            上次查询（{{ amro_last_pkg_query.finished_at }}）：{{ amro_last_pkg_query.summary }}
+        </div>
+        {% endif %}
+        <div class="q-card" id="qCardPackages" style="display:none"></div>
         <div class="table-responsive">
             <table class="table table-sm table-hover mb-0" id="amroPackTable">
                 <thead><tr>
-                    <th>包号</th><th>机号</th><th>机型</th><th>描述</th>
-                    <th>级别</th><th>计划开工</th><th>计划完成</th>
+                    <th>机号</th><th>描述</th><th>机型</th><th>发动机</th>
+                    <th>已分配分队</th><th>计划开工</th><th>计划总工时</th>
                     <th class="text-center" style="width:90px">操作</th>
                 </tr></thead>
                 <tbody>
-                    <tr class="empty-state-row"><td colspan="8" class="text-center text-muted py-3">点击「刷新包列表」从 AMRO 获取</td></tr>
+                    <tr class="empty-state-row"><td colspan="8" class="text-center text-muted py-3">点击「查询工作包」从 AMRO 获取</td></tr>
                 </tbody>
             </table>
         </div>
@@ -74,20 +80,30 @@
 {% if work_packages %}
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">📝 工作包 <span class="badge bg-secondary ms-2">{{ work_packages|length }}</span></h5>
+        <h5 class="mb-0">📦 已导入工作包 <span class="badge bg-secondary ms-2">{{ work_packages|length }}</span></h5>
     </div>
     <div class="card-body p-0">
+        {% if amro_last_pkg_ver %}
+        <div class="alert alert-success py-2 px-3 small mb-0" style="border-radius:0">
+            上次查询（{{ amro_last_pkg_ver.finished_at }}）：{{ amro_last_pkg_ver.summary }}
+            {% if amro_last_pkg_ver.download_url %}<a class="btn btn-outline-primary btn-sm ms-2 py-0" href="{{ amro_last_pkg_ver.download_url }}">⬇下载逐包改版清单</a>{% endif %}
+        </div>
+        {% endif %}
+        <div class="q-card" id="qCardPkgVerCheck" style="display:none;margin:12px"></div>
         <div class="table-responsive">
             <table class="table table-hover mb-0" id="wpTable">
                 <thead>
-                    {{ list.filter_row([('搜索机号...','wpReg'),('搜索日期...','wpDate'),('','_'),('','_'),('','_'),('','_')]) }}
+                    {{ list.filter_row([('搜索机号...','wpReg'),('','_'),('','_'),('','_'),('','_'),('搜索开工日期...','wpDate'),('','_'),('','_'),('','_')]) }}
                     <tr>
                         <th data-col="0">机号</th>
-                        <th data-col="1">日期</th>
-                        <th>内容</th>
+                        <th>描述</th>
+                        <th>机型</th>
+                        <th>发动机</th>
+                        <th>已分配分队</th>
+                        <th data-col="5">开工日期</th>
                         <th>工卡数</th>
-                        <th>生成时间</th>
-                        <th style="width:120px" class="text-center">操作</th>
+                        <th>生成日期</th>
+                        <th style="width:270px" class="text-center">操作</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -96,17 +112,24 @@
                     style="cursor:pointer"
                     class="{% if wp.status == 'warning' %}wp-warning{% elif wp.status == 'danger' %}wp-danger{% endif %}">
                     <td>{{ wp.aircraft_info.reg if wp.aircraft_info else wp.reg }}</td>
+                    <td>{{ (wp.aircraft_info.description if wp.aircraft_info else wp.description) or '' }}</td>
+                    <td>{{ (wp.aircraft_info.type if wp.aircraft_info else '') or '' }}</td>
+                    <td>{{ (wp.aircraft_info.engine if wp.aircraft_info else '') or '' }}</td>
+                    <td>{{ (wp.aircraft_info.squadron if wp.aircraft_info else '') or '' }}</td>
                     <td>{{ wp.date }}</td>
-                    <td>{{ wp.aircraft_info.description if wp.aircraft_info else wp.description }}</td>
                     <td>{{ wp.routine_count }}+{{ wp.other_count }}</td>
                     <td onclick="event.stopPropagation()">
                         {{ wp.generated_at or '—' }}
                     </td>
                     <td onclick="event.stopPropagation()">
-                        <form method="POST" action="/packages/{{ wp.package_id }}/rematch" style="display:inline">
-                            <button type="submit" class="btn btn-outline-secondary btn-sm py-0"
-                                    onclick="return confirm('重新匹配将使用当前数据库刷新匹配状态，确认？')">🔄 重新匹配</button>
-                        </form>
+                        <div class="d-flex gap-1 justify-content-center" style="white-space:nowrap">
+                            <form method="POST" action="/packages/{{ wp.package_id }}/rematch" style="display:inline">
+                                <button type="submit" class="btn btn-outline-secondary btn-sm"
+                                        onclick="return confirm('重新匹配将使用当前数据库刷新匹配状态，确认？')">🔄 重新匹配</button>
+                            </form>
+                            <button type="button" class="btn btn-outline-primary btn-sm"
+                                    onclick="pkgVersionCheck('{{ wp.package_id }}', this)">🔍 查询工作包工卡版本</button>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
@@ -133,7 +156,7 @@
         <div class="table-responsive">
             <table class="table table-sm table-hover mb-0" id="amroVerLogTable">
                 <thead><tr>
-                    <th style="width:140px">时间</th><th>工卡号</th>
+                    <th style="width:140px">时间</th><th>工卡号</th><th>工卡名称</th>
                     <th>旧编写日期</th><th>新编写日期</th><th style="width:90px">操作</th>
                 </tr></thead>
                 <tbody>
@@ -141,12 +164,13 @@
                     <tr>
                         <td>{{ l.time }}</td>
                         <td><strong>{{ l.task_code }}</strong></td>
+                        <td>{{ l.task_name or '—' }}</td>
                         <td>{{ l.old or '—' }}</td>
                         <td>{{ l.new }}</td>
                         <td>{{ l.operation }}</td>
                     </tr>
                 {% else %}
-                    <tr class="empty-state-row"><td colspan="5" class="text-center text-muted py-3">暂无版本变动记录（版本检查发现改版后自动记录）</td></tr>
+                    <tr class="empty-state-row"><td colspan="6" class="text-center text-muted py-3">暂无版本变动记录（版本检查发现改版后自动记录）</td></tr>
                 {% endfor %}
                 </tbody>
             </table>
@@ -167,7 +191,7 @@ function fileSelected(input, zoneId) {
         zone.querySelector('.file-name').style.display = 'block';
     }
 }
-['wpReg:0','wpDate:1'].forEach(function(p) {
+['wpReg:0','wpDate:5'].forEach(function(p) {
     var id = p.split(':')[0], col = p.split(':')[1];
     var el = document.getElementById(id);
     if (el) el.setAttribute('data-col', col);
@@ -211,35 +235,57 @@ function amroRequireLogin() {
     return false;
 }
 
-function refreshAmroPacks() {
-    if (!amroRequireLogin()) return;
-    window.showLoader();
-    fetch('/packages/amro-list', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-        .then(function(r) { return r.json(); }).then(function(d) {
-            window.hideLoader();
-            if (!d.success) { window.safeToast(d.message || '拉取失败', 'error'); return; }
-            var rows = (d.data && d.data.packages) || [];
-            var tbody = document.querySelector('#amroPackTable tbody');
-            if (!rows.length) {
-                tbody.innerHTML = '<tr class="empty-state-row"><td colspan="8" class="text-center text-muted py-3">日期窗内暂无任务包</td></tr>';
-                return;
-            }
-            tbody.innerHTML = rows.map(function(p) {
-                return '<tr><td><strong>' + (p.REVNR || '') + '</strong></td>' +
-                    '<td>' + (p.ACNO || '') + '</td><td>' + (p.ACTYPE || '') + '</td>' +
-                    '<td>' + (p.REVTITLE || '') + '</td><td>' + (p.CHKTP || '') + '</td>' +
-                    '<td>' + (p.PLANSTD || '') + '</td><td>' + (p.PLANEND || '') + '</td>' +
-                    '<td class="text-center"><button class="btn btn-outline-primary btn-sm py-0" ' +
-                    'onclick="importPack(\'' + (p.REVNR || '') + '\', this)">导入</button></td></tr>';
-            }).join('');
-        }).catch(function() { window.hideLoader(); window.safeToast('拉取包列表失败', 'error'); });
+function mainSquadron(zrfd) {
+    if (!zrfd) return '';
+    var parts = String(zrfd).replace(/，/g, ',').split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+    for (var i = 0; i < parts.length; i++) {
+        if (parts[i].indexOf('(主)') >= 0 || parts[i].indexOf('（主）') >= 0) {
+            return parts[i].replace(/\(主\)|（主）/g, '').trim();
+        }
+    }
+    return parts[0] || '';
 }
 
-function importPack(revnr, btn) {
+function renderAmroPacks(rows) {
+    window._amroPacks = rows || [];
+    var tbody = document.querySelector('#amroPackTable tbody');
+    if (!tbody) return;
+    if (!window._amroPacks.length) {
+        tbody.innerHTML = '<tr class="empty-state-row"><td colspan="8" class="text-center text-muted py-3">日期窗内暂无任务包</td></tr>';
+        return;
+    }
+    tbody.innerHTML = window._amroPacks.map(function(p, i) {
+        return '<tr><td><strong>' + (p.ACNO || '') + '</strong></td>' +
+            '<td>' + (p.REVTITLE || '') + '</td><td>' + (p.ACTYPE || '') + '</td>' +
+            '<td>' + (p.ENGTYPE || '') + '</td><td>' + mainSquadron(p.ZRFD) + '</td>' +
+            '<td>' + ((p.PLANSTD || '').slice(0, 10)) + '</td><td>' + (p.LIMH || '') + '</td>' +
+            '<td class="text-center"><button class="btn btn-outline-primary btn-sm" ' +
+            'onclick="importPack(this, ' + i + ')">导入</button></td></tr>';
+    }).join('');
+}
+
+function refreshAmroPacks() {
     if (!amroRequireLogin()) return;
+    var card = window.QueryCard.run('qCardPackages', '查询工作包');
+    fetch('/packages/amro-list', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function(r) { return r.json(); }).then(function(d) {
+            if (!d.success) { card.fail(d.message || '查询失败'); return; }
+            var rows = (d.data && d.data.packages) || [];
+            card.done('查询结果（' + ((d.data && d.data.fetched_at) || '') + '）：获取到 ' + rows.length + ' 个任务包');
+            window.safeToast('查询完成：获取到 ' + rows.length + ' 个任务包', 'success', 6000);
+            renderAmroPacks(rows);
+        }).catch(function() { card.fail('查询工作包失败'); });
+}
+
+function importPack(btn, idx) {
+    if (!amroRequireLogin()) return;
+    var row = (window._amroPacks || [])[idx];
+    var revnr = row ? (row.REVNR || '') : '';
+    if (!revnr) { window.safeToast('缺少包号，请重新查询', 'error'); return; }
     btn.disabled = true; btn.textContent = '导入中…';
     var fd = new FormData();
     fd.append('revnr', revnr);
+    fd.append('header', JSON.stringify(row));
     fetch('/packages/amro-fetch', { method: 'POST', body: fd,
         headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then(function(r) { return r.json(); }).then(function(d) {
@@ -256,9 +302,44 @@ function importPack(revnr, btn) {
         });
 }
 
+// ===== 工作包行级：查询工作包工卡版本（同步请求，行内按钮显示比对进度） =====
+function pkgVersionCheck(packageId, btn) {
+    if (!amroRequireLogin()) return;
+    btn.disabled = true;
+    var tr = btn.closest('tr');
+    var reg = tr && tr.cells[0] ? (tr.cells[0].textContent || '').trim() : '';
+    var desc = tr && tr.cells[1] ? (tr.cells[1].textContent || '').trim() : '';
+    var label = (reg + ' ' + desc).trim() || packageId;   // 进度条显示机号+描述，不再显示编号
+    var card = window.QueryCard.run('qCardPkgVerCheck', '查询工作包工卡版本 - ' + label);
+    var fd = new FormData();
+    fd.append('package_id', packageId);
+    fetch('/packages/' + packageId + '/amro-version-check', { method: 'POST', body: fd,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function(r) { return r.json(); }).then(function(d) {
+            btn.disabled = false; btn.textContent = '🔍 查询工作包工卡版本';
+            if (d.success) {
+                card.done(d.message || '版本检查完成');
+                window.safeToast(d.message || '版本检查完成', 'success', 8000);
+            } else {
+                card.fail(d.message || '查询失败');
+                window.safeToast(d.message || '查询失败', 'error', 8000);
+            }
+        }).catch(function() {
+            btn.disabled = false; btn.textContent = '🔍 查询工作包工卡版本';
+            card.fail('查询失败');
+            window.safeToast('查询失败', 'error');
+        });
+}
+
+// 服务端注入的上次查询快照（内存态，重启清空）：跨页面/刷新保留查询结果
+var amroPkgQuery = {{ (amro_pkg_query or {})|tojson }};
+
 document.addEventListener('DOMContentLoaded', function() {
     var refreshBtn = document.getElementById('amroPackRefresh');
     if (refreshBtn) refreshBtn.addEventListener('click', refreshAmroPacks);
+    if (amroPkgQuery && amroPkgQuery.rows) {   // 保留上次查询结果表格（持久状态栏已由服务器端渲染）
+        renderAmroPacks(amroPkgQuery.rows);
+    }
 });
 </script>
 {% endblock %}

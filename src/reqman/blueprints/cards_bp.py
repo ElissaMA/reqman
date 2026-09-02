@@ -1,7 +1,8 @@
 """工卡管理蓝图 — 工卡 CRUD + 工卡组管理"""
 
 import logging
-import re
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request, send_file
 
@@ -37,12 +38,14 @@ def card_list():
                                cards=cards,
                                categories=CATEGORIES, task_types=TASK_TYPES,
                                reminder_types=REMINDER_TYPES,
-                               amro_meta=current_app.extensions['store'].get_amro_sync_meta().get("version", {}))
+                               amro_status=amro_sync.get_query_status("full_version"),
+                               amro_last_query=amro_sync.get_last_query_result("full_version"))
     except Exception:
         logger.exception("获取工卡列表失败")
         flash("加载工卡列表失败，请稍后重试", "error")
         return render_template("cards/list.html", cards=[],
-                               reminder_types=REMINDER_TYPES, amro_meta={})
+                               reminder_types=REMINDER_TYPES, amro_status={},
+                               amro_last_query=amro_sync.get_last_query_result("full_version"))
 
 
 def _is_ajax():
@@ -84,6 +87,17 @@ def _parse_reminder():
     return reminder_type, reminder_confirmed, None
 
 
+def _parse_write_date() -> str:
+    """编写日期（date 输入 → YYYY-MM-DD；留空返回空串）。"""
+    v = (request.form.get("write_date") or "").strip()
+    if not v:
+        return ""
+    try:
+        return datetime.fromisoformat(v).date().isoformat()
+    except ValueError as e:
+        raise ValidationError("编写日期格式不正确，应为 YYYY-MM-DD", "write_date") from e
+
+
 @cards_bp.route("/card/new", methods=["GET", "POST"])
 def card_new():
     """新增工卡"""
@@ -111,6 +125,7 @@ def card_new():
                 materials_confirmed=materials_confirmed,
                 reminder_type=reminder_type,
                 reminder_confirmed=reminder_confirmed,
+                write_date=_parse_write_date(),
                 card_ok=True,
             )
             if _is_ajax():
@@ -177,6 +192,7 @@ def card_edit(card_id):
                 materials_confirmed=materials_confirmed,
                 reminder_type=reminder_type,
                 reminder_confirmed=reminder_confirmed,
+                write_date=_parse_write_date(),
                 card_ok=True,
             )
             if _is_ajax():
@@ -493,49 +509,55 @@ def _require_amro_session() -> bool:
 
 @cards_bp.route("/card/aircraft/amro-sync", methods=["POST"])
 def aircraft_amro_sync():
-    """从 AMRO 同步飞机信息（后台线程执行，立即返回 started）。"""
+    """查询飞机数据（后台线程执行，立即返回 started）。"""
     if not _require_amro_session():
         return jsonify({"success": False, "message": MESSAGES["P8"]}), 401
-    if not amro_sync.start_aircraft_sync(current_app):
-        return jsonify({"success": False, "message": "同步进行中，请勿重复操作"}), 409
+    store = current_app.extensions["store"]
+    session_store = current_app.extensions["inventory_service"].session_store
+    if not amro_sync.start_aircraft_sync(store, session_store):
+        return jsonify({"success": False, "message": amro_sync.query_busy_message()
+                        or "已有查询任务进行中，请等待完成后再查询"}), 409
     return jsonify({"success": True, "data": {"started": True}})
 
 
 @cards_bp.route("/card/aircraft/amro-status")
 def aircraft_amro_status():
-    """飞机同步进度/报告（amro_sync_meta.aircraft）。"""
-    meta = current_app.extensions["store"].get_amro_sync_meta().get("aircraft", {})
-    return jsonify({"success": True, "data": meta})
+    """查询飞机数据进度/简要结果（内存态）。"""
+    return jsonify({"success": True, "data": amro_sync.get_query_status("aircraft")})
 
 
 # ======================== 工卡版本检查（v3.5.0） ========================
 
 @cards_bp.route("/card/amro-version-check", methods=["POST"])
 def amro_version_check():
-    """全库工卡版本检查（后台线程：实时拉 AMRO 比对 write_date，约 3~15 分钟）。"""
+    """全量查询工卡版本（后台线程：实时拉 AMRO 比对 write_date，约 3~15 分钟）。"""
     if not amro_sync.require_amro_session():
         return jsonify({"success": False, "message": MESSAGES["P8"]}), 401
-    if not amro_sync.start_version_check(current_app, OUTPUT_DIR):
-        return jsonify({"success": False, "message": "版本检查进行中，请勿重复操作"}), 409
+    store = current_app.extensions["store"]
+    session_store = current_app.extensions["inventory_service"].session_store
+    if not amro_sync.start_full_version_check(store, session_store, OUTPUT_DIR):
+        return jsonify({"success": False, "message": amro_sync.query_busy_message()
+                        or "已有查询任务进行中，请等待完成后再查询"}), 409
     return jsonify({"success": True, "data": {"started": True}})
 
 
 @cards_bp.route("/card/amro-version-status")
 def amro_version_status():
-    """版本检查进度/结果（amro_sync_meta.version）。"""
-    meta = current_app.extensions["store"].get_amro_sync_meta().get("version", {})
-    return jsonify({"success": True, "data": meta})
+    """全量查询工卡版本进度/简要结果（内存态）。"""
+    return jsonify({"success": True, "data": amro_sync.get_query_status("full_version")})
 
 
-@cards_bp.route("/card/amro-version-report/<ts>")
-def amro_version_report(ts):
-    """改版清单 Excel 下载（ts 仅允许时间戳格式，防路径穿越）。"""
-    if not re.fullmatch(r"[0-9]{8}_[0-9]{6}", ts):
-        return jsonify({"success": False, "message": "非法报告标识"}), 400
-    path = OUTPUT_DIR / f"amro_version_report_{ts}.xlsx"
-    if not path.exists():
-        return jsonify({"success": False, "message": "报告不存在或已清理"}), 404
-    return send_file(path, as_attachment=True, download_name=path.name,
+@cards_bp.route("/card/amro-version-report")
+def amro_version_report_latest():
+    """下载最近一次全量查询工卡版本的改版清单（output/ 内最新文件）。"""
+    reports = sorted(OUTPUT_DIR.glob("amro_full_version_report_*.xlsx"))
+    if not reports:
+        return jsonify({"success": False, "message": "尚无改版清单，请先执行「全量查询工卡版本」"}), 404
+    path = reports[-1]
+    finished = datetime.fromtimestamp(
+        path.stat().st_mtime, ZoneInfo("Asia/Shanghai")).strftime("%Y.%m.%d")
+    return send_file(path, as_attachment=True,
+                     download_name=f"工卡改版清单（全量）查询日期{finished}.xlsx",
                      mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 
@@ -544,14 +566,17 @@ def aircraft_list():
     """飞机信息列表"""
     try:
         ac_list = current_app.extensions['card_service'].list_aircraft()
-        amro_meta = current_app.extensions['store'].get_amro_sync_meta().get("aircraft", {})
+        amro_status = amro_sync.get_query_status("aircraft")
+        amro_last_query = amro_sync.get_last_query_result("aircraft")
         return render_template("cards/aircraft.html",
-                               ac_list=ac_list, amro_meta=amro_meta)
+                               ac_list=ac_list, amro_status=amro_status,
+                               amro_last_query=amro_last_query)
     except Exception:
         logger.exception("获取飞机信息列表失败")
         flash("加载飞机信息失败", "error")
         return render_template("cards/aircraft.html",
-                               ac_list=[], amro_meta={})
+                               ac_list=[], amro_status={},
+                               amro_last_query=amro_sync.get_last_query_result("aircraft"))
 
 
 @cards_bp.route("/card/aircraft/new", methods=["GET", "POST"])

@@ -398,12 +398,6 @@ class TestAmroRuntime:
         logs = json_store.get_logs()
         assert any(c["field"] == "write_date" for l in logs for c in l["changes"])
 
-    def test_sync_meta_roundtrip(self, json_store):
-        json_store.set_amro_sync_meta("aircraft", {"added": 3})
-        assert json_store.get_amro_sync_meta()["aircraft"]["added"] == 3
-        json_store.set_amro_sync_meta("aircraft", {"added": 5, "updated": 1})
-        assert json_store.get_amro_sync_meta()["aircraft"] == {"added": 5, "updated": 1}
-
     def test_version_logs_filters_card_logs(self, json_store):
         """版本日志=card_logs 中 changes 含 write_date 的条目（无新存储）"""
         r = json_store.add("C-1", "卡", "机体", "", "")

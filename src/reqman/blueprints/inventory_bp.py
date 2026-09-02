@@ -11,6 +11,7 @@ from pathlib import Path
 from flask import Blueprint, current_app, render_template, request, send_file
 
 from ..config import AMRO_LOGIN_VERSION, AMRO_PUBLIC_URL, OUTPUT_DIR
+from ..services import amro_sync
 from ..utils.error_handlers import ValidationError
 from ..utils.response import api_error, api_success
 
@@ -72,15 +73,14 @@ def setup_package():
     readme_source = (
         "川航 AMRO 登录脚本配置包\n"
         "=======================\n"
-        "1. 请将本文件夹解压到【桌面】，保持文件夹名 amro_login_setup 不变\n"
-        "2. （推荐，一次性）双击 register_protocol.bat 注册一键登录协议\n"
-        "   —— 注册后可直接点击系统表头的「⚡一键登录」唤起登录\n"
-        "3. 双击 start_login.bat\n"
-        "4. 按提示关闭已登录的川航 AMRO 页面，点击确认后完成登录\n"
+        "1. 将本文件夹解压到【任意位置】（无需放到桌面）\n"
+        "2. 双击 register_protocol.bat —— 注册一键登录协议并立即启动登录（一次性，推荐）\n"
+        "   注册后可直接点击系统表头的「⚡一键登录」唤起登录；未注册也可随时双击 start_login.bat 登录\n"
+        "3. 按提示关闭已登录的川航 AMRO 页面，点击确认后完成登录\n"
         "登录成功后脚本将自动上传凭证，本系统页面即可开始查询。\n"
         "首次运行约 1-2 分钟自动安装运行环境，使用系统自带 Chrome/Edge 浏览器，无需下载浏览器。\n"
         "注意：请勿将 .runtime 文件夹拷贝到其他机器，每台机器首次运行脚本会自动安装运行环境。\n"
-        "未注册协议不影响登录：随时可双击 start_login.bat 完成登录。\n"
+        "每台机器首次使用需执行一次 register_protocol.bat（协议注册为本机操作，无法从服务器推送）。\n"
     )
 
     buf = io.BytesIO()
@@ -95,21 +95,20 @@ def setup_package():
 
 
 def _protocol_bat_template() -> str:
-    """一次性注册 ReqManLogin:// 协议的批处理（检测真实桌面路径，含 OneDrive 重定向）。"""
+    """一次性注册 ReqManLogin:// 协议（%~dp0 自定位，解压任意位置有效）+ 注册后立即启动登录。"""
     return (
         "@echo off\r\n"
         "chcp 65001 >nul\r\n"
-        "rem 一次性注册 ReqManLogin:// 一键登录协议（指向桌面配置目录）\r\n"
-        "set \"DESK=%USERPROFILE%\\Desktop\"\r\n"
-        "if not exist \"%DESK%\" set \"DESK=%OneDrive%\\Desktop\"\r\n"
-        "if not exist \"%DESK%\" for /f \"tokens=2,*\" %%a in ('reg query \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders\" /v Desktop 2^>nul') do set \"DESK=%%b\"\r\n"
+        "rem 一次性注册 ReqManLogin:// 一键登录协议（指向本目录 start_login.bat，解压任意位置均可）\r\n"
         "reg add \"HKCU\\Software\\Classes\\ReqManLogin\" /ve /d \"URL:ReqManLogin Protocol\" /f\r\n"
         "reg add \"HKCU\\Software\\Classes\\ReqManLogin\" /v \"URL Protocol\" /f\r\n"
-        "reg add \"HKCU\\Software\\Classes\\ReqManLogin\\shell\\open\\command\" /ve /d \"\\\"%DESK%\\amro_login_setup\\start_login.bat\\\" \\\"%%1\\\"\" /f\r\n"
+        "reg add \"HKCU\\Software\\Classes\\ReqManLogin\\shell\\open\\command\" /ve /d \"\\\"%~dp0start_login.bat\\\" \\\"%%1\\\"\" /f\r\n"
         "echo.\r\n"
-        "echo 已注册一键登录协议，指向: %DESK%\\amro_login_setup\\start_login.bat\r\n"
+        "echo 已注册一键登录协议，指向: %~dp0start_login.bat\r\n"
         "echo 如杀毒软件拦截，请允许本次操作\r\n"
-        "echo 未注册不影响登录：可随时双击 start_login.bat\r\n"
+        "echo.\r\n"
+        "echo 注册完成，正在启动登录脚本...\r\n"
+        "call \"%~dp0start_login.bat\"\r\n"
         "pause\r\n"
     )
 
@@ -181,7 +180,11 @@ def query():
         demand_path = Path(tmpdir) / "inventory_input.xlsx"
         f.save(demand_path)
         try:
-            _dest, filename, result = svc.run_query(demand_path, output_stem=output_stem)
+            with amro_sync.query_slot("查询库存"):
+                _dest, filename, result = svc.run_query(demand_path, output_stem=output_stem)
+        except amro_sync.QueryBusyError:
+            return api_error(amro_sync.query_busy_message()
+                             or "已有查询任务进行中，请等待完成后再查询", status_code=409)
         except RuntimeError:
             return api_error(MESSAGES["P8"], error_code="LOGIN_EXPIRED", status_code=400)
         except ValueError as e:

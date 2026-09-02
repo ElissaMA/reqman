@@ -6,14 +6,37 @@
     <title>{% block title %}ReqMan定检准备系统{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* ===== 布局 ===== */
+        /* ===== 布局（左侧竖向导航 + 右侧主区，类 AMRO 结构） ===== */
         body { background: #f5f7fa; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
-        .navbar { background: linear-gradient(135deg, #1a3a5c, #2a5a8c) !important; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-        .navbar-brand { font-weight: 600; font-size: 18px; }
-        .brand-en { font-weight: 700; letter-spacing: 0.5px; }
-        .brand-sep { opacity: 0.45; margin: 0 7px; font-weight: 300; }
-        .brand-zh { font-weight: 400; font-size: 15px; opacity: 0.88; letter-spacing: 1px; }
-        .nav-link.active { background: rgba(255,255,255,0.15); border-radius: 6px; }
+        .app-shell { display: flex; min-height: 100vh; }
+        .side-nav { width: 200px; flex-shrink: 0; background: linear-gradient(180deg, #1a3a5c, #16324e); color: #fff;
+                    display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+        .side-brand { padding: 16px 14px 12px; border-bottom: 1px solid rgba(255,255,255,.12); }
+        .side-brand .brand-en { font-weight: 700; font-size: 19px; letter-spacing: .5px; }
+        .side-brand .brand-zh { display: block; font-weight: 400; font-size: 12px; opacity: .85; letter-spacing: 1px; margin-top: 2px; }
+        .side-nav nav { padding: 6px 0 14px; flex: 1; }
+        .side-toggle { display: flex; width: 100%; align-items: center; justify-content: space-between;
+                       background: none; border: none; color: inherit; text-align: left; cursor: pointer; }
+        .side-toggle .toggle-caret { transition: transform .15s ease; font-size: 10px; }
+        .side-toggle[aria-expanded="true"] .toggle-caret { transform: rotate(180deg); }
+        .side-sub { padding-left: 26px; }
+        .side-link { display: block; padding: 9px 14px; color: #e8eef5; text-decoration: none; font-size: 14px;
+                     border-left: 3px solid transparent; white-space: nowrap; }
+        .side-link:hover { background: rgba(255,255,255,.08); color: #fff; }
+        .side-link.active { background: rgba(255,255,255,.12); border-left-color: #6ea8fe; font-weight: 600; }
+        /* 数据管理折叠钮与顶级项同级（side-link 同款样式），flex 保住箭头右对齐 */
+        .side-link.side-toggle { display: flex; }
+        .main-area { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+        .top-bar { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px;
+                   padding: 8px 16px;
+                   background: #fff; border-bottom: 1px solid #e3e9f0; position: sticky; top: 0; z-index: 100;
+                   box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+        /* 登录状态提示条：内联在顶栏左侧，与登录按钮同一行；小屏放不下时自然折行 */
+        .topbar-alert { flex: 1 1 auto; min-width: 0; margin: 0; padding: 4px 10px;
+                        font-size: 12px; line-height: 1.4; border-radius: 6px; }
+        .topbar-alert.topbar-warn { background: #fff3cd; color: #664d03; }
+        .topbar-alert.topbar-info { background: #f0f4f8; color: #52677a; }
+        .main-content { padding: 16px 20px 24px; }
         .card { border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: none; transition: box-shadow 0.2s; }
         .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
         .card-header { background: #fff; border-bottom: 2px solid #e8ecf1; border-radius: 10px 10px 0 0 !important; font-weight: 600; }
@@ -162,12 +185,30 @@
         .btn-sm { font-size: 12px; }
         .container { max-width: 1200px; }
 
+        /* ===== 统一查询进度卡 ===== */
+        .q-card { margin-top: 8px; padding: 8px 12px; border-radius: 8px; font-size: 13px; }
+        .q-card.q-running { background: #eef4fb; border: 1px solid #c8d9ec; }
+        .q-card.q-done { background: #e8f5e9; border: 1px solid #a5d6a7; color: #2e7d32; }
+        .q-card.q-fail { background: #fdecea; border: 1px solid #f5c6cb; color: #c62828; }
+        .q-progress { width: 140px; height: 8px; border-radius: 4px; background: #d7e3f0; overflow: hidden; flex-shrink: 0; }
+        .q-bar { width: 40%; height: 100%; background: #2a5a8c; border-radius: 4px; animation: q-slide 1.2s ease-in-out infinite; }
+        @keyframes q-slide { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }
+
         /* ===== 响应式增强 ===== */
+        @media (max-width: 992px) {
+            .app-shell { flex-direction: column; }
+            .side-nav { width: 100%; height: auto; position: static; }
+            .side-nav nav { display: flex; flex-wrap: wrap; padding: 4px 8px; }
+            .side-link { padding: 8px 10px; border-left: none; border-bottom: 2px solid transparent; }
+            .side-link.active { border-left-color: transparent; border-bottom-color: #6ea8fe; }
+            .side-toggle { display: none; }
+            #navDataMgmt.collapse { display: contents !important; }
+            .side-sub { padding-left: 10px; }
+        }
         @media (max-width: 768px) {
             .toast-container { right: 10px; left: 10px; }
             .toast { max-width: 100%; }
             .table { font-size: 13px; }
-            .navbar-brand { font-size: 16px; }
         }
         @media (max-width: 480px) {
             .table th, .table td { padding: 6px 4px; }
@@ -177,46 +218,39 @@
 </head>
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-dark mb-4">
-    <div class="container">
-        <a class="navbar-brand d-inline-flex align-items-baseline" href="/"><span class="brand-en">ReqMan</span><span class="brand-sep">·</span><span class="brand-zh">定检准备系统</span></a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle {{ 'active' if request.path.startswith('/card') }}"
-                       href="#" role="button" data-bs-toggle="dropdown">
-                        数据管理
-                    </a>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="/card/aircraft">✈ 飞机信息</a></li>
-                        <li><a class="dropdown-item" href="/card/list">📋 工卡信息</a></li>
-                        <li><a class="dropdown-item" href="/card/sets">📦 工卡组管理</a></li>
-                        <li><a class="dropdown-item" href="/card/logs">📝 操作日志</a></li>
-                    </ul>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ 'active' if request.path == '/upload' }}" href="/upload">工作包</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ 'active' if request.path == '/inventory' }}" href="/inventory">库存查询</a>
-                </li>
-
-            </ul>
-            <span class="d-flex align-items-center gap-2 ms-lg-3 mt-2 mt-lg-0">
+<div class="app-shell">
+    <aside class="side-nav">
+        <div class="side-brand"><a href="/" style="color:inherit;text-decoration:none"><span class="brand-en">ReqMan</span><span class="brand-zh">定检准备系统</span></a></div>
+        <nav>
+            {% set p = request.path %}
+            {% set in_data_mgmt = p.startswith('/card/') and not p.startswith('/card/logs') %}
+            <button class="side-link side-toggle {{ 'active' if in_data_mgmt }}" type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#navDataMgmt" aria-expanded="{{ 'true' if in_data_mgmt else 'false' }}"
+                    aria-controls="navDataMgmt">数据管理 <span class="toggle-caret">▾</span></button>
+            <div class="collapse {{ 'show' if in_data_mgmt }}" id="navDataMgmt">
+                <a class="side-link side-sub {{ 'active' if p.startswith('/card/aircraft') }}" href="/card/aircraft">✈ 飞机信息</a>
+                <a class="side-link side-sub {{ 'active' if (p.startswith('/card/') and not p.startswith('/card/aircraft') and not p.startswith('/card/sets') and not p.startswith('/card/logs')) }}" href="/card/list">📋 工卡信息</a>
+                <a class="side-link side-sub {{ 'active' if p.startswith('/card/sets') }}" href="/card/sets">📦 工卡组信息</a>
+            </div>
+            <a class="side-link {{ 'active' if p.startswith('/upload') }}" href="/upload">🔄 工作包</a>
+            <a class="side-link {{ 'active' if p.startswith('/inventory') }}" href="/inventory">📦 库存查询</a>
+            <a class="side-link {{ 'active' if p.startswith('/card/logs') }}" href="/card/logs">📝 操作日志</a>
+        </nav>
+    </aside>
+    <div class="main-area">
+        <div class="top-bar">
+            <div id="amroAlert" class="topbar-alert" style="display:none"></div>
+            <span class="d-flex align-items-center gap-2">
                 <span class="badge rounded-pill bg-secondary" id="amroStatus" style="cursor:pointer" title="点击立即检查 AMRO 登录状态">AMRO …</span>
-                <button class="btn btn-outline-light btn-sm" id="amroQuickLogin" title="唤起桌面一键登录脚本（需一次性注册 ReqManLogin 协议）">⚡一键登录</button>
-                <a class="btn btn-outline-light btn-sm" href="/inventory/setup-package" title="下载 AMRO 登录脚本配置包">🛠新建配置</a>
+                <button class="btn btn-outline-secondary btn-sm" id="amroQuickLogin" title="唤起桌面一键登录脚本（需一次性注册 ReqManLogin 协议）">⚡一键登录</button>
+                <a class="btn btn-outline-secondary btn-sm" href="/inventory/setup-package" title="下载 AMRO 登录脚本配置包">🛠新建配置</a>
             </span>
         </div>
+        <div class="main-content">
+            {% block content %}{% endblock %}
+        </div>
     </div>
-</nav>
-
-<div class="container">
-    <div id="amroAlert" class="alert alert-warning py-2 px-3 small mb-3" style="display:none"></div>
-    {% block content %}{% endblock %}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -269,6 +303,45 @@
         window.renderFlashes();
     }
 
+    // ===== 统一查询进度卡（QueryCard）：run(容器id) → {done(摘要), fail(原因)} =====
+    window.QueryCard = (function() {
+        var timers = {};
+        function elapsed(start) {
+            var s = Math.floor((Date.now() - start) / 1000);
+            var m = Math.floor(s / 60);
+            return m > 0 ? (m + ' 分 ' + (s % 60) + ' 秒') : (s + ' 秒');
+        }
+        function run(id, text) {
+            var el = document.getElementById(id);
+            if (!el) return { done: function() {}, fail: function() {} };
+            var start = Date.now();
+            el.style.display = 'block';
+            el.className = 'q-card q-running';
+            el.innerHTML =
+                '<div class="d-flex align-items-center gap-2">' +
+                '<div class="q-progress"><div class="q-bar"></div></div>' +
+                '<span class="q-text">' + (text || '查询进行中') + '，已用时 <span class="q-elapsed">0 秒</span></span>' +
+                '</div>';
+            clearInterval(timers[id]);
+            timers[id] = setInterval(function() {
+                var t = el.querySelector('.q-elapsed');
+                if (t) t.textContent = elapsed(start);
+            }, 1000);
+            return {
+                done: function(msg) { _set(id, 'q-done', '✅ ' + msg); },
+                fail: function(msg) { _set(id, 'q-fail', '❌ ' + msg); }
+            };
+        }
+        function _set(id, cls, text) {
+            clearInterval(timers[id]);
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.className = 'q-card ' + cls;
+            el.textContent = text;
+        }
+        return { run: run };
+    })();
+
     // ===== AMRO 登录状态（表头常驻：10 分钟轮询 + 点击徽章立即检查）=====
     window.amroSession = { ready: false, message: '', remaining: 0 };
     var AMRO_P6 = '⚠️ 登录有效期内若在其他浏览器/设备登录川航 AMRO，当前登录将被挤掉失效，需重新运行登录脚本';
@@ -292,10 +365,10 @@
                 }
                 if (alertBox) {
                     if (data.ready) {
-                        alertBox.className = 'alert alert-light py-1 px-3 small mb-3';
+                        alertBox.className = 'topbar-alert topbar-info';
                         alertBox.innerHTML = '<span class="text-muted">' + AMRO_P6 + '</span>';
                     } else {
-                        alertBox.className = 'alert alert-warning py-2 px-3 small mb-3';
+                        alertBox.className = 'topbar-alert topbar-warn';
                         alertBox.textContent = data.message || 'AMRO 未登录';
                     }
                     alertBox.style.display = 'block';
@@ -311,7 +384,7 @@
         setTimeout(function() {
             window.removeEventListener('blur', onBlur);
             if (!launched) {
-                window.safeToast('一键登录未响应：可能尚未注册协议。请点击「新建配置」下载 ZIP，解压到桌面后双击 register_protocol.bat（每台机器一次），或直接双击其中的 start_login.bat 登录', 'warning', 8000);
+                window.safeToast('一键登录未响应：可能尚未注册协议。请点击「新建配置」下载 ZIP，解压到任意位置后双击 register_protocol.bat（每台机器一次，注册+登录一步完成），或直接双击其中的 start_login.bat 登录', 'warning', 8000);
             }
         }, 8000);
         window.location.href = 'ReqManLogin://login';

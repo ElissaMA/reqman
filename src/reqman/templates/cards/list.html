@@ -7,23 +7,23 @@
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">工卡信息 <span class="badge bg-secondary ms-2">{{ cards|length }}</span></h5>
         <span class="d-flex gap-2">
-            <a href="javascript:void(0)" onclick="amroVerCheck()" id="amroVerCheckBtn" class="btn btn-outline-primary btn-sm">🔍 工卡版本检查</a>
+            <a href="javascript:void(0)" onclick="amroVerCheck()" id="amroVerCheckBtn" class="btn btn-outline-primary btn-sm">全量查询工卡版本</a>
+            <a href="/card/amro-version-report" id="amroVerDownloadBtn" class="btn btn-outline-secondary btn-sm" title="下载最近一次全量查询的工卡改版清单">⬇下载</a>
             <a href="javascript:void(0)" onclick="ListUI.openEditor('/card/new')" class="btn btn-primary btn-sm">+ 新增工卡</a>
         </span>
     </div>
     <div class="card-body p-0">
-        {% if amro_meta and amro_meta.status == 'done' and amro_meta.report %}
-        <div class="alert alert-success m-3 mb-0 small d-flex justify-content-between align-items-center">
-            <span><b>版本检查报告</b>（{{ amro_meta.finished_at }}）：改版 {{ amro_meta.report.revised|length }} 张，作废 {{ amro_meta.report.cancelled|length }} 张</span>
-            {% if amro_meta.report.filename %}
-            <a class="btn btn-primary btn-sm" href="/card/amro-version-report/{{ amro_meta.report.filename.replace('amro_version_report_','').replace('.xlsx','') }}">⬇ 下载改版清单</a>
-            {% endif %}
+        {% if amro_status and amro_status.status == 'running' %}
+        <div class="alert alert-info m-3 mb-0 small">⏳ 全量查询工卡版本进行中（约 3~15 分钟，后台执行）…</div>
+        {% elif amro_status and amro_status.status == 'error' %}
+        <div class="alert alert-danger m-3 mb-0 small">上次全量查询工卡版本失败：{{ amro_status.error }}（{{ amro_status.finished_at }}）</div>
+        {% elif amro_last_query %}
+        <div class="alert alert-success m-3 mb-0 small">
+            上次查询（{{ amro_last_query.finished_at }}）：{{ amro_last_query.summary }}
+            {% if amro_last_query.download_url %}<a class="btn btn-outline-primary btn-sm ms-2 py-0" href="{{ amro_last_query.download_url }}">⬇下载改版清单</a>{% endif %}
         </div>
-        {% elif amro_meta and amro_meta.status == 'error' %}
-        <div class="alert alert-danger m-3 mb-0 small">上次版本检查失败：{{ amro_meta.error }}（{{ amro_meta.finished_at }}）</div>
-        {% elif amro_meta and amro_meta.status == 'running' %}
-        <div class="alert alert-info m-3 mb-0 small">⏳ 版本检查进行中（实时比对 AMRO，约 3~15 分钟）…</div>
         {% endif %}
+        <div class="q-card" id="qCardVersion" style="display:none"></div>
         <div class="table-responsive">
             <table class="table table-hover mb-0" id="cardTable">
                 <thead>
@@ -43,7 +43,7 @@
                             <option value="">全部类型</option>
                             {% for t in task_types %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
                         </select></th>
-                        <th></th><th></th><th></th><th></th>
+                        <th></th><th></th><th></th><th></th><th></th>
                     </tr>
                     <tr>
                         <th>工卡号</th>
@@ -52,6 +52,7 @@
                         <th>提醒类型</th>
                         <th>类型</th>
                         <th>所属工卡组</th>
+                        <th>编写日期</th>
                         <th class="text-center">工具数</th>
                         <th class="text-center">航材数</th>
                         <th style="width:120px" class="text-center">操作</th>
@@ -68,6 +69,7 @@
                         <td>{{ card.reminder_type or '-' }}</td>
                         <td>{{ card.task_type or '-' }}</td>
                         <td>{{ card.set_name or '-' }}</td>
+                        <td>{{ (card.write_date or '')[:10] or '—' }}</td>
                         <td class="text-center">{{ card.tools|length }}</td>
                         <td class="text-center">{{ card.materials|length }}</td>
                         <td onclick="event.stopPropagation()">
@@ -77,7 +79,7 @@
                     </tr>
                 {% endfor %}
                 {% else %}
-                    {{ list.empty_state('暂无工卡数据，点击右上角新增', '/card/new', '新增工卡', colspan=9, open_modal=True) }}
+                    {{ list.empty_state('暂无工卡数据，点击右上角新增', '/card/new', '新增工卡', colspan=10, open_modal=True) }}
                 {% endif %}
                 </tbody>
             </table>
@@ -94,22 +96,6 @@
         <div class="modal-body" id="detailContent"><p class="text-muted">点击行加载...</p></div>
         <div class="modal-footer">
             <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">关闭</button>
-        </div>
-    </div></div>
-</div>
-
-<!-- AMRO 版本检查确认弹窗 -->
-<div class="modal fade" id="amroVerModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
-        <div class="modal-header"><h6 class="modal-title">工卡版本检查</h6>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body small">
-            将<b>实时比对 AMRO 编写日期</b>（全库 {{ cards|length }} 张卡），约需 <b>3~15 分钟</b>，后台执行、可离开页面。
-            发现改版将自动更新版本并生成改版清单 Excel；已作废工卡仅列出、不删除。确认开始？
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">取消</button>
-            <button type="button" class="btn btn-primary btn-sm" id="amroVerGo">确认开始</button>
         </div>
     </div></div>
 </div>
@@ -137,6 +123,7 @@ function showDetail(id) {
         + '<div class="col-md-2"><label class="form-label small">类型</label><div>' + (d.task_type || '-') + '</div></div>'
         + '</div>';
     h += '<div class="mb-3"><label class="form-label small">所属工卡组</label><div>' + (d.set_name || '-') + '</div></div>';
+    h += '<div class="mb-3"><label class="form-label small">编写日期</label><div>' + ((d.write_date || '').slice(0, 10) || '-') + '</div></div>';
     // 提醒区块（类型 + 确认状态）
     h += '<div class="mb-3"><label class="form-label small fw-bold">&#x1F514; 提醒类型</label><div>'
         + (d.reminder_type || '无') + '</div></div>';
@@ -184,61 +171,57 @@ function showDetail(id) {
     if (el) el.setAttribute('data-col', col);
 });
 
-// ===== AMRO 工卡版本检查（v3.5.0） =====
+// ===== AMRO 全量查询工卡版本（v3.6.0） =====
 function amroVerCheck() {
     if (!window.amroSession || !window.amroSession.ready) {
         window.safeToast('登录已失效（可能被其他登录挤掉），请重新运行登录脚本后重试', 'warning');
         return;
     }
-    new bootstrap.Modal(document.getElementById('amroVerModal')).show();
+    var btn = document.getElementById('amroVerCheckBtn');
+    btn.disabled = true;
+    var card = window.QueryCard.run('qCardVersion', '全量查询工卡版本（约 3~15 分钟，后台执行）');
+    fetch('/card/amro-version-check', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function(r) { return r.json().then(function(d) { return {code: r.status, d: d}; }); })
+        .then(function(x) {
+            if (x.code === 200 && x.d.success) {
+                pollVersionCheck(card);
+            } else {
+                btn.disabled = false;
+                card.fail((x.d && x.d.message) || '启动失败');
+            }
+        }).catch(function() {
+            btn.disabled = false;
+            card.fail('启动失败');
+        });
 }
 
-function pollVersionCheck() {
+function pollVersionCheck(card) {
     var deadline = Date.now() + 20 * 60 * 1000;
     var timer = setInterval(function() {
-        if (Date.now() > deadline) { clearInterval(timer); return; }
+        if (Date.now() > deadline) { clearInterval(timer); card.fail('等待超时，请重新查询'); return; }
         fetch('/card/amro-version-status', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
             .then(function(r) { return r.json(); }).then(function(d) {
-                var meta = (d && d.data) || {};
-                if (meta.status === 'done') {
+                var status = (d && d.data) || {};
+                if (status.status === 'done') {
                     clearInterval(timer);
-                    var rp = meta.report || {};
-                    window.safeToast('版本检查完成：改版 ' + rp.revised.length + ' 张，作废 ' +
-                        rp.cancelled.length + ' 张，改版清单已生成（刷新页面可见下载）', 'success', 8000);
+                    var s = status.summary || {};
+                    card.done('查询完成：改版 ' + s.revised + ' 张，作废 ' + s.cancelled + ' 张');
+                    window.safeToast('查询完成：改版 ' + s.revised + ' 张，作废 ' + s.cancelled + ' 张', 'success', 8000);
                     setTimeout(function() { window.location.reload(); }, 1500);
-                } else if (meta.status === 'error') {
+                } else if (status.status === 'error') {
                     clearInterval(timer);
-                    window.safeToast('版本检查失败：' + (meta.error || '未知错误'), 'error', 8000);
+                    card.fail(status.error || '未知错误');
                     var b = document.getElementById('amroVerCheckBtn');
-                    if (b) { b.disabled = false; b.textContent = '🔍 工卡版本检查'; }
+                    if (b) { b.disabled = false; }
                 }
             }).catch(function(){});
     }, 2000);
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    {% if amro_meta and amro_meta.status == 'running' %}
-    pollVersionCheck();   // 页面加载时检查已在跑 → 自动恢复轮询
+    {% if amro_status and amro_status.status == 'running' %}
+    pollVersionCheck(window.QueryCard.run('qCardVersion', '全量查询工卡版本（约 3~15 分钟，后台执行）'));
     {% endif %}
-    var go = document.getElementById('amroVerGo');
-    if (go) go.addEventListener('click', function() {
-        go.disabled = true; go.textContent = '检查中…';
-        fetch('/card/amro-version-check', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(function(r) { return r.json().then(function(d) { return {code: r.status, d: d}; }); })
-            .then(function(x) {
-                bootstrap.Modal.getInstance(document.getElementById('amroVerModal')).hide();
-                if (x.code === 200 && x.d.success) {
-                    window.safeToast('版本检查已启动，约 3~15 分钟，可离开本页', 'info', 6000);
-                    pollVersionCheck();
-                } else {
-                    go.disabled = false; go.textContent = '确认开始';
-                    window.safeToast((x.d && x.d.message) || '启动失败', 'error');
-                }
-            }).catch(function() {
-                go.disabled = false; go.textContent = '确认开始';
-                window.safeToast('启动失败', 'error');
-            });
-    });
 });
 </script>
 {% endblock %}

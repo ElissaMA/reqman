@@ -85,4 +85,5 @@ Thumbs.db
 uv.lock
 
 # ===== 开发过程资产（仅本地参考，不上传生产） =====
+.zcode/
 docs/superpowers/.zcode/

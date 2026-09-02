@@ -311,9 +311,12 @@ def test_packages_page_relayout(page, server_base):
     assert not js_errors, f"页面存在JS错误: {js_errors}"
 
 
-# ---------- 12. v3.5.0 T7：提醒单版本检查勾选框与异步交互入口 ----------
-def test_generate_reminder_version_ui(page, server_base):
-    """生成页含版本检查勾选框（默认勾选）；表头三件套与页面共存无JS错误。"""
+# ---------- 12. v3.6.0：预览页按钮排 + 表头登录框共存 ----------
+def test_generate_page_buttons_and_header(page, server_base):
+    """预览页含「生成需求单/生成提醒单/生成工卡改版下载」按钮排；表头三件套与页面共存无JS错误。
+
+    提醒单已回退纯同步（无版本检查勾选框）；改版清单独立按钮下载（需先在工作包页查询）。
+    """
     js_errors = []
     page.on("pageerror", lambda e: js_errors.append(str(e)))
 
@@ -321,9 +324,52 @@ def test_generate_reminder_version_ui(page, server_base):
     page.wait_for_selector("#cardTable tbody tr")
     page.evaluate("sessionStorage.clear()")
 
-    # 直接构造带包预览页（经上传页创建包代价高，这里走 UI 存在性验证：
-    # 预览页需 package_id —— 无包时验证上传页即可；勾选框在预览页内）
+    # 预览页需 package_id —— 无包时验证上传页即可；按钮排存在性由 form.html 保证
     page.goto(server_base + "/inventory")
     page.wait_for_selector("#amroStatus")
     page.screenshot(path="output/e2e_t7_session_header.png")
+    assert not js_errors, f"页面存在JS错误: {js_errors}"
+
+
+# ---------- 13. v3.6.0 步骤1：左侧竖向导航布局（数据管理折叠组） ----------
+def test_side_nav_layout(page, server_base):
+    """左侧竖向导航（数据管理与顶级项同级同款，3个子页在折叠组内）+ 顶部登录框，无JS错误。"""
+    js_errors = []
+    page.on("pageerror", lambda e: js_errors.append(str(e)))
+
+    page.goto(server_base + "/card/aircraft")
+    page.wait_for_selector(".side-nav")
+    page.wait_for_selector(".side-brand .brand-en")
+    # 七个菜单项 = 数据管理折叠钮 + 3个子页 + 3个顶级项（数据管理与顶级项同级）
+    links = page.locator(".side-link")
+    assert links.count() == 7, f"侧栏菜单项应为7个，实际{links.count()}"
+    assert page.locator(".side-link.active", has_text="飞机信息").count() == 1
+    # 数据管理折叠组：当前页属数据管理 → 折叠钮同级样式且自身 active + 默认展开（show）+ aria-expanded=true
+    toggle = page.locator(".side-toggle")
+    assert toggle.count() == 1
+    assert "side-link" in (toggle.get_attribute("class") or ""), "数据管理应与顶级项同款 side-link 样式"
+    assert page.locator(".side-toggle.active", has_text="数据管理").count() == 1
+    assert toggle.get_attribute("aria-expanded") == "true"
+    assert "show" in (page.locator("#navDataMgmt").get_attribute("class") or "")
+    page.locator("#navDataMgmt .side-link", has_text="飞机信息").wait_for()
+    # 顶部右侧登录框三件套 + 登录状态提示条内联进顶栏（与按钮同一行，sticky 置顶）
+    page.wait_for_selector(".top-bar #amroStatus")
+    page.wait_for_selector(".top-bar #amroQuickLogin")
+    page.wait_for_selector(".top-bar a[href='/inventory/setup-package']")
+    assert page.locator(".top-bar #amroAlert").count() == 1
+    page.screenshot(path="output/e2e_s1_side_nav.png")
+
+    # 工卡列表页 → 工卡信息高亮，折叠组仍展开
+    page.goto(server_base + "/card/list")
+    page.wait_for_selector(".side-link.active")
+    assert page.locator(".side-link.active", has_text="工卡信息").count() == 1
+    assert "show" in (page.locator("#navDataMgmt").get_attribute("class") or "")
+
+    # 工作包页 → 折叠组默认收起，点击展开后三个子链接可见
+    page.goto(server_base + "/upload")
+    page.locator(".side-link.active", has_text="工作包").wait_for()
+    assert "show" not in (page.locator("#navDataMgmt").get_attribute("class") or "")
+    page.click(".side-toggle")
+    page.locator("#navDataMgmt.show .side-link", has_text="飞机信息").wait_for()
+
     assert not js_errors, f"页面存在JS错误: {js_errors}"

@@ -27,12 +27,12 @@
 
             <!-- 基本信息 -->
             <div class="row g-3 mb-4">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label small">工卡号 <span class="text-danger">*</span></label>
                     <input type="text" class="form-control form-control-sm" name="task_code"
                            value="{{ card.task_code if card else prefill_code if prefill_code else "" }}" required>
                 </div>
-                <div class="col-md-5">
+                <div class="col-md-4">
                     <label class="form-label small">工卡描述</label>
                     <input type="text" class="form-control form-control-sm" name="task_name"
                            value="{{ card.task_name if card else prefill_name if prefill_name else "" }}" required>
@@ -56,6 +56,11 @@
                         {% endif %}
                         {% endfor %}
                     </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">编写日期 <span class="text-muted">（工卡版本日期，留空待 AMRO 同步）</span></label>
+                    <input type="date" class="form-control form-control-sm" name="write_date"
+                           value="{{ (card.write_date if card else '')[:10] }}">
                 </div>
             </div>
 

@@ -22,13 +22,10 @@
                 </div>
             </div>
             <div class="col-md-4 d-flex align-items-center">
-                <button class="btn btn-success btn-sm px-4" id="startQueryBtn">▶ 开始查询</button>
+                <button class="btn btn-success btn-sm px-4" id="startQueryBtn">查询库存</button>
             </div>
         </div>
-        <div id="progressBox" class="mt-3" style="display:none">
-            <div class="progress"><div class="progress-bar" id="queryProgress" style="width:0%"></div></div>
-            <p class="small text-muted mt-1" id="progressLabel">准备中...</p>
-        </div>
+        <div class="q-card" id="qCardStock" style="display:none"></div>
         <div id="resultBox" class="mt-3"></div>
     </div>
 </div>
@@ -84,9 +81,7 @@ function doQuery() {
     if (!window.amroSession || !window.amroSession.ready) { window.safeToast(MSG.P4, 'warning'); return; }
     var fd = new FormData();
     fd.append('file', input.files[0]);
-    window.showLoader();
-    document.getElementById('progressBox').style.display = 'block';
-    document.getElementById('queryProgress').style.width = '0%';
+    var card = window.QueryCard.run('qCardStock', '查询库存');
     // 超时兜底：65s 未返回则中止并结束"加载中"
     var controller = new AbortController();
     var timer = setTimeout(function() {
@@ -98,21 +93,21 @@ function doQuery() {
         .then(function(resp) { return resp.json(); }).then(function(d) {
             clearTimeout(timer);
             window.hideLoader();
-            document.getElementById('progressBox').style.display = 'none';
             if (d.success) {
+                card.done('查询完成：共 ' + d.data.total + ' 件号，成功 ' + d.data.success + '，失败 ' + d.data.fail);
                 renderResult(d.data);
                 window.safeToast(MSG.P9, 'success');
             } else {
+                card.fail(d.message || '查询失败');
                 window.safeToast(d.message, 'error');
             }
         }).catch(function(e) {
             clearTimeout(timer);
             window.hideLoader();
-            document.getElementById('progressBox').style.display = 'none';
             if (e && e.name === 'AbortError') {
-                window.safeToast('查询超时，请重试', 'error');
+                card.fail('查询超时（65 秒），请重试');
             } else {
-                window.safeToast('查询失败', 'error');
+                card.fail('查询失败');
             }
         });
 }

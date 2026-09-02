@@ -116,6 +116,23 @@ class TestSetupPackage:
         assert ":done" in bat
         assert "pause" in bat
 
+    def test_register_protocol_bat_self_locating(self, client):
+        """register_protocol.bat 协议自定位（%~dp0，解压任意位置有效）+ 注册后立即启动登录，无桌面硬编码。"""
+        resp = client.get("/inventory/setup-package")
+        assert resp.status_code == 200
+        zf = zipfile.ZipFile(io.BytesIO(resp.data))
+        bat = zf.read("register_protocol.bat").decode("utf-8")
+        assert 'reg add "HKCU\\Software\\Classes\\ReqManLogin\\shell\\open\\command" /ve /d' in bat
+        assert '"%~dp0start_login.bat"' in bat          # 协议指向自身目录
+        assert '%%1' in bat                             # 保留 URL 参数占位
+        assert "%DESK%" not in bat                      # 不再探测桌面路径
+        assert "amro_login_setup" not in bat
+        assert 'call "%~dp0start_login.bat"' in bat     # 注册完成后立即启动登录
+        assert "pause" in bat
+        readme = zf.read("README.txt").decode("utf-8")
+        assert "解压到【任意位置】" in readme
+        assert "注册+登录一步完成" in readme or "注册一键登录协议并立即启动登录" in readme
+
     def test_bat_install_compat(self, client):
         """ZIP 内 start_login.bat 安装兼容性：引号 cd、新镜像、代理豁免、免 Python 装 uv、venv 实跑校验。"""
         resp = client.get("/inventory/setup-package")
@@ -268,6 +285,32 @@ class TestQuery:
         wb = openpyxl.load_workbook(saved[0])
         assert wb.active["G15"].value == 1
         wb.close()
+
+    def test_query_busy_conflict(self, app, client, tmp_path, monkeypatch, isolated_inventory):
+        """全局互斥：已有查询在跑 → 409 + busy 文案（不排队）。"""
+        import time as _time
+
+        from reqman.services import amro_sync
+        _mock_amro_query(monkeypatch, app)
+        deadline = _time.time() + 3
+        while not amro_sync.try_begin_query("查询飞机数据"):
+            if _time.time() > deadline:
+                pytest.fail("query slot still busy")
+            _time.sleep(0.02)
+        try:
+            src = _build_demand(tmp_path)
+            with src.open("rb") as f:
+                resp = client.post(
+                    "/inventory/query",
+                    data={"file": (f, "demand.xlsx")},
+                    headers={"X-Requested-With": "XMLHttpRequest"},
+                    content_type="multipart/form-data",
+                )
+            assert resp.status_code == 409
+            msg = resp.get_json()["message"]
+            assert "已有查询任务进行中" in msg and "查询飞机数据" in msg
+        finally:
+            amro_sync.end_query()
 
     def test_query_clears_old_staging(self, app, client, tmp_path, monkeypatch, isolated_inventory):
         """上传新需求单查询 → 旧的 *_库存已填_* 暂存被清除，output/ 仅存最新。"""

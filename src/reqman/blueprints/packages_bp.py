@@ -1,6 +1,7 @@
 """工作包蓝图 — 上传工作清单 + 工卡匹配 + AMRO 直读拉包"""
 
 import asyncio
+import json
 import logging
 import os
 import tempfile
@@ -10,7 +11,7 @@ from zoneinfo import ZoneInfo
 import httpx
 from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request
 
-from ..config import CATEGORIES
+from ..config import CATEGORIES, OUTPUT_DIR
 from ..services import amro_sync
 from ..services.connectors.amro import AmroSessionExpired
 from ..services.work_package_matcher import match_work_package_items
@@ -98,17 +99,21 @@ def upload():
         filtered.append(wp)
 
     return render_template("packages/upload.html", work_packages=filtered,
-                           version_logs=version_logs)
+                           version_logs=version_logs,
+                           amro_pkg_query=amro_sync.get_last_package_query(),
+                           amro_last_pkg_query=amro_sync.get_last_query_result("package"),
+                           amro_last_pkg_ver=amro_sync.get_last_query_result("package_version"))
 
 
 def _version_log_rows(store, limit: int = 50) -> list[dict]:
-    """card_logs → 工卡版本变动清单行（时间|工卡号|旧编写日期|新编写日期|操作）。"""
+    """card_logs → 工卡版本变动清单行（时间|工卡号|工卡名称|旧编写日期|新编写日期|操作）。"""
     rows = []
     for l in store.get_version_logs(limit=limit):
         change = next((c for c in l.get("changes", []) if c.get("field") == "write_date"), {})
         rows.append({
             "time": str(l.get("timestamp", ""))[:16].replace("T", " "),
             "task_code": l.get("target_identifier", ""),
+            "task_name": l.get("target_name", ""),
             "old": change.get("old", ""),
             "new": change.get("new", ""),
             "operation": l.get("operation", ""),
@@ -229,23 +234,38 @@ def amro_package_list():
             return await amro_sync.list_amro_packages(client, cookies)
 
     try:
-        packages = asyncio.run(_inner())
+        with amro_sync.query_slot("查询工作包"):
+            packages = asyncio.run(_inner())
+    except amro_sync.QueryBusyError:
+        return jsonify({"success": False, "message": amro_sync.query_busy_message()
+                        or "已有查询任务进行中，请等待完成后再查询"}), 409
     except AmroSessionExpired as e:
         return jsonify({"success": False, "message": str(e)}), 401
     except (httpx.HTTPError, RuntimeError) as e:
         logger.exception("AMRO 包列表拉取失败")
         return jsonify({"success": False, "message": f"AMRO 请求失败: {e}"}), 502
-    return api_success(data={"packages": packages})
+    amro_sync.save_last_query_result("package", "查询工作包",
+                                     f"获取到 {len(packages)} 个任务包",
+                                     output_dir=OUTPUT_DIR)
+    return api_success(data={"packages": packages,
+                             "fetched_at": amro_sync.get_last_package_query().get("fetched_at", "")})
 
 
 @packages_bp.route("/packages/amro-fetch", methods=["POST"])
 def amro_package_fetch():
-    """revnr → 拉两清单 → 匹配入库 → package_id（同步请求，两清单约 10~25s）。"""
+    """revnr + header（BM_TSK_LIST 选中行）→ 拉两清单 → 入库 → package_id（同步请求）。"""
     if not amro_sync.require_amro_session():
         return jsonify({"success": False, "message": MESSAGES["P8"]}), 401
     revnr = (request.form.get("revnr") or "").strip()
     if not revnr:
         raise ValidationError("缺少包号 revnr", "NO_REVNR")
+    header_row = None
+    raw_header = request.form.get("header", "")
+    if raw_header:
+        try:
+            header_row = json.loads(raw_header)
+        except (ValueError, TypeError):
+            header_row = None
     store = current_app.extensions["store"]
     service = current_app.extensions["card_service"]
     svc = current_app.extensions["inventory_service"]
@@ -253,17 +273,22 @@ def amro_package_fetch():
 
     async def _inner():
         async with httpx.AsyncClient(verify=True, trust_env=False) as client:
-            return await amro_sync.import_amro_package(store, client, cookies, revnr, service)
+            return await amro_sync.import_amro_package(store, client, cookies, revnr, service,
+                                                       header_row=header_row)
 
     try:
-        summary = asyncio.run(_inner())
+        with amro_sync.query_slot("查询工作包"):
+            summary = asyncio.run(_inner())
+    except amro_sync.QueryBusyError:
+        return jsonify({"success": False, "message": amro_sync.query_busy_message()
+                        or "已有查询任务进行中，请等待完成后再查询"}), 409
     except AmroSessionExpired as e:
         return jsonify({"success": False, "message": str(e)}), 401
     except (httpx.HTTPError, RuntimeError) as e:
         logger.exception("AMRO 工作包 %s 导入失败", revnr)
         return jsonify({"success": False, "message": f"AMRO 请求失败: {e}"}), 502
-    message = (f"工作包 {revnr} 已导入：例行 {summary['routine']} 项，其他 {summary['other']} 项，"
-               f"其中新工卡 {summary['new_cards']} 项")
+    message = (f"工作包 {revnr} 已导入：例行 {summary['routine']} 项，其他 {summary['other']} 项"
+               "（请在表格中重新匹配或打开预览页完成匹配）")
     return api_success(data=summary, message=message)
 
 
@@ -272,3 +297,53 @@ def amro_version_logs():
     """版本变动日志（card_logs 筛选视图，倒序最近 50 条）。"""
     logs = _version_log_rows(current_app.extensions["store"])
     return api_success(data={"logs": logs})
+
+
+@packages_bp.route("/packages/<package_id>/amro-version-check", methods=["POST"])
+def package_amro_version_check(package_id):
+    """查询工作包工卡版本（同步请求）：实时比对包内工卡 → 更新版本 → 生成逐包改版清单（同包覆盖）。"""
+    if not amro_sync.require_amro_session():
+        return jsonify({"success": False, "message": MESSAGES["P8"]}), 401
+    store = current_app.extensions["store"]
+    pkg_data = store.get_work_package(package_id)
+    if not pkg_data:
+        raise NotFoundError("工作包不存在")
+    svc = current_app.extensions["inventory_service"]
+    cookies = (svc.session_store.load() or {}).get("cookies", {})
+
+    task_codes = list(dict.fromkeys(
+        it.get("task_code") for it in pkg_data.get("all_items", []) if it.get("task_code")
+    ))
+
+    async def _inner():
+        async with httpx.AsyncClient(verify=True, trust_env=False) as client:
+            return await amro_sync.check_cards_against_amro(store, client, cookies, task_codes)
+
+    try:
+        with amro_sync.query_slot("查询工作包工卡版本"):
+            report = asyncio.run(_inner())
+    except amro_sync.QueryBusyError:
+        return jsonify({"success": False, "message": amro_sync.query_busy_message()
+                        or "已有查询任务进行中，请等待完成后再查询"}), 409
+    except AmroSessionExpired as e:
+        return jsonify({"success": False, "message": str(e)}), 401
+    except (httpx.HTTPError, RuntimeError) as e:
+        logger.exception("工作包 %s 版本检查失败", package_id)
+        return jsonify({"success": False, "message": f"AMRO 请求失败: {e}"}), 502
+
+    label = amro_sync.package_display_label(pkg_data) or package_id
+    finished_date = datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y.%m.%d")
+    filename = f"amro_pkg_version_report_{package_id}.xlsx"
+    (OUTPUT_DIR / filename).write_bytes(amro_sync.build_version_report_excel(
+        report, title_label=amro_sync.package_report_label(pkg_data) or package_id,
+        finished_date=finished_date))
+    summary = {"revised": len(report["revised"]), "cancelled": len(report["cancelled"]),
+               "filename": filename}
+    amro_sync.save_last_query_result(
+        "package_version", "查询工作包工卡版本",
+        f"包 {label}：改版 {summary['revised']} 张，作废 {summary['cancelled']} 张",
+        download_url=f"/generate/package-version-report?package_id={package_id}",
+        output_dir=OUTPUT_DIR)
+    message = (f"版本检查完成（{label}）：改版 {summary['revised']} 张，作废 {summary['cancelled']} 张"
+               "（预览页可下载改版清单）")
+    return api_success(data=summary, message=message)
