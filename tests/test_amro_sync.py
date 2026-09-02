@@ -106,20 +106,22 @@ class TestGlobalQueryMutex:
     """v3.6.0 全局查询互斥：一次只跑一个 AMRO 查询，不排队"""
 
     def test_begin_end_roundtrip(self):
-        assert amro_sync.try_begin_query("查询飞机数据") is True
+        token = amro_sync.try_begin_query("查询飞机数据")
+        assert token is not None
         assert amro_sync.query_busy_message() is not None
         assert "查询飞机数据" in amro_sync.query_busy_message()
-        amro_sync.end_query()
+        amro_sync.end_query(token)
         assert amro_sync.query_busy_message() is None
 
     def test_second_query_rejected_while_busy(self):
-        assert amro_sync.try_begin_query("查询飞机数据") is True
+        token = amro_sync.try_begin_query("查询飞机数据")
+        assert token is not None
         try:
-            assert amro_sync.try_begin_query("查询库存") is False
+            assert amro_sync.try_begin_query("查询库存") is None
             msg = amro_sync.query_busy_message()
             assert "查询飞机数据" in msg and "请等待完成后再查询" in msg
         finally:
-            amro_sync.end_query()
+            amro_sync.end_query(token)
 
     def test_query_slot_context_raises_busy(self):
         # 保持嵌套：外层占用槽、内层冲突抛 QueryBusyError（不可合并 with）
@@ -140,12 +142,13 @@ class TestGlobalQueryMutex:
         assert amro_sync.get_query_status("aircraft")["status"] == "done"
 
     def test_run_query_false_when_busy(self):
-        assert amro_sync.try_begin_query("查询飞机数据") is True
+        token = amro_sync.try_begin_query("查询飞机数据")
+        assert token is not None
         try:
             assert amro_sync.run_query("busy_reject", "全量查询工卡版本", dict) is False
             assert amro_sync.get_query_status("busy_reject") == {}  # 未启动不落状态
         finally:
-            amro_sync.end_query()
+            amro_sync.end_query(token)
 
 
 class TestLastQueryResult:

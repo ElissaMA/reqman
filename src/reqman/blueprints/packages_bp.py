@@ -301,49 +301,24 @@ def amro_version_logs():
 
 @packages_bp.route("/packages/<package_id>/amro-version-check", methods=["POST"])
 def package_amro_version_check(package_id):
-    """查询工作包工卡版本（同步请求）：实时比对包内工卡 → 更新版本 → 生成逐包改版清单（同包覆盖）。"""
+    """查询工作包工卡版本（后台线程，前端轮询状态）：实时比对包内工卡 → 更新版本 → 生成逐包改版清单。
+
+    长任务移出请求线程，避免 gunicorn 120s 杀请求；前端轮询 /amro-version-status 取进度。
+    """
     if not amro_sync.require_amro_session():
         return jsonify({"success": False, "message": MESSAGES["P8"]}), 401
     store = current_app.extensions["store"]
     pkg_data = store.get_work_package(package_id)
     if not pkg_data:
         raise NotFoundError("工作包不存在")
-    svc = current_app.extensions["inventory_service"]
-    cookies = (svc.session_store.load() or {}).get("cookies", {})
-
-    task_codes = list(dict.fromkeys(
-        it.get("task_code") for it in pkg_data.get("all_items", []) if it.get("task_code")
-    ))
-
-    async def _inner():
-        async with httpx.AsyncClient(verify=True, trust_env=False) as client:
-            return await amro_sync.check_cards_against_amro(store, client, cookies, task_codes)
-
-    try:
-        with amro_sync.query_slot("查询工作包工卡版本"):
-            report = asyncio.run(_inner())
-    except amro_sync.QueryBusyError:
+    session_store = current_app.extensions["inventory_service"].session_store
+    if not amro_sync.start_package_version_check(store, session_store, package_id, pkg_data):
         return jsonify({"success": False, "message": amro_sync.query_busy_message()
                         or "已有查询任务进行中，请等待完成后再查询"}), 409
-    except AmroSessionExpired as e:
-        return jsonify({"success": False, "message": str(e)}), 401
-    except (httpx.HTTPError, RuntimeError) as e:
-        logger.exception("工作包 %s 版本检查失败", package_id)
-        return jsonify({"success": False, "message": f"AMRO 请求失败: {e}"}), 502
+    return jsonify({"success": True, "data": {"started": True}})
 
-    label = amro_sync.package_display_label(pkg_data) or package_id
-    finished_date = datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y.%m.%d")
-    filename = f"amro_pkg_version_report_{package_id}.xlsx"
-    (OUTPUT_DIR / filename).write_bytes(amro_sync.build_version_report_excel(
-        report, title_label=amro_sync.package_report_label(pkg_data) or package_id,
-        finished_date=finished_date))
-    summary = {"revised": len(report["revised"]), "cancelled": len(report["cancelled"]),
-               "filename": filename}
-    amro_sync.save_last_query_result(
-        "package_version", "查询工作包工卡版本",
-        f"包 {label}：改版 {summary['revised']} 张，作废 {summary['cancelled']} 张",
-        download_url=f"/generate/package-version-report?package_id={package_id}",
-        output_dir=OUTPUT_DIR)
-    message = (f"版本检查完成（{label}）：改版 {summary['revised']} 张，作废 {summary['cancelled']} 张"
-               "（预览页可下载改版清单）")
-    return api_success(data=summary, message=message)
+
+@packages_bp.route("/packages/amro-version-status")
+def package_amro_version_status():
+    """逐包工卡版本检查进度/简要结果（全局内存态，前端轮询/恢复加载）。"""
+    return jsonify({"success": True, "data": amro_sync.get_query_status("package_version")})

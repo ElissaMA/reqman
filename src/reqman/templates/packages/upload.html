@@ -128,6 +128,7 @@
                                         onclick="return confirm('重新匹配将使用当前数据库刷新匹配状态，确认？')">🔄 重新匹配</button>
                             </form>
                             <button type="button" class="btn btn-outline-primary btn-sm"
+                                    data-package-id="{{ wp.package_id }}"
                                     onclick="pkgVersionCheck('{{ wp.package_id }}', this)">🔍 查询工作包工卡版本</button>
                         </div>
                     </td>
@@ -302,7 +303,7 @@ function importPack(btn, idx) {
         });
 }
 
-// ===== 工作包行级：查询工作包工卡版本（同步请求，行内按钮显示比对进度） =====
+// ===== 工作包行级：查询工作包工卡版本（后台线程，前端轮询进度） =====
 function pkgVersionCheck(packageId, btn) {
     if (!amroRequireLogin()) return;
     btn.disabled = true;
@@ -315,20 +316,52 @@ function pkgVersionCheck(packageId, btn) {
     fd.append('package_id', packageId);
     fetch('/packages/' + packageId + '/amro-version-check', { method: 'POST', body: fd,
         headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-        .then(function(r) { return r.json(); }).then(function(d) {
-            btn.disabled = false; btn.textContent = '🔍 查询工作包工卡版本';
-            if (d.success) {
-                card.done(d.message || '版本检查完成');
-                window.safeToast(d.message || '版本检查完成', 'success', 8000);
+        .then(function(r) { return r.json().then(function(d) { return {code: r.status, d: d}; }); })
+        .then(function(x) {
+            if (x.code === 200 && x.d.success) {
+                pollPkgVersionCheck(packageId, card);
+            } else if (x.code === 409) {
+                btn.disabled = false;
+                card.fail((x.d && x.d.message) || '已有查询任务进行中');
             } else {
-                card.fail(d.message || '查询失败');
-                window.safeToast(d.message || '查询失败', 'error', 8000);
+                btn.disabled = false;
+                card.fail((x.d && x.d.message) || '启动失败');
             }
         }).catch(function() {
-            btn.disabled = false; btn.textContent = '🔍 查询工作包工卡版本';
-            card.fail('查询失败');
-            window.safeToast('查询失败', 'error');
+            btn.disabled = false;
+            card.fail('启动失败');
         });
+}
+
+function pollPkgVersionCheck(packageId, card) {
+    var btn = document.querySelector('button[data-package-id="' + packageId + '"]');
+    var deadline = Date.now() + 30 * 60 * 1000;
+    var timer = setInterval(function() {
+        if (Date.now() > deadline) {
+            clearInterval(timer);
+            if (btn) btn.disabled = false;
+            card.fail('等待超时，请重新查询');
+            return;
+        }
+        fetch('/packages/amro-version-status', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function(r) { return r.json(); }).then(function(d) {
+                var status = (d && d.data) || {};
+                if (status.status === 'done') {
+                    clearInterval(timer);
+                    if (btn) btn.disabled = false;
+                    var s = status.summary || {};
+                    var msg = '版本检查完成（' + (status.label || packageId) + '）：改版 ' + s.revised
+                            + ' 张，作废 ' + s.cancelled + ' 张（预览页可下载改版清单）';
+                    card.done(msg);
+                    window.safeToast(msg, 'success', 8000);
+                } else if (status.status === 'error') {
+                    clearInterval(timer);
+                    if (btn) btn.disabled = false;
+                    card.fail(status.error || '未知错误');
+                    window.safeToast(status.error || '查询失败', 'error', 8000);
+                }
+            }).catch(function(){});
+    }, 2000);
 }
 
 // 服务端注入的上次查询快照（内存态，重启清空）：跨页面/刷新保留查询结果
@@ -340,6 +373,20 @@ document.addEventListener('DOMContentLoaded', function() {
     if (amroPkgQuery && amroPkgQuery.rows) {   // 保留上次查询结果表格（持久状态栏已由服务器端渲染）
         renderAmroPacks(amroPkgQuery.rows);
     }
+    // 恢复进行中的逐包版本检查轮询（后台线程跨刷新保留）
+    fetch('/packages/amro-version-status', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function(r) { return r.json(); }).then(function(d) {
+            var status = (d && d.data) || {};
+            if (status.status === 'running' && status.package_id) {
+                var btn = document.querySelector('button[data-package-id="' + status.package_id + '"]');
+                var tr = btn && btn.closest('tr');
+                var reg = tr && tr.cells[0] ? tr.cells[0].textContent.trim() : '';
+                var desc = tr && tr.cells[1] ? tr.cells[1].textContent.trim() : '';
+                var label = (reg + ' ' + desc).trim() || status.package_id;
+                var card = window.QueryCard.run('qCardPkgVerCheck', '查询工作包工卡版本 - ' + (status.label || label));
+                pollPkgVersionCheck(status.package_id, card);
+            }
+        }).catch(function(){});
 });
 </script>
 {% endblock %}

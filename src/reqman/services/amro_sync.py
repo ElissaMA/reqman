@@ -10,6 +10,7 @@ import asyncio
 import io
 import json
 import logging
+import secrets
 import threading
 from contextlib import contextmanager
 from datetime import datetime, timedelta
@@ -40,22 +41,28 @@ def _norm_reg(value: str) -> str:
 # ---------- 全局查询互斥（v3.6.0：一次只跑一个 AMRO 查询，不排队） ----------
 
 _query_lock = threading.Lock()
-_running_query: dict | None = None  # {label, started_at}
+_running_query: dict | None = None
+_query_token: str | None = None  # 持有者令牌：仅持令牌者能释放，防误释放/跨任务串扰
 
 
-def try_begin_query(label: str) -> bool:
-    """尝试占用全局查询槽。成功返回 True；已有查询在跑返回 False（不排队）。"""
-    global _running_query
+def try_begin_query(label: str) -> str | None:
+    """占用全局查询槽。成功返回令牌（释放时回传），失败返回 None（已有查询在跑，不排队）。"""
+    global _running_query, _query_token
     got = _query_lock.acquire(blocking=False)
     if got:
+        _query_token = secrets.token_hex(8)
         _running_query = {"label": label, "started_at": _now()}
-    return got
+        return _query_token
+    return None
 
 
-def end_query() -> None:
-    """释放全局查询槽。"""
-    global _running_query
+def end_query(token: str | None = None) -> None:
+    """释放全局查询槽（仅持有者令牌可释放；无令牌调用兼容旧路径但需与当前令牌一致）。"""
+    global _running_query, _query_token
+    if token is not None and token != _query_token:
+        return
     _running_query = None
+    _query_token = None
     if _query_lock.locked():
         _query_lock.release()
 
@@ -70,13 +77,14 @@ def query_busy_message() -> str | None:
 
 @contextmanager
 def query_slot(label: str):
-    """同步请求的查询槽上下文：进入时占用，退出时释放。"""
-    if not try_begin_query(label):
+    """同步请求的查询槽上下文：进入时占用，退出时释放（持有令牌）。"""
+    token = try_begin_query(label)
+    if token is None:
         raise QueryBusyError(query_busy_message() or "已有查询任务进行中")
     try:
         yield
     finally:
-        end_query()
+        end_query(token)
 
 
 class QueryBusyError(RuntimeError):
@@ -87,27 +95,30 @@ class QueryBusyError(RuntimeError):
 QUERY_STATUS: dict[str, dict] = {}
 
 
-def run_query(key: str, label: str, job) -> bool:
+def run_query(key: str, label: str, job, extra: dict | None = None) -> bool:
     """daemon 线程执行 job（占全局查询槽全程），QUERY_STATUS：running → done/error。
 
+    extra 透传进每条状态记录（如 package_id），便于前端按标识恢复轮询。
     返回 False = 已有查询在跑（未启动）。
     """
-    if not try_begin_query(label):
+    token = try_begin_query(label)
+    if token is None:
         return False
+    extra = extra or {}
 
     def runner():
         try:
             summary = job()
             QUERY_STATUS[key] = {"status": "done", "label": label,
-                                 "finished_at": _now(), "summary": summary}
+                                 "finished_at": _now(), "summary": summary, **extra}
         except Exception as exc:
             logger.exception("AMRO 查询任务失败: %s", label)
             QUERY_STATUS[key] = {"status": "error", "label": label,
-                                 "finished_at": _now(), "error": str(exc)}
+                                 "finished_at": _now(), "error": str(exc), **extra}
         finally:
-            end_query()
+            end_query(token)
 
-    QUERY_STATUS[key] = {"status": "running", "label": label, "started_at": _now()}
+    QUERY_STATUS[key] = {"status": "running", "label": label, "started_at": _now(), **extra}
     threading.Thread(target=runner, daemon=True, name=f"amro-{key}").start()
     return True
 
@@ -607,3 +618,39 @@ def start_full_version_check(store, session_store, output_dir) -> bool:
                 "total_amro": rep["total_amro"], "filename": rep["filename"]}
 
     return run_query("full_version", "全量查询工卡版本", job)
+
+
+def start_package_version_check(store, session_store, package_id: str, pkg_data: dict) -> bool:
+    """启动逐包工卡版本检查后台任务。返回 False = 已有查询在跑（全局互斥，不排队）。
+
+    长任务（逐卡直查 EO/NRC 约 2 分钟/50 张）移出请求线程，前端轮询
+    get_query_status("package_version") 获取进度，避免 gunicorn 120s 杀请求。
+    """
+    label = package_display_label(pkg_data) or package_id
+    cookies = (session_store.load() or {}).get("cookies", {})
+    finished_date = datetime.now(BJ).strftime("%Y.%m.%d")
+
+    def job():
+        task_codes = list(dict.fromkeys(
+            it.get("task_code") for it in pkg_data.get("all_items", []) if it.get("task_code")))
+
+        async def _inner():
+            async with httpx.AsyncClient(verify=True, trust_env=False) as client:
+                return await check_cards_against_amro(store, client, cookies, task_codes)
+
+        report = asyncio.run(_inner())
+        filename = f"amro_pkg_version_report_{package_id}.xlsx"
+        (OUTPUT_DIR / filename).write_bytes(build_version_report_excel(
+            report, title_label=package_report_label(pkg_data) or package_id,
+            finished_date=finished_date))
+        summary = {"revised": len(report["revised"]), "cancelled": len(report["cancelled"]),
+                   "filename": filename}
+        save_last_query_result(
+            "package_version", "查询工作包工卡版本",
+            f"包 {label}：改版 {summary['revised']} 张，作废 {summary['cancelled']} 张",
+            download_url=f"/generate/package-version-report?package_id={package_id}",
+            output_dir=OUTPUT_DIR)
+        return summary
+
+    return run_query("package_version", "查询工作包工卡版本", job,
+                     extra={"package_id": package_id, "label": label})
