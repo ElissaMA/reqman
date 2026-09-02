@@ -8,10 +8,10 @@ import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-import openpyxl
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 
 from ..config import TEMPLATE_FILE
+from ..utils.template_cache import load_template
 
 logger = logging.getLogger(__name__)
 
@@ -140,7 +140,7 @@ def generate_form(form_data, parsed_data, output_filename=None):
     if not os.path.exists(TEMPLATE_FILE):
         raise FileNotFoundError(f"模板文件不存在：{TEMPLATE_FILE}")
 
-    wb = openpyxl.load_workbook(TEMPLATE_FILE)
+    wb = load_template(TEMPLATE_FILE)
     ws = wb["需求单"]
     try:
         _fill_header(ws, form_data)

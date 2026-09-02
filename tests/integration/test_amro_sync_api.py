@@ -347,15 +347,17 @@ class TestPackageVersionApi:
         })["package_id"]
 
     def test_package_version_check_sync(self, client, app, ajax_headers, monkeypatch, tmp_path):
-        """行级查询工作包工卡版本：同步比对 → 更新版本 → 生成逐包改版清单（同包覆盖）。
+        """行级查询工作包工卡版本：后台线程比对 → 轮询状态 → 生成逐包改版清单（同包覆盖）。
 
         包内卡非 CSCA 前缀（E/J 例）→ 走 TD_JC_ALL_GET_ENTITY_BY_JCNO 逐卡直查。
+        长任务移出请求线程，客户端轮询 /packages/amro-version-status 取进度。
         """
-        import reqman.blueprints.packages_bp as pb_mod
+        import time as _time
+
         import reqman.services.connectors.amro as amro_mod
         from reqman.services import amro_sync
         monkeypatch.setattr(amro_sync, "require_amro_session", lambda: True)
-        monkeypatch.setattr(pb_mod, "OUTPUT_DIR", tmp_path)
+        monkeypatch.setattr(amro_sync, "OUTPUT_DIR", tmp_path)  # 报告与持久摘要落 tmp_path
 
         entity_rows = {
             "E-001": {"JC_NO": "E-001", "WRITE_DATE": "2026-08-01 09:00:00", "ZY": "电子",
@@ -370,19 +372,33 @@ class TestPackageVersionApi:
 
         store = app.extensions["store"]
         pkg_id = self._make_package(store)
+
+        # 跨测试用例 daemon 线程释放全局槽有微小窗口，先等其空闲再发起
+        deadline = _time.time() + 5
+        while _time.time() < deadline and amro_sync.query_busy_message() is not None:
+            _time.sleep(0.05)
+
         resp = client.post(f"/packages/{pkg_id}/amro-version-check", headers=ajax_headers)
         assert resp.status_code == 200
-        data = resp.get_json()["data"]
-        assert data["revised"] == 2 and data["cancelled"] == 0
-        assert data["filename"] == f"amro_pkg_version_report_{pkg_id}.xlsx"
-        assert (tmp_path / data["filename"]).exists()
+        assert resp.get_json()["data"]["started"] is True
+
+        status = {}
+        deadline = _time.time() + 5
+        while _time.time() < deadline:
+            status = client.get("/packages/amro-version-status").get_json()["data"]
+            if status.get("status") == "done":
+                break
+            _time.sleep(0.05)
+        assert status.get("status") == "done", status
+        s = status["summary"]
+        assert s["revised"] == 2 and s["cancelled"] == 0
+        assert s["filename"] == f"amro_pkg_version_report_{pkg_id}.xlsx"
+        assert (tmp_path / s["filename"]).exists()
         assert store.find_by_code("E-001")["write_date"] == "2026-08-01 09:00:00"
         # 持久摘要显示机号+描述，而非 package_id 编号串
         last = amro_sync.get_last_query_result("package_version", output_dir=tmp_path)
         assert "B-1234 46A" in last["summary"]
         assert pkg_id not in last["summary"]
-        # 查询完成提示与持久摘要一致：同样含机号+描述
-        assert "B-1234 46A" in resp.get_json()["message"]
 
     def test_package_version_check_busy_409(self, client, app, ajax_headers, monkeypatch):
         from reqman.services import amro_sync

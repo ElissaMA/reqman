@@ -4,8 +4,10 @@
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
+import threading
 import time
 from datetime import datetime
 from pathlib import Path
@@ -18,15 +20,14 @@ from ...config import AMRO_AUDIT_FILE, AMRO_RATE_SECONDS
 
 logger = logging.getLogger(__name__)
 
-API_URL = "https://me.sichuanair.com/api/v1/plugins/MM_PARTNUMBERCHAXUN_LIST"
-
 AMRO_API_BASE = "https://me.sichuanair.com/api/v1/plugins"
 
-# 只读白名单：仅允许调用以下 8 个已实测验证的查询端点（写/导出/生成类端点一律拒绝）
+# 只读白名单：仅允许调用以下已实测验证的查询端点（写/导出/生成类端点一律拒绝）
 READONLY_PLUGINS: frozenset[str] = frozenset({
     "DA_ACREG_LIST", "DA_MPACTYPE_HELP",
     "TD_JC_SMJC_LIST", "TD_JC_ALL_EOJC_LIST", "TD_JC_ALL_GET_ENTITY_BY_JCNO",
     "BM_TSK_LIST", "BM_TSK_002_LIST", "BM_TSK_002_LIST_QT",
+    "MM_PARTNUMBERCHAXUN_LIST",
 })
 
 
@@ -63,25 +64,19 @@ async def query_single_pn(
     pn: str,
     inv_type: str,
 ) -> list[dict]:
-    resp = await client.post(
-        API_URL,
-        data={
+    """单件号库存查询 — 经通用只读调用器，自动获得白名单校验/限速/审计。"""
+    body = await query_plugin(
+        client,
+        cookies,
+        "MM_PARTNUMBERCHAXUN_LIST",
+        {
             "I_HHJ": "",
             "I_ZLGO_TYP": inv_type,
             "I_MFRPN": pn,
             "I_MATER_NO_FLEET": "",
         },
-        cookies=cookies,
         timeout=30,
     )
-    resp.raise_for_status()
-    body = resp.json()
-    code = body.get("code")
-    if code != 200:
-        msg = body.get("msg", "unknown")
-        if code == 100:
-            raise RuntimeError("登录已失效，请重新运行登录脚本")
-        raise RuntimeError(f"API 返回 code={code}, msg={msg}")
     return body.get("data", [])
 
 
@@ -134,17 +129,28 @@ async def check_session(
 
 # ---------- 通用只读调用器（v3.5.0 三域同步基座） ----------
 
-_last_request_ts = 0.0  # 模块级节流戳
+_last_request_ts = 0.0  # 模块级节流戳（跨事件循环/线程共享，仅用于计时）
+_ts_guard = threading.Lock()  # 仅保护戳的读写，绝不持锁 await，故不阻塞事件循环
 
 
-def _throttle() -> None:
-    """全局限速：两次 AMRO 请求间隔 ≥ AMRO_RATE_SECONDS。"""
+async def _throttle() -> None:
+    """全局限速：两次 AMRO 请求间隔 ≥ AMRO_RATE_SECONDS（不阻塞事件循环）。
+
+    节流戳用 threading.Lock 短时保护（仅做算术，不 await），真正的等待在锁外
+    以 asyncio.sleep 完成。这样在「单 loop 内多协程」「多 asyncio.run 各建新
+    loop」「多守护线程」三种场景都正确：既不会被 asyncio.Lock 跨 loop 绑定报错，
+    也不会因持锁 await 而死锁事件循环。
+    """
     global _last_request_ts
-    now = time.monotonic()
-    wait = _last_request_ts + AMRO_RATE_SECONDS - now
+    with _ts_guard:
+        now = time.monotonic()
+        wait = _last_request_ts + AMRO_RATE_SECONDS - now
+        if wait > 0:
+            _last_request_ts = now + wait  # 先占位，避免并发重叠
+        else:
+            _last_request_ts = now
     if wait > 0:
-        time.sleep(wait)
-    _last_request_ts = now
+        await asyncio.sleep(wait)
 
 
 def _audit_path() -> Path:
@@ -185,7 +191,7 @@ async def query_plugin(
     if plugin not in READONLY_PLUGINS:
         raise ValueError(f"端点 {plugin} 不在只读白名单，禁止调用")
     url = f"{AMRO_API_BASE}/{plugin}"
-    _throttle()
+    await _throttle()
     start = time.monotonic()
     resp = await client.post(url, data=form, cookies=cookies, timeout=timeout)
     seconds = time.monotonic() - start

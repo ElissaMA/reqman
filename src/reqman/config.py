@@ -26,6 +26,9 @@ CATEGORIES: list[str] = os.getenv(
     "CATEGORIES", "发动机,机体,电子,特检,支援"
 ).split(",")
 
+# 专业排序优先级（越小越靠前）：报告分组/改版清单分专业共用单一来源
+CATEGORY_ORDER: dict[str, int] = {"发动机": 0, "机体": 1, "电子": 2}
+
 TASK_TYPES: list[str] = os.getenv(
     "TASK_TYPES", "A,EO分段,DP项目,20MO,24MO"
 ).split(",")
@@ -55,7 +58,8 @@ MAX_CONTENT_LENGTH: int = 16 * 1024 * 1024
 DB_FILE.parent.mkdir(parents=True, exist_ok=True)
 
 # ---------- AMRO 库存查询 ----------
-AMRO_API_URL: str = os.getenv("AMRO_API_URL", "https://me.sichuanair.com/api/v1/plugins/MM_PARTNUMBERCHAXUN_LIST")
+# 只读白名单与端点基座集中在 connectors/amro.py（READONLY_PLUGINS / AMRO_API_BASE），
+# 库存实际调用经 query_plugin，此处仅保留配置项。
 AMRO_COOKIE_FILE: Path = BASE_DIR / os.getenv("AMRO_COOKIE_FILE", "data/cookie/amro_cookies.json")
 AMRO_MAX_CONCURRENT: int = int(os.getenv("AMRO_MAX_CONCURRENT", "10"))
 AMRO_SESSION_TTL: int = int(os.getenv("AMRO_SESSION_TTL", "7200"))  # 2 小时

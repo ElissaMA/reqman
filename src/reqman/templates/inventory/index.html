@@ -96,7 +96,7 @@ function doQuery() {
             if (d.success) {
                 card.done('查询完成：共 ' + d.data.total + ' 件号，成功 ' + d.data.success + '，失败 ' + d.data.fail);
                 renderResult(d.data);
-                window.safeToast(MSG.P9, 'success');
+                window.safeToast('查询完成：共 ' + d.data.total + ' 件号，成功 ' + d.data.success + '，失败 ' + d.data.fail, 'success');
             } else {
                 card.fail(d.message || '查询失败');
                 window.safeToast(d.message, 'error');
