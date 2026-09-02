@@ -3,12 +3,11 @@ import io
 import json
 import logging
 import os
-import shutil
-import tempfile
+import uuid
 import zipfile
 from pathlib import Path
 
-from flask import Blueprint, current_app, render_template, request, send_file
+from flask import Blueprint, current_app, jsonify, render_template, request, send_file
 
 from ..config import AMRO_LOGIN_VERSION, AMRO_PUBLIC_URL, OUTPUT_DIR
 from ..services import amro_sync
@@ -159,10 +158,10 @@ def login_upload():
 
 @inventory_bp.route("/inventory/query", methods=["POST"])
 def query():
-    """执行库存查询：清理旧暂存 → 输出到 output/ → 返回统计与文件名（手动下载）。"""
+    """执行库存查询：启动后台线程（长任务移出请求线程，前端轮询状态）。"""
     svc = _service()
-    if not svc.check_login():
-        return api_error(MESSAGES["P8"], error_code="LOGIN_EXPIRED", status_code=400)
+    if not amro_sync.require_amro_session():
+        return api_error(MESSAGES["P8"], error_code="LOGIN_EXPIRED", status_code=401)
     f = request.files.get("file")
     if f is None or not f.filename or not f.filename.endswith(".xlsx"):
         raise ValidationError("请选择正确的需求单 Excel 文件（.xlsx）")
@@ -175,32 +174,24 @@ def query():
             logger.warning("清理旧暂存失败: %s", old)
 
     output_stem = Path(os.path.basename(f.filename)).stem
-    tmpdir = tempfile.mkdtemp(prefix="inventory_upload_")
-    try:
-        demand_path = Path(tmpdir) / "inventory_input.xlsx"
-        f.save(demand_path)
+    # 持久化暂存上传文件：后台 job 在守护线程中读取，请求结束不得删除
+    staged_path = OUTPUT_DIR / f".staging_{uuid.uuid4().hex}.xlsx"
+    f.save(staged_path)
+    if not amro_sync.start_inventory_query(svc, staged_path, output_stem):
+        # 已有查询在跑：清理本次暂存并返回 409
         try:
-            with amro_sync.query_slot("查询库存"):
-                _dest, filename, result = svc.run_query(demand_path, output_stem=output_stem)
-        except amro_sync.QueryBusyError:
-            return api_error(amro_sync.query_busy_message()
-                             or "已有查询任务进行中，请等待完成后再查询", status_code=409)
-        except RuntimeError:
-            return api_error(MESSAGES["P8"], error_code="LOGIN_EXPIRED", status_code=400)
-        except ValueError as e:
-            raise ValidationError(str(e))
-    finally:
-        shutil.rmtree(tmpdir, ignore_errors=True)
+            staged_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+        return api_error(amro_sync.query_busy_message()
+                         or "已有查询任务进行中，请等待完成后再查询", status_code=409)
+    return api_success(data={"started": True})
 
-    data = {
-        "total": result.total,
-        "success": result.success,
-        "fail": result.fail,
-        "shortage": result.shortage,
-        "warning": result.warning,
-        "filename": filename,
-    }
-    return api_success(data=data, message=MESSAGES["P9"])
+
+@inventory_bp.route("/inventory/query-status")
+def query_status():
+    """库存查询进度/简要结果（全局内存态，前端轮询/恢复加载）。"""
+    return jsonify({"success": True, "data": amro_sync.get_query_status("inventory_query")})
 
 
 @inventory_bp.route("/inventory/latest-output", methods=["GET"])

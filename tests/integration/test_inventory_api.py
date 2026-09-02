@@ -49,6 +49,24 @@ def _mock_amro_query(monkeypatch, app):
     monkeypatch.setattr(amro_mod, "query_kunming_stock", fake_query)
 
 
+def _poll_inventory_status(client, timeout: float = 8) -> dict:
+    """轮询 /inventory/query-status 直到 done/error（复用后台查询模式）。"""
+    import time as _t
+
+    deadline = _t.time() + timeout
+    last: dict = {}
+    while _t.time() < deadline:
+        resp = client.get("/inventory/query-status",
+                          headers={"X-Requested-With": "XMLHttpRequest"})
+        data = resp.get_json() or {}
+        st = data.get("data") or {}
+        last = st
+        if st.get("status") in ("done", "error"):
+            return st
+        _t.sleep(0.05)
+    return last
+
+
 class TestInventoryPage:
     def test_page_accessible(self, client):
         resp = client.get("/inventory")
@@ -254,13 +272,13 @@ class TestQuery:
                 headers={"X-Requested-With": "XMLHttpRequest"},
                 content_type="multipart/form-data",
             )
-        assert resp.status_code == 400
+        assert resp.status_code == 401
         data = resp.get_json()
         assert data["success"] is False
         assert "重新运行登录脚本" in data["message"]
 
     def test_query_success_returns_stats_and_file(self, app, client, tmp_path, monkeypatch, isolated_inventory):
-        """成功路径：JSON 统计 + 文件名保留原名 + 输出落盘 output/。"""
+        """成功路径：启动后台任务 → 轮询至 done → 统计 + 文件名 + 输出落盘 output/。"""
         _mock_amro_query(monkeypatch, app)
         out_dir = isolated_inventory
 
@@ -275,10 +293,15 @@ class TestQuery:
         assert resp.status_code == 200
         data = resp.get_json()
         assert data["success"] is True
-        assert data["data"]["total"] == 1
-        assert data["data"]["success"] == 1
-        assert data["data"]["shortage"] == 1
-        assert data["data"]["filename"].startswith("demand_库存已填_")
+        assert data["data"]["started"] is True
+
+        status = _poll_inventory_status(client)
+        assert status.get("status") == "done", status
+        s = status["summary"]
+        assert s["total"] == 1
+        assert s["success"] == 1
+        assert s["shortage"] == 1
+        assert s["filename"].startswith("demand_库存已填_")
         # 文件已写入 output/
         saved = list(out_dir.glob("demand_库存已填_*.xlsx"))
         assert len(saved) == 1
@@ -313,7 +336,7 @@ class TestQuery:
             amro_sync.end_query()
 
     def test_query_clears_old_staging(self, app, client, tmp_path, monkeypatch, isolated_inventory):
-        """上传新需求单查询 → 旧的 *_库存已填_* 暂存被清除，output/ 仅存最新。"""
+        """上传新需求单查询 → 旧的 *_库存已填_* 暂存被清除，output/ 仅存最新（后台完成后）。"""
         _mock_amro_query(monkeypatch, app)
         out_dir = isolated_inventory
         (out_dir / "旧需求单_库存已填_20260101_000000.xlsx").write_bytes(b"old")
@@ -328,10 +351,14 @@ class TestQuery:
                 content_type="multipart/form-data",
             )
         assert resp.status_code == 200
+        status = _poll_inventory_status(client)
+        assert status.get("status") == "done", status
         staged = [p.name for p in out_dir.glob("*_库存已填_*.xlsx")]
-        assert len(staged) == 1  # 旧暂存已清
+        assert len(staged) == 1  # 旧暂存已清，仅新产物
         assert "旧需求单_库存已填_" not in staged[0]
         assert (out_dir / "无关文件.txt").exists()  # 未误删其他文件
+        # 上传暂存 .staging_* 已在 job 内清理，不残留
+        assert not list(out_dir.glob(".staging_*.xlsx"))
 
 
 class TestDownload:

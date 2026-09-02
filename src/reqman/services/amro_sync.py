@@ -14,6 +14,7 @@ import secrets
 import threading
 from contextlib import contextmanager
 from datetime import datetime, timedelta
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -672,3 +673,25 @@ def start_package_version_check(store, session_store, package_id: str, pkg_data:
 
     return run_query("package_version", "查询工作包工卡版本", job,
                      extra={"package_id": package_id, "label": label})
+
+
+def start_inventory_query(svc, staged_path: Path, output_stem: str) -> bool:
+    """启动库存查询后台任务。返回 False = 已有查询在跑（全局互斥，不排队）。
+
+    ≥2s 节流下大需求单（>50 件号）可能超过 gunicorn 120s 请求超时，故移出请求线程，
+    前端轮询 get_query_status("inventory_query") 获取进度/结果，避免请求被杀死。
+    staged_path 为请求内持久化的上传暂存，job 内 finally 清理（请求结束不得删除）。
+    """
+
+    def job():
+        try:
+            _dest, filename, result = svc.run_query(staged_path, output_stem=output_stem)
+        finally:
+            try:
+                staged_path.unlink(missing_ok=True)
+            except OSError:
+                logger.warning("清理库存上传暂存失败: %s", staged_path)
+        return {"filename": filename, "total": result.total, "success": result.success,
+                "fail": result.fail, "shortage": result.shortage, "warning": result.warning}
+
+    return run_query("inventory_query", "查询库存", job)

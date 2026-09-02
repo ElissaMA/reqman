@@ -63,6 +63,15 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('startQueryBtn').addEventListener('click', function() {
         doQuery();
     });
+    // 恢复进行中的库存查询轮询（刷新/重进页面后继续等待结果）
+    fetch('/inventory/query-status', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function(r) { return r.json(); }).then(function(d) {
+            var status = (d && d.data) || {};
+            if (status.status === 'running') {
+                var card = window.QueryCard.run('qCardStock', '查询库存');
+                pollInventoryQuery(card);
+            }
+        }).catch(function(){});
 });
 
 function renderResult(data) {
@@ -82,34 +91,40 @@ function doQuery() {
     var fd = new FormData();
     fd.append('file', input.files[0]);
     var card = window.QueryCard.run('qCardStock', '查询库存');
-    // 超时兜底：65s 未返回则中止并结束"加载中"
-    var controller = new AbortController();
-    var timer = setTimeout(function() {
-        controller.abort();
-    }, 65000);
     fetch('/inventory/query', { method: 'POST', body: fd,
-        headers: { 'X-Requested-With': 'XMLHttpRequest' },
-        signal: controller.signal })
-        .then(function(resp) { return resp.json(); }).then(function(d) {
-            clearTimeout(timer);
-            window.hideLoader();
-            if (d.success) {
-                card.done('查询完成：共 ' + d.data.total + ' 件号，成功 ' + d.data.success + '，失败 ' + d.data.fail);
-                renderResult(d.data);
-                window.safeToast('查询完成：共 ' + d.data.total + ' 件号，成功 ' + d.data.success + '，失败 ' + d.data.fail, 'success');
+        headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function(r) { return r.json().then(function(d) { return {code: r.status, d: d}; }); })
+        .then(function(x) {
+            if (x.code === 200 && x.d.success) {
+                pollInventoryQuery(card);
+            } else if (x.code === 409) {
+                card.fail((x.d && x.d.message) || '已有查询任务进行中');
             } else {
-                card.fail(d.message || '查询失败');
-                window.safeToast(d.message, 'error');
+                card.fail((x.d && x.d.message) || '启动失败');
             }
-        }).catch(function(e) {
-            clearTimeout(timer);
-            window.hideLoader();
-            if (e && e.name === 'AbortError') {
-                card.fail('查询超时（65 秒），请重试');
-            } else {
-                card.fail('查询失败');
-            }
+        }).catch(function() {
+            card.fail('启动失败');
         });
+}
+
+function pollInventoryQuery(card) {
+    window.Poller.poll({
+        statusUrl: '/inventory/query-status',
+        card: card,
+        deadlineMin: 30,
+        intervalMs: 2000,
+        onDone: function(status, card) {
+            var s = status.summary || {};
+            var msg = '查询完成：共 ' + s.total + ' 件号，成功 ' + s.success + '，失败 ' + s.fail;
+            card.done(msg);
+            renderResult(s);
+            window.safeToast(msg, 'success');
+        },
+        onError: function(err, card) {
+            card.fail(err || '查询失败');
+            window.safeToast(err || '查询失败', 'error');
+        }
+    });
 }
 </script>
 {% endblock %}
