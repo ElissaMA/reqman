@@ -23,7 +23,14 @@
                             <option value="无需提醒">无需提醒</option>
                             {% for rt in reminder_types %}<option value="{{ rt }}">{{ rt }}</option>{% endfor %}
                         </select></th>
-                        <th></th><th></th><th></th>
+                        <th class="text-center"></th><th class="text-center"></th><th class="text-center"></th>
+                        <th><select class="form-select form-select-sm" id="fLogDate" data-date-col="6" onchange="AppFilter.filter('fLogDate')">
+                            <option value="">全部时间</option>
+                            <option value="1">近一个月</option>
+                            <option value="3">近3个月</option>
+                            <option value="12">近一年</option>
+                        </select></th>
+                        <th></th>
                     </tr>
                     <tr>
                         <th>名称</th>
@@ -32,6 +39,7 @@
                         <th class="text-center">工卡数</th>
                         <th class="text-center">工具数</th>
                         <th class="text-center">航材数</th>
+                        <th class="sortable text-center" data-col="6" onclick="AppFilter.sort(document.getElementById('setTable'),6)">新建/编辑日期 <span class="sort-arrow" data-dir="desc">▼</span></th>
                         <th style="width:120px" class="text-center">操作</th>
                     </tr>
                 </thead>
@@ -46,6 +54,7 @@
                         <td class="text-center">{{ card_counts.get(set.id, 0) }}</td>
                         <td class="text-center">{{ set.tools|length }}</td>
                         <td class="text-center">{{ set.materials|length }}</td>
+                        <td>{{ set.log_time or '—' }}</td>
                         <td class="text-center" onclick="event.stopPropagation()">
                             <a href="javascript:void(0)" onclick="ListUI.openEditor('/card/sets/{{ set.id }}/edit')" class="btn btn-outline-primary btn-sm py-0">编辑</a>
                             <button type="button" onclick="ListUI.del('/card/sets/{{ set.id }}/delete','确认删除工卡组 {{ set.name }}？关联工卡将解除绑定。')" class="btn btn-outline-danger btn-sm py-0">删除</button>
@@ -53,7 +62,7 @@
                     </tr>
                 {% endfor %}
                 {% else %}
-                    {{ list.empty_state('暂无工卡组，点击右上角新增', '/card/sets/new', '新增工卡组', colspan=7, open_modal=True) }}
+                    {{ list.empty_state('暂无工卡组，点击右上角新增', '/card/sets/new', '新增工卡组', colspan=8, open_modal=True) }}
                 {% endif %}
                 </tbody>
             </table>

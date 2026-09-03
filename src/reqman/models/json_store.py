@@ -15,6 +15,7 @@ import shutil
 import threading
 import time
 import uuid
+from datetime import datetime
 from typing import ClassVar
 from zoneinfo import ZoneInfo
 
@@ -46,6 +47,11 @@ def _atomic_write(path: str, data: dict) -> None:
             except OSError:
                 logger.debug("Failed to remove temp file: %s", tmp)
         raise
+
+
+def _today_iso() -> str:
+    """当前北京日期 YYYY-MM-DD，用于条目新建/编辑日志时间。"""
+    return datetime.now(ZoneInfo("Asia/Shanghai")).date().isoformat()
 
 
 _EMPTY_DB = {
@@ -84,17 +90,18 @@ class JsonStore:
             "task_type": "", "remark": "", "tools": [], "materials": [],
             "tools_confirmed": False, "materials_confirmed": False,
             "set_id": None, "reminder_type": "", "card_ok": False, "reminder_confirmed": False,
-            "write_date": "",
+            "write_date": "", "log_time": "",
         },
         "set": {
             "id": None, "name": "", "description": "", "category": "机体",
             "tools": [], "materials": [],
             "tools_confirmed": False, "materials_confirmed": False,
             "reminder_type": "", "card_ok": False, "reminder_confirmed": False,
+            "log_time": "",
         },
         "aircraft": {
             "id": None, "reg": "", "model": "", "engine": "",
-            "fsn": "", "msn": "", "apu": "",
+            "fsn": "", "msn": "", "apu": "", "log_time": "",
         },
     }
 
@@ -380,6 +387,7 @@ class JsonStore:
                 "reminder_type": reminder_type,
                 "card_ok": False,
                 "reminder_confirmed": False,
+                "log_time": _today_iso(),
             }
 
             db.setdefault("cards", {})[str(card_id)] = card
@@ -405,6 +413,9 @@ class JsonStore:
                         "reminder_type", "card_ok", "reminder_confirmed", "write_date"):
                 if key in kwargs:
                     card[key] = kwargs[key]
+
+            # 数据库条目的新建/编辑日志时间：任何更新都刷新为当天
+            card["log_time"] = _today_iso()
 
             # 如果编码变了，更新索引（新码不得占用其他卡，堵住脏索引源头）
             new_code = card.get("task_code")
@@ -466,6 +477,7 @@ class JsonStore:
                 "reminder_type": reminder_type,
                 "card_ok": card_ok,
                 "reminder_confirmed": reminder_confirmed,
+                "log_time": _today_iso(),
             }
             db.setdefault("card_sets", {})[str(set_id)] = set
             self._add_log(db, "add", "set", set_id, name, name, [])
@@ -485,6 +497,9 @@ class JsonStore:
                          "reminder_type", "card_ok", "reminder_confirmed"):
                 if key in kwargs and kwargs[key] is not None:
                     set[key] = kwargs[key]
+
+            # 数据库条目的新建/编辑日志时间：任何更新都刷新为当天
+            set["log_time"] = _today_iso()
 
             changes = self._detect_changes(old_set, set, self._SET_FIELDS)
             self._add_log(db, "update", "set", set_id,
@@ -548,6 +563,7 @@ class JsonStore:
                 "fsn": fsn,
                 "msn": msn,
                 "apu": apu,
+                "log_time": _today_iso(),
             }
             db.setdefault("aircraft", {})[str(aircraft_id)] = ac
             self._add_log(db, "add", "aircraft", aircraft_id, reg, model, [])
@@ -565,6 +581,9 @@ class JsonStore:
             for key in ("reg", "model", "engine", "fsn", "msn", "apu"):
                 if key in kwargs:
                     ac[key] = kwargs[key]
+
+            # 数据库条目的新建/编辑日志时间：任何更新都刷新为当天
+            ac["log_time"] = _today_iso()
 
             changes = self._detect_changes(old_ac, ac, self._AIRCRAFT_FIELDS)
             self._add_log(db, "update", "aircraft", aircraft_id,

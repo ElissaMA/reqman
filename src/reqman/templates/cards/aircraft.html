@@ -25,7 +25,21 @@
         <div class="table-responsive">
             <table class="table table-hover mb-0" id="acTable">
                 <thead>
-                    {{ list.filter_row([('搜索飞机号...','fReg'),('搜索机型...','fModel'),('搜索发动机...','fEngine'),('','_'),('','_'),('搜索APU...','fAPU'),('','_')]) }}
+                    <tr class="filter-row">
+                    <th><input class="form-control form-control-sm" placeholder="搜索飞机号..." onkeyup="AppFilter.filter('fReg')" id="fReg"></th>
+                    <th><input class="form-control form-control-sm" placeholder="搜索机型..." onkeyup="AppFilter.filter('fModel')" id="fModel"></th>
+                    <th><input class="form-control form-control-sm" placeholder="搜索发动机..." onkeyup="AppFilter.filter('fEngine')" id="fEngine"></th>
+                    <th><input class="form-control form-control-sm" placeholder="搜索FSN..." onkeyup="AppFilter.filter('fFSN')" id="fFSN"></th>
+                    <th><input class="form-control form-control-sm" placeholder="搜索MSN..." onkeyup="AppFilter.filter('fMSN')" id="fMSN"></th>
+                    <th><input class="form-control form-control-sm" placeholder="搜索APU..." onkeyup="AppFilter.filter('fAPU')" id="fAPU"></th>
+                    <th><select class="form-select form-select-sm" id="fLogDate" data-date-col="6" onchange="AppFilter.filter('fLogDate')">
+                        <option value="">全部时间</option>
+                        <option value="1">近一个月</option>
+                        <option value="3">近3个月</option>
+                        <option value="12">近一年</option>
+                    </select></th>
+                    <th></th>
+                </tr>
                     <tr>
                         <th style="width:12%">飞机号</th>
                         <th style="width:18%">机型</th>
@@ -33,6 +47,7 @@
                         <th style="width:12%">FSN</th>
                         <th style="width:12%">MSN</th>
                         <th style="width:18%">APU</th>
+                        <th style="width:120px" class="sortable text-center" data-col="6" onclick="AppFilter.sort(document.getElementById('acTable'),6)">新建/编辑日期 <span class="sort-arrow" data-dir="desc">▼</span></th>
                         <th style="width:120px" class="text-center">操作</th>
                     </tr>
                 </thead>
@@ -46,6 +61,7 @@
                         <td>{{ ac.fsn or '-' }}</td>
                         <td>{{ ac.msn or '-' }}</td>
                         <td>{{ ac.apu or '-' }}</td>
+                        <td>{{ ac.log_time or '—' }}</td>
                         <td onclick="event.stopPropagation()">
                             <a href="javascript:void(0)" onclick="ListUI.openEditor('/card/aircraft/{{ ac.id }}/edit')" class="btn btn-outline-primary btn-sm py-0">编辑</a>
                             <button type="button" onclick="ListUI.del('/card/aircraft/{{ ac.id }}/delete','确认删除飞机 {{ ac.reg }}？')" class="btn btn-outline-danger btn-sm py-0">删除</button>
@@ -53,7 +69,7 @@
                     </tr>
                 {% endfor %}
                 {% else %}
-                    {{ list.empty_state('暂无飞机信息，点击右上角新增', '/card/aircraft/new', '新增飞机', colspan=7, open_modal=True) }}
+                    {{ list.empty_state('暂无飞机信息，点击右上角新增', '/card/aircraft/new', '新增飞机', colspan=8, open_modal=True) }}
                 {% endif %}
                 </tbody>
             </table>
@@ -150,7 +166,7 @@ function showAcDetail(id) {
 }
 </script>
 <script>
-['fReg:0','fModel:1','fEngine:2','fAPU:5'].forEach(function(p) {
+['fReg:0','fModel:1','fEngine:2','fFSN:3','fMSN:4','fAPU:5'].forEach(function(p) {
     var id = p.split(':')[0], col = p.split(':')[1];
     var el = document.getElementById(id);
     if (el) el.setAttribute('data-col', col);

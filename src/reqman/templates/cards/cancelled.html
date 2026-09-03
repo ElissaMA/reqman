@@ -27,7 +27,12 @@
                             <option value="">全部类型</option>
                             {% for t in task_types %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
                         </select></th>
-                        <th></th><th></th><th></th><th></th>
+                        <th><input class="form-control form-control-sm" placeholder="搜索工卡组..." onkeyup="AppFilter.filter('fSet')" id="fSet"></th><th></th><th><select class="form-select form-select-sm" id="fCancelDate" data-date-col="7" onchange="AppFilter.filter('fCancelDate')">
+                            <option value="">全部时间</option>
+                            <option value="1">近一个月</option>
+                            <option value="3">近3个月</option>
+                            <option value="12">近一年</option>
+                        </select></th><th></th>
                     </tr>
                     <tr>
                         <th>工卡号</th>
@@ -37,7 +42,7 @@
                         <th>类型</th>
                         <th>所属工卡组</th>
                         <th>编写日期</th>
-                        <th>作废时间</th>
+                        <th class="sortable" data-col="7" onclick="AppFilter.sort(document.getElementById('cardTable'),7)">作废日期 <span class="sort-arrow" data-dir="desc">▼</span></th>
                         <th style="width:120px" class="text-center">操作</th>
                     </tr>
                 </thead>
@@ -101,7 +106,7 @@ function showDetail(id) {
     // 作废信息
     h += '<div class="mb-3 p-2 rounded bg-danger-subtle">'
         + '<label class="form-label small fw-bold mb-1">作废信息</label>'
-        + '<div class="small">作废时间：' + (d.cancelled_at || '-') + '</div>'
+        + '<div class="small">作废日期：' + (d.cancelled_at || '-') + '</div>'
         + '</div>';
     // 提醒区块（类型 + 确认状态）
     h += '<div class="mb-3"><label class="form-label small fw-bold">&#x1F514; 提醒类型</label><div>'
@@ -144,7 +149,7 @@ function showDetail(id) {
     new bootstrap.Modal(document.getElementById('detailModal')).show();
 }
 
-['fCode:0','fDesc:1','fCat:2','fReminder:3','fType:4'].forEach(function(p) {
+['fCode:0','fDesc:1','fCat:2','fReminder:3','fType:4','fSet:5'].forEach(function(p) {
     var id = p.split(':')[0], col = p.split(':')[1];
     var el = document.getElementById(id);
     if (el) el.setAttribute('data-col', col);

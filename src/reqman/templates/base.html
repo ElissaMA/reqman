@@ -471,19 +471,45 @@ window.Poller = (function() {
 {# 公共列表筛选/排序：供各列表页复用 #}
 <script>
 window.AppFilter = (function () {
+    function parseDateHead(s) {
+        if (!s) return null;
+        var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s.trim());
+        if (!m) return null;
+        return new Date(+m[1], +m[2] - 1, +m[3]);
+    }
+    function rangeStart(months) {
+        var d = new Date();
+        d.setHours(0, 0, 0, 0);
+        var days = months === 12 ? 365 : months * 30;
+        d.setDate(d.getDate() - days);
+        return d;
+    }
     function filter(inputId) {
         var input = document.getElementById(inputId);
         if (!input) return;
         var tbl = input.closest('table');
         if (!tbl) return;
-        var inputs = tbl.querySelectorAll('.filter-row input, .filter-row select');
+        var controls = tbl.querySelectorAll('.filter-row input, .filter-row select');
         tbl.querySelectorAll('tbody tr').forEach(function (r) {
             if (r.classList.contains('empty-state-row')) return;
             var show = true;
-            inputs.forEach(function (inp) {
-                var c = parseInt(inp.getAttribute('data-col'), 10);
-                var val = inp.value.toLowerCase();
-                if (val && r.children[c] && r.children[c].textContent.toLowerCase().indexOf(val) < 0) show = false;
+            controls.forEach(function (inp) {
+                if (!inp.value) return;
+                var dateCol = inp.getAttribute('data-date-col');
+                if (dateCol) {
+                    var months = parseInt(inp.value, 10);
+                    if (months > 0) {
+                        var cell = r.children[parseInt(dateCol, 10)];
+                        var d = parseDateHead(cell ? cell.textContent : '');
+                        if (!d || d < rangeStart(months)) show = false;
+                    }
+                } else {
+                    var c = parseInt(inp.getAttribute('data-col'), 10);
+                    if (!isNaN(c)) {
+                        var val = inp.value.toLowerCase();
+                        if (r.children[c] && r.children[c].textContent.toLowerCase().indexOf(val) < 0) show = false;
+                    }
+                }
             });
             r.style.display = show ? '' : 'none';
         });

@@ -30,6 +30,8 @@ def card_list():
         reminder_type = request.args.get("reminder_type", "").strip()
         cards = current_app.extensions['card_service'].list_cards(
             search=search, category=category, reminder_type=reminder_type)
+        # 按「新建/编辑」日志时间倒序（空值排最后）
+        cards.sort(key=lambda c: c.get("log_time", ""), reverse=True)
         sets = current_app.extensions['card_service'].list_card_sets()
         set_map = {set["id"]: set.get("name", "") for set in sets}
         for card in cards:
@@ -339,6 +341,9 @@ def card_sets():
                             "task_name": cd.get("task_name", "")}
                            for cd in cards]
             })
+        # 按「新建/编辑」日志时间倒序（空值排最后），同名按名称升序
+        sets.sort(key=lambda s: s.get("name", ""))
+        sets.sort(key=lambda s: s.get("log_time", ""), reverse=True)
         return render_template("cards/sets.html", sets=sets,
                                card_counts=card_counts,
                                categories=CATEGORIES,
@@ -586,6 +591,9 @@ def aircraft_list():
     """飞机信息列表"""
     try:
         ac_list = current_app.extensions['card_service'].list_aircraft()
+        # 按「新建/编辑」日志时间倒序（空值排最后），同名按机号升序
+        ac_list.sort(key=lambda ac: ac.get("reg", ""))
+        ac_list.sort(key=lambda ac: ac.get("log_time", ""), reverse=True)
         amro_status = amro_sync.get_query_status("aircraft")
         amro_last_query = amro_sync.get_last_query_result("aircraft")
         return render_template("cards/aircraft.html",
