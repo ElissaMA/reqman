@@ -284,7 +284,8 @@ class TestVersionCheckApi:
                 break
             _time.sleep(0.05)
         assert meta.get("status") == "done", meta
-        assert meta["summary"]["revised"] and meta["summary"]["cancelled"]
+        # 库内两张卡原均无编写日期 → 检查被填入，归入「新增」（非改版）；另一张查无 → 作废
+        assert meta["summary"]["new_added"] and meta["summary"]["cancelled"]
         assert meta["summary"]["filename"].startswith("amro_full_version_report_")
 
         dl = client.get("/card/amro-version-report")
@@ -394,7 +395,8 @@ class TestPackageVersionApi:
             _time.sleep(0.05)
         assert status.get("status") == "done", status
         s = status["summary"]
-        assert s["revised"] == 2 and s["cancelled"] == 0
+        # 包内 E-001/J-001 原均无编写日期，检查后被填入 → 归入「新增」
+        assert s["new_added"] == 2 and s["revised"] == 0 and s["cancelled"] == 0
         assert s["filename"] == f"amro_pkg_version_report_{pkg_id}.xlsx"
         assert (tmp_path / s["filename"]).exists()
         assert store.find_by_code("E-001")["write_date"] == "2026-08-01 09:00:00"

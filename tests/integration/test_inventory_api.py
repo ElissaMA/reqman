@@ -210,11 +210,11 @@ class TestSetupPackage:
         assert "未检测到 Chrome/Edge，请安装浏览器后重试" in src
 
     def test_py_login_version(self, client):
-        """amro_login.py 注入 LOGIN_VERSION 为当前版本（2）。"""
+        """amro_login.py 注入 LOGIN_VERSION 为当前版本（3）。"""
         resp = client.get("/inventory/setup-package")
         assert resp.status_code == 200
         src = self._py_source(resp)
-        assert 'LOGIN_VERSION = "2"' in src
+        assert 'LOGIN_VERSION = "3"' in src
 
     def test_injects_configured_public_url(self, client, monkeypatch):
         """配置 AMRO_PUBLIC_URL → 注入配置的公网地址。"""

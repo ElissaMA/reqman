@@ -490,9 +490,12 @@ def _move_to_cancelled(store, cancelled_store, card: dict, source: str) -> None:
     store.delete(card["id"])
 
 
-def _version_summary(revised_n: int, cancelled_n: int, checked_n: int) -> str:
-    """两处版本检查共用的基础摘要文案。"""
-    return f"改版 {revised_n} 张，作废 {cancelled_n} 张，共检查 {checked_n} 张"
+def _version_summary(revised_n: int, cancelled_n: int, checked_n: int, new_added_n: int = 0) -> str:
+    """两处版本检查共用的基础摘要文案。
+
+    new_added_n 为原库无编写日期、本次版本检查被新填入的工卡数（不计入「改版」）。
+    """
+    return f"改版 {revised_n} 张，新增 {new_added_n} 张，作废 {cancelled_n} 张，共检查 {checked_n} 张"
 
 
 async def full_version_check(store, client, cookies, *, fetch=None, query=None,
@@ -506,7 +509,7 @@ async def full_version_check(store, client, cookies, *, fetch=None, query=None,
     versions = await _collect_card_versions(store, client, cookies,
                                             [c.get("task_code", "") for c in all_cards],
                                             fetch=fetch, query=query)
-    revised, cancelled = [], []
+    revised, new_added, cancelled = [], [], []
     checked = 0
     for card in all_cards:
         code = card.get("task_code", "")
@@ -522,13 +525,20 @@ async def full_version_check(store, client, cookies, *, fetch=None, query=None,
             continue
         new_wd = _wd(row)
         old_wd = str(card.get("write_date", "")).strip()
-        if new_wd and new_wd[:10] != old_wd[:10]:   # 按日期部分比对（界面 date 只存 YYYY-MM-DD）
-            store.update(card["id"], write_date=new_wd)
-            revised.append({"task_code": code,
-                            "task_name": card.get("task_name", ""),
-                            "category": card.get("category", ""),
-                            "old_wd": old_wd, "new_wd": new_wd})
-    return {"revised": revised, "cancelled": cancelled, "checked": checked}
+        if new_wd:
+            if not old_wd:   # 原库无编写日期 → 本次新增（不计入改版）
+                store.update(card["id"], write_date=new_wd)
+                new_added.append({"task_code": code,
+                                  "task_name": card.get("task_name", ""),
+                                  "category": card.get("category", ""),
+                                  "old_wd": "", "new_wd": new_wd})
+            elif new_wd[:10] != old_wd[:10]:   # 按日期部分比对（界面 date 只存 YYYY-MM-DD）
+                store.update(card["id"], write_date=new_wd)
+                revised.append({"task_code": code,
+                                "task_name": card.get("task_name", ""),
+                                "category": card.get("category", ""),
+                                "old_wd": old_wd, "new_wd": new_wd})
+    return {"revised": revised, "new_added": new_added, "cancelled": cancelled, "checked": checked}
 
 
 async def check_cards_against_amro(store, client, cookies, task_codes, *, fetch=None, query=None,
@@ -545,7 +555,7 @@ async def check_cards_against_amro(store, client, cookies, task_codes, *, fetch=
     versions = await _collect_card_versions(store, client, cookies, wanted,
                                             fetch=fetch, query=query)
     all_cards = {c.get("task_code", ""): c for c in store.get_all()}
-    revised, cancelled = [], []
+    revised, new_added, cancelled = [], [], []
     for code in sorted(wanted):
         card = all_cards.get(code)
         if card is None:
@@ -559,13 +569,20 @@ async def check_cards_against_amro(store, client, cookies, task_codes, *, fetch=
             continue
         new_wd = _wd(row)
         old_wd = str(card.get("write_date", "")).strip()
-        if new_wd and new_wd[:10] != old_wd[:10]:   # 按日期部分比对（界面 date 只存 YYYY-MM-DD）
-            store.update(card["id"], write_date=new_wd)
-            revised.append({"task_code": code,
-                            "task_name": card.get("task_name", ""),
-                            "category": card.get("category", ""),
-                            "old_wd": old_wd, "new_wd": new_wd})
-    return {"revised": revised, "cancelled": cancelled, "checked": len(wanted)}
+        if new_wd:
+            if not old_wd:   # 原库无编写日期 → 本次新增（不计入改版）
+                store.update(card["id"], write_date=new_wd)
+                new_added.append({"task_code": code,
+                                  "task_name": card.get("task_name", ""),
+                                  "category": card.get("category", ""),
+                                  "old_wd": "", "new_wd": new_wd})
+            elif new_wd[:10] != old_wd[:10]:   # 按日期部分比对（界面 date 只存 YYYY-MM-DD）
+                store.update(card["id"], write_date=new_wd)
+                revised.append({"task_code": code,
+                                "task_name": card.get("task_name", ""),
+                                "category": card.get("category", ""),
+                                "old_wd": old_wd, "new_wd": new_wd})
+    return {"revised": revised, "new_added": new_added, "cancelled": cancelled, "checked": len(wanted)}
 
 
 def _group_by_category(rows: list[dict]) -> list[tuple[str, list[dict]]]:
@@ -592,11 +609,12 @@ def build_version_report_excel(report: dict, title_label: str = "",
 
     模板（assets/check_template.xlsx）结构：行1 标题（A1:C1 合并）、行2 专业表头
     （A 电子 / B 发动机 / C 机体，深绿白字）、行3+ 数据区（已删飞机信息块与图例，
-    每列预置绿底）。条目从行 3 起按专业列堆叠，同列先改版后作废——每个条目单单元格
-    三行：改版 = 工卡号/工卡名称/旧→新；作废 = 工卡号/工卡名称/作废。字体统一
-    宋体 11 黑字（覆盖模板预置红字），保留每列原绿底，wrap_text 沿用模板。
+    每列预置绿底）。条目从行 3 起按专业列堆叠，同列先改版、再新增、最后作废——每个
+    条目单单元格三行：工卡号 / 工卡名称（黑字）/ 标记（红字）。标记行：改版=旧→新、
+    新增=新增 <日期>、作废=作废。仅第三行标红色（宋体 11），保留每列原绿底，
+    wrap_text 沿用模板。
     """
-    from openpyxl.styles import Font
+    from openpyxl.cell.rich_text import CellRichText, InlineFont, TextBlock
 
     def _date_span(wd: str) -> str:
         return (wd or "").strip()[:10]
@@ -615,27 +633,41 @@ def build_version_report_excel(report: dict, title_label: str = "",
     ws = wb["改版清单"]
     ws["A1"] = title
 
-    body_font = Font(name="宋体", size=11, color="FF000000")
+    # 单元格三行：工卡号 / 工卡名称（黑）/ 标记（红）。仅第三行标红。
+    BLACK = InlineFont(rFont="宋体", sz=11, color="FF000000")
+    RED = InlineFont(rFont="宋体", sz=11, color="FFFF0000")
 
-    def write_entries(rows: list[dict], *, with_dates: bool) -> None:
+    def write_entries(rows: list[dict], *, with_dates: bool, prefix: str = "") -> None:
         for cat, items in _group_by_category(rows):
             col = COL_MAP.get(cat)
             if col is None:   # 特检/支援/其他：与提醒单一致不输出
                 continue
             for it in items:
                 cell = ws.cell(row=_next_row(ws, col), column=col)
-                lines = [str(it.get("task_code", "")), str(it.get("task_name", ""))]
+                seq: list = [
+                    TextBlock(BLACK, str(it.get("task_code", ""))),
+                    "\n",
+                    TextBlock(BLACK, str(it.get("task_name", ""))),
+                    "\n",
+                ]
                 if with_dates:
                     old, new = _date_span(it.get("old_wd", "")), _date_span(it.get("new_wd", ""))
-                    span = f"{old}→{new}" if old and new else (new or old)
+                    if old and new:
+                        span = f"{old}→{new}"
+                    elif new:
+                        span = new
+                    else:
+                        span = old
+                    if prefix and span:
+                        span = f"{prefix} {span}"
                     if span:
-                        lines.append(span)
+                        seq.append(TextBlock(RED, span))
                 else:
-                    lines.append("作废")
-                cell.value = "\n".join(lines)
-                cell.font = body_font
+                    seq.append(TextBlock(RED, prefix or "作废"))
+                cell.value = CellRichText(*seq)
 
     write_entries(report.get("revised", []), with_dates=True)
+    write_entries(report.get("new_added", []), with_dates=True, prefix="新增")
     write_entries(report.get("cancelled", []), with_dates=False)
     buf = io.BytesIO()
     wb.save(buf)
@@ -663,9 +695,10 @@ def start_full_version_check(store, session_store, output_dir, cancelled_store=N
         rep = asyncio.run(_inner())
         save_last_query_result("full_version", "全量查询工卡版本",
                                _version_summary(len(rep["revised"]), len(rep["cancelled"]),
-                                                rep["checked"]),
+                                                rep["checked"], len(rep["new_added"])),
                                download_url="/card/amro-version-report", output_dir=output_dir)
-        return {"revised": len(rep["revised"]), "cancelled": len(rep["cancelled"]),
+        return {"revised": len(rep["revised"]), "new_added": len(rep["new_added"]),
+                "cancelled": len(rep["cancelled"]),
                 "checked": rep["checked"], "filename": rep["filename"]}
 
     return run_query("full_version", "全量查询工卡版本", job)
@@ -696,12 +729,13 @@ def start_package_version_check(store, session_store, package_id: str, pkg_data:
         (OUTPUT_DIR / filename).write_bytes(build_version_report_excel(
             report, title_label=build_package_label(pkg_data, with_date=True) or package_id,
             finished_date=finished_date))
-        summary = {"revised": len(report["revised"]), "cancelled": len(report["cancelled"]),
+        summary = {"revised": len(report["revised"]), "new_added": len(report["new_added"]),
+                   "cancelled": len(report["cancelled"]),
                    "checked": report["checked"], "filename": filename}
         save_last_query_result(
             "package_version", "查询工作包工卡版本",
             f"版本检查完成（{label}）："
-            f"{_version_summary(summary['revised'], summary['cancelled'], summary['checked'])}"
+            f"{_version_summary(summary['revised'], summary['cancelled'], summary['checked'], summary['new_added'])}"
             f"（预览页可下载改版清单）",
             download_url=f"/generate/package-version-report?package_id={package_id}",
             output_dir=OUTPUT_DIR)

@@ -39,9 +39,14 @@
                        onchange="this.form.submit()">
             </div>
             <div class="col-auto">
-                <label class="form-label small mb-1 text-muted">提交日期</label>
+                <label class="form-label small mb-1 text-muted">起始日期</label>
                 <input type="date" name="date_from" class="form-control form-control-sm"
                        style="width:150px" value="{{ filters.date_from }}" onchange="this.form.submit()">
+            </div>
+            <div class="col-auto">
+                <label class="form-label small mb-1 text-muted">结束日期</label>
+                <input type="date" name="date_to" class="form-control form-control-sm"
+                       style="width:150px" value="{{ filters.date_to }}" onchange="this.form.submit()">
             </div>
             <div class="col-auto d-flex gap-1">
                 <button type="submit" class="btn btn-sm btn-primary">筛选</button>
@@ -171,7 +176,7 @@ function resetFilter() {
     var form = document.getElementById('logFilterForm');
     form.reset();
     var url = new URL(window.location.href);
-    ['operation', 'target_type', 'keyword', 'date_from', 'page'].forEach(function(k) {
+    ['operation', 'target_type', 'keyword', 'date_from', 'date_to', 'page'].forEach(function(k) {
         url.searchParams.delete(k);
     });
     window.location.href = url.toString();

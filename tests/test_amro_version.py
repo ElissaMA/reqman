@@ -1,6 +1,8 @@
 """T6/T7 工卡版本域：全库检查、作废移库、改版清单 Excel、提醒单附加区块（全 mock）"""
 import asyncio
 import io
+import re
+import zipfile
 
 import openpyxl
 import pytest
@@ -49,7 +51,9 @@ class TestFullVersionCheck:
         rep = _run(amro_sync.full_version_check(json_store, None, {}, fetch=fake_amro_cards))
         card = json_store.get(r["id"])
         assert card["write_date"] == "2026-08-01 09:00:00"
-        assert rep["revised"][0]["old_wd"] == "" and rep["revised"][0]["new_wd"] == "2026-08-01 09:00:00"
+        # 原库无编写日期、本次被填入 → 归入「新增」而非「改版」
+        assert len(rep["revised"]) == 0
+        assert rep["new_added"][0]["old_wd"] == "" and rep["new_added"][0]["new_wd"] == "2026-08-01 09:00:00"
         assert any(c["field"] == "write_date" for l in json_store._read()["card_logs"]
                    for c in l["changes"])
 
@@ -175,11 +179,13 @@ class TestVersionReportExcel:
         assert amro_sync.package_report_label(pkg) == amro_sync.build_package_label(pkg, with_date=True)
 
     def test_report_excel_reminder_template_layout(self):
-        """改版清单以专用模板输出：标题含「查询日期」、单单元格三行、黑字保留绿底。"""
+        """改版清单以专用模板输出：标题含「查询日期」、单单元格三行、仅第三行红字、保留绿底。"""
         buf = amro_sync.build_version_report_excel({
             "revised": [
                 {"task_code": "C-1", "task_name": "卡一", "category": "电子",
                  "old_wd": "2026-07-01 09:00:00", "new_wd": "2026-08-01 09:00:00"},
+            ],
+            "new_added": [
                 {"task_code": "C-2", "task_name": "卡二", "category": "发动机",
                  "old_wd": "", "new_wd": "2026-08-01 09:00:00"},
             ],
@@ -196,16 +202,52 @@ class TestVersionReportExcel:
         assert ws["A2"].fill.start_color.rgb == "FF00703C"   # 表头深绿白字样式保留
         a3 = ws["A3"]   # 电子列：改版卡一，单单元格三行
         assert a3.value == "C-1\n卡一\n2026-07-01→2026-08-01"
-        assert a3.font.color.rgb == "FF000000"               # 黑字覆盖预置红字
         assert a3.fill.start_color.rgb == "FFAAD296"         # 保留原绿底
-        assert ws["B3"].value == "C-2\n卡二\n2026-08-01"     # 旧为空仅显新日期
+        assert ws["B3"].value == "C-2\n卡二\n新增 2026-08-01"  # 原库无日期 → 新增（第三行标红）
         assert ws["B3"].fill.start_color.rgb == "FFC8DCB4"
         c3 = ws["C3"]   # 机体列：作废卡三
         assert c3.value == "C-3\n卡三\n作废"
-        assert c3.font.color.rgb == "FF000000"
         assert ws["D2"].value is None and ws["D3"].value is None   # 特检不输出
         assert sorted(str(r) for r in ws.merged_cells.ranges) == ["A1:C1"]   # 仅标题合并
         assert ws["A5"].value is None and ws["B5"].value is None and ws["C5"].value is None
+
+    def test_report_excel_third_line_red_only(self, tmp_path):
+        """改版清单：单元格仅第三行（标记行）红色，工卡号/名称保持黑字；三类均如此。"""
+        buf = amro_sync.build_version_report_excel({
+            "revised": [
+                {"task_code": "R-1", "task_name": "改版卡", "category": "电子",
+                 "old_wd": "2026-07-01", "new_wd": "2026-08-01 09:00:00"},
+            ],
+            "new_added": [
+                {"task_code": "N-1", "task_name": "新增卡", "category": "机体",
+                 "old_wd": "", "new_wd": "2026-09-01 10:00:00"},
+            ],
+            "cancelled": [
+                {"task_code": "X-1", "task_name": "作废卡", "category": "发动机"},
+            ],
+        })
+        p = tmp_path / "rt_red.xlsx"
+        p.write_bytes(buf)
+        with zipfile.ZipFile(p) as z:
+            xml = z.read("xl/worksheets/sheet1.xml").decode("utf-8", "ignore")
+
+        def runs():
+            for m in re.finditer(r"<r>(.*?)</r>", xml, re.DOTALL):
+                r = m.group(1)
+                t = re.search(r"<t[^>]*>(.*?)</t>", r, re.DOTALL)
+                c = re.search(r'<color rgb="([0-9A-Fa-f]+)"', r)
+                yield (t.group(1) if t else "", c.group(1).upper() if c else None)
+
+        rs = list(runs())
+        reds = [t for t, col in rs if col == "FFFF0000"]
+        blacks = [t for t, col in rs if col == "FF000000"]
+        # 仅第三行（标记行）为红：改版=旧→新、新增=新增<日期>、作废=作废
+        assert any("→" in t for t in reds), "改版标记未标红"
+        assert any(t.startswith("新增") for t in reds), "新增标记未标红"
+        assert any(t == "作废" for t in reds), "作废标记未标红"
+        # 工卡号 / 名称行仍为黑字（不被整体标红）
+        assert {"R-1", "N-1", "X-1"}.issubset(set(blacks)), "工卡号应为黑字"
+        assert any("改版卡" in t for t in blacks) and any("新增卡" in t for t in blacks)
 
 
 class TestCheckCardsAgainstAmro:
@@ -231,7 +273,8 @@ class TestCheckCardsAgainstAmro:
     def test_revised_and_cancelled_with_fields(self, json_store, fake_amro_cards, monkeypatch):
         monkeypatch.setattr(amro_sync.amro.time, "monotonic", lambda: 1e9)
         monkeypatch.setattr(amro_sync.amro.time, "sleep", lambda s: None)
-        json_store.add("CSCA320-256652-01-1-X", "检查救生衣", "电子", "RST", "")
+        r_csca = json_store.add("CSCA320-256652-01-1-X", "检查救生衣", "电子", "RST")
+        json_store.update(r_csca["id"], write_date="2026-07-01 09:00:00")
         json_store.add("EOJC-A320-57-2025-002-B", "旧卡", "机体", "EO", "")
 
         async def query(client, cookies, plugin, form, **kw):   # EO 卡逐条直查
@@ -275,9 +318,10 @@ class TestCheckCardsAgainstAmro:
 
 class TestVersionSummaryText:
     def test_base_format(self):
-        """两处版本检查共用的基础摘要文案：改版X张，作废Y张，共检查Z张。"""
-        assert amro_sync._version_summary(2, 1, 10) == "改版 2 张，作废 1 张，共检查 10 张"
-        assert amro_sync._version_summary(0, 0, 0) == "改版 0 张，作废 0 张，共检查 0 张"
+        """两处版本检查共用的基础摘要文案：改版X张，新增N张，作废Y张，共检查Z张。"""
+        assert amro_sync._version_summary(2, 1, 10) == "改版 2 张，新增 0 张，作废 1 张，共检查 10 张"
+        assert amro_sync._version_summary(0, 0, 0) == "改版 0 张，新增 0 张，作废 0 张，共检查 0 张"
+        assert amro_sync._version_summary(2, 1, 10, 3) == "改版 2 张，新增 3 张，作废 1 张，共检查 10 张"
 
 
 class TestVersionPullSplit:
@@ -315,7 +359,8 @@ class TestVersionPullSplit:
         """包内全为定检例行卡（CSCA 前缀）→ 只拉 SMJC，跳过 EOJC 深分页（秒级返回）。"""
         monkeypatch.setattr(amro_sync.amro.time, "monotonic", lambda: 1e9)
         monkeypatch.setattr(amro_sync.amro.time, "sleep", lambda s: None)
-        json_store.add("CSCA320-256652-01-1-X", "检查救生衣", "电子", "RST", "")
+        r_csca = json_store.add("CSCA320-256652-01-1-X", "检查救生衣", "电子", "RST")
+        json_store.update(r_csca["id"], write_date="2026-07-01 09:00:00")
         called = []
 
         async def fetch(client, cookies, plugin, base_form, **kw):
@@ -333,7 +378,8 @@ class TestVersionPullSplit:
         """含 EO 卡 → SMJC 全量拉 + EO 逐个按卡号直查（不再全量拉 EOJC 深分页）。"""
         monkeypatch.setattr(amro_sync.amro.time, "monotonic", lambda: 1e9)
         monkeypatch.setattr(amro_sync.amro.time, "sleep", lambda s: None)
-        json_store.add("EOJC-A320-31-2026-007-A", "改装卡", "电子", "EO", "")
+        r_eo = json_store.add("EOJC-A320-31-2026-007-A", "改装卡", "电子", "EO")
+        json_store.update(r_eo["id"], write_date="2026-07-01 09:00:00")
         fetched, queried = [], []
 
         async def fetch(client, cookies, plugin, base_form, **kw):

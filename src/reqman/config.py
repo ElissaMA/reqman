@@ -65,7 +65,7 @@ DB_FILE.parent.mkdir(parents=True, exist_ok=True)
 AMRO_COOKIE_FILE: Path = BASE_DIR / os.getenv("AMRO_COOKIE_FILE", "data/cookie/amro_cookies.json")
 AMRO_MAX_CONCURRENT: int = int(os.getenv("AMRO_MAX_CONCURRENT", "10"))
 AMRO_SESSION_TTL: int = int(os.getenv("AMRO_SESSION_TTL", "7200"))  # 2 小时
-AMRO_LOGIN_VERSION: str = os.getenv("AMRO_LOGIN_VERSION", "2")
+AMRO_LOGIN_VERSION: str = os.getenv("AMRO_LOGIN_VERSION", "3")
 # 登录脚本 ZIP 注入的公网地址（服务器部署建议配置，保证多用户下载的 ZIP 注入地址一致可达；未配置回退当前访问地址）
 AMRO_PUBLIC_URL: str = os.getenv("AMRO_PUBLIC_URL", "").rstrip("/")
 
