@@ -404,3 +404,67 @@ class TestLatestOutput:
         data = resp.get_json()
         assert data["data"]["exists"] is True
         assert data["data"]["filename"] == "B_库存已填_2.xlsx"
+
+
+import re
+
+import reqman.services.amro_sync as amro_sync_mod
+
+
+class TestInventoryLastQueryDisplay:
+    def test_index_no_duplicate_resultbox(self, client):
+        """页面不应再有第二套 #resultBox / loadLatestOutput / renderResult 输出。"""
+        resp = client.get("/inventory")
+        html = resp.get_data(as_text=True)
+        assert 'id="resultBox"' not in html
+        assert "loadLatestOutput" not in html
+        assert "renderResult" not in html
+
+    def test_index_renders_last_query_block(self, app, client, tmp_path, monkeypatch, isolated_inventory):
+        """跑一次查询后，库存页仅有一处「上次查询」摘要+可用下载链接。"""
+        out_dir = isolated_inventory
+        monkeypatch.setattr(amro_sync_mod, "OUTPUT_DIR", out_dir)
+        _mock_amro_query(monkeypatch, app)
+        src = _build_demand(tmp_path)
+        with src.open("rb") as f:
+            resp = client.post(
+                "/inventory/query",
+                data={"file": (f, "demand.xlsx")},
+                headers={"X-Requested-With": "XMLHttpRequest"},
+                content_type="multipart/form-data",
+            )
+        assert resp.get_json()["success"] is True
+        status = _poll_inventory_status(client)
+        assert status.get("status") == "done", status
+
+        resp = client.get("/inventory")
+        html = resp.get_data(as_text=True)
+        assert "上次查询（" in html
+        assert "⬇下载副本" in html
+        m = re.search(r'href="(/inventory/download\?file=[^"]+)"', html)
+        assert m, "摘要块未渲染下载链接"
+        dl = client.get(m.group(1))
+        assert dl.status_code == 200
+
+    def test_stale_download_reconciled_to_live(self, client, monkeypatch, isolated_inventory):
+        """持久化摘要指向已删除的静态文件时，下载链接应回退到当前实时最新文件。"""
+        out_dir = isolated_inventory
+        monkeypatch.setattr(amro_sync_mod, "OUTPUT_DIR", out_dir)
+        real = out_dir / "需求单_库存已填_20260101_000000.xlsx"
+        real.write_bytes(b"xlsx-bytes")
+        (out_dir / "last_query_inventory_query.json").write_text(
+            '{"label":"查询库存","finished_at":"2026-01-01 00:00:00",'
+            '"summary":"查询完成：共 1 件号，成功 1，失败 0，标红 1，标黄 0",'
+            '"download_url":"/inventory/download?file=已删除_库存已填_20250101_000000.xlsx"}',
+            encoding="utf-8",
+        )
+        resp = client.get("/inventory")
+        html = resp.get_data(as_text=True)
+        assert "上次查询（" in html
+        m = re.search(r'href="(/inventory/download\?file=[^"]+)"', html)
+        assert m, "摘要块未渲染下载链接"
+        assert "已删除_库存已填" not in m.group(1)
+        assert "需求单_库存已填" in m.group(1)
+        dl = client.get(m.group(1))
+        assert dl.status_code == 200
+        assert dl.data == b"xlsx-bytes"

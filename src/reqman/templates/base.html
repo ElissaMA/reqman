@@ -230,8 +230,9 @@
                     aria-controls="navDataMgmt">数据管理 <span class="toggle-caret">▾</span></button>
             <div class="collapse {{ 'show' if in_data_mgmt }}" id="navDataMgmt">
                 <a class="side-link side-sub {{ 'active' if p.startswith('/card/aircraft') }}" href="/card/aircraft">✈ 飞机信息</a>
-                <a class="side-link side-sub {{ 'active' if (p.startswith('/card/') and not p.startswith('/card/aircraft') and not p.startswith('/card/sets') and not p.startswith('/card/logs')) }}" href="/card/list">📋 工卡信息</a>
+                <a class="side-link side-sub {{ 'active' if (p.startswith('/card/') and not p.startswith('/card/aircraft') and not p.startswith('/card/sets') and not p.startswith('/card/cancelled') and not p.startswith('/card/logs')) }}" href="/card/list">📋 工卡信息</a>
                 <a class="side-link side-sub {{ 'active' if p.startswith('/card/sets') }}" href="/card/sets">📦 工卡组信息</a>
+                <a class="side-link side-sub {{ 'active' if p.startswith('/card/cancelled') }}" href="/card/cancelled">🗂 作废工卡</a>
             </div>
             <a class="side-link {{ 'active' if p.startswith('/upload') }}" href="/upload">🔄 工作包</a>
             <a class="side-link {{ 'active' if p.startswith('/inventory') }}" href="/inventory">📦 库存查询</a>

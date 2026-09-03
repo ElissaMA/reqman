@@ -262,8 +262,12 @@ class TestVersionCheckApi:
         async def fake_fetch(client_, cookies, plugin, base_form, **kw):
             if plugin == "TD_JC_SMJC_LIST":
                 return [_jcrow("CSCA320-256652-01-1-X", "2026-08-01 09:00:00")]
-            return [_jcrow("EOJC-A320-31-2026-007-A", "2026-07-15 14:00:00", task="EO")]
+            return []
+
+        async def fake_query(client_, cookies, plugin, form, **kw):
+            return {"code": 200, "data": {}}   # EO 卡实体直查：查无 → 作废
         monkeypatch.setattr(amro_mod, "fetch_all_pages", fake_fetch)
+        monkeypatch.setattr(amro_mod, "query_plugin", fake_query)
 
         # 库内卡：1 张改版 + 1 张库内没有（作废）
         store_add(app, "CSCA320-256652-01-1-X", "检查救生衣")

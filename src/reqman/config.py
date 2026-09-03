@@ -18,6 +18,8 @@ PORT: int = int(os.getenv("SERVER_PORT", "5001"))
 DEBUG: bool = os.getenv("FLASK_ENV", "development") == "development"
 
 DB_FILE: Path = BASE_DIR / os.getenv("DB_FILE", "data/reqman_db.json")
+# 作废工卡独立存储（与主库分离，降低主库读写体积；gitignore 已忽略 data/）
+CANCELLED_CARDS_FILE: Path = BASE_DIR / os.getenv("CANCELLED_CARDS_FILE", "data/cancelled_cards.json")
 TEMPLATE_FILE: Path = BASE_DIR / os.getenv("TEMPLATE_FILE", "assets/demand_template.xlsx")
 REMINDER_TEMPLATE_FILE: Path = BASE_DIR / os.getenv("REMINDER_TEMPLATE_FILE", "assets/reminder_template.xlsx")
 CHECK_TEMPLATE_FILE: Path = BASE_DIR / os.getenv("CHECK_TEMPLATE_FILE", "assets/check_template.xlsx")
@@ -68,7 +70,7 @@ AMRO_LOGIN_VERSION: str = os.getenv("AMRO_LOGIN_VERSION", "2")
 AMRO_PUBLIC_URL: str = os.getenv("AMRO_PUBLIC_URL", "").rstrip("/")
 
 # ---------- AMRO 三域同步（v3.5.0） ----------
-AMRO_RATE_SECONDS: float = float(os.getenv("AMRO_RATE_SECONDS", "2"))  # 两次 AMRO 请求最小间隔（秒）
+AMRO_RATE_SECONDS: float = float(os.getenv("AMRO_RATE_SECONDS", "1"))  # 两次 AMRO 请求最小间隔（秒，2026-09-03 由 2 放宽至 1）
 AMRO_AUDIT_FILE: Path = BASE_DIR / os.getenv("AMRO_AUDIT_FILE", "data/amro_audit.jsonl")  # 只读调用审计留痕
 AMRO_AC_FLEET: str = os.getenv("AMRO_AC_FLEET", "A320")  # 飞机同步机族过滤（在册判定）
 AMRO_BASE_DEFAULT: str = os.getenv("AMRO_BASE_DEFAULT", "KM01")  # 工作包默认基地代码

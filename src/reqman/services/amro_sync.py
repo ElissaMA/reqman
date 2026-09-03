@@ -419,32 +419,21 @@ async def list_amro_packages(client, cookies, *, base=None, days=7) -> list[dict
 
 # ---------- 工卡版本域 ----------
 
-async def _pull_card_versions(client, cookies, *, fetch=None, lists=("SMJC", "EOJC")) -> dict[str, dict]:
-    """拉卡片版本清单 → {task_code: row}。
+async def _pull_smjc_versions(client, cookies, *, fetch=None) -> dict[str, dict]:
+    """拉定检例行卡（SMJC）版本清单 → {task_code: row}。
 
-    WRITE_DATE 两清单零缺失（amro-research 实测）；EOJC 深分页 38~105s/页 → timeout=150，
-    两清单均加 fleet=AMRO_CARD_FLEET（2026-09-01 实测 SMJC 1319→745、EOJC 5579→4627）。
-    lists 可只拉 SMJC：逐包检查的工卡全为定检例行卡（CSCA 前缀）时跳过 EOJC 深分页。
+    WRITE_DATE 零缺失（amro-research 实测）；fleet=AMRO_CARD_FLEET 服务端过滤
+    （2026-09-01 实测 1319→745，约 2 页秒级）。EO/其他卡版本由
+    TD_JC_ALL_GET_ENTITY_BY_JCNO 逐卡直查（_get_entity_by_jcno），不再全量拉
+    EOJC 深分页（2026-09-03 教训：深分页延迟逐页递增不可控，击穿 150s 超时，
+    全量 12 页约 12 分钟亦慢于逐卡）。
     """
     fetch = fetch or amro.fetch_all_pages
-    by_code: dict[str, dict] = {}
-    if "SMJC" in lists:
-        smjc = await fetch(client, cookies, "TD_JC_SMJC_LIST",
-                           {"status": "ISSUED", "jcStatus": "Y", "rows": 500,
-                            "fleet": AMRO_CARD_FLEET}, timeout=150)
-        for row in smjc:
-            code = str(row.get("JC_NO", "")).strip()
-            if code:
-                by_code[code] = row
-    if "EOJC" in lists:
-        eojc = await fetch(client, cookies, "TD_JC_ALL_EOJC_LIST",
-                           {"status": "ISSUED", "jcStatus": "Y", "rows": 500,
-                            "fleet": AMRO_CARD_FLEET}, timeout=150)
-        for row in eojc:
-            code = str(row.get("JC_NO", "")).strip()
-            if code:
-                by_code[code] = row
-    return by_code
+    rows = await fetch(client, cookies, "TD_JC_SMJC_LIST",
+                       {"status": "ISSUED", "jcStatus": "Y", "rows": 500,
+                        "fleet": AMRO_CARD_FLEET}, timeout=150)
+    return {code: row for row in rows
+            if (code := str(row.get("JC_NO", "")).strip())}
 
 
 async def _get_entity_by_jcno(client, cookies, jcno, *, query=None) -> dict | None:
@@ -463,22 +452,73 @@ def _wd(row: dict | None) -> str:
     return str((row or {}).get("WRITE_DATE", "")).strip()
 
 
-async def full_version_check(store, client, cookies, *, fetch=None) -> dict:
-    """全库版本检查：库内卡逐一比对 AMRO 编写日期；作废只入报告不删卡（决策#7/#8）。
+async def _collect_card_versions(store, client, cookies, codes, *, fetch=None, query=None) -> dict[str, dict]:
+    """按卡号收集 AMRO 版本行（v3.6.0 取数策略，全量/逐包两处共用）。
+
+    定检例行卡（CSCA 前缀）→ SMJC 全量拉（fleet 过滤，约 2 页秒级）；
+    其余（EO/NRC/LS 等）→ TD_JC_ALL_GET_ENTITY_BY_JCNO 逐卡直查（~0.3s/次 + 限速），
+    实体端点两族通用，分类不精确也不会漏查。DP 前缀直接排除。
+    """
+    wanted = {str(c).strip() for c in codes
+              if str(c).strip() and not str(c).strip().startswith("DP")}
+    versions: dict[str, dict] = {}
+    routine = {c for c in wanted if c.startswith("CSCA")}
+    other = wanted - routine
+    if routine:
+        versions.update(await _pull_smjc_versions(client, cookies, fetch=fetch))
+    for code in sorted(other):
+        row = await _get_entity_by_jcno(client, cookies, code, query=query)
+        if row is not None:
+            versions[code] = row
+    return versions
+
+
+def _move_to_cancelled(store, cancelled_store, card: dict, source: str) -> None:
+    """作废工卡移库：整卡入作废库（承接全部原字段）→ 主库删除。
+
+    先入作废库再删主库；作废库按 task_code upsert，中断重跑不会重复。
+    cancelled_store 为 None 时仅报告不移库（保持旧行为）。
+    """
+    if cancelled_store is None:
+        return
+    set_name = ""
+    set_id = card.get("set_id")
+    if set_id:
+        set_data = store.get_set(set_id)
+        set_name = set_data.get("name", "") if set_data else ""
+    cancelled_store.add(card, source=source, set_name=set_name)
+    store.delete(card["id"])
+
+
+def _version_summary(revised_n: int, cancelled_n: int, checked_n: int) -> str:
+    """两处版本检查共用的基础摘要文案。"""
+    return f"改版 {revised_n} 张，作废 {cancelled_n} 张，共检查 {checked_n} 张"
+
+
+async def full_version_check(store, client, cookies, *, fetch=None, query=None,
+                             cancelled_store=None) -> dict:
+    """全库版本检查：库内卡逐一比对 AMRO 编写日期；作废整卡移入作废工卡库（决策#7 修订）。
 
     DP 开头工卡（DP 项目）不在 AMRO 清单体系内，跳过不比对、不报作废。
+    checked = 参与比对的非 DP 卡数；cancelled_store=None 时作废仅入报告不删卡。
     """
-    versions = await _pull_card_versions(client, cookies, fetch=fetch)
+    all_cards = store.get_all()
+    versions = await _collect_card_versions(store, client, cookies,
+                                            [c.get("task_code", "") for c in all_cards],
+                                            fetch=fetch, query=query)
     revised, cancelled = [], []
-    for card in store.get_all():
+    checked = 0
+    for card in all_cards:
         code = card.get("task_code", "")
         if code.startswith("DP"):
             continue
+        checked += 1
         row = versions.get(code)
         if row is None:
             cancelled.append({"task_code": code,
                               "task_name": card.get("task_name", ""),
                               "category": card.get("category", "")})
+            _move_to_cancelled(store, cancelled_store, card, "full_version")
             continue
         new_wd = _wd(row)
         old_wd = str(card.get("write_date", "")).strip()
@@ -488,30 +528,22 @@ async def full_version_check(store, client, cookies, *, fetch=None) -> dict:
                             "task_name": card.get("task_name", ""),
                             "category": card.get("category", ""),
                             "old_wd": old_wd, "new_wd": new_wd})
-    return {"revised": revised, "cancelled": cancelled, "total_amro": len(versions)}
+    return {"revised": revised, "cancelled": cancelled, "checked": checked}
 
 
-async def check_cards_against_amro(store, client, cookies, task_codes, *, fetch=None, query=None) -> dict:
-    """包级版本检查：拉清单 → 对指定工卡比对 AMRO 编写日期 → {revised, cancelled}。
+async def check_cards_against_amro(store, client, cookies, task_codes, *, fetch=None, query=None,
+                                   cancelled_store=None) -> dict:
+    """包级版本检查：拉清单 → 对指定工卡比对 AMRO 编写日期 → {revised, cancelled, checked}。
 
-    仅处理卡库已存在的卡（包内新卡由匹配流程负责，不进版本报告）。
-    取数提速（v3.6.0，amro-research 2026-09-01 结论）：
-    - 定检例行卡（CSCA 前缀）→ SMJC 全量拉（fleet=A320，3 页约 5 秒）
-    - 其余（EO/NRC/LS 等）→ 逐个 TD_JC_ALL_GET_ENTITY_BY_JCNO 直查（~50 张 ≈ 2 分钟），
-      不再全量拉 EOJC 深分页（此前约 8 分钟）；实体端点两族通用，分类不精确也不会漏查
-    DP 开头工卡（DP 项目）不在 AMRO 清单体系内，直接排除：不查询、不误报作废。
+    仅处理卡库已存在的卡（包内新卡由匹配流程负责，不进版本报告）；
+    作废整卡移入作废工卡库（cancelled_store=None 时仅入报告不删卡）。
+    取数复用 _collect_card_versions（v3.6.0 提速：CSCA 走 SMJC 全量拉，
+    其余逐卡直查，不再全量拉 EOJC 深分页）；DP 前缀直接排除：不查询、不误报作废。
     """
     wanted = {str(c).strip() for c in task_codes
               if str(c).strip() and not str(c).strip().startswith("DP")}
-    versions: dict[str, dict] = {}
-    routine = {c for c in wanted if c.startswith("CSCA")}
-    other = wanted - routine
-    if routine:
-        versions.update(await _pull_card_versions(client, cookies, fetch=fetch, lists=("SMJC",)))
-    for code in sorted(other):
-        row = await _get_entity_by_jcno(client, cookies, code, query=query)
-        if row is not None:
-            versions[code] = row
+    versions = await _collect_card_versions(store, client, cookies, wanted,
+                                            fetch=fetch, query=query)
     all_cards = {c.get("task_code", ""): c for c in store.get_all()}
     revised, cancelled = [], []
     for code in sorted(wanted):
@@ -523,6 +555,7 @@ async def check_cards_against_amro(store, client, cookies, task_codes, *, fetch=
             cancelled.append({"task_code": code,
                               "task_name": card.get("task_name", ""),
                               "category": card.get("category", "")})
+            _move_to_cancelled(store, cancelled_store, card, "package_version")
             continue
         new_wd = _wd(row)
         old_wd = str(card.get("write_date", "")).strip()
@@ -532,7 +565,7 @@ async def check_cards_against_amro(store, client, cookies, task_codes, *, fetch=
                             "task_name": card.get("task_name", ""),
                             "category": card.get("category", ""),
                             "old_wd": old_wd, "new_wd": new_wd})
-    return {"revised": revised, "cancelled": cancelled}
+    return {"revised": revised, "cancelled": cancelled, "checked": len(wanted)}
 
 
 def _group_by_category(rows: list[dict]) -> list[tuple[str, list[dict]]]:
@@ -611,14 +644,14 @@ def build_version_report_excel(report: dict, title_label: str = "",
     return buf.getvalue()
 
 
-def start_full_version_check(store, session_store, output_dir) -> bool:
+def start_full_version_check(store, session_store, output_dir, cancelled_store=None) -> bool:
     """启动全量查询工卡版本后台任务。返回 False = 已有查询在跑（全局互斥，不排队）。"""
     def job():
         cookies = (session_store.load() or {}).get("cookies", {})
 
         async def _inner():
             async with httpx.AsyncClient(verify=True, trust_env=False) as client:
-                rep = await full_version_check(store, client, cookies)
+                rep = await full_version_check(store, client, cookies, cancelled_store=cancelled_store)
             ts = datetime.now(BJ).strftime("%Y%m%d_%H%M%S")
             filename = f"amro_full_version_report_{ts}.xlsx"
             (output_dir / filename).write_bytes(
@@ -629,16 +662,17 @@ def start_full_version_check(store, session_store, output_dir) -> bool:
 
         rep = asyncio.run(_inner())
         save_last_query_result("full_version", "全量查询工卡版本",
-                               f"改版 {len(rep['revised'])} 张，作废 {len(rep['cancelled'])} 张"
-                               f"（AMRO 在册 {rep['total_amro']} 张）",
+                               _version_summary(len(rep["revised"]), len(rep["cancelled"]),
+                                                rep["checked"]),
                                download_url="/card/amro-version-report", output_dir=output_dir)
         return {"revised": len(rep["revised"]), "cancelled": len(rep["cancelled"]),
-                "total_amro": rep["total_amro"], "filename": rep["filename"]}
+                "checked": rep["checked"], "filename": rep["filename"]}
 
     return run_query("full_version", "全量查询工卡版本", job)
 
 
-def start_package_version_check(store, session_store, package_id: str, pkg_data: dict) -> bool:
+def start_package_version_check(store, session_store, package_id: str, pkg_data: dict,
+                                cancelled_store=None) -> bool:
     """启动逐包工卡版本检查后台任务。返回 False = 已有查询在跑（全局互斥，不排队）。
 
     长任务（逐卡直查 EO/NRC 约 2 分钟/50 张）移出请求线程，前端轮询
@@ -654,7 +688,8 @@ def start_package_version_check(store, session_store, package_id: str, pkg_data:
 
         async def _inner():
             async with httpx.AsyncClient(verify=True, trust_env=False) as client:
-                return await check_cards_against_amro(store, client, cookies, task_codes)
+                return await check_cards_against_amro(store, client, cookies, task_codes,
+                                                      cancelled_store=cancelled_store)
 
         report = asyncio.run(_inner())
         filename = f"amro_pkg_version_report_{package_id}.xlsx"
@@ -662,10 +697,11 @@ def start_package_version_check(store, session_store, package_id: str, pkg_data:
             report, title_label=build_package_label(pkg_data, with_date=True) or package_id,
             finished_date=finished_date))
         summary = {"revised": len(report["revised"]), "cancelled": len(report["cancelled"]),
-                   "filename": filename}
+                   "checked": report["checked"], "filename": filename}
         save_last_query_result(
             "package_version", "查询工作包工卡版本",
-            f"版本检查完成（{label}）：改版 {summary['revised']} 张，作废 {summary['cancelled']} 张"
+            f"版本检查完成（{label}）："
+            f"{_version_summary(summary['revised'], summary['cancelled'], summary['checked'])}"
             f"（预览页可下载改版清单）",
             download_url=f"/generate/package-version-report?package_id={package_id}",
             output_dir=OUTPUT_DIR)
@@ -675,22 +711,36 @@ def start_package_version_check(store, session_store, package_id: str, pkg_data:
                      extra={"package_id": package_id, "label": label})
 
 
-def start_inventory_query(svc, staged_path: Path, output_stem: str) -> bool:
+def start_inventory_query(svc, staged_path: Path, output_stem: str,
+                         warning_thresholds: dict | None = None,
+                         warning_pns: list | None = None,
+                         store=None) -> bool:
     """启动库存查询后台任务。返回 False = 已有查询在跑（全局互斥，不排队）。
 
-    ≥2s 节流下大需求单（>50 件号）可能超过 gunicorn 120s 请求超时，故移出请求线程，
+    ≥1s 节流下大需求单（>50 件号）仍可能接近 gunicorn 120s 请求超时，故移出请求线程，
     前端轮询 get_query_status("inventory_query") 获取进度/结果，避免请求被杀死。
     staged_path 为请求内持久化的上传暂存，job 内 finally 清理（请求结束不得删除）。
+    warning_thresholds/warning_pns/store 用于把预警库件号纳入查询并回写缓存库存。
     """
 
     def job():
         try:
-            _dest, filename, result = svc.run_query(staged_path, output_stem=output_stem)
+            _dest, filename, result = svc.run_query(
+                staged_path, output_stem=output_stem,
+                warning_thresholds=warning_thresholds,
+                warning_pns=warning_pns, store=store,
+            )
         finally:
             try:
                 staged_path.unlink(missing_ok=True)
             except OSError:
                 logger.warning("清理库存上传暂存失败: %s", staged_path)
+        summary = (f"查询完成：共 {result.total} 件号，成功 {result.success}，"
+                   f"失败 {result.fail}，标红 {result.shortage}，标黄 {result.warning}")
+        save_last_query_result(
+            "inventory_query", "查询库存", summary,
+            download_url=f"/inventory/download?file={filename}", output_dir=OUTPUT_DIR,
+        )
         return {"filename": filename, "total": result.total, "success": result.success,
                 "fail": result.fail, "shortage": result.shortage, "warning": result.warning}
 

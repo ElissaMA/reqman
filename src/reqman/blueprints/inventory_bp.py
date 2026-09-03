@@ -7,11 +7,11 @@ import uuid
 import zipfile
 from pathlib import Path
 
-from flask import Blueprint, current_app, jsonify, render_template, request, send_file
+from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request, send_file
 
 from ..config import AMRO_LOGIN_VERSION, AMRO_PUBLIC_URL, OUTPUT_DIR
 from ..services import amro_sync
-from ..utils.error_handlers import ValidationError
+from ..utils.error_handlers import ValidationError, is_ajax
 from ..utils.response import api_error, api_success
 
 inventory_bp = Blueprint("inventory", __name__, template_folder="../templates")
@@ -20,6 +20,31 @@ logger = logging.getLogger(__name__)
 
 # 输出暂存文件命名模式（清理/识别仅匹配此模式，不误删其他文件）
 OUTPUT_PATTERN = "*_库存已填_*.xlsx"
+
+
+def _latest_output_filename() -> str:
+    """OUTPUT_DIR 中最新的一份库存已填副本文件名（无则空串）。"""
+    files = sorted(
+        OUTPUT_DIR.glob(OUTPUT_PATTERN),
+        key=lambda p: (p.stat().st_mtime, p.name),
+        reverse=True,
+    )
+    return files[0].name if files else ""
+
+
+def _reconcile_inventory_download(last_query: dict) -> dict:
+    """校正 inventory_query 摘要的下载链接：库存输出在每次新查询时会被清理，
+    若持久化的静态文件名已不存在，则回退到当前仍存在的实时最新文件；都无则不渲染下载。"""
+    if not last_query:
+        return last_query
+    out = dict(last_query)
+    dl = out.get("download_url", "") or ""
+    fname = dl.split("file=", 1)[1] if "file=" in dl else ""
+    if fname and (OUTPUT_DIR / fname).is_file():
+        return out  # 静态文件仍在，保持原链接
+    latest = _latest_output_filename()
+    out["download_url"] = f"/inventory/download?file={latest}" if latest else ""
+    return out
 
 # 统一文案集（P1–P12）— 三端集中定义，前端与脚本引用此基准
 MESSAGES = {
@@ -44,7 +69,16 @@ def _service():
 
 @inventory_bp.route("/inventory")
 def index():
-    return render_template("inventory/index.html", messages=MESSAGES, login_version=AMRO_LOGIN_VERSION)
+    store = current_app.extensions["store"]
+    return render_template(
+        "inventory/index.html",
+        messages=MESSAGES,
+        login_version=AMRO_LOGIN_VERSION,
+        warnings=store.get_inventory_warnings(),
+        amro_status=amro_sync.get_query_status("inventory_query"),
+        amro_last_query=_reconcile_inventory_download(
+            amro_sync.get_last_query_result("inventory_query")),
+    )
 
 
 @inventory_bp.route("/inventory/session", methods=["GET"])
@@ -177,7 +211,21 @@ def query():
     # 持久化暂存上传文件：后台 job 在守护线程中读取，请求结束不得删除
     staged_path = OUTPUT_DIR / f".staging_{uuid.uuid4().hex}.xlsx"
     f.save(staged_path)
-    if not amro_sync.start_inventory_query(svc, staged_path, output_stem):
+
+    # 取出预警库件号与阈值，随查询一并查询并回写缓存库存
+    store = current_app.extensions["store"]
+    ws = store.get_inventory_warnings()
+    threshold_map = {
+        w["part_number"]: float(w["threshold"])
+        for w in ws if w.get("threshold") is not None
+    }
+    warning_pns = [w["part_number"] for w in ws]
+
+    if not amro_sync.start_inventory_query(
+        svc, staged_path, output_stem,
+        warning_thresholds=threshold_map,
+        warning_pns=warning_pns, store=store,
+    ):
         # 已有查询在跑：清理本次暂存并返回 409
         try:
             staged_path.unlink(missing_ok=True)
@@ -221,6 +269,96 @@ def download():
         raise ValidationError("文件不存在")
     return send_file(target, as_attachment=True, download_name=target.name,
                      mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+
+@inventory_bp.route("/inventory-warning/new", methods=["GET", "POST"])
+def inventory_warning_new():
+    """新增库存预警条目（弹窗表单 + AJAX）。"""
+    if request.method == "POST":
+        part_number = (request.form.get("part_number") or "").strip().upper()
+        if not part_number:
+            if is_ajax():
+                return api_error("件号不能为空")
+            flash("件号不能为空", "error")
+            return redirect("/inventory-warning/new")
+        threshold_raw = (request.form.get("threshold") or "").strip()
+        try:
+            threshold = float(threshold_raw)
+        except (ValueError, TypeError):
+            if is_ajax():
+                return api_error("警戒线须为数字")
+            flash("警戒线须为数字", "error")
+            return redirect("/inventory-warning/new")
+        if threshold < 0:
+            if is_ajax():
+                return api_error("警戒线须为非负数字")
+            flash("警戒线须为非负数字", "error")
+            return redirect("/inventory-warning/new")
+        store = current_app.extensions["store"]
+        store.save_inventory_warning({
+            "part_number": part_number,
+            "name": (request.form.get("name") or "").strip(),
+            "threshold": threshold,
+            "note": (request.form.get("note") or "").strip(),
+        })
+        if is_ajax():
+            return api_success(message="已添加库存预警")
+        flash("已添加库存预警", "success")
+        return redirect("/inventory")
+    return render_template("inventory/warning_form.html", warning=None, title="新增库存预警")
+
+
+@inventory_bp.route("/inventory-warning/<part_number>/edit", methods=["GET", "POST"])
+def inventory_warning_edit(part_number):
+    """编辑库存预警条目（弹窗表单 + AJAX）。"""
+    store = current_app.extensions["store"]
+    pn = part_number.strip().upper()
+    existing = store.get_inventory_warning(pn)
+    if request.method == "POST":
+        if existing is None:
+            if is_ajax():
+                return api_error("预警条目不存在", status_code=404)
+            flash("预警条目不存在", "error")
+            return redirect("/inventory")
+        data = {"part_number": pn}
+        data["name"] = (request.form.get("name") or "").strip()
+        data["note"] = (request.form.get("note") or "").strip()
+        threshold_raw = (request.form.get("threshold") or "").strip()
+        if threshold_raw:
+            try:
+                threshold = float(threshold_raw)
+            except (ValueError, TypeError):
+                if is_ajax():
+                    return api_error("警戒线须为数字")
+                flash("警戒线须为数字", "error")
+                return redirect(f"/inventory-warning/{part_number}/edit")
+            if threshold < 0:
+                if is_ajax():
+                    return api_error("警戒线须为非负数字")
+                flash("警戒线须为非负数字", "error")
+                return redirect(f"/inventory-warning/{part_number}/edit")
+            data["threshold"] = threshold
+        store.save_inventory_warning(data)
+        if is_ajax():
+            return api_success(message="已更新库存预警")
+        flash("已更新库存预警", "success")
+        return redirect("/inventory")
+    if existing is None:
+        if is_ajax():
+            return api_error("预警条目不存在", status_code=404)
+        flash("预警条目不存在", "error")
+        return redirect("/inventory")
+    return render_template("inventory/warning_form.html", warning=existing, title="编辑库存预警")
+
+
+@inventory_bp.route("/inventory-warning/<part_number>/delete", methods=["POST"])
+def inventory_warning_delete(part_number):
+    """删除库存预警条目（AJAX，ListUI.del 调用）。"""
+    store = current_app.extensions["store"]
+    ok = store.delete_inventory_warning(part_number.strip().upper())
+    if ok:
+        return api_success(message="已删除库存预警")
+    return api_error("预警条目不存在", status_code=404)
 
 
 def _login_py_template(server_url: str) -> str:

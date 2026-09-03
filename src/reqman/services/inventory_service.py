@@ -37,6 +37,14 @@ def _deduplicate_pns(rows):
     return list(seen.keys()), seen, qty_map
 
 
+def _is_warning(pn: str, qty: float, stock: float, thresholds: dict | None) -> bool:
+    """警戒（标黄）判定：库内件号用设定警戒线；库外回退原 库存<使用量+2。"""
+    thr = thresholds.get(pn) if thresholds else None
+    if thr is not None:
+        return stock < thr
+    return qty <= stock < qty + 2
+
+
 class InventoryService:
     def __init__(self, session_store: LoginSessionStore, max_concurrent: int = 10):
         self.session_store = session_store
@@ -69,6 +77,9 @@ class InventoryService:
         self,
         demand_path: str | Path,
         output_stem: str | None = None,
+        warning_thresholds: dict | None = None,
+        warning_pns: list | None = None,
+        store=None,
     ) -> tuple[Path, str, QueryResult]:
         data = self.session_store.load()
         if not data:
@@ -79,7 +90,9 @@ class InventoryService:
         if not rows:
             raise ValueError("需求单中未找到航材件号")
 
-        all_pns, pn_cells, pn_qty = _deduplicate_pns(rows)
+        demand_pns, pn_cells, pn_qty = _deduplicate_pns(rows)
+        # 预警库件号也查 AMRO 库存（去重保序，避免重复查询）
+        query_pns = list(dict.fromkeys(demand_pns + (warning_pns or [])))
 
         async def _run():
             results: dict[str, float] = {}
@@ -101,12 +114,13 @@ class InventoryService:
                             results[pn] = 0.0
                             fail += 1
                             logger.warning("查询失败 %s: %s", pn, e)
-                await asyncio.gather(*[query_one(pn) for pn in all_pns])
+                await asyncio.gather(*[query_one(pn) for pn in query_pns])
             return results, success, fail
 
         results, success, fail = asyncio.run(_run())
         buf, filename = write_inventory_copy(
             demand_path, results, pn_qty, pn_cells, output_stem=output_stem,
+            warning_thresholds=warning_thresholds,
         )
         OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
         dest = OUTPUT_DIR / filename
@@ -118,6 +132,20 @@ class InventoryService:
         )
         warning = sum(
             1 for pn in pn_cells for qty in pn_qty.get(pn, [0])
-            if qty <= results.get(pn, 0) < qty + 2
+            if _is_warning(pn, qty, results.get(pn, 0), warning_thresholds)
         )
-        return dest, filename, QueryResult(filename, len(all_pns), success, fail, shortage, warning)
+
+        # 回写预警库件号缓存库存（仅更新已存在条目，避免复活已删除项；失败不阻断主流程）
+        if store is not None and warning_pns:
+            for pn in warning_pns:
+                try:
+                    if store.get_inventory_warning(pn) is not None:
+                        store.save_inventory_warning(
+                            {"part_number": pn, "stock": results.get(pn, 0.0)}
+                        )
+                except (OSError, ValueError, RuntimeError):
+                    logger.warning("预警库库存回写失败: %s", pn)
+
+        return dest, filename, QueryResult(
+            filename, len(demand_pns), success, fail, shortage, warning,
+        )

@@ -176,6 +176,16 @@ def _audit(plugin: str, url: str, form: dict, code, seconds: float) -> None:
         logger.warning("AMRO 审计写入失败: %s", path)
 
 
+_RETRY_ATTEMPTS = 2  # 瞬态失败（超时/传输错误/5xx）总尝试次数（含首次，2026-09-03 起）
+
+
+def _retryable(exc: Exception) -> bool:
+    """瞬态失败判定：超时/传输错误/5xx 可重试；4xx 与业务码错误不重试。"""
+    if isinstance(exc, httpx.HTTPStatusError):
+        return exc.response.status_code >= 500
+    return isinstance(exc, (httpx.TimeoutException, httpx.TransportError))
+
+
 async def query_plugin(
     client: httpx.AsyncClient,
     cookies: dict[str, str],
@@ -184,27 +194,43 @@ async def query_plugin(
     *,
     timeout: int = 30,
 ) -> dict:
-    """通用只读查询：白名单校验 → 限速 → POST → 审计 → 业务码校验。
+    """通用只读查询：白名单校验 → 限速 → POST（瞬态失败重试，每次尝试均限速）→ 审计 → 业务码校验。
 
     code==200 返回完整 body；code==100 抛 AmroSessionExpired；其余业务码抛 RuntimeError。
+    超时/传输错误/5xx 按 _RETRY_ATTEMPTS 总次数重试（限速对每次尝试生效，红线不绕过）；
+    最终失败写审计留痕（code=-1），避免静默无痕（2026-09-03 全量版本查询超时排查教训）。
     """
     if plugin not in READONLY_PLUGINS:
         raise ValueError(f"端点 {plugin} 不在只读白名单，禁止调用")
     url = f"{AMRO_API_BASE}/{plugin}"
-    await _throttle()
-    start = time.monotonic()
-    resp = await client.post(url, data=form, cookies=cookies, timeout=timeout)
-    seconds = time.monotonic() - start
-    resp.raise_for_status()
-    body = resp.json()
-    code = body.get("code") if isinstance(body, dict) else None
-    _audit(plugin, url, form, code, seconds)
-    if code == 200:
-        return body
-    if code == 100:
-        raise AmroSessionExpired("登录已失效（可能被其他登录挤掉），请重新运行登录脚本后重试")
-    msg = body.get("msg", "unknown") if isinstance(body, dict) else "unknown"
-    raise RuntimeError(f"AMRO 接口 code={code}, msg={msg}")
+    last_exc: Exception | None = None
+    seconds = 0.0
+    for attempt in range(1, _RETRY_ATTEMPTS + 1):
+        await _throttle()
+        start = time.monotonic()
+        try:
+            resp = await client.post(url, data=form, cookies=cookies, timeout=timeout)
+            seconds = time.monotonic() - start
+            resp.raise_for_status()
+            body = resp.json()
+        except (httpx.TimeoutException, httpx.TransportError, httpx.HTTPStatusError) as exc:
+            seconds = time.monotonic() - start
+            last_exc = exc
+            if not _retryable(exc) or attempt >= _RETRY_ATTEMPTS:
+                break
+            logger.warning("AMRO %s 第 %d 次尝试瞬态失败（%s），限速后重试",
+                           plugin, attempt, exc.__class__.__name__)
+            continue
+        code = body.get("code") if isinstance(body, dict) else None
+        _audit(plugin, url, form, code, seconds)
+        if code == 200:
+            return body
+        if code == 100:
+            raise AmroSessionExpired("登录已失效（可能被其他登录挤掉），请重新运行登录脚本后重试")
+        msg = body.get("msg", "unknown") if isinstance(body, dict) else "unknown"
+        raise RuntimeError(f"AMRO 接口 code={code}, msg={msg}")
+    _audit(plugin, url, form, -1, seconds)
+    raise last_exc
 
 
 async def fetch_all_pages(
