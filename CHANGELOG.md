@@ -48,6 +48,9 @@
 - 库存查询页登录区块迁移表头（沿用 3.5.0 收尾），「检查配置」相关表述清理完毕
 - register_protocol.bat 三级桌面路径探测（%USERPROFILE%/OneDrive/注册表）不再需要（协议自定位替代）
 
+### Docs
+- 文档刷新：README 功能模块补充 AMRO 三域数据同步（飞机同步/工作包/工卡版本比对/作废工卡库），版本迭代标注 V3.6.0 已交付；SERVER_README 环境变量表对齐 config.py（移除已废弃 AMRO_API_URL，新增 AMRO_RATE_SECONDS/AMRO_AUDIT_FILE/AMRO_AC_FLEET/AMRO_BASE_DEFAULT/AMRO_CARD_FLEET），data/ 目录补充 cancelled_cards.json、cookie/、amro_audit.jsonl
+
 ## [3.5.0] - Unreleased
 ### Added（AMRO 三域数据同步——基于 amro-research 实测的 7 个只读端点，全程只读+审计留痕）
 - 通用只读调用器 `query_plugin`：端点白名单硬编码（写/导出/生成类一律拒绝）、全局限速 ≥2s、JSONL 审计（`data/amro_audit.jsonl`）、会话失效统一 401+P8 文案

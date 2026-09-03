@@ -219,9 +219,12 @@ git checkout dev && git merge main
 ├── assets/                 # 需求单 / 提醒单 Excel 模板
 │   ├── demand_template.xlsx
 │   └── reminder_template.xlsx
-├── data/                   # 数据库文件
+├── data/                   # 数据库与运行数据
 │   ├── reqman_db.json      # 核心数据
 │   ├── reqman_db_runtime.json  # 运行时数据
+│   ├── cancelled_cards.json # 作废工卡库（独立存储，降主库体积）
+│   ├── cookie/             # AMRO 登录凭证（amro_cookies.json，运行时生成）
+│   ├── amro_audit.jsonl    # AMRO 只读调用审计留痕
 │   └── backups/            # 数据库备份
 ├── output/                 # 生成的需求单 Excel
 ├── config/                 # 部署配置
@@ -326,16 +329,22 @@ systemctl restart reqman
 | `REMINDER_TEMPLATE_FILE` | `assets/reminder_template.xlsx` | 提醒单 Excel 模板路径 |
 | `REMINDER_TYPES` | `一般提醒,重点提醒` | 提醒类型选项（逗号分隔） |
 
-### AMRO 库存查询相关环境变量（可选）
+### AMRO 相关环境变量（可选）
+
+> 接口基座 `AMRO_API_BASE`（`https://me.sichuanair.com/api/v1/plugins`）硬编码于 `src/reqman/services/connectors/amro.py`，不在环境变量配置；以下为可调项。
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
-| `AMRO_API_URL` | `https://me.sichuanair.com/api/v1/plugins/MM_PARTNUMBERCHAXUN_LIST` | AMRO 库存查询接口地址 |
 | `AMRO_COOKIE_FILE` | `data/cookie/amro_cookies.json` | 登录凭证临时缓存文件路径 |
 | `AMRO_MAX_CONCURRENT` | `10` | 库存查询最大并发数 |
 | `AMRO_SESSION_TTL` | `7200` | 登录凭证有效时长（秒），默认 2 小时 |
-| `AMRO_LOGIN_VERSION` | `3` | 登录脚本版本号 |
+| `AMRO_LOGIN_VERSION` | `3` | 登录脚本版本号（`check-config` 门禁标记旧脚本） |
 | `AMRO_PUBLIC_URL` | 空 | 登录脚本 ZIP 注入的公网地址，如 `http://8.137.15.167`；服务器部署建议配置，保证多用户下载的 ZIP 注入地址一致可达；未配置回退当前访问地址 |
+| `AMRO_RATE_SECONDS` | `1` | 两次 AMRO 请求最小间隔（秒，限速保护） |
+| `AMRO_AUDIT_FILE` | `data/amro_audit.jsonl` | 只读调用审计留痕（JSONL） |
+| `AMRO_AC_FLEET` | `A320` | 飞机同步机族过滤（在册判定） |
+| `AMRO_BASE_DEFAULT` | `KM01` | 工作包默认基地代码（昆明） |
+| `AMRO_CARD_FLEET` | `A320` | 工卡版本清单机队筛选 |
 
 ### 库存查询运维使用说明
 
