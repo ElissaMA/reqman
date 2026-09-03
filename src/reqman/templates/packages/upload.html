@@ -15,7 +15,7 @@
         <button class="btn btn-primary btn-sm" id="amroPackRefresh">查询工作包</button>
     </div>
     <div class="card-body">
-        <p class="text-muted small mb-2">从 AMRO「任务接收」直读工卡清单（基地 KM01，日期窗今±7天），替代人工打印上传；需先在表头完成 AMRO 登录。</p>
+        <p class="text-muted small mb-2">从 AMRO「任务接收」直读工卡清单（基地 KM01，不过滤日期窗），替代人工打印上传；需先在表头完成 AMRO 登录。</p>
         {% if amro_last_pkg_query %}
         <div class="alert alert-success py-2 px-3 small mb-2">
             上次查询（{{ amro_last_pkg_query.finished_at }}）：{{ amro_last_pkg_query.summary }}
@@ -230,11 +230,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ===== Card 0：AMRO 拉取工作包（v3.5.0） =====
-function amroRequireLogin() {
-    if (window.amroSession && window.amroSession.ready) return true;
-    window.safeToast('登录已失效（可能被其他登录挤掉），请重新运行登录脚本后重试', 'warning');
-    return false;
-}
 
 function mainSquadron(zrfd) {
     if (!zrfd) return '';
@@ -252,7 +247,7 @@ function renderAmroPacks(rows) {
     var tbody = document.querySelector('#amroPackTable tbody');
     if (!tbody) return;
     if (!window._amroPacks.length) {
-        tbody.innerHTML = '<tr class="empty-state-row"><td colspan="8" class="text-center text-muted py-3">日期窗内暂无任务包</td></tr>';
+        tbody.innerHTML = '<tr class="empty-state-row"><td colspan="8" class="text-center text-muted py-3">暂无任务包</td></tr>';
         return;
     }
     tbody.innerHTML = window._amroPacks.map(function(p, i) {
@@ -340,32 +335,22 @@ function buildVersionSummary(label, s) {
 }
 
 function pollPkgVersionCheck(packageId, card) {
-    var btn = document.querySelector('button[data-package-id="' + packageId + '"]');
-    var deadline = Date.now() + 30 * 60 * 1000;
-    var timer = setInterval(function() {
-        if (Date.now() > deadline) {
-            clearInterval(timer);
-            if (btn) btn.disabled = false;
-            card.fail('等待超时，请重新查询');
-            return;
+    window.Poller.poll({
+        statusUrl: '/packages/amro-version-status',
+        card: card,
+        deadlineMin: 30,
+        intervalMs: 2000,
+        buttonSelector: 'button[data-package-id="' + packageId + '"]',
+        onDone: function(status, card) {
+            var msg = buildVersionSummary(status.label || packageId, status.summary);
+            card.done(msg);
+            window.safeToast(msg, 'success', 8000);
+        },
+        onError: function(err, card) {
+            card.fail(err || '未知错误');
+            window.safeToast(err || '查询失败', 'error', 8000);
         }
-        fetch('/packages/amro-version-status', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(function(r) { return r.json(); }).then(function(d) {
-                var status = (d && d.data) || {};
-                if (status.status === 'done') {
-                    clearInterval(timer);
-                    if (btn) btn.disabled = false;
-                    var msg = buildVersionSummary(status.label || packageId, status.summary);
-                    card.done(msg);
-                    window.safeToast(msg, 'success', 8000);
-                } else if (status.status === 'error') {
-                    clearInterval(timer);
-                    if (btn) btn.disabled = false;
-                    card.fail(status.error || '未知错误');
-                    window.safeToast(status.error || '查询失败', 'error', 8000);
-                }
-            }).catch(function(){});
-    }, 2000);
+    });
 }
 
 // 服务端注入的上次查询快照（内存态，重启清空）：跨页面/刷新保留查询结果

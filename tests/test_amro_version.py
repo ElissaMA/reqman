@@ -1,10 +1,13 @@
-"""T6/T7 工卡版本域：全库检查、改版清单 Excel、提醒单附加区块（全 mock）"""
+"""T6/T7 工卡版本域：全库检查、作废移库、改版清单 Excel、提醒单附加区块（全 mock）"""
 import asyncio
 import io
+import re
+import zipfile
 
 import openpyxl
 import pytest
 
+from reqman.models.cancelled_card_store import CancelledCardStore
 from reqman.services import amro_sync
 
 
@@ -19,13 +22,25 @@ def _jcrow(jcno, wd, task="RST", zy="电子", title="检查救生衣"):
 
 @pytest.fixture
 def fake_amro_cards():
-    """SMJC：库内例行卡（含改版 1 张）；EOJC：库内 EO 卡 + 非库内卡"""
+    """SMJC：库内例行卡（含改版 1 张）；非 SMJC 插件一律返回空（EO 卡走实体直查 mock）"""
     async def fetch(client, cookies, plugin, base_form, **kw):
         if plugin == "TD_JC_SMJC_LIST":
             return [_jcrow("CSCA320-256652-01-1-X", "2026-08-01 09:00:00")]
-        return [_jcrow("EOJC-A320-31-2026-007-A", "2026-07-15 14:00:00", task="EO"),
-                _jcrow("EOJC-A320-99-2026-999-Z", "2026-07-20 08:00:00", task="EO")]
+        return []
     return fetch
+
+
+@pytest.fixture
+def fake_entity_query():
+    """实体端点直查 mock：两张在册 EO 卡返回实体行，其余查无（→作废）。"""
+    async def query(client, cookies, plugin, form, **kw):
+        codes = {"EOJC-A320-31-2026-007-A": "2026-07-15 14:00:00",
+                 "EOJC-A320-99-2026-999-Z": "2026-07-20 08:00:00"}
+        jcno = form.get("jcno")
+        if jcno in codes:
+            return {"code": 200, "data": {"JC_NO": jcno, "WRITE_DATE": codes[jcno]}}
+        return {"code": 200, "data": {}}
+    return query
 
 
 class TestFullVersionCheck:
@@ -36,17 +51,66 @@ class TestFullVersionCheck:
         rep = _run(amro_sync.full_version_check(json_store, None, {}, fetch=fake_amro_cards))
         card = json_store.get(r["id"])
         assert card["write_date"] == "2026-08-01 09:00:00"
-        assert rep["revised"][0]["old_wd"] == "" and rep["revised"][0]["new_wd"] == "2026-08-01 09:00:00"
+        # 原库无编写日期、本次被填入 → 归入「新增」而非「改版」
+        assert len(rep["revised"]) == 0
+        assert rep["new_added"][0]["old_wd"] == "" and rep["new_added"][0]["new_wd"] == "2026-08-01 09:00:00"
         assert any(c["field"] == "write_date" for l in json_store._read()["card_logs"]
                    for c in l["changes"])
 
-    def test_cancelled_detected_not_deleted(self, json_store, fake_amro_cards, monkeypatch):
+    def test_cancelled_report_only_without_store(self, json_store, fake_amro_cards,
+                                                 fake_entity_query, monkeypatch):
+        """未传作废库时保持旧行为：作废只入报告不删卡（向后兼容）。"""
         monkeypatch.setattr(amro_sync.amro.time, "monotonic", lambda: 1e9)
         monkeypatch.setattr(amro_sync.amro.time, "sleep", lambda s: None)
         r = json_store.add("EOJC-A320-57-2025-002-B", "卡", "机体", "", "")
-        rep = _run(amro_sync.full_version_check(json_store, None, {}, fetch=fake_amro_cards))
+        rep = _run(amro_sync.full_version_check(json_store, None, {},
+                                                fetch=fake_amro_cards, query=fake_entity_query))
         assert "EOJC-A320-57-2025-002-B" in [c["task_code"] for c in rep["cancelled"]]
-        assert json_store.get(r["id"]) is not None   # 标记不删除（决策#8）
+        assert json_store.get(r["id"]) is not None   # 仅报告不删除
+
+    def test_cancelled_moved_to_library(self, json_store, fake_amro_cards, fake_entity_query,
+                                        monkeypatch, tmp_path):
+        """作废整卡自动移入作废工卡库：主库删除、承接全部原字段+作废元数据，报告照旧。"""
+        monkeypatch.setattr(amro_sync.amro.time, "monotonic", lambda: 1e9)
+        monkeypatch.setattr(amro_sync.amro.time, "sleep", lambda s: None)
+        cancelled_store = CancelledCardStore(str(tmp_path / "cancelled_cards.json"))
+        r = json_store.add("EOJC-A320-57-2025-002-B", "旧卡", "机体", "EO", "",
+                           reminder_type="重点提醒")
+        json_store.update(r["id"], write_date="2026-01-01", tools_confirmed=True)
+        rep = _run(amro_sync.full_version_check(json_store, None, {},
+                                                fetch=fake_amro_cards, query=fake_entity_query,
+                                                cancelled_store=cancelled_store))
+        assert json_store.get(r["id"]) is None       # 主库已删除
+        assert json_store.find_by_code("EOJC-A320-57-2025-002-B") is None
+        rec = cancelled_store.find_by_code("EOJC-A320-57-2025-002-B")
+        assert rec["task_name"] == "旧卡" and rec["category"] == "机体"
+        assert rec["orig_id"] == r["id"]
+        assert rec["cancel_source"] == "full_version"
+        assert rec["cancelled_at"]
+        assert rec["reminder_type"] == "重点提醒"     # 承接原卡全部信息
+        assert rec["tools_confirmed"] is True and rec["write_date"] == "2026-01-01"
+        assert rep["cancelled"][0]["task_code"] == "EOJC-A320-57-2025-002-B"   # 报告照旧
+
+    def test_checked_count_excludes_dp(self, json_store, fake_amro_cards, fake_entity_query,
+                                       monkeypatch, tmp_path):
+        """checked = 参与比对的非 DP 卡数（DP 跳过不计数）；不再调用 EOJC 深分页。"""
+        monkeypatch.setattr(amro_sync.amro.time, "monotonic", lambda: 1e9)
+        monkeypatch.setattr(amro_sync.amro.time, "sleep", lambda s: None)
+        cancelled_store = CancelledCardStore(str(tmp_path / "cancelled_cards.json"))
+        json_store.add("CSCA320-256652-01-1-X", "检查救生衣", "电子", "RST", "")
+        json_store.add("EOJC-A320-57-2025-002-B", "旧卡", "机体", "EO", "")
+        json_store.add("DP1000000739", "DP项目卡", "机体", "", "")
+        plugins = []
+
+        async def fetch(client, cookies, plugin, base_form, **kw):
+            plugins.append(plugin)
+            return await fake_amro_cards(client, cookies, plugin, base_form, **kw)
+
+        rep = _run(amro_sync.full_version_check(json_store, None, {}, fetch=fetch,
+                                                query=fake_entity_query,
+                                                cancelled_store=cancelled_store))
+        assert rep["checked"] == 2
+        assert "TD_JC_ALL_EOJC_LIST" not in plugins   # EOJC 深分页已根除
 
     def test_unchanged_card_not_relogged(self, json_store, fake_amro_cards, monkeypatch):
         monkeypatch.setattr(amro_sync.amro.time, "monotonic", lambda: 1e9)
@@ -115,11 +179,13 @@ class TestVersionReportExcel:
         assert amro_sync.package_report_label(pkg) == amro_sync.build_package_label(pkg, with_date=True)
 
     def test_report_excel_reminder_template_layout(self):
-        """改版清单以专用模板输出：标题含「查询日期」、单单元格三行、黑字保留绿底。"""
+        """改版清单以专用模板输出：标题含「查询日期」、单单元格三行、第三行按类型着色、保留绿底。"""
         buf = amro_sync.build_version_report_excel({
             "revised": [
                 {"task_code": "C-1", "task_name": "卡一", "category": "电子",
                  "old_wd": "2026-07-01 09:00:00", "new_wd": "2026-08-01 09:00:00"},
+            ],
+            "new_added": [
                 {"task_code": "C-2", "task_name": "卡二", "category": "发动机",
                  "old_wd": "", "new_wd": "2026-08-01 09:00:00"},
             ],
@@ -136,16 +202,54 @@ class TestVersionReportExcel:
         assert ws["A2"].fill.start_color.rgb == "FF00703C"   # 表头深绿白字样式保留
         a3 = ws["A3"]   # 电子列：改版卡一，单单元格三行
         assert a3.value == "C-1\n卡一\n2026-07-01→2026-08-01"
-        assert a3.font.color.rgb == "FF000000"               # 黑字覆盖预置红字
         assert a3.fill.start_color.rgb == "FFAAD296"         # 保留原绿底
-        assert ws["B3"].value == "C-2\n卡二\n2026-08-01"     # 旧为空仅显新日期
+        assert ws["B3"].value == "C-2\n卡二\n新增 2026-08-01"  # 原库无日期 → 新增（第三行标红）
         assert ws["B3"].fill.start_color.rgb == "FFC8DCB4"
         c3 = ws["C3"]   # 机体列：作废卡三
         assert c3.value == "C-3\n卡三\n作废"
-        assert c3.font.color.rgb == "FF000000"
         assert ws["D2"].value is None and ws["D3"].value is None   # 特检不输出
         assert sorted(str(r) for r in ws.merged_cells.ranges) == ["A1:C1"]   # 仅标题合并
         assert ws["A5"].value is None and ws["B5"].value is None and ws["C5"].value is None
+
+    def test_report_excel_third_line_color_by_type(self, tmp_path):
+        """改版清单：单元格仅第三行（标记行）着色，工卡号/名称保持黑字；
+        第三行按类型配色：新增=红、改版=蓝、作废=黑。"""
+        buf = amro_sync.build_version_report_excel({
+            "revised": [
+                {"task_code": "R-1", "task_name": "改版卡", "category": "电子",
+                 "old_wd": "2026-07-01", "new_wd": "2026-08-01 09:00:00"},
+            ],
+            "new_added": [
+                {"task_code": "N-1", "task_name": "新增卡", "category": "机体",
+                 "old_wd": "", "new_wd": "2026-09-01 10:00:00"},
+            ],
+            "cancelled": [
+                {"task_code": "X-1", "task_name": "作废卡", "category": "发动机"},
+            ],
+        })
+        p = tmp_path / "rt_red.xlsx"
+        p.write_bytes(buf)
+        with zipfile.ZipFile(p) as z:
+            xml = z.read("xl/worksheets/sheet1.xml").decode("utf-8", "ignore")
+
+        def runs():
+            for m in re.finditer(r"<r>(.*?)</r>", xml, re.DOTALL):
+                r = m.group(1)
+                t = re.search(r"<t[^>]*>(.*?)</t>", r, re.DOTALL)
+                c = re.search(r'<color rgb="([0-9A-Fa-f]+)"', r)
+                yield (t.group(1) if t else "", c.group(1).upper() if c else None)
+
+        rs = list(runs())
+        red = [t for t, col in rs if col == "FFFF0000"]
+        blue = [t for t, col in rs if col == "FF0000FF"]
+        black = [t for t, col in rs if col == "FF000000"]
+        # 第三行（标记行）按类型着色：新增=红、改版=蓝、作废=黑
+        assert any(t.startswith("新增") for t in red), "新增标记应为红"
+        assert any("→" in t for t in blue), "改版标记应为蓝"
+        assert any(t == "作废" for t in black), "作废标记应为黑"
+        # 工卡号 / 名称行保持黑字
+        assert {"R-1", "N-1", "X-1"}.issubset(set(black)), "工卡号应为黑字"
+        assert any("改版卡" in t for t in black) and any("新增卡" in t for t in black)
 
 
 class TestCheckCardsAgainstAmro:
@@ -171,7 +275,8 @@ class TestCheckCardsAgainstAmro:
     def test_revised_and_cancelled_with_fields(self, json_store, fake_amro_cards, monkeypatch):
         monkeypatch.setattr(amro_sync.amro.time, "monotonic", lambda: 1e9)
         monkeypatch.setattr(amro_sync.amro.time, "sleep", lambda s: None)
-        json_store.add("CSCA320-256652-01-1-X", "检查救生衣", "电子", "RST", "")
+        r_csca = json_store.add("CSCA320-256652-01-1-X", "检查救生衣", "电子", "RST")
+        json_store.update(r_csca["id"], write_date="2026-07-01 09:00:00")
         json_store.add("EOJC-A320-57-2025-002-B", "旧卡", "机体", "EO", "")
 
         async def query(client, cookies, plugin, form, **kw):   # EO 卡逐条直查
@@ -195,23 +300,47 @@ class TestCheckCardsAgainstAmro:
         codes = {r["task_code"] for r in rep["revised"] + rep["cancelled"]}
         assert "EOJC-A320-99-2026-999-Z" not in codes
 
+    def test_cancelled_moved_to_library(self, json_store, monkeypatch, tmp_path):
+        """包级检查作废 → 整卡移入作废工卡库；checked = 工作包内去重卡号数（DP 排除）。"""
+        cancelled_store = CancelledCardStore(str(tmp_path / "cancelled_cards.json"))
+        json_store.add("EOJC-A320-57-2025-002-B", "旧卡", "机体", "EO", "")
+
+        async def query(client, cookies, plugin, form, **kw):
+            return {"code": 200, "data": {}}   # 查无 → 作废
+
+        rep = _run(amro_sync.check_cards_against_amro(
+            json_store, None, {}, ["EOJC-A320-57-2025-002-B", "DP1000000739"],
+            query=query, cancelled_store=cancelled_store))
+        assert [c["task_code"] for c in rep["cancelled"]] == ["EOJC-A320-57-2025-002-B"]
+        assert rep["checked"] == 1
+        assert json_store.find_by_code("EOJC-A320-57-2025-002-B") is None
+        rec = cancelled_store.find_by_code("EOJC-A320-57-2025-002-B")
+        assert rec["cancel_source"] == "package_version"
+
+
+class TestVersionSummaryText:
+    def test_base_format(self):
+        """两处版本检查共用的基础摘要文案：改版X张，新增N张，作废Y张，共检查Z张。"""
+        assert amro_sync._version_summary(2, 1, 10) == "改版 2 张，新增 0 张，作废 1 张，共检查 10 张"
+        assert amro_sync._version_summary(0, 0, 0) == "改版 0 张，新增 0 张，作废 0 张，共检查 0 张"
+        assert amro_sync._version_summary(2, 1, 10, 3) == "改版 2 张，新增 3 张，作废 1 张，共检查 10 张"
+
 
 class TestVersionPullSplit:
     """v3.6.0 版本查询提速：SMJC/EOJC 机队筛选 + 例行卡包跳过 EOJC 深分页 + EO 逐卡直查"""
 
-    def test_pull_card_versions_fleet_filter(self, monkeypatch):
-        """SMJC/EOJC 表单均带 fleet=A320（2026-09-01 实测 SMJC 1319→745）。"""
+    def test_pull_smjc_versions_fleet_filter(self, monkeypatch):
+        """SMJC 表单带 fleet=A320（2026-09-01 实测 1319→745）；EOJC 深分页已移除。"""
         seen = {}
 
         async def fetch(client, cookies, plugin, base_form, **kw):
             seen[plugin] = dict(base_form)
-            if plugin == "TD_JC_SMJC_LIST":
-                return [_jcrow("CSCA320-256652-01-1-X", "2026-08-01 09:00:00")]
-            return []
+            return [_jcrow("CSCA320-256652-01-1-X", "2026-08-01 09:00:00")]
 
-        _run(amro_sync._pull_card_versions(None, {}, fetch=fetch))
-        assert seen["TD_JC_ALL_EOJC_LIST"]["fleet"] == "A320"
-        assert seen["TD_JC_SMJC_LIST"]["fleet"] == "A320"
+        rows = _run(amro_sync._pull_smjc_versions(None, {}, fetch=fetch))
+        assert seen == {"TD_JC_SMJC_LIST": {"status": "ISSUED", "jcStatus": "Y",
+                                            "rows": 500, "fleet": "A320"}}
+        assert list(rows) == ["CSCA320-256652-01-1-X"]
 
     def test_get_entity_by_jcno_returns_row_or_none(self, monkeypatch):
         """实体端点：data 单对象 → 行 dict；空 data → None。"""
@@ -232,7 +361,8 @@ class TestVersionPullSplit:
         """包内全为定检例行卡（CSCA 前缀）→ 只拉 SMJC，跳过 EOJC 深分页（秒级返回）。"""
         monkeypatch.setattr(amro_sync.amro.time, "monotonic", lambda: 1e9)
         monkeypatch.setattr(amro_sync.amro.time, "sleep", lambda s: None)
-        json_store.add("CSCA320-256652-01-1-X", "检查救生衣", "电子", "RST", "")
+        r_csca = json_store.add("CSCA320-256652-01-1-X", "检查救生衣", "电子", "RST")
+        json_store.update(r_csca["id"], write_date="2026-07-01 09:00:00")
         called = []
 
         async def fetch(client, cookies, plugin, base_form, **kw):
@@ -250,7 +380,8 @@ class TestVersionPullSplit:
         """含 EO 卡 → SMJC 全量拉 + EO 逐个按卡号直查（不再全量拉 EOJC 深分页）。"""
         monkeypatch.setattr(amro_sync.amro.time, "monotonic", lambda: 1e9)
         monkeypatch.setattr(amro_sync.amro.time, "sleep", lambda s: None)
-        json_store.add("EOJC-A320-31-2026-007-A", "改装卡", "电子", "EO", "")
+        r_eo = json_store.add("EOJC-A320-31-2026-007-A", "改装卡", "电子", "EO")
+        json_store.update(r_eo["id"], write_date="2026-07-01 09:00:00")
         fetched, queried = [], []
 
         async def fetch(client, cookies, plugin, base_form, **kw):

@@ -333,16 +333,16 @@ def test_generate_page_buttons_and_header(page, server_base):
 
 # ---------- 13. v3.6.0 步骤1：左侧竖向导航布局（数据管理折叠组） ----------
 def test_side_nav_layout(page, server_base):
-    """左侧竖向导航（数据管理与顶级项同级同款，3个子页在折叠组内）+ 顶部登录框，无JS错误。"""
+    """左侧竖向导航（数据管理与顶级项同级同款，4个子页在折叠组内）+ 顶部登录框，无JS错误。"""
     js_errors = []
     page.on("pageerror", lambda e: js_errors.append(str(e)))
 
     page.goto(server_base + "/card/aircraft")
     page.wait_for_selector(".side-nav")
     page.wait_for_selector(".side-brand .brand-en")
-    # 七个菜单项 = 数据管理折叠钮 + 3个子页 + 3个顶级项（数据管理与顶级项同级）
+    # 八个菜单项 = 数据管理折叠钮 + 4个子页（飞机/工卡/工卡组/作废工卡） + 3个顶级项
     links = page.locator(".side-link")
-    assert links.count() == 7, f"侧栏菜单项应为7个，实际{links.count()}"
+    assert links.count() == 8, f"侧栏菜单项应为8个，实际{links.count()}"
     assert page.locator(".side-link.active", has_text="飞机信息").count() == 1
     # 数据管理折叠组：当前页属数据管理 → 折叠钮同级样式且自身 active + 默认展开（show）+ aria-expanded=true
     toggle = page.locator(".side-toggle")
@@ -365,7 +365,7 @@ def test_side_nav_layout(page, server_base):
     assert page.locator(".side-link.active", has_text="工卡信息").count() == 1
     assert "show" in (page.locator("#navDataMgmt").get_attribute("class") or "")
 
-    # 工作包页 → 折叠组默认收起，点击展开后三个子链接可见
+    # 工作包页 → 折叠组默认收起，点击展开后四个子链接可见
     page.goto(server_base + "/upload")
     page.locator(".side-link.active", has_text="工作包").wait_for()
     assert "show" not in (page.locator("#navDataMgmt").get_attribute("class") or "")

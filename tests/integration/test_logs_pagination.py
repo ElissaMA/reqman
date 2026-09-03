@@ -93,3 +93,57 @@ class TestLogsPaginationPage:
         assert "ENG-001" in data
         # 不包含 logData 全量 JSON（确认已移除客户端数据传递）
         assert "logData" not in data
+
+    def test_filter_date_range(self, prefilled_client, store):
+        """日期区间筛选：仅起始=该日起至今；起止同值=单日；区间=含两端。
+
+        向 store 注入 09-01/09-02/09-03 三天的日志，验证路由筛选与直接计数一致
+        （prefilled_client 自带日志不影响断言，因期望值由同一 store 实时计算）。
+        """
+        def inject(ts_day: str) -> None:
+            db = store._read()
+            logs = db.setdefault("card_logs", [])
+            log_id = db.get("card_log_next_id", 1)
+            db["card_log_next_id"] = log_id + 1
+            logs.append({
+                "id": log_id, "operation": "add", "target_type": "card",
+                "target_id": log_id, "target_identifier": ts_day,
+                "target_name": ts_day, "changes": [],
+                "timestamp": f"{ts_day}T10:00:00",
+            })
+            store._write(db)
+
+        for d in ("2026-09-01", "2026-09-02", "2026-09-03"):
+            inject(d)
+
+        all_logs = store.get_logs(limit=None)
+
+        def expected(df=None, dt=None) -> int:
+            n = 0
+            for l in all_logs:
+                d = (l.get("timestamp") or "")[:10]
+                if df and d < df:
+                    continue
+                if dt and d > dt:
+                    continue
+                n += 1
+            return n
+
+        def route_total(q: dict) -> int:
+            resp = prefilled_client.get("/card/logs", query_string=q)
+            assert resp.status_code == 200
+            data = resp.get_data(as_text=True)
+            m = re.search(r'共 <span class="fw-bold">(\d+)</span> 条', data)
+            return int(m.group(1)) if m else -1
+
+        # 表单已渲染「结束日期」输入（含 name=date_to 与标签）
+        html = prefilled_client.get("/card/logs").get_data(as_text=True)
+        assert 'name="date_to"' in html
+        assert "结束日期" in html
+
+        # 仅填起始：该日(09-02)起至今（含 09-02、09-03）
+        assert route_total({"date_from": "2026-09-02"}) == expected(df="2026-09-02")
+        # 起止同值：仅单日 09-02
+        assert route_total({"date_from": "2026-09-02", "date_to": "2026-09-02"}) == expected(df="2026-09-02", dt="2026-09-02")
+        # 区间：09-01 ~ 09-02（含两端，不含 09-03）
+        assert route_total({"date_from": "2026-09-01", "date_to": "2026-09-02"}) == expected(df="2026-09-01", dt="2026-09-02")

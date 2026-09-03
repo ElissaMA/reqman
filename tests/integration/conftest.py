@@ -19,6 +19,8 @@ def app(tmp_path_factory):
     from reqman import config
     original_db = config.DB_FILE
     config.DB_FILE = Path(db_path)
+    original_cancelled = config.CANCELLED_CARDS_FILE
+    config.CANCELLED_CARDS_FILE = tmp_dir / "cancelled_cards.json"  # 隔离，防写真实作废库
 
     from reqman import create_app
     from reqman.models.json_store import JsonStore
@@ -37,6 +39,7 @@ def app(tmp_path_factory):
     yield app
 
     config.DB_FILE = original_db
+    config.CANCELLED_CARDS_FILE = original_cancelled
 
 
 @pytest.fixture

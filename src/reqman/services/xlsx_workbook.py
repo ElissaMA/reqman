@@ -113,6 +113,7 @@ def write_inventory_copy(
     pn_cells: dict[str, list[str]],
     timestamp_suffix: str | None = None,
     output_stem: str | None = None,
+    warning_thresholds: dict | None = None,
 ) -> tuple[io.BytesIO, str]:
     source = Path(source_path)
     if timestamp_suffix is None:
@@ -136,10 +137,12 @@ def write_inventory_copy(
 
             if stock_val < qty:
                 fill = RED_FILL
-            elif stock_val < qty + 2:
-                fill = YELLOW_FILL
             else:
-                fill = None
+                thr = warning_thresholds.get(pn) if warning_thresholds else None
+                if thr is not None:
+                    fill = YELLOW_FILL if stock_val < thr else None
+                else:
+                    fill = YELLOW_FILL if qty <= stock_val < qty + 2 else None
 
             if fill:
                 row = cell.row

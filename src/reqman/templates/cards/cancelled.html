@@ -1,28 +1,13 @@
 {% extends "base.html" %}
 {% import "macros/list_macros.html" as list %}
-{% block title %}工卡信息 - ReqMan定检准备系统{% endblock %}
+{% block title %}作废工卡 - ReqMan定检准备系统{% endblock %}
 {% block content %}
 
 <div class="card mb-3">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">工卡信息 <span class="badge bg-secondary ms-2">{{ cards|length }}</span></h5>
-        <span class="d-flex gap-2">
-            <a href="javascript:void(0)" onclick="amroVerCheck()" id="amroVerCheckBtn" class="btn btn-outline-primary btn-sm">全量查询工卡版本</a>
-            <a href="javascript:void(0)" onclick="ListUI.openEditor('/card/new')" class="btn btn-primary btn-sm">+ 新增工卡</a>
-        </span>
+        <h5 class="mb-0">作废工卡 <span class="badge bg-secondary ms-2">{{ cards|length }}</span></h5>
     </div>
     <div class="card-body p-0">
-        {% if amro_status and amro_status.status == 'running' %}
-        <div class="alert alert-info m-3 mb-0 small">⏳ 全量查询工卡版本进行中（约 3~15 分钟，后台执行）…</div>
-        {% elif amro_status and amro_status.status == 'error' %}
-        <div class="alert alert-danger m-3 mb-0 small">上次全量查询工卡版本失败：{{ amro_status.error }}（{{ amro_status.finished_at }}）</div>
-        {% elif amro_last_query %}
-        <div class="alert alert-success m-3 mb-0 small">
-            上次查询（{{ amro_last_query.finished_at }}）：{{ amro_last_query.summary }}
-            {% if amro_last_query.download_url %}<a class="btn btn-outline-primary btn-sm ms-2 py-0" href="{{ amro_last_query.download_url }}">⬇下载改版清单</a>{% endif %}
-        </div>
-        {% endif %}
-        <div class="q-card" id="qCardVersion" style="display:none"></div>
         <div class="table-responsive">
             <table class="table table-hover mb-0" id="cardTable">
                 <thead>
@@ -43,15 +28,8 @@
                             {% for t in task_types %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
                         </select></th>
                         <th><input class="form-control form-control-sm" placeholder="搜索工卡组..." onkeyup="AppFilter.filter('fSet')" id="fSet"></th>
-                        <th><select class="form-select form-select-sm" id="fWriteDate" data-date-col="6" onchange="AppFilter.filter('fWriteDate')">
-                            <option value="">全部时间</option>
-                            <option value="1">近一个月</option>
-                            <option value="3">近3个月</option>
-                            <option value="12">近一年</option>
-                        </select></th>
-                        <th class="text-center"></th>
-                        <th class="text-center"></th>
-                        <th><select class="form-select form-select-sm" id="fLogDate" data-date-col="9" onchange="AppFilter.filter('fLogDate')">
+                        <th></th>
+                        <th><select class="form-select form-select-sm" id="fCancelDate" data-date-col="7" onchange="AppFilter.filter('fCancelDate')">
                             <option value="">全部时间</option>
                             <option value="1">近一个月</option>
                             <option value="3">近3个月</option>
@@ -67,17 +45,14 @@
                         <th>类型</th>
                         <th>所属工卡组</th>
                         <th>编写日期</th>
-                        <th class="text-center">工具数</th>
-                        <th class="text-center">航材数</th>
-                        <th style="width:120px" class="sortable text-center" data-col="9" onclick="AppFilter.sort(document.getElementById('cardTable'),9)">新建/编辑日期 <span class="sort-arrow" data-dir="desc">▼</span></th>
+                        <th style="width:120px" class="sortable text-center" data-col="7" onclick="AppFilter.sort(document.getElementById('cardTable'),7)">作废日期 <span class="sort-arrow" data-dir="desc">▼</span></th>
                         <th style="width:120px" class="text-center">操作</th>
                     </tr>
                 </thead>
                 <tbody>
                 {% if cards %}
                 {% for card in cards %}
-{% set blink = not card.card_ok or not (card.tools_confirmed and card.materials_confirmed and card.reminder_confirmed) %}
-                    <tr onclick="showDetail({{ card.id }})" style="cursor:pointer" class="{{ 'blink-warn' if blink }}">
+                    <tr onclick="showDetail({{ card.id }})" style="cursor:pointer">
                         <td style="font-weight:700;font-family:Consolas,monospace">{{ card.task_code }}</td>
                         <td>{{ card.task_name[:60] }}{% if card.task_name|length > 60 %}...{% endif %}</td>
                         <td>{{ card.category }}</td>
@@ -85,17 +60,14 @@
                         <td>{{ card.task_type or '-' }}</td>
                         <td>{{ card.set_name or '-' }}</td>
                         <td>{{ (card.write_date or '')[:10] or '—' }}</td>
-                        <td class="text-center">{{ card.tools|length }}</td>
-                        <td class="text-center">{{ card.materials|length }}</td>
-                        <td class="text-center">{{ card.log_time or '—' }}</td>
+                        <td class="text-center">{{ (card.cancelled_at or '')[:10] or '—' }}</td>
                         <td class="text-center text-nowrap" onclick="event.stopPropagation()">
-                            <a href="javascript:void(0)" onclick="ListUI.openEditor('/card/{{ card.id }}/edit')" class="btn btn-outline-primary btn-sm py-0">编辑</a>
-                            <button type="button" data-url="/card/{{ card.id }}/delete" data-confirm="确认删除工卡 {{ card.task_code }}？" onclick="ListUI.delFrom(this)" class="btn btn-outline-danger btn-sm py-0">删除</button>
+                            <button type="button" data-url="/card/cancelled/{{ card.id }}/delete" data-confirm="确认彻底删除作废工卡 {{ card.task_code }}？删除后不可恢复。" onclick="ListUI.delFrom(this)" class="btn btn-outline-danger btn-sm py-0">删除</button>
                         </td>
                     </tr>
                 {% endfor %}
                 {% else %}
-                    {{ list.empty_state('暂无工卡数据，点击右上角新增', '/card/new', '新增工卡', colspan=11, open_modal=True) }}
+                    {{ list.empty_state('暂无作废工卡', colspan=9) }}
                 {% endif %}
                 </tbody>
             </table>
@@ -106,7 +78,7 @@
 <div class="modal fade" id="detailModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
         <div class="modal-header">
-            <h5 class="modal-title">工卡详情</h5>
+            <h5 class="modal-title">作废工卡详情</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body" id="detailContent"><p class="text-muted">点击行加载...</p></div>
@@ -125,14 +97,8 @@ var cards = [{% for card in cards %}{{ card|tojson }}{% if not loop.last %},{% e
 function showDetail(id) {
     var d = cards.find(function(card) { return card.id === id; });
     if (!d) return;
-    // 顶部总确认横幅
-    var h = '<div class="d-flex justify-content-between align-items-center p-2 rounded mb-3 '
-        + (d.card_ok ? 'bg-success-subtle' : 'bg-danger-subtle') + '">'
-        + '<span class="small"><strong>工卡数据已确认</strong> '
-        + (d.card_ok ? '<span class="badge bg-success">已确认</span>' : '<span class="badge bg-danger">未确认</span>')
-        + '</span></div>';
     // 基本信息
-    h += '<div class="row g-3 mb-3">'
+    var h = '<div class="row g-3 mb-3">'
         + '<div class="col-md-3"><label class="form-label small">工卡号</label><div><strong>' + escapeHtml(d.task_code) + '</strong></div></div>'
         + '<div class="col-md-5"><label class="form-label small">工卡描述</label><div>' + (escapeHtml(d.task_name) || '—') + '</div></div>'
         + '<div class="col-md-2"><label class="form-label small">专业</label><div>' + (escapeHtml(d.category) || '—') + '</div></div>'
@@ -140,6 +106,11 @@ function showDetail(id) {
         + '</div>';
     h += '<div class="mb-3"><label class="form-label small">所属工卡组</label><div>' + (escapeHtml(d.set_name) || '—') + '</div></div>';
     h += '<div class="mb-3"><label class="form-label small">编写日期</label><div>' + ((escapeHtml(d.write_date) || '').slice(0, 10) || '—') + '</div></div>';
+    // 作废信息
+    h += '<div class="mb-3 p-2 rounded bg-danger-subtle">'
+        + '<label class="form-label small fw-bold mb-1">作废信息</label>'
+        + '<div class="small">作废日期：' + (escapeHtml(d.cancelled_at) || '—') + '</div>'
+        + '</div>';
     // 提醒区块（类型 + 确认状态）
     h += '<div class="mb-3"><label class="form-label small fw-bold">&#x1F514; 提醒类型</label><div>'
         + (escapeHtml(d.reminder_type) || '无') + '</div></div>';
@@ -185,54 +156,6 @@ function showDetail(id) {
     var id = p.split(':')[0], col = p.split(':')[1];
     var el = document.getElementById(id);
     if (el) el.setAttribute('data-col', col);
-});
-
-// ===== AMRO 全量查询工卡版本（v3.6.0） =====
-function amroVerCheck() {
-    if (!window.amroRequireLogin()) return;
-    var btn = document.getElementById('amroVerCheckBtn');
-    btn.disabled = true;
-    var card = window.QueryCard.run('qCardVersion', '全量查询工卡版本（约 3~15 分钟，后台执行）');
-    fetch('/card/amro-version-check', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-        .then(function(r) { return r.json().then(function(d) { return {code: r.status, d: d}; }); })
-        .then(function(x) {
-            if (x.code === 200 && x.d.success) {
-                pollVersionCheck(card);
-            } else {
-                btn.disabled = false;
-                card.fail((x.d && x.d.message) || '启动失败');
-            }
-        }).catch(function() {
-            btn.disabled = false;
-            card.fail('启动失败');
-        });
-}
-
-function pollVersionCheck(card) {
-    window.Poller.poll({
-        statusUrl: '/card/amro-version-status',
-        card: card,
-        deadlineMin: 20,
-        intervalMs: 2000,
-        onDone: function(status, card) {
-            var s = status.summary || {};
-            var msg = '查询完成：改版 ' + s.revised + ' 张，作废 ' + s.cancelled + ' 张';
-            card.done(msg);
-            window.safeToast(msg, 'success', 8000);
-            setTimeout(function() { window.location.reload(); }, 1500);
-        },
-        onError: function(err, card) {
-            card.fail(err || '未知错误');
-            var b = document.getElementById('amroVerCheckBtn');
-            if (b) { b.disabled = false; }
-        }
-    });
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    {% if amro_status and amro_status.status == 'running' %}
-    pollVersionCheck(window.QueryCard.run('qCardVersion', '全量查询工卡版本（约 3~15 分钟，后台执行）'));
-    {% endif %}
 });
 </script>
 {% endblock %}

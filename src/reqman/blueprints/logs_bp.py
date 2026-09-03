@@ -88,10 +88,13 @@ def _build_filtered_logs(args: dict) -> list:
         kw = keyword.lower()
         logs = [log for log in logs if kw in (log.get("target_identifier") or "").lower() or kw in (log.get("target_name") or "").lower()]
 
-    # 按日期筛选
+    # 按日期筛选（起始—结束区间：起止同为一天即单日；仅填起始=该日起至今）
     date_from = args.get("date_from", "").strip()
     if date_from:
         logs = [log for log in logs if (log.get("timestamp") or "")[:10] >= date_from]
+    date_to = args.get("date_to", "").strip()
+    if date_to:
+        logs = [log for log in logs if (log.get("timestamp") or "")[:10] <= date_to]
 
     logs.sort(key=lambda log: log.get("timestamp", ""), reverse=True)
     return logs
@@ -108,6 +111,7 @@ def list_logs():
         "target_type": request.args.get("target_type", "").strip(),
         "keyword": request.args.get("keyword", "").strip(),
         "date_from": request.args.get("date_from", "").strip(),
+        "date_to": request.args.get("date_to", "").strip(),
     }
     page, page_size = _parse_page_args(request.args)
     try:

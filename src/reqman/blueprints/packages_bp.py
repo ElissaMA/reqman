@@ -9,15 +9,15 @@ from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
 import httpx
-from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request
+from flask import Blueprint, current_app, flash, redirect, render_template, request
 
 from ..config import CATEGORIES, OUTPUT_DIR
 from ..services import amro_sync
 from ..services.connectors.amro import AmroSessionExpired
 from ..services.work_package_matcher import match_work_package_items
 from ..services.worklist_parser import WorklistError, merge_aircraft_info, parse_worklist
-from ..utils.error_handlers import NotFoundError, ValidationError
-from ..utils.response import api_success
+from ..utils.error_handlers import NotFoundError, ValidationError, is_ajax
+from ..utils.response import api_error, api_success
 from ..utils.validators import validate_file_extension
 from .inventory_bp import MESSAGES
 
@@ -28,9 +28,6 @@ packages_bp = Blueprint("packages", __name__)
 
 # ======================== 辅助函数 ========================
 
-
-def _is_ajax():
-    return request.headers.get("X-Requested-With") == "XMLHttpRequest"
 
 
 def _parse_wp_date(date_str):
@@ -171,7 +168,7 @@ def _handle_upload_post():
     }
     package_data = _persist_package(store, package_data)
 
-    if _is_ajax():
+    if is_ajax():
         return api_success(data={"package_id": package_data.get("package_id")},
                            message="工作包上传成功")
     flash("工作包上传成功，点击工作包即可匹配生成", "success")
@@ -213,19 +210,36 @@ def package_rematch(package_id):
     pkg_data["generated_at"] = now_str
     store.save_work_package(pkg_data)
 
-    if _is_ajax():
+    if is_ajax():
         return api_success(message="重新匹配完成")
     flash("重新匹配完成", "success")
     return redirect("/upload")
+
+
+def _amro_err(kind, exc=None):
+    """AMRO 端点统一错误响应（error_code 对齐 inventory_bp 约定）。
+
+    session: 前置登录检查未过 → 401 P8
+    busy:    全局查询互斥冲突 → 409 统一 busy 文案
+    amro:    AMRO 请求/异常 → 502
+    """
+    if kind == "session":
+        return api_error(MESSAGES["P8"], "LOGIN_EXPIRED", 401)
+    if kind == "busy":
+        return api_error(amro_sync.query_busy_message()
+                         or "已有查询任务进行中，请等待完成后再查询", "QUERY_BUSY", 409)
+    if kind == "amro":
+        return api_error(f"AMRO 请求失败: {exc}", "AMRO_ERROR", 502)
+    raise ValueError(f"未知 AMRO 错误类型: {kind}")
 
 
 # ======================== AMRO 直读（v3.5.0） ========================
 
 @packages_bp.route("/packages/amro-list", methods=["GET", "POST"])
 def amro_package_list():
-    """AMRO 任务接收包列表（BM_TSK_LIST，baseCode=KM01，日期窗今±7天）。"""
+    """AMRO 任务接收包列表（BM_TSK_LIST，baseCode=KM01，不过滤日期窗）。"""
     if not amro_sync.require_amro_session():
-        return jsonify({"success": False, "message": MESSAGES["P8"]}), 401
+        return _amro_err("session")
     svc = current_app.extensions["inventory_service"]
     cookies = (svc.session_store.load() or {}).get("cookies", {})
 
@@ -237,13 +251,12 @@ def amro_package_list():
         with amro_sync.query_slot("查询工作包"):
             packages = asyncio.run(_inner())
     except amro_sync.QueryBusyError:
-        return jsonify({"success": False, "message": amro_sync.query_busy_message()
-                        or "已有查询任务进行中，请等待完成后再查询"}), 409
+        return _amro_err("busy")
     except AmroSessionExpired as e:
-        return jsonify({"success": False, "message": str(e)}), 401
+        return api_error(str(e), "LOGIN_EXPIRED", 401)
     except (httpx.HTTPError, RuntimeError) as e:
         logger.exception("AMRO 包列表拉取失败")
-        return jsonify({"success": False, "message": f"AMRO 请求失败: {e}"}), 502
+        return _amro_err("amro", e)
     amro_sync.save_last_query_result("package", "查询工作包",
                                      f"获取到 {len(packages)} 个任务包",
                                      output_dir=OUTPUT_DIR)
@@ -255,7 +268,7 @@ def amro_package_list():
 def amro_package_fetch():
     """revnr + header（BM_TSK_LIST 选中行）→ 拉两清单 → 入库 → package_id（同步请求）。"""
     if not amro_sync.require_amro_session():
-        return jsonify({"success": False, "message": MESSAGES["P8"]}), 401
+        return _amro_err("session")
     revnr = (request.form.get("revnr") or "").strip()
     if not revnr:
         raise ValidationError("缺少包号 revnr", "NO_REVNR")
@@ -280,13 +293,12 @@ def amro_package_fetch():
         with amro_sync.query_slot("查询工作包"):
             summary = asyncio.run(_inner())
     except amro_sync.QueryBusyError:
-        return jsonify({"success": False, "message": amro_sync.query_busy_message()
-                        or "已有查询任务进行中，请等待完成后再查询"}), 409
+        return _amro_err("busy")
     except AmroSessionExpired as e:
-        return jsonify({"success": False, "message": str(e)}), 401
+        return api_error(str(e), "LOGIN_EXPIRED", 401)
     except (httpx.HTTPError, RuntimeError) as e:
         logger.exception("AMRO 工作包 %s 导入失败", revnr)
-        return jsonify({"success": False, "message": f"AMRO 请求失败: {e}"}), 502
+        return _amro_err("amro", e)
     message = (f"工作包 {revnr} 已导入：例行 {summary['routine']} 项，其他 {summary['other']} 项"
                "（请在表格中重新匹配或打开预览页完成匹配）")
     return api_success(data=summary, message=message)
@@ -306,19 +318,19 @@ def package_amro_version_check(package_id):
     长任务移出请求线程，避免 gunicorn 120s 杀请求；前端轮询 /amro-version-status 取进度。
     """
     if not amro_sync.require_amro_session():
-        return jsonify({"success": False, "message": MESSAGES["P8"]}), 401
+        return _amro_err("session")
     store = current_app.extensions["store"]
     pkg_data = store.get_work_package(package_id)
     if not pkg_data:
         raise NotFoundError("工作包不存在")
     session_store = current_app.extensions["inventory_service"].session_store
-    if not amro_sync.start_package_version_check(store, session_store, package_id, pkg_data):
-        return jsonify({"success": False, "message": amro_sync.query_busy_message()
-                        or "已有查询任务进行中，请等待完成后再查询"}), 409
-    return jsonify({"success": True, "data": {"started": True}})
+    if not amro_sync.start_package_version_check(store, session_store, package_id, pkg_data,
+                                                 current_app.extensions["cancelled_cards"]):
+        return _amro_err("busy")
+    return api_success(data={"started": True})
 
 
 @packages_bp.route("/packages/amro-version-status")
 def package_amro_version_status():
     """逐包工卡版本检查进度/简要结果（全局内存态，前端轮询/恢复加载）。"""
-    return jsonify({"success": True, "data": amro_sync.get_query_status("package_version")})
+    return api_success(data=amro_sync.get_query_status("package_version"))

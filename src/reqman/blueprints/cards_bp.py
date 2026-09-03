@@ -9,7 +9,8 @@ from flask import Blueprint, current_app, flash, jsonify, redirect, render_templ
 from ..config import CATEGORIES, OUTPUT_DIR, REMINDER_TYPES, TASK_TYPES, USAGE_TYPES
 from ..services import amro_sync
 from ..services.card_service import ServiceError
-from ..utils.error_handlers import ValidationError
+from ..utils.error_handlers import ValidationError, is_ajax
+from ..utils.response import api_error, api_success
 from ..utils.validators import validate_required
 from .inventory_bp import MESSAGES
 
@@ -29,6 +30,8 @@ def card_list():
         reminder_type = request.args.get("reminder_type", "").strip()
         cards = current_app.extensions['card_service'].list_cards(
             search=search, category=category, reminder_type=reminder_type)
+        # 按「新建/编辑」日志时间倒序（空值排最后）
+        cards.sort(key=lambda c: c.get("log_time", ""), reverse=True)
         sets = current_app.extensions['card_service'].list_card_sets()
         set_map = {set["id"]: set.get("name", "") for set in sets}
         for card in cards:
@@ -48,10 +51,6 @@ def card_list():
                                amro_last_query=amro_sync.get_last_query_result("full_version"))
 
 
-def _is_ajax():
-    return request.headers.get("X-Requested-With") == "XMLHttpRequest"
-
-
 def _parse_and_validate_tools_mats(redirect_url):
     """解析并验证工具/航材，失败时返回 (None, None, None, None, error_response)。"""
     tools, materials = current_app.extensions['card_service'].parse_tools_mats(request.form)
@@ -60,14 +59,14 @@ def _parse_and_validate_tools_mats(redirect_url):
 
     if not tools and not tools_confirmed:
         msg = "请添加工具或确认无工具"
-        if _is_ajax():
-            return None, None, None, None, jsonify({"success": False, "message": msg})
+        if is_ajax():
+            return None, None, None, None, api_error(msg, status_code=200)
         flash(msg, "error")
         return None, None, None, None, redirect(redirect_url)
     if not materials and not materials_confirmed:
         msg = "请添加航材或确认无航材"
-        if _is_ajax():
-            return None, None, None, None, jsonify({"success": False, "message": msg})
+        if is_ajax():
+            return None, None, None, None, api_error(msg, status_code=200)
         flash(msg, "error")
         return None, None, None, None, redirect(redirect_url)
 
@@ -80,8 +79,8 @@ def _parse_reminder():
     reminder_confirmed = bool(reminder_type) or (not reminder_type and bool(request.form.get("confirm_no_reminder")))
     if not reminder_type and not reminder_confirmed:
         msg = "请选择提醒类型或确认无需提醒"
-        if _is_ajax():
-            return None, None, jsonify({"success": False, "message": msg})
+        if is_ajax():
+            return None, None, api_error(msg, status_code=200)
         flash(msg, "error")
         return None, None, redirect(request.referrer or "/card/list")
     return reminder_type, reminder_confirmed, None
@@ -128,20 +127,20 @@ def card_new():
                 write_date=_parse_write_date(),
                 card_ok=True,
             )
-            if _is_ajax():
-                return jsonify({"success": True, "message": "工卡新增成功"})
+            if is_ajax():
+                return api_success(message="工卡新增成功")
             flash("工卡新增成功", "success")
             return redirect("/card/list")
 
         except (ServiceError, ValidationError) as e:
-            if _is_ajax():
-                return jsonify({"success": False, "message": e.message})
+            if is_ajax():
+                return api_error(e.message, status_code=200)
             flash(e.message, "error")
             return redirect("/card/new")
         except Exception:
             logger.exception("新增工卡失败")
-            if _is_ajax():
-                return jsonify({"success": False, "message": "服务器错误，请稍后重试"})
+            if is_ajax():
+                return api_error("服务器错误，请稍后重试", "SERVER_ERROR", 200)
             flash("服务器错误，请稍后重试", "error")
             return redirect("/card/new")
 
@@ -195,19 +194,19 @@ def card_edit(card_id):
                 write_date=_parse_write_date(),
                 card_ok=True,
             )
-            if _is_ajax():
-                return jsonify({"success": True, "message": "工卡更新成功"})
+            if is_ajax():
+                return api_success(message="工卡更新成功")
             flash("工卡更新成功", "success")
             return redirect("/card/list")
 
         except (ServiceError, ValidationError) as e:
-            if _is_ajax():
-                return jsonify({"success": False, "message": e.message})
+            if is_ajax():
+                return api_error(e.message, status_code=200)
             flash(e.message, "error")
         except Exception:
             logger.exception("更新工卡失败")
-            if _is_ajax():
-                return jsonify({"success": False, "message": "服务器错误"})
+            if is_ajax():
+                return api_error("服务器错误", "SERVER_ERROR", 200)
             flash("服务器错误，请稍后重试", "error")
 
     return render_template("cards/form.html",
@@ -228,17 +227,17 @@ def card_delete(card_id):
     """删除工卡"""
     try:
         current_app.extensions['card_service'].delete_card(card_id)
-        if _is_ajax():
-            return jsonify({"success": True, "message": "工卡已删除"})
+        if is_ajax():
+            return api_success(message="工卡已删除")
         flash("工卡已删除", "success")
     except ServiceError as e:
-        if _is_ajax():
-            return jsonify({"success": False, "message": e.message})
+        if is_ajax():
+            return api_error(e.message, status_code=200)
         flash(e.message, "error")
     except Exception:
         logger.exception("删除工卡失败")
-        if _is_ajax():
-            return jsonify({"success": False, "message": "服务器错误"})
+        if is_ajax():
+            return api_error("服务器错误", "SERVER_ERROR", 200)
         flash("服务器错误", "error")
     return redirect("/card/list")
 
@@ -261,14 +260,42 @@ def card_reset_confirm(card_id):
     """重置确认：仅置 card_ok=False，不清空内容"""
     try:
         current_app.extensions['card_service'].update_card(card_id, card_ok=False)
-        if _is_ajax():
-            return jsonify({"success": True, "message": "已重置确认状态", "data": {"card_ok": False}})
+        if is_ajax():
+            return api_success(message="已重置确认状态", data={"card_ok": False})
         flash("已重置确认状态", "success")
     except ServiceError as e:
-        if _is_ajax():
-            return jsonify({"success": False, "message": e.message})
+        if is_ajax():
+            return api_error(e.message, status_code=200)
         flash(e.message, "error")
     return redirect("/card/list")
+
+
+# ======================== 作废工卡库 ========================
+
+
+@cards_bp.route("/card/cancelled")
+def cancelled_cards_page():
+    """作废工卡清单（数据管理子页，只读归档：查看 + 彻底删除）"""
+    records = current_app.extensions["cancelled_cards"].get_all()
+    return render_template("cards/cancelled.html",
+                           cards=records,
+                           categories=CATEGORIES, reminder_types=REMINDER_TYPES,
+                           task_types=TASK_TYPES)
+
+
+@cards_bp.route("/card/cancelled/<int:card_id>/delete", methods=["POST"])
+def cancelled_card_delete(card_id):
+    """彻底删除作废工卡"""
+    record = current_app.extensions["cancelled_cards"].remove(card_id)
+    if record is None:
+        if is_ajax():
+            return api_error("作废工卡不存在", status_code=200)
+        flash("作废工卡不存在", "error")
+        return redirect("/card/cancelled")
+    if is_ajax():
+        return api_success(message=f"作废工卡 {record.get('task_code', '')} 已彻底删除")
+    flash("作废工卡已彻底删除", "success")
+    return redirect("/card/cancelled")
 
 
 
@@ -314,6 +341,9 @@ def card_sets():
                             "task_name": cd.get("task_name", "")}
                            for cd in cards]
             })
+        # 按「新建/编辑」日志时间倒序（空值排最后），同名按名称升序
+        sets.sort(key=lambda s: s.get("name", ""))
+        sets.sort(key=lambda s: s.get("log_time", ""), reverse=True)
         return render_template("cards/sets.html", sets=sets,
                                card_counts=card_counts,
                                categories=CATEGORIES,
@@ -335,8 +365,8 @@ def card_set_new():
             card_codes = request.form.getlist("card_codes[]")
             if len(card_codes) < 2:
                 msg = "工卡组至少需要2个工卡"
-                if _is_ajax():
-                    return jsonify({"success": False, "message": msg})
+                if is_ajax():
+                    return api_error(msg, status_code=200)
                 flash(msg, "error")
                 return redirect("/card/sets/new")
             tools, materials, tools_confirmed, materials_confirmed, err = _parse_and_validate_tools_mats("/card/sets/new")
@@ -358,18 +388,18 @@ def card_set_new():
                 reminder_confirmed=reminder_confirmed,
                 card_ok=True,
             )
-            if _is_ajax():
-                return jsonify({"success": True, "message": "工卡组新增成功"})
+            if is_ajax():
+                return api_success(message="工卡组新增成功")
             flash("工卡组新增成功，工具/航材已同步至所有子工卡", "success")
             return redirect("/card/sets")
         except (ServiceError, ValidationError) as e:
-            if _is_ajax():
-                return jsonify({"success": False, "message": e.message})
+            if is_ajax():
+                return api_error(e.message, status_code=200)
             flash(e.message, "error")
         except Exception:
             logger.exception("新增工卡组失败")
-            if _is_ajax():
-                return jsonify({"success": False, "message": "服务器错误"})
+            if is_ajax():
+                return api_error("服务器错误", "SERVER_ERROR", 200)
             flash("服务器错误", "error")
 
     return render_template("cards/set_form.html",
@@ -398,8 +428,8 @@ def card_set_edit(set_id):
             card_codes = request.form.getlist("card_codes[]")
             if len(card_codes) < 2:
                 msg = "工卡组至少需要2个工卡"
-                if _is_ajax():
-                    return jsonify({"success": False, "message": msg})
+                if is_ajax():
+                    return api_error(msg, status_code=200)
                 flash(msg, "error")
                 return redirect(f"/card/sets/{set_id}/edit")
             tools, materials, tools_confirmed, materials_confirmed, err = _parse_and_validate_tools_mats(f"/card/sets/{set_id}/edit")
@@ -422,18 +452,18 @@ def card_set_edit(set_id):
                 reminder_confirmed=reminder_confirmed,
                 card_ok=True,
             )
-            if _is_ajax():
-                return jsonify({"success": True, "message": "工卡组更新成功"})
+            if is_ajax():
+                return api_success(message="工卡组更新成功")
             flash("工卡组更新成功，工具/航材已同步至所有子工卡", "success")
             return redirect("/card/sets")
         except (ServiceError, ValidationError) as e:
-            if _is_ajax():
-                return jsonify({"success": False, "message": e.message})
+            if is_ajax():
+                return api_error(e.message, status_code=200)
             flash(e.message, "error")
         except Exception:
             logger.exception("更新工卡组失败")
-            if _is_ajax():
-                return jsonify({"success": False, "message": "服务器错误"})
+            if is_ajax():
+                return api_error("服务器错误", "SERVER_ERROR", 200)
             flash("服务器错误", "error")
 
     cards_in_set = current_app.extensions['card_service'].get_cards_in_set(set_id)
@@ -467,17 +497,17 @@ def card_set_delete(set_id):
     """删除工卡组"""
     try:
         current_app.extensions['card_service'].delete_card_set(set_id)
-        if _is_ajax():
-            return jsonify({"success": True, "message": "工卡组已删除"})
+        if is_ajax():
+            return api_success(message="工卡组已删除")
         flash("工卡组已删除，关联工卡已解除绑定", "success")
     except ServiceError as e:
-        if _is_ajax():
-            return jsonify({"success": False, "message": e.message})
+        if is_ajax():
+            return api_error(e.message, status_code=200)
         flash(e.message, "error")
     except Exception:
         logger.exception("删除工卡组失败")
-        if _is_ajax():
-            return jsonify({"success": False, "message": "服务器错误"})
+        if is_ajax():
+            return api_error("服务器错误", "SERVER_ERROR", 200)
         flash("服务器错误", "error")
     return redirect("/card/sets")
 
@@ -487,12 +517,12 @@ def card_set_reset_confirm(set_id):
     """重置确认：仅置 card_ok=False，不清空内容"""
     try:
         current_app.extensions['card_service'].update_card_set(set_id, card_ok=False)
-        if _is_ajax():
-            return jsonify({"success": True, "message": "已重置确认状态", "data": {"card_ok": False}})
+        if is_ajax():
+            return api_success(message="已重置确认状态", data={"card_ok": False})
         flash("已重置确认状态", "success")
     except ServiceError as e:
-        if _is_ajax():
-            return jsonify({"success": False, "message": e.message})
+        if is_ajax():
+            return api_error(e.message, status_code=200)
         flash(e.message, "error")
     return redirect("/card/sets")
 
@@ -501,29 +531,23 @@ def card_set_reset_confirm(set_id):
 
 # ======================== 飞机信息 ========================
 
-def _require_amro_session() -> bool:
-    """AMRO 功能前置检查（spec §3.2）：真实探活一次，失效由路由层 401+P8 阻断。"""
-    svc = current_app.extensions["inventory_service"]
-    return svc.check_login()
-
-
 @cards_bp.route("/card/aircraft/amro-sync", methods=["POST"])
 def aircraft_amro_sync():
     """查询飞机数据（后台线程执行，立即返回 started）。"""
-    if not _require_amro_session():
-        return jsonify({"success": False, "message": MESSAGES["P8"]}), 401
+    if not amro_sync.require_amro_session():
+        return api_error(MESSAGES["P8"], "LOGIN_EXPIRED", 401)
     store = current_app.extensions["store"]
     session_store = current_app.extensions["inventory_service"].session_store
     if not amro_sync.start_aircraft_sync(store, session_store):
-        return jsonify({"success": False, "message": amro_sync.query_busy_message()
-                        or "已有查询任务进行中，请等待完成后再查询"}), 409
-    return jsonify({"success": True, "data": {"started": True}})
+        return api_error(amro_sync.query_busy_message()
+                         or "已有查询任务进行中，请等待完成后再查询", "QUERY_BUSY", 409)
+    return api_success(data={"started": True})
 
 
 @cards_bp.route("/card/aircraft/amro-status")
 def aircraft_amro_status():
     """查询飞机数据进度/简要结果（内存态）。"""
-    return jsonify({"success": True, "data": amro_sync.get_query_status("aircraft")})
+    return api_success(data=amro_sync.get_query_status("aircraft"))
 
 
 # ======================== 工卡版本检查（v3.5.0） ========================
@@ -532,19 +556,20 @@ def aircraft_amro_status():
 def amro_version_check():
     """全量查询工卡版本（后台线程：实时拉 AMRO 比对 write_date，约 3~15 分钟）。"""
     if not amro_sync.require_amro_session():
-        return jsonify({"success": False, "message": MESSAGES["P8"]}), 401
+        return api_error(MESSAGES["P8"], "LOGIN_EXPIRED", 401)
     store = current_app.extensions["store"]
     session_store = current_app.extensions["inventory_service"].session_store
-    if not amro_sync.start_full_version_check(store, session_store, OUTPUT_DIR):
-        return jsonify({"success": False, "message": amro_sync.query_busy_message()
-                        or "已有查询任务进行中，请等待完成后再查询"}), 409
-    return jsonify({"success": True, "data": {"started": True}})
+    if not amro_sync.start_full_version_check(store, session_store, OUTPUT_DIR,
+                                              current_app.extensions["cancelled_cards"]):
+        return api_error(amro_sync.query_busy_message()
+                         or "已有查询任务进行中，请等待完成后再查询", "QUERY_BUSY", 409)
+    return api_success(data={"started": True})
 
 
 @cards_bp.route("/card/amro-version-status")
 def amro_version_status():
     """全量查询工卡版本进度/简要结果（内存态）。"""
-    return jsonify({"success": True, "data": amro_sync.get_query_status("full_version")})
+    return api_success(data=amro_sync.get_query_status("full_version"))
 
 
 @cards_bp.route("/card/amro-version-report")
@@ -552,7 +577,7 @@ def amro_version_report_latest():
     """下载最近一次全量查询工卡版本的改版清单（output/ 内最新文件）。"""
     reports = sorted(OUTPUT_DIR.glob("amro_full_version_report_*.xlsx"))
     if not reports:
-        return jsonify({"success": False, "message": "尚无改版清单，请先执行「全量查询工卡版本」"}), 404
+        return api_error("尚无改版清单，请先执行「全量查询工卡版本」", "NO_REPORT", 404)
     path = reports[-1]
     finished = datetime.fromtimestamp(
         path.stat().st_mtime, ZoneInfo("Asia/Shanghai")).strftime("%Y.%m.%d")
@@ -566,6 +591,9 @@ def aircraft_list():
     """飞机信息列表"""
     try:
         ac_list = current_app.extensions['card_service'].list_aircraft()
+        # 按「新建/编辑」日志时间倒序（空值排最后），同名按机号升序
+        ac_list.sort(key=lambda ac: ac.get("reg", ""))
+        ac_list.sort(key=lambda ac: ac.get("log_time", ""), reverse=True)
         amro_status = amro_sync.get_query_status("aircraft")
         amro_last_query = amro_sync.get_last_query_result("aircraft")
         return render_template("cards/aircraft.html",
@@ -596,19 +624,19 @@ def aircraft_new():
             msn=request.form.get("msn", ""),
             apu=request.form.get("apu", ""),
         )
-        if _is_ajax():
-            return jsonify({"success": True, "message": "飞机信息新增成功"})
+        if is_ajax():
+            return api_success(message="飞机信息新增成功")
         flash("飞机信息新增成功", "success")
         return redirect("/card/aircraft")
 
     except (ServiceError, ValidationError) as e:
-        if _is_ajax():
-            return jsonify({"success": False, "message": e.message})
+        if is_ajax():
+            return api_error(e.message, status_code=200)
         flash(e.message, "error")
     except Exception:
         logger.exception("新增飞机信息失败")
-        if _is_ajax():
-            return jsonify({"success": False, "message": "服务器错误"})
+        if is_ajax():
+            return api_error("服务器错误", "SERVER_ERROR", 200)
         flash("服务器错误", "error")
 
     return redirect("/card/aircraft")
@@ -639,19 +667,19 @@ def aircraft_edit(aircraft_id):
             msn=request.form.get("msn", ""),
             apu=request.form.get("apu", ""),
         )
-        if _is_ajax():
-            return jsonify({"success": True, "message": "飞机信息更新成功"})
+        if is_ajax():
+            return api_success(message="飞机信息更新成功")
         flash("飞机信息更新成功", "success")
         return redirect("/card/aircraft")
 
     except (ServiceError, ValidationError) as e:
-        if _is_ajax():
-            return jsonify({"success": False, "message": e.message})
+        if is_ajax():
+            return api_error(e.message, status_code=200)
         flash(e.message, "error")
     except Exception:
         logger.exception("更新飞机信息失败")
-        if _is_ajax():
-            return jsonify({"success": False, "message": "服务器错误"})
+        if is_ajax():
+            return api_error("服务器错误", "SERVER_ERROR", 200)
         flash("服务器错误", "error")
 
     return redirect("/card/aircraft")
@@ -662,16 +690,29 @@ def aircraft_delete(aircraft_id):
     """删除飞机信息"""
     try:
         current_app.extensions['card_service'].delete_aircraft(aircraft_id)
-        if _is_ajax():
-            return jsonify({"success": True, "message": "飞机信息已删除"})
+        if is_ajax():
+            return api_success(message="飞机信息已删除")
         flash("飞机信息已删除", "success")
     except ServiceError as e:
-        if _is_ajax():
-            return jsonify({"success": False, "message": e.message})
+        if is_ajax():
+            return api_error(e.message, status_code=200)
         flash(e.message, "error")
     except Exception:
         logger.exception("删除飞机信息失败")
-        if _is_ajax():
-            return jsonify({"success": False, "message": "服务器错误"})
+        if is_ajax():
+            return api_error("服务器错误", "SERVER_ERROR", 200)
         flash("服务器错误", "error")
     return redirect("/card/aircraft")
+
+
+@cards_bp.route("/card/aircraft/<int:aircraft_id>")
+def aircraft_detail(aircraft_id):
+    """飞机详情 (AJAX，供操作日志行预览)"""
+    try:
+        ac = current_app.extensions['card_service'].get_aircraft(aircraft_id)
+        if not ac:
+            return jsonify({"error": "not found"}), 404
+        return jsonify(ac)
+    except Exception:
+        logger.exception("获取飞机信息详情失败")
+        return jsonify({"error": "server error"}), 500

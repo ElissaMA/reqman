@@ -47,6 +47,11 @@ def _wants_json():
     return request.accept_mimetypes.best == "application/json"
 
 
+def is_ajax():
+    """判断请求是否为 AJAX（fetch/XHR）提交，对应前端的 X-Requested-With 约定。"""
+    return request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+
 def raise_or_flash(exception_class, message, error_code=None, referer=None):
     """在蓝图操作中统一处理错误。
 

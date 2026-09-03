@@ -230,8 +230,9 @@
                     aria-controls="navDataMgmt">数据管理 <span class="toggle-caret">▾</span></button>
             <div class="collapse {{ 'show' if in_data_mgmt }}" id="navDataMgmt">
                 <a class="side-link side-sub {{ 'active' if p.startswith('/card/aircraft') }}" href="/card/aircraft">✈ 飞机信息</a>
-                <a class="side-link side-sub {{ 'active' if (p.startswith('/card/') and not p.startswith('/card/aircraft') and not p.startswith('/card/sets') and not p.startswith('/card/logs')) }}" href="/card/list">📋 工卡信息</a>
+                <a class="side-link side-sub {{ 'active' if (p.startswith('/card/') and not p.startswith('/card/aircraft') and not p.startswith('/card/sets') and not p.startswith('/card/cancelled') and not p.startswith('/card/logs')) }}" href="/card/list">📋 工卡信息</a>
                 <a class="side-link side-sub {{ 'active' if p.startswith('/card/sets') }}" href="/card/sets">📦 工卡组信息</a>
+                <a class="side-link side-sub {{ 'active' if p.startswith('/card/cancelled') }}" href="/card/cancelled">🗂 作废工卡</a>
             </div>
             <a class="side-link {{ 'active' if p.startswith('/upload') }}" href="/upload">🔄 工作包</a>
             <a class="side-link {{ 'active' if p.startswith('/inventory') }}" href="/inventory">📦 库存查询</a>
@@ -393,22 +394,128 @@
     setInterval(window.amroCheckNow, 600000);
 </script>
 
+{# 公共前端辅助：统一判空 / 表格监听 / 登录态校验 / 后台查询轮询收敛 #}
+<script>
+window.isBlank = function(s) {
+    if (s === null || s === undefined) return true;
+    return /^[\s\u00a0\u3000\u200b\u200c\u200d\u200e\u200f\u2028\u2029\u202f\u205f\u2060\ufeff]*$/.test(String(s));
+};
+
+window.watchTable = function(tableId, checkbox) {
+    var table = document.getElementById(tableId);
+    if (!table) return;
+    function hasValue() {
+        var tbody = table.querySelector("tbody");
+        if (!tbody) return false;
+        var hasVal = false;
+        tbody.querySelectorAll("input[type=text]").forEach(function(inp) {
+            if (!window.isBlank(inp.value)) hasVal = true;
+        });
+        return hasVal;
+    }
+    table.addEventListener("input", function() {
+        if (hasValue()) checkbox.checked = false;
+    });
+    var observer = new MutationObserver(function() {
+        if (hasValue()) checkbox.checked = false;
+    });
+    observer.observe(table, { childList: true, subtree: true });
+};
+
+window.amroRequireLogin = function() {
+    if (window.amroSession && window.amroSession.ready) return true;
+    window.safeToast('登录已失效（可能被其他登录挤掉），请重新运行登录脚本后重试', 'warning');
+    return false;
+};
+
+// 统一后台查询轮询：收敛 aircraft / 工卡版本 / 库存 / 工作包 四个结构相同的进度轮询
+window.Poller = (function() {
+    function reenable(sel) {
+        if (!sel) return;
+        var b = document.querySelector(sel);
+        if (b) b.disabled = false;
+    }
+    function poll(opts) {
+        var deadline = Date.now() + (opts.deadlineMin || 30) * 60 * 1000;
+        var timer = setInterval(function() {
+            if (Date.now() > deadline) {
+                clearInterval(timer);
+                reenable(opts.buttonSelector);
+                if (opts.onTimeout) opts.onTimeout(opts.card);
+                else opts.card.fail('等待超时，请重新查询');
+                return;
+            }
+            fetch(opts.statusUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r) { return r.json(); })
+                .then(function(d) {
+                    var status = (d && d.data) || {};
+                    if (status.status === 'done') {
+                        clearInterval(timer);
+                        reenable(opts.buttonSelector);
+                        if (opts.onDone) opts.onDone(status, opts.card);
+                    } else if (status.status === 'error') {
+                        clearInterval(timer);
+                        reenable(opts.buttonSelector);
+                        var err = status.error;
+                        if (opts.onError) opts.onError(err, opts.card);
+                        else opts.card.fail(err || '查询失败');
+                    }
+                }).catch(function(){});
+        }, opts.intervalMs || 2000);
+        return timer;
+    }
+    return { poll: poll };
+})();
+</script>
+
 {# 公共列表筛选/排序：供各列表页复用 #}
 <script>
+function escapeHtml(s) {
+    if (s == null) return null;
+    return String(s).replace(/[&<>"']/g, function(c) {
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+}
 window.AppFilter = (function () {
+    function parseDateHead(s) {
+        if (!s) return null;
+        var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s.trim());
+        if (!m) return null;
+        return new Date(+m[1], +m[2] - 1, +m[3]);
+    }
+    function rangeStart(months) {
+        var d = new Date();
+        d.setHours(0, 0, 0, 0);
+        var days = months === 12 ? 365 : months * 30;
+        d.setDate(d.getDate() - days);
+        return d;
+    }
     function filter(inputId) {
         var input = document.getElementById(inputId);
         if (!input) return;
         var tbl = input.closest('table');
         if (!tbl) return;
-        var inputs = tbl.querySelectorAll('.filter-row input, .filter-row select');
+        var controls = tbl.querySelectorAll('.filter-row input, .filter-row select');
         tbl.querySelectorAll('tbody tr').forEach(function (r) {
             if (r.classList.contains('empty-state-row')) return;
             var show = true;
-            inputs.forEach(function (inp) {
-                var c = parseInt(inp.getAttribute('data-col'), 10);
-                var val = inp.value.toLowerCase();
-                if (val && r.children[c] && r.children[c].textContent.toLowerCase().indexOf(val) < 0) show = false;
+            controls.forEach(function (inp) {
+                if (!inp.value) return;
+                var dateCol = inp.getAttribute('data-date-col');
+                if (dateCol) {
+                    var months = parseInt(inp.value, 10);
+                    if (months > 0) {
+                        var cell = r.children[parseInt(dateCol, 10)];
+                        var d = parseDateHead(cell ? cell.textContent : '');
+                        if (!d || d < rangeStart(months)) show = false;
+                    }
+                } else {
+                    var c = parseInt(inp.getAttribute('data-col'), 10);
+                    if (!isNaN(c)) {
+                        var val = inp.value.toLowerCase();
+                        if (r.children[c] && r.children[c].textContent.toLowerCase().indexOf(val) < 0) show = false;
+                    }
+                }
             });
             r.style.display = show ? '' : 'none';
         });
@@ -499,6 +606,11 @@ window.ListUI = (function() {
             window.hideLoader();
             window.showToast('删除失败', 'error');
         });
+    }
+
+    // 从按钮 data-url/data-confirm 取参删除：确认文案含引号也不破坏 JS
+    function delFrom(btn) {
+        del(btn.getAttribute('data-url'), btn.getAttribute('data-confirm') || '确认删除？');
     }
 
     // 监听子窗口保存成功消息 → 保存状态并刷新

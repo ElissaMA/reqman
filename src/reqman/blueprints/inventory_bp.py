@@ -3,16 +3,15 @@ import io
 import json
 import logging
 import os
-import shutil
-import tempfile
+import uuid
 import zipfile
 from pathlib import Path
 
-from flask import Blueprint, current_app, render_template, request, send_file
+from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request, send_file
 
 from ..config import AMRO_LOGIN_VERSION, AMRO_PUBLIC_URL, OUTPUT_DIR
 from ..services import amro_sync
-from ..utils.error_handlers import ValidationError
+from ..utils.error_handlers import ValidationError, is_ajax
 from ..utils.response import api_error, api_success
 
 inventory_bp = Blueprint("inventory", __name__, template_folder="../templates")
@@ -22,10 +21,35 @@ logger = logging.getLogger(__name__)
 # 输出暂存文件命名模式（清理/识别仅匹配此模式，不误删其他文件）
 OUTPUT_PATTERN = "*_库存已填_*.xlsx"
 
+
+def _latest_output_filename() -> str:
+    """OUTPUT_DIR 中最新的一份库存已填副本文件名（无则空串）。"""
+    files = sorted(
+        OUTPUT_DIR.glob(OUTPUT_PATTERN),
+        key=lambda p: (p.stat().st_mtime, p.name),
+        reverse=True,
+    )
+    return files[0].name if files else ""
+
+
+def _reconcile_inventory_download(last_query: dict) -> dict:
+    """校正 inventory_query 摘要的下载链接：库存输出在每次新查询时会被清理，
+    若持久化的静态文件名已不存在，则回退到当前仍存在的实时最新文件；都无则不渲染下载。"""
+    if not last_query:
+        return last_query
+    out = dict(last_query)
+    dl = out.get("download_url", "") or ""
+    fname = dl.split("file=", 1)[1] if "file=" in dl else ""
+    if fname and (OUTPUT_DIR / fname).is_file():
+        return out  # 静态文件仍在，保持原链接
+    latest = _latest_output_filename()
+    out["download_url"] = f"/inventory/download?file={latest}" if latest else ""
+    return out
+
 # 统一文案集（P1–P12）— 三端集中定义，前端与脚本引用此基准
 MESSAGES = {
     "P1": "⚠️ 使用前请先关闭浏览器中已登录的川航 AMRO 页面，否则会导致登录获取失败。",
-    "P2": "已打开登录页面，请在浏览器中完成川航 AMRO 登录（账号/密码/验证码），登录后请保持页面不动。",
+    "P2": "已打开登录页面，请先在浏览器中接收并输入手机验证码，再输入账号密码完成川航 AMRO 登录；登录成功后保持页面，点击页面「✅ 完成登录」按钮或回到此窗口按回车。",
     "P3": "✅ 登录成功，本页面即将就绪。",
     "P4": "❌ 系统未登录AMRO：请先点击「检查配置」选择脚本位置，或「新建配置」下载登录脚本，解压后双击运行完成登录",
     "P5": "✅ 登录有效，剩余约 {minutes} 分钟",
@@ -45,7 +69,16 @@ def _service():
 
 @inventory_bp.route("/inventory")
 def index():
-    return render_template("inventory/index.html", messages=MESSAGES, login_version=AMRO_LOGIN_VERSION)
+    store = current_app.extensions["store"]
+    return render_template(
+        "inventory/index.html",
+        messages=MESSAGES,
+        login_version=AMRO_LOGIN_VERSION,
+        warnings=store.get_inventory_warnings(),
+        amro_status=amro_sync.get_query_status("inventory_query"),
+        amro_last_query=_reconcile_inventory_download(
+            amro_sync.get_last_query_result("inventory_query")),
+    )
 
 
 @inventory_bp.route("/inventory/session", methods=["GET"])
@@ -76,7 +109,7 @@ def setup_package():
         "1. 将本文件夹解压到【任意位置】（无需放到桌面）\n"
         "2. 双击 register_protocol.bat —— 注册一键登录协议并立即启动登录（一次性，推荐）\n"
         "   注册后可直接点击系统表头的「⚡一键登录」唤起登录；未注册也可随时双击 start_login.bat 登录\n"
-        "3. 按提示关闭已登录的川航 AMRO 页面，点击确认后完成登录\n"
+        "3. 按提示关闭已登录的川航 AMRO 页面，点击确认后浏览器打开登录页；先在浏览器中接收并输入手机验证码，再完成账号登录；登录后点击页面「✅ 完成登录」按钮或回到此窗口按回车，脚本即上传凭证\n"
         "登录成功后脚本将自动上传凭证，本系统页面即可开始查询。\n"
         "首次运行约 1-2 分钟自动安装运行环境，使用系统自带 Chrome/Edge 浏览器，无需下载浏览器。\n"
         "注意：请勿将 .runtime 文件夹拷贝到其他机器，每台机器首次运行脚本会自动安装运行环境。\n"
@@ -159,10 +192,10 @@ def login_upload():
 
 @inventory_bp.route("/inventory/query", methods=["POST"])
 def query():
-    """执行库存查询：清理旧暂存 → 输出到 output/ → 返回统计与文件名（手动下载）。"""
+    """执行库存查询：启动后台线程（长任务移出请求线程，前端轮询状态）。"""
     svc = _service()
-    if not svc.check_login():
-        return api_error(MESSAGES["P8"], error_code="LOGIN_EXPIRED", status_code=400)
+    if not amro_sync.require_amro_session():
+        return api_error(MESSAGES["P8"], error_code="LOGIN_EXPIRED", status_code=401)
     f = request.files.get("file")
     if f is None or not f.filename or not f.filename.endswith(".xlsx"):
         raise ValidationError("请选择正确的需求单 Excel 文件（.xlsx）")
@@ -175,32 +208,38 @@ def query():
             logger.warning("清理旧暂存失败: %s", old)
 
     output_stem = Path(os.path.basename(f.filename)).stem
-    tmpdir = tempfile.mkdtemp(prefix="inventory_upload_")
-    try:
-        demand_path = Path(tmpdir) / "inventory_input.xlsx"
-        f.save(demand_path)
-        try:
-            with amro_sync.query_slot("查询库存"):
-                _dest, filename, result = svc.run_query(demand_path, output_stem=output_stem)
-        except amro_sync.QueryBusyError:
-            return api_error(amro_sync.query_busy_message()
-                             or "已有查询任务进行中，请等待完成后再查询", status_code=409)
-        except RuntimeError:
-            return api_error(MESSAGES["P8"], error_code="LOGIN_EXPIRED", status_code=400)
-        except ValueError as e:
-            raise ValidationError(str(e))
-    finally:
-        shutil.rmtree(tmpdir, ignore_errors=True)
+    # 持久化暂存上传文件：后台 job 在守护线程中读取，请求结束不得删除
+    staged_path = OUTPUT_DIR / f".staging_{uuid.uuid4().hex}.xlsx"
+    f.save(staged_path)
 
-    data = {
-        "total": result.total,
-        "success": result.success,
-        "fail": result.fail,
-        "shortage": result.shortage,
-        "warning": result.warning,
-        "filename": filename,
+    # 取出预警库件号与阈值，随查询一并查询并回写缓存库存
+    store = current_app.extensions["store"]
+    ws = store.get_inventory_warnings()
+    threshold_map = {
+        w["part_number"]: float(w["threshold"])
+        for w in ws if w.get("threshold") is not None
     }
-    return api_success(data=data, message=MESSAGES["P9"])
+    warning_pns = [w["part_number"] for w in ws]
+
+    if not amro_sync.start_inventory_query(
+        svc, staged_path, output_stem,
+        warning_thresholds=threshold_map,
+        warning_pns=warning_pns, store=store,
+    ):
+        # 已有查询在跑：清理本次暂存并返回 409
+        try:
+            staged_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+        return api_error(amro_sync.query_busy_message()
+                         or "已有查询任务进行中，请等待完成后再查询", status_code=409)
+    return api_success(data={"started": True})
+
+
+@inventory_bp.route("/inventory/query-status")
+def query_status():
+    """库存查询进度/简要结果（全局内存态，前端轮询/恢复加载）。"""
+    return jsonify({"success": True, "data": amro_sync.get_query_status("inventory_query")})
 
 
 @inventory_bp.route("/inventory/latest-output", methods=["GET"])
@@ -232,6 +271,96 @@ def download():
                      mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 
+@inventory_bp.route("/inventory-warning/new", methods=["GET", "POST"])
+def inventory_warning_new():
+    """新增库存预警条目（弹窗表单 + AJAX）。"""
+    if request.method == "POST":
+        part_number = (request.form.get("part_number") or "").strip().upper()
+        if not part_number:
+            if is_ajax():
+                return api_error("件号不能为空")
+            flash("件号不能为空", "error")
+            return redirect("/inventory-warning/new")
+        threshold_raw = (request.form.get("threshold") or "").strip()
+        try:
+            threshold = float(threshold_raw)
+        except (ValueError, TypeError):
+            if is_ajax():
+                return api_error("警戒线须为数字")
+            flash("警戒线须为数字", "error")
+            return redirect("/inventory-warning/new")
+        if threshold < 0:
+            if is_ajax():
+                return api_error("警戒线须为非负数字")
+            flash("警戒线须为非负数字", "error")
+            return redirect("/inventory-warning/new")
+        store = current_app.extensions["store"]
+        store.save_inventory_warning({
+            "part_number": part_number,
+            "name": (request.form.get("name") or "").strip(),
+            "threshold": threshold,
+            "note": (request.form.get("note") or "").strip(),
+        })
+        if is_ajax():
+            return api_success(message="已添加库存预警")
+        flash("已添加库存预警", "success")
+        return redirect("/inventory")
+    return render_template("inventory/warning_form.html", warning=None, title="新增库存预警")
+
+
+@inventory_bp.route("/inventory-warning/<path:part_number>/edit", methods=["GET", "POST"])
+def inventory_warning_edit(part_number):
+    """编辑库存预警条目（弹窗表单 + AJAX）。"""
+    store = current_app.extensions["store"]
+    pn = part_number.strip().upper()
+    existing = store.get_inventory_warning(pn)
+    if request.method == "POST":
+        if existing is None:
+            if is_ajax():
+                return api_error("预警条目不存在", status_code=404)
+            flash("预警条目不存在", "error")
+            return redirect("/inventory")
+        data = {"part_number": pn}
+        data["name"] = (request.form.get("name") or "").strip()
+        data["note"] = (request.form.get("note") or "").strip()
+        threshold_raw = (request.form.get("threshold") or "").strip()
+        if threshold_raw:
+            try:
+                threshold = float(threshold_raw)
+            except (ValueError, TypeError):
+                if is_ajax():
+                    return api_error("警戒线须为数字")
+                flash("警戒线须为数字", "error")
+                return redirect(f"/inventory-warning/{part_number}/edit")
+            if threshold < 0:
+                if is_ajax():
+                    return api_error("警戒线须为非负数字")
+                flash("警戒线须为非负数字", "error")
+                return redirect(f"/inventory-warning/{part_number}/edit")
+            data["threshold"] = threshold
+        store.save_inventory_warning(data)
+        if is_ajax():
+            return api_success(message="已更新库存预警")
+        flash("已更新库存预警", "success")
+        return redirect("/inventory")
+    if existing is None:
+        if is_ajax():
+            return api_error("预警条目不存在", status_code=404)
+        flash("预警条目不存在", "error")
+        return redirect("/inventory")
+    return render_template("inventory/warning_form.html", warning=existing, title="编辑库存预警")
+
+
+@inventory_bp.route("/inventory-warning/<path:part_number>/delete", methods=["POST"])
+def inventory_warning_delete(part_number):
+    """删除库存预警条目（AJAX，ListUI.del 调用）。"""
+    store = current_app.extensions["store"]
+    ok = store.delete_inventory_warning(part_number.strip().upper())
+    if ok:
+        return api_success(message="已删除库存预警")
+    return api_error("预警条目不存在", status_code=404)
+
+
 def _login_py_template(server_url: str) -> str:
     return (
         f'"""川航 AMRO 登录脚本 — 自动提取登录凭证并上传到ReqMan定检准备系统"""\n'
@@ -241,8 +370,9 @@ def _login_py_template(server_url: str) -> str:
         f'UPLOAD_URL = "{server_url}/inventory/login/upload"\n'
         f'LOGIN_VERSION = "{AMRO_LOGIN_VERSION}"\n'
         'MSG_P1 = "⚠️ 使用前请先关闭浏览器中已登录的川航 AMRO 页面，否则会导致登录获取失败。"\n'
-        'MSG_P2 = "已打开登录页面，请在浏览器中完成川航 AMRO 登录（账号/密码/验证码），登录后请保持页面不动。"\n'
+        'MSG_P2 = "已打开登录页面，请先在浏览器中接收并输入手机验证码，再输入账号密码完成川航 AMRO 登录；登录成功后保持页面，点击页面「✅ 完成登录」按钮或回到此窗口按回车。"\n'
         'MSG_P3 = "✅ 登录成功，本页面即将就绪。"\n'
+        '_INIT_JS = "() => { if (document.getElementById(\'__reqman_done_btn\')) return; var b = document.createElement(\'button\'); b.id = \'__reqman_done_btn\'; b.textContent = \'✅ 完成登录\'; b.style.cssText = \'position:fixed;right:16px;bottom:16px;z-index:2147483647;padding:10px 16px;background:#198754;color:#fff;border:none;border-radius:8px;font-size:15px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.3)\'; b.onclick = function(){ if (window.__reqman_login_done) window.__reqman_login_done(); }; (document.body || document.documentElement).appendChild(b); }"\n'
         '\n'
         'def confirm():\n'
         '    root = tk.Tk(); root.withdraw()\n'
@@ -273,39 +403,52 @@ def _login_py_template(server_url: str) -> str:
         '    print("未检测到 Chrome/Edge，请安装浏览器后重试")\n'
         '    return None\n'
         '\n'
+        'async def _wait_confirm(done_event):\n'
+        '    loop = asyncio.get_event_loop()\n'
+        '    enter_task = loop.run_in_executor(None, input, "\\n>>> 完成手机验证与账号登录后，按回车键获取凭证（或点击页面右下角「✅ 完成登录」）：")\n'
+        '    done_task = asyncio.ensure_future(done_event.wait())\n'
+        '    try:\n'
+        '        await asyncio.wait({enter_task, done_task}, return_when=asyncio.FIRST_COMPLETED)\n'
+        '    finally:\n'
+        '        if not enter_task.done():\n'
+        '            enter_task.cancel()\n'
+        '\n'
         'async def main():\n'
         '    from playwright.async_api import async_playwright\n'
         '    import httpx\n'
         '    if not confirm():\n'
         '        return\n'
+        '    done = asyncio.Event()\n'
         '    async with async_playwright() as p:\n'
         '        browser = await _launch_browser(p)\n'
         '        if browser is None:\n'
         '            return\n'
         '        ctx = await browser.new_context()\n'
         '        page = await ctx.new_page()\n'
+        '        async def _on_done():\n'
+        '            done.set()\n'
+        '        await page.expose_function("__reqman_login_done", _on_done)\n'
+        '        await page.add_init_script(_INIT_JS)\n'
         '        print(MSG_P2)\n'
         '        await page.goto("https://me.sichuanair.com/views/home.shtml", wait_until="domcontentloaded")\n'
-        '        deadline = asyncio.get_event_loop().time() + 300\n'
-        '        while asyncio.get_event_loop().time() < deadline:\n'
-        '            cookies = await ctx.cookies()\n'
-        '            names = {c["name"] for c in cookies}\n'
-        '            if "JSESSIONID" in names:\n'
-        '                try:\n'
-        '                    async with httpx.AsyncClient(verify=True, timeout=15, trust_env=False) as client:\n'
-        '                        resp = await client.post(UPLOAD_URL, data={"cookies": json.dumps(cookies, ensure_ascii=False)})\n'
-        '                        resp.raise_for_status()\n'
-        '                except Exception:\n'
-        '                    print(f"无法连接ReqMan定检准备系统（{UPLOAD_URL}），请检查网络后重新运行登录脚本")\n'
-        '                    await browser.close()\n'
-        '                    return\n'
-        '                print(MSG_P3)\n'
-        '                print("✅ 登录成功，请回到网页开始查询")\n'
-        '                await browser.close()\n'
-        '                return\n'
-        '            await asyncio.sleep(2)\n'
+        '        await _wait_confirm(done)\n'
+        '        cookies = await ctx.cookies()\n'
+        '        names = {c["name"] for c in cookies}\n'
+        '        if "JSESSIONID" not in names:\n'
+        '            print("⚠️ 未检测到 AMRO 登录会话（JSESSIONID），请确认已完成手机验证与账号登录后重新运行登录脚本。")\n'
+        '            await browser.close()\n'
+        '            return\n'
+        '        try:\n'
+        '            async with httpx.AsyncClient(verify=True, timeout=15, trust_env=False) as client:\n'
+        '                resp = await client.post(UPLOAD_URL, data={"cookies": json.dumps(cookies, ensure_ascii=False)})\n'
+        '                resp.raise_for_status()\n'
+        '        except Exception:\n'
+        '            print(f"无法连接ReqMan定检准备系统（{UPLOAD_URL}），请检查网络后重新运行登录脚本")\n'
+        '            await browser.close()\n'
+        '            return\n'
+        '        print(MSG_P3)\n'
+        '        print("✅ 登录成功，请回到网页开始查询")\n'
         '        await browser.close()\n'
-        '        raise TimeoutError("登录超时")\n'
         '\n'
         'if __name__ == "__main__":\n'
         '    asyncio.run(main())\n'

@@ -462,3 +462,65 @@ class TestWriteDateApi:
         """操作日志页 write_date 字段显示中文标签"""
         from reqman.blueprints.logs_bp import FIELD_LABELS
         assert FIELD_LABELS["write_date"] == "编写日期"
+
+
+import reqman.services.amro_sync as amro_sync_mod
+
+
+class TestCardListLastQuery:
+    def test_no_duplicate_download_anchor(self, client, tmp_path, monkeypatch):
+        """工卡列表页仅保留规范块下载，不再有冗余的 amroVerDownloadBtn 锚点。"""
+        out_dir = tmp_path / "amro_out"
+        out_dir.mkdir()
+        monkeypatch.setattr(amro_sync_mod, "OUTPUT_DIR", out_dir)
+        # 隔离其他用例残留的内存查询状态，确保渲染走持久摘要分支
+        monkeypatch.setitem(amro_sync_mod.QUERY_STATUS, "full_version", {})
+        (out_dir / "last_query_full_version.json").write_text(
+            '{"label":"查询工卡版本","finished_at":"2026-01-01 00:00:00",'
+            '"summary":"全量查询工卡版本完成","download_url":"/card/amro-version-report"}',
+            encoding="utf-8",
+        )
+        resp = client.get("/card/list")
+        html = resp.get_data(as_text=True)
+        assert 'id="amroVerDownloadBtn"' not in html
+        assert "amro-version-report" in html
+        assert "⬇下载改版清单" in html
+
+
+class TestCancelledCardsPage:
+    """作废工卡子页（数据管理）：列表展示 + 彻底删除"""
+
+    def test_page_renders(self, client):
+        resp = client.get("/card/cancelled")
+        assert resp.status_code == 200
+        html = resp.get_data(as_text=True)
+        assert "作废工卡" in html
+        assert "/card/cancelled" in html   # 侧边导航子页链接
+
+    def test_lists_cancelled_and_delete(self, app, client):
+        """作废记录整卡展示（含原工卡组），删除后从列表消失；不展示作废来源列。"""
+        cstore = app.extensions["cancelled_cards"]
+        cstore.add({"id": 1, "task_code": "EOJC-X-1", "task_name": "旧卡", "category": "机体",
+                    "task_type": "EO", "remark": "", "tools": [], "materials": [],
+                    "reminder_type": "重点提醒", "write_date": "2026-01-01"},
+                   source="full_version", set_name="组A")
+        try:
+            html = client.get("/card/cancelled").get_data(as_text=True)
+            assert "EOJC-X-1" in html
+            assert "组A" in html
+            assert "作废来源" not in html   # 清单不再展示作废来源列
+            rec = cstore.find_by_code("EOJC-X-1")
+            resp = client.post(f"/card/cancelled/{rec['id']}/delete",
+                               headers={"X-Requested-With": "XMLHttpRequest"})
+            assert resp.get_json()["success"] is True
+            assert cstore.find_by_code("EOJC-X-1") is None
+            assert "EOJC-X-1" not in client.get("/card/cancelled").get_data(as_text=True)
+        finally:
+            if cstore.find_by_code("EOJC-X-1"):
+                cstore.remove(cstore.find_by_code("EOJC-X-1")["id"])
+
+    def test_delete_nonexistent(self, client):
+        resp = client.post("/card/cancelled/999/delete",
+                           headers={"X-Requested-With": "XMLHttpRequest"})
+        data = resp.get_json()
+        assert data["success"] is False

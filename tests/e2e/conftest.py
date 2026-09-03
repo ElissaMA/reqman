@@ -26,6 +26,7 @@ BASE = f"http://127.0.0.1:{PORT}"
 SERVER_SCRIPT = r"""
 import os, sys
 os.environ["DB_FILE"] = r"{db_path}"
+os.environ["CANCELLED_CARDS_FILE"] = r"{cancelled_path}"
 sys.path.insert(0, r"{src}")
 from werkzeug.serving import make_server
 from reqman import create_app
@@ -87,6 +88,8 @@ def flask_server(tmp_path_factory):
         shutil.copy(rt_src, rt_tmp)
     else:
         rt_tmp.write_text("{}", encoding="utf-8")
+    cancelled_tmp = data_dir / "cancelled_cards_e2e.json"   # 作废工卡库同样隔离
+    cancelled_tmp.write_text("{}", encoding="utf-8")
 
     # 记录真实DB基线，用于测试后污染校验
     baseline = {core_src: _sha256(core_src), rt_src: _sha256(rt_src)}
@@ -95,7 +98,8 @@ def flask_server(tmp_path_factory):
     log_path = log_dir / "server.log"
     log_f = open(log_path, "a", encoding="utf-8")  # noqa: SIM115 会话级日志句柄需保持打开
 
-    script = SERVER_SCRIPT.format(db_path=core_tmp, src=SRC, port=PORT)
+    script = SERVER_SCRIPT.format(db_path=core_tmp, cancelled_path=cancelled_tmp,
+                                  src=SRC, port=PORT)
     proc = subprocess.Popen(
         [sys.executable, "-c", script],
         cwd=str(ROOT), stdout=log_f, stderr=subprocess.STDOUT,

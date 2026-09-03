@@ -62,8 +62,8 @@ class TestAircraftSyncApi:
     """Task 4: 飞机同步路由（前置检查/后台线程/状态轮询/防重复）"""
 
     def test_sync_requires_session(self, client, ajax_headers, monkeypatch):
-        import reqman.blueprints.cards_bp as cb_mod
-        monkeypatch.setattr(cb_mod, "_require_amro_session", lambda: False)
+        from reqman.services import amro_sync
+        monkeypatch.setattr(amro_sync, "require_amro_session", lambda: False)
         resp = client.post("/card/aircraft/amro-sync", headers=ajax_headers)
         assert resp.status_code == 401
         assert "登录已失效" in resp.get_json()["message"]
@@ -71,9 +71,8 @@ class TestAircraftSyncApi:
     def test_sync_start_and_status(self, client, app, ajax_headers, monkeypatch):
         import time as _time
 
-        import reqman.blueprints.cards_bp as cb_mod
         from reqman.services import amro_sync
-        monkeypatch.setattr(cb_mod, "_require_amro_session", lambda: True)
+        monkeypatch.setattr(amro_sync, "require_amro_session", lambda: True)
 
         def fake_sync(store, client_, cookies):
             async def _c():
@@ -100,8 +99,8 @@ class TestAircraftSyncApi:
 
     def test_sync_duplicate_start_conflict(self, client, app, ajax_headers, monkeypatch):
         """全局互斥：已有查询在跑 → 409 + 统一 busy 文案（不排队）。"""
-        import reqman.blueprints.cards_bp as cb_mod
-        monkeypatch.setattr(cb_mod, "_require_amro_session", lambda: True)
+        from reqman.services import amro_sync
+        monkeypatch.setattr(amro_sync, "require_amro_session", lambda: True)
         release = _occupy_query_slot("查询飞机数据")
         try:
             resp = client.post("/card/aircraft/amro-sync", headers=ajax_headers)
@@ -263,8 +262,12 @@ class TestVersionCheckApi:
         async def fake_fetch(client_, cookies, plugin, base_form, **kw):
             if plugin == "TD_JC_SMJC_LIST":
                 return [_jcrow("CSCA320-256652-01-1-X", "2026-08-01 09:00:00")]
-            return [_jcrow("EOJC-A320-31-2026-007-A", "2026-07-15 14:00:00", task="EO")]
+            return []
+
+        async def fake_query(client_, cookies, plugin, form, **kw):
+            return {"code": 200, "data": {}}   # EO 卡实体直查：查无 → 作废
         monkeypatch.setattr(amro_mod, "fetch_all_pages", fake_fetch)
+        monkeypatch.setattr(amro_mod, "query_plugin", fake_query)
 
         # 库内卡：1 张改版 + 1 张库内没有（作废）
         store_add(app, "CSCA320-256652-01-1-X", "检查救生衣")
@@ -281,7 +284,8 @@ class TestVersionCheckApi:
                 break
             _time.sleep(0.05)
         assert meta.get("status") == "done", meta
-        assert meta["summary"]["revised"] and meta["summary"]["cancelled"]
+        # 库内两张卡原均无编写日期 → 检查被填入，归入「新增」（非改版）；另一张查无 → 作废
+        assert meta["summary"]["new_added"] and meta["summary"]["cancelled"]
         assert meta["summary"]["filename"].startswith("amro_full_version_report_")
 
         dl = client.get("/card/amro-version-report")
@@ -391,7 +395,8 @@ class TestPackageVersionApi:
             _time.sleep(0.05)
         assert status.get("status") == "done", status
         s = status["summary"]
-        assert s["revised"] == 2 and s["cancelled"] == 0
+        # 包内 E-001/J-001 原均无编写日期，检查后被填入 → 归入「新增」
+        assert s["new_added"] == 2 and s["revised"] == 0 and s["cancelled"] == 0
         assert s["filename"] == f"amro_pkg_version_report_{pkg_id}.xlsx"
         assert (tmp_path / s["filename"]).exists()
         assert store.find_by_code("E-001")["write_date"] == "2026-08-01 09:00:00"

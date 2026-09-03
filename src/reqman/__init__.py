@@ -94,6 +94,8 @@ def create_app():
     apply_patches(BASE_DIR)
 
     # 依赖注入
+    from . import config as _config
+    from .models.cancelled_card_store import CancelledCardStore
     from .models.json_store import JsonStore
     from .services.card_service import CardService
     from .services.connectors.session import LoginSessionStore
@@ -101,6 +103,8 @@ def create_app():
 
     app.extensions["store"] = JsonStore(str(DB_FILE))
     app.extensions["card_service"] = CardService(app.extensions["store"])
+    # 作废工卡库路径在调用时读取 config 属性（测试可按需改指临时文件）
+    app.extensions["cancelled_cards"] = CancelledCardStore(str(_config.CANCELLED_CARDS_FILE))
     app.extensions["inventory_service"] = InventoryService(
         LoginSessionStore(str(AMRO_COOKIE_FILE), ttl_seconds=AMRO_SESSION_TTL),
         max_concurrent=AMRO_MAX_CONCURRENT,

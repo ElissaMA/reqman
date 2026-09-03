@@ -163,6 +163,92 @@ class TestQueryPlugin:
         assert len(rows) == 11
 
 
+class TestQueryPluginRetry:
+    """瞬态失败重试（2026-09-03 起）：超时/传输错误/5xx 重试，业务码/4xx 不重试，最终失败留审计"""
+
+    def test_transient_timeout_retried_then_success(self, tmp_path):
+        """首次超时 → 限速后重试成功：返回 body，审计只记成功行。"""
+        calls = []
+
+        class _Resp:
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return {"code": 200, "data": []}
+
+        class _FlakyClient:
+            async def post(self, url, data=None, cookies=None, timeout=None):
+                calls.append(1)
+                if len(calls) == 1:
+                    raise httpx.ReadTimeout("slow")
+                return _Resp()
+
+        body = _run(amro.query_plugin(_FlakyClient(), {}, "DA_ACREG_LIST", {"page": "1"}))
+        assert body["code"] == 200
+        assert len(calls) == 2
+        lines = (tmp_path / "amro_audit.jsonl").read_text(encoding="utf-8").splitlines()
+        assert len(lines) == 1 and json.loads(lines[0])["code"] == 200
+
+    def test_persistent_timeout_fails_after_attempts_with_audit(self, tmp_path):
+        """持续超时：重试耗尽后抛出，并留 code=-1 审计留痕（此前超时零痕迹）。"""
+        calls = []
+
+        class _DeadClient:
+            async def post(self, url, data=None, cookies=None, timeout=None):
+                calls.append(1)
+                raise httpx.ReadTimeout("slow")
+
+        with pytest.raises(httpx.ReadTimeout):
+            _run(amro.query_plugin(_DeadClient(), {}, "DA_ACREG_LIST", {"page": "1"}))
+        assert len(calls) == amro._RETRY_ATTEMPTS
+        line = json.loads(
+            (tmp_path / "amro_audit.jsonl").read_text(encoding="utf-8").splitlines()[-1])
+        assert line["code"] == -1
+
+    def test_session_expired_not_retried(self):
+        """业务码 100（会话失效）不重试：单次外呼即抛。"""
+        calls = []
+
+        class _Resp:
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return {"code": 100, "msg": "会话过期"}
+
+        class _Client:
+            async def post(self, url, data=None, cookies=None, timeout=None):
+                calls.append(1)
+                return _Resp()
+
+        with pytest.raises(amro.AmroSessionExpired):
+            _run(amro.query_plugin(_Client(), {}, "DA_ACREG_LIST", {}))
+        assert len(calls) == 1
+
+    def test_4xx_not_retried(self):
+        """HTTP 4xx 不重试：单次外呼即抛。"""
+        calls = []
+
+        class _Resp:
+            status_code = 404
+
+            def raise_for_status(self):
+                raise httpx.HTTPStatusError("not found", request=None, response=self)
+
+            def json(self):
+                return {}
+
+        class _Client:
+            async def post(self, url, data=None, cookies=None, timeout=None):
+                calls.append(1)
+                return _Resp()
+
+        with pytest.raises(httpx.HTTPStatusError):
+            _run(amro.query_plugin(_Client(), {}, "DA_ACREG_LIST", {}))
+        assert len(calls) == 1
+
+
 class TestInventoryReadonlyRouting:
     """库存查询必须经由通用只读调用器（白名单 + 审计），不可直连 AMRO。"""
 

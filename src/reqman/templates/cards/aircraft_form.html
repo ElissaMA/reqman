@@ -54,12 +54,6 @@
 
 {% block scripts %}
 <script>
-// 空值判断：null/undefined/空串/纯空白/不可见字符（全角空格、零宽、BOM） → true
-function isBlank(s) {
-    if (s === null || s === undefined) return true;
-    return /^[\s\u00a0\u3000\u200b\u200c\u200d\u200e\u200f\u2028\u2029\u202f\u205f\u2060\ufeff]*$/.test(String(s));
-}
-
 document.getElementById("acForm").addEventListener("submit", function(e) {
     var reg = document.querySelector('input[name=reg]');
     if (reg && isBlank(reg.value)) {

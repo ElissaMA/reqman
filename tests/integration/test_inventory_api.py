@@ -49,6 +49,24 @@ def _mock_amro_query(monkeypatch, app):
     monkeypatch.setattr(amro_mod, "query_kunming_stock", fake_query)
 
 
+def _poll_inventory_status(client, timeout: float = 8) -> dict:
+    """轮询 /inventory/query-status 直到 done/error（复用后台查询模式）。"""
+    import time as _t
+
+    deadline = _t.time() + timeout
+    last: dict = {}
+    while _t.time() < deadline:
+        resp = client.get("/inventory/query-status",
+                          headers={"X-Requested-With": "XMLHttpRequest"})
+        data = resp.get_json() or {}
+        st = data.get("data") or {}
+        last = st
+        if st.get("status") in ("done", "error"):
+            return st
+        _t.sleep(0.05)
+    return last
+
+
 class TestInventoryPage:
     def test_page_accessible(self, client):
         resp = client.get("/inventory")
@@ -192,11 +210,11 @@ class TestSetupPackage:
         assert "未检测到 Chrome/Edge，请安装浏览器后重试" in src
 
     def test_py_login_version(self, client):
-        """amro_login.py 注入 LOGIN_VERSION 为当前版本（2）。"""
+        """amro_login.py 注入 LOGIN_VERSION 为当前版本（3）。"""
         resp = client.get("/inventory/setup-package")
         assert resp.status_code == 200
         src = self._py_source(resp)
-        assert 'LOGIN_VERSION = "2"' in src
+        assert 'LOGIN_VERSION = "3"' in src
 
     def test_injects_configured_public_url(self, client, monkeypatch):
         """配置 AMRO_PUBLIC_URL → 注入配置的公网地址。"""
@@ -254,13 +272,13 @@ class TestQuery:
                 headers={"X-Requested-With": "XMLHttpRequest"},
                 content_type="multipart/form-data",
             )
-        assert resp.status_code == 400
+        assert resp.status_code == 401
         data = resp.get_json()
         assert data["success"] is False
         assert "重新运行登录脚本" in data["message"]
 
     def test_query_success_returns_stats_and_file(self, app, client, tmp_path, monkeypatch, isolated_inventory):
-        """成功路径：JSON 统计 + 文件名保留原名 + 输出落盘 output/。"""
+        """成功路径：启动后台任务 → 轮询至 done → 统计 + 文件名 + 输出落盘 output/。"""
         _mock_amro_query(monkeypatch, app)
         out_dir = isolated_inventory
 
@@ -275,10 +293,15 @@ class TestQuery:
         assert resp.status_code == 200
         data = resp.get_json()
         assert data["success"] is True
-        assert data["data"]["total"] == 1
-        assert data["data"]["success"] == 1
-        assert data["data"]["shortage"] == 1
-        assert data["data"]["filename"].startswith("demand_库存已填_")
+        assert data["data"]["started"] is True
+
+        status = _poll_inventory_status(client)
+        assert status.get("status") == "done", status
+        s = status["summary"]
+        assert s["total"] == 1
+        assert s["success"] == 1
+        assert s["shortage"] == 1
+        assert s["filename"].startswith("demand_库存已填_")
         # 文件已写入 output/
         saved = list(out_dir.glob("demand_库存已填_*.xlsx"))
         assert len(saved) == 1
@@ -313,7 +336,7 @@ class TestQuery:
             amro_sync.end_query()
 
     def test_query_clears_old_staging(self, app, client, tmp_path, monkeypatch, isolated_inventory):
-        """上传新需求单查询 → 旧的 *_库存已填_* 暂存被清除，output/ 仅存最新。"""
+        """上传新需求单查询 → 旧的 *_库存已填_* 暂存被清除，output/ 仅存最新（后台完成后）。"""
         _mock_amro_query(monkeypatch, app)
         out_dir = isolated_inventory
         (out_dir / "旧需求单_库存已填_20260101_000000.xlsx").write_bytes(b"old")
@@ -328,10 +351,14 @@ class TestQuery:
                 content_type="multipart/form-data",
             )
         assert resp.status_code == 200
+        status = _poll_inventory_status(client)
+        assert status.get("status") == "done", status
         staged = [p.name for p in out_dir.glob("*_库存已填_*.xlsx")]
-        assert len(staged) == 1  # 旧暂存已清
+        assert len(staged) == 1  # 旧暂存已清，仅新产物
         assert "旧需求单_库存已填_" not in staged[0]
         assert (out_dir / "无关文件.txt").exists()  # 未误删其他文件
+        # 上传暂存 .staging_* 已在 job 内清理，不残留
+        assert not list(out_dir.glob(".staging_*.xlsx"))
 
 
 class TestDownload:
@@ -377,3 +404,68 @@ class TestLatestOutput:
         data = resp.get_json()
         assert data["data"]["exists"] is True
         assert data["data"]["filename"] == "B_库存已填_2.xlsx"
+
+
+import re
+
+import reqman.services.amro_sync as amro_sync_mod
+
+
+class TestInventoryLastQueryDisplay:
+    def test_index_no_duplicate_resultbox(self, client):
+        """页面不应再有第二套 #resultBox / loadLatestOutput / renderResult 输出。"""
+        resp = client.get("/inventory")
+        html = resp.get_data(as_text=True)
+        assert 'id="resultBox"' not in html
+        assert "loadLatestOutput" not in html
+        assert "renderResult" not in html
+
+    def test_index_renders_last_query_block(self, app, client, tmp_path, monkeypatch, isolated_inventory):
+        """跑一次查询后，库存页仅有一处「上次查询」摘要+可用下载链接。"""
+        out_dir = isolated_inventory
+        monkeypatch.setattr(amro_sync_mod, "OUTPUT_DIR", out_dir)
+        _mock_amro_query(monkeypatch, app)
+        src = _build_demand(tmp_path)
+        with src.open("rb") as f:
+            resp = client.post(
+                "/inventory/query",
+                data={"file": (f, "demand.xlsx")},
+                headers={"X-Requested-With": "XMLHttpRequest"},
+                content_type="multipart/form-data",
+            )
+        assert resp.get_json()["success"] is True
+        status = _poll_inventory_status(client)
+        assert status.get("status") == "done", status
+
+        resp = client.get("/inventory")
+        html = resp.get_data(as_text=True)
+        assert "上次查询（" in html
+        assert 'id="lastQueryBlock"' in html
+        assert "⬇下载副本" in html
+        m = re.search(r'href="(/inventory/download\?file=[^"]+)"', html)
+        assert m, "摘要块未渲染下载链接"
+        dl = client.get(m.group(1))
+        assert dl.status_code == 200
+
+    def test_stale_download_reconciled_to_live(self, client, monkeypatch, isolated_inventory):
+        """持久化摘要指向已删除的静态文件时，下载链接应回退到当前实时最新文件。"""
+        out_dir = isolated_inventory
+        monkeypatch.setattr(amro_sync_mod, "OUTPUT_DIR", out_dir)
+        real = out_dir / "需求单_库存已填_20260101_000000.xlsx"
+        real.write_bytes(b"xlsx-bytes")
+        (out_dir / "last_query_inventory_query.json").write_text(
+            '{"label":"查询库存","finished_at":"2026-01-01 00:00:00",'
+            '"summary":"查询完成：共 1 件号，成功 1，失败 0，标红 1，标黄 0",'
+            '"download_url":"/inventory/download?file=已删除_库存已填_20250101_000000.xlsx"}',
+            encoding="utf-8",
+        )
+        resp = client.get("/inventory")
+        html = resp.get_data(as_text=True)
+        assert "上次查询（" in html
+        m = re.search(r'href="(/inventory/download\?file=[^"]+)"', html)
+        assert m, "摘要块未渲染下载链接"
+        assert "已删除_库存已填" not in m.group(1)
+        assert "需求单_库存已填" in m.group(1)
+        dl = client.get(m.group(1))
+        assert dl.status_code == 200
+        assert dl.data == b"xlsx-bytes"
