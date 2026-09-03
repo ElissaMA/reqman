@@ -122,6 +122,16 @@ class TestWarningCRUD:
         assert data["success"] is True
         assert store.get_inventory_warning("KM-TEST-F") is None
 
+    def test_delete_url_encoded_part_number(self, client, store, ajax_headers):
+        """含空格件号经 urlencode 后仍能正确路由并删除（验证 %20 解码还原）。"""
+        store.save_inventory_warning({"part_number": "KM TEST G", "threshold": 1.0})
+        assert store.get_inventory_warning("KM TEST G") is not None
+        # 模板渲染为 /inventory-warning/KM%20TEST%20G/delete
+        resp = client.post("/inventory-warning/KM%20TEST%20G/delete", headers=ajax_headers)
+        data = resp.get_json()
+        assert data["success"] is True
+        assert store.get_inventory_warning("KM TEST G") is None
+
     def test_delete_missing_returns_404(self, client, ajax_headers):
         resp = client.post("/inventory-warning/KM-NOPE/delete", headers=ajax_headers)
         assert resp.status_code == 404
