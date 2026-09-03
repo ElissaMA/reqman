@@ -498,7 +498,7 @@ class TestCancelledCardsPage:
         assert "/card/cancelled" in html   # 侧边导航子页链接
 
     def test_lists_cancelled_and_delete(self, app, client):
-        """作废记录整卡展示（含原工卡组/来源标签），删除后从列表消失。"""
+        """作废记录整卡展示（含原工卡组），删除后从列表消失；不展示作废来源列。"""
         cstore = app.extensions["cancelled_cards"]
         cstore.add({"id": 1, "task_code": "EOJC-X-1", "task_name": "旧卡", "category": "机体",
                     "task_type": "EO", "remark": "", "tools": [], "materials": [],
@@ -508,7 +508,7 @@ class TestCancelledCardsPage:
             html = client.get("/card/cancelled").get_data(as_text=True)
             assert "EOJC-X-1" in html
             assert "组A" in html
-            assert "全量版本查询" in html
+            assert "作废来源" not in html   # 清单不再展示作废来源列
             rec = cstore.find_by_code("EOJC-X-1")
             resp = client.post(f"/card/cancelled/{rec['id']}/delete",
                                headers={"X-Requested-With": "XMLHttpRequest"})

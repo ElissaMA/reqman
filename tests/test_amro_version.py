@@ -179,7 +179,7 @@ class TestVersionReportExcel:
         assert amro_sync.package_report_label(pkg) == amro_sync.build_package_label(pkg, with_date=True)
 
     def test_report_excel_reminder_template_layout(self):
-        """改版清单以专用模板输出：标题含「查询日期」、单单元格三行、仅第三行红字、保留绿底。"""
+        """改版清单以专用模板输出：标题含「查询日期」、单单元格三行、第三行按类型着色、保留绿底。"""
         buf = amro_sync.build_version_report_excel({
             "revised": [
                 {"task_code": "C-1", "task_name": "卡一", "category": "电子",
@@ -211,8 +211,9 @@ class TestVersionReportExcel:
         assert sorted(str(r) for r in ws.merged_cells.ranges) == ["A1:C1"]   # 仅标题合并
         assert ws["A5"].value is None and ws["B5"].value is None and ws["C5"].value is None
 
-    def test_report_excel_third_line_red_only(self, tmp_path):
-        """改版清单：单元格仅第三行（标记行）红色，工卡号/名称保持黑字；三类均如此。"""
+    def test_report_excel_third_line_color_by_type(self, tmp_path):
+        """改版清单：单元格仅第三行（标记行）着色，工卡号/名称保持黑字；
+        第三行按类型配色：新增=红、改版=蓝、作废=黑。"""
         buf = amro_sync.build_version_report_excel({
             "revised": [
                 {"task_code": "R-1", "task_name": "改版卡", "category": "电子",
@@ -239,15 +240,16 @@ class TestVersionReportExcel:
                 yield (t.group(1) if t else "", c.group(1).upper() if c else None)
 
         rs = list(runs())
-        reds = [t for t, col in rs if col == "FFFF0000"]
-        blacks = [t for t, col in rs if col == "FF000000"]
-        # 仅第三行（标记行）为红：改版=旧→新、新增=新增<日期>、作废=作废
-        assert any("→" in t for t in reds), "改版标记未标红"
-        assert any(t.startswith("新增") for t in reds), "新增标记未标红"
-        assert any(t == "作废" for t in reds), "作废标记未标红"
-        # 工卡号 / 名称行仍为黑字（不被整体标红）
-        assert {"R-1", "N-1", "X-1"}.issubset(set(blacks)), "工卡号应为黑字"
-        assert any("改版卡" in t for t in blacks) and any("新增卡" in t for t in blacks)
+        red = [t for t, col in rs if col == "FFFF0000"]
+        blue = [t for t, col in rs if col == "FF0000FF"]
+        black = [t for t, col in rs if col == "FF000000"]
+        # 第三行（标记行）按类型着色：新增=红、改版=蓝、作废=黑
+        assert any(t.startswith("新增") for t in red), "新增标记应为红"
+        assert any("→" in t for t in blue), "改版标记应为蓝"
+        assert any(t == "作废" for t in black), "作废标记应为黑"
+        # 工卡号 / 名称行保持黑字
+        assert {"R-1", "N-1", "X-1"}.issubset(set(black)), "工卡号应为黑字"
+        assert any("改版卡" in t for t in black) and any("新增卡" in t for t in black)
 
 
 class TestCheckCardsAgainstAmro:

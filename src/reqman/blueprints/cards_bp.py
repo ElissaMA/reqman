@@ -270,9 +270,6 @@ def card_reset_confirm(card_id):
 
 # ======================== 作废工卡库 ========================
 
-# 作废来源 → 展示标签（cancelled_card_store.cancel_source）
-CANCEL_SOURCE_LABELS = {"full_version": "全量版本查询", "package_version": "逐包版本查询"}
-
 
 @cards_bp.route("/card/cancelled")
 def cancelled_cards_page():
@@ -281,8 +278,7 @@ def cancelled_cards_page():
     return render_template("cards/cancelled.html",
                            cards=records,
                            categories=CATEGORIES, reminder_types=REMINDER_TYPES,
-                           task_types=TASK_TYPES,
-                           source_labels=CANCEL_SOURCE_LABELS)
+                           task_types=TASK_TYPES)
 
 
 @cards_bp.route("/card/cancelled/<int:card_id>/delete", methods=["POST"])

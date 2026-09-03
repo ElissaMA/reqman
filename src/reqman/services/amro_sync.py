@@ -607,11 +607,12 @@ def build_version_report_excel(report: dict, title_label: str = "",
     模板（assets/check_template.xlsx）结构：行1 标题（A1:C1 合并）、行2 专业表头
     （A 电子 / B 发动机 / C 机体，深绿白字）、行3+ 数据区（已删飞机信息块与图例，
     每列预置绿底）。条目从行 3 起按专业列堆叠，同列先改版、再新增、最后作废——每个
-    条目单单元格三行：工卡号 / 工卡名称（黑字）/ 标记（红字）。标记行：改版=旧→新、
-    新增=新增 <日期>、作废=作废。仅第三行标红色（宋体 11），保留每列原绿底，
-    wrap_text 沿用模板。
+    条目单单元格三行：工卡号 / 工卡名称（黑字）/ 标记（按类型着色）。标记行：改版=旧→新、
+    新增=新增 <日期>、作废=作废。第三行配色：新增=红、改版=蓝、作废=黑（宋体 11），
+    保留每列原绿底；单元格显式 wrap_text，三行稳定显示。
     """
     from openpyxl.cell.rich_text import CellRichText, InlineFont, TextBlock
+    from openpyxl.styles import Alignment
 
     def _date_span(wd: str) -> str:
         return (wd or "").strip()[:10]
@@ -630,11 +631,13 @@ def build_version_report_excel(report: dict, title_label: str = "",
     ws = wb["改版清单"]
     ws["A1"] = title
 
-    # 单元格三行：工卡号 / 工卡名称（黑）/ 标记（红）。仅第三行标红。
+    # 单元格三行：工卡号 / 工卡名称（黑）/ 标记（分类型色）。仅第三行着色。
+    # 第三行标记配色：新增=红、改版=蓝、作废=黑。
     BLACK = InlineFont(rFont="宋体", sz=11, color="FF000000")
     RED = InlineFont(rFont="宋体", sz=11, color="FFFF0000")
+    BLUE = InlineFont(rFont="宋体", sz=11, color="FF0000FF")
 
-    def write_entries(rows: list[dict], *, with_dates: bool, prefix: str = "") -> None:
+    def write_entries(rows: list[dict], *, color, with_dates: bool, prefix: str = "") -> None:
         for cat, items in _group_by_category(rows):
             col = COL_MAP.get(cat)
             if col is None:   # 特检/支援/其他：与提醒单一致不输出
@@ -658,14 +661,16 @@ def build_version_report_excel(report: dict, title_label: str = "",
                     if prefix and span:
                         span = f"{prefix} {span}"
                     if span:
-                        seq.append(TextBlock(RED, span))
+                        seq.append(TextBlock(color, span))
                 else:
-                    seq.append(TextBlock(RED, prefix or "作废"))
+                    seq.append(TextBlock(color, prefix or "作废"))
                 cell.value = CellRichText(*seq)
+                # 显式换行（不依赖模板样式），超出行也保证三行显示
+                cell.alignment = Alignment(wrap_text=True, vertical="top")
 
-    write_entries(report.get("revised", []), with_dates=True)
-    write_entries(report.get("new_added", []), with_dates=True, prefix="新增")
-    write_entries(report.get("cancelled", []), with_dates=False)
+    write_entries(report.get("revised", []), color=BLUE, with_dates=True)
+    write_entries(report.get("new_added", []), color=RED, with_dates=True, prefix="新增")
+    write_entries(report.get("cancelled", []), color=BLACK, with_dates=False)
     buf = io.BytesIO()
     wb.save(buf)
     wb.close()

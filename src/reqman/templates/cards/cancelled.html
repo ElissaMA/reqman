@@ -27,7 +27,7 @@
                             <option value="">全部类型</option>
                             {% for t in task_types %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
                         </select></th>
-                        <th></th><th></th><th></th><th></th><th></th>
+                        <th></th><th></th><th></th><th></th>
                     </tr>
                     <tr>
                         <th>工卡号</th>
@@ -38,7 +38,6 @@
                         <th>所属工卡组</th>
                         <th>编写日期</th>
                         <th>作废时间</th>
-                        <th>作废来源</th>
                         <th style="width:120px" class="text-center">操作</th>
                     </tr>
                 </thead>
@@ -54,14 +53,13 @@
                         <td>{{ card.set_name or '-' }}</td>
                         <td>{{ (card.write_date or '')[:10] or '—' }}</td>
                         <td>{{ card.cancelled_at or '—' }}</td>
-                        <td>{{ source_labels.get(card.cancel_source, card.cancel_source or '—') }}</td>
                         <td class="text-center" onclick="event.stopPropagation()">
                             <button type="button" onclick="ListUI.del('/card/cancelled/{{ card.id }}/delete','确认彻底删除作废工卡 {{ card.task_code }}？删除后不可恢复。')" class="btn btn-outline-danger btn-sm py-0">删除</button>
                         </td>
                     </tr>
                 {% endfor %}
                 {% else %}
-                    {{ list.empty_state('暂无作废工卡', colspan=10) }}
+                    {{ list.empty_state('暂无作废工卡', colspan=9) }}
                 {% endif %}
                 </tbody>
             </table>
@@ -87,7 +85,6 @@
 {% block scripts %}
 <script>
 var cards = [{% for card in cards %}{{ card|tojson }}{% if not loop.last %},{% endif %}{% endfor %}];
-var sourceLabels = {{ source_labels|tojson }};
 
 function showDetail(id) {
     var d = cards.find(function(card) { return card.id === id; });
@@ -105,7 +102,6 @@ function showDetail(id) {
     h += '<div class="mb-3 p-2 rounded bg-danger-subtle">'
         + '<label class="form-label small fw-bold mb-1">作废信息</label>'
         + '<div class="small">作废时间：' + (d.cancelled_at || '-') + '</div>'
-        + '<div class="small">作废来源：' + (sourceLabels[d.cancel_source] || d.cancel_source || '-') + '</div>'
         + '</div>';
     // 提醒区块（类型 + 确认状态）
     h += '<div class="mb-3"><label class="form-label small fw-bold">&#x1F514; 提醒类型</label><div>'
