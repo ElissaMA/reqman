@@ -12,7 +12,7 @@
         {% elif amro_status and amro_status.status == 'error' %}
         <div class="alert alert-danger py-2 px-3 small mb-2">上次库存查询失败：{{ amro_status.error }}（{{ amro_status.finished_at }}）</div>
         {% elif amro_last_query %}
-        <div class="alert alert-success py-2 px-3 small mb-2">
+        <div class="alert alert-success py-2 px-3 small mb-2" id="lastQueryBlock">
             上次查询（{{ amro_last_query.finished_at }}）：{{ amro_last_query.summary }}
             {% if amro_last_query.download_url %}<a class="btn btn-outline-primary btn-sm ms-2 py-0" href="{{ amro_last_query.download_url }}" title="下载上次库存查询结果副本">⬇下载副本</a>{% endif %}
         </div>
@@ -127,6 +127,22 @@ document.addEventListener('DOMContentLoaded', function() {
         }).catch(function(){});
 });
 
+function refreshInventoryRegions() {
+    // 局部刷新预警表缓存库存与「上次查询」摘要框，避免整页 reload 丢失滚动位置/提示
+    fetch('/inventory', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function(r) { return r.text(); })
+        .then(function(html) {
+            var doc = new DOMParser().parseFromString(html, 'text/html');
+            var newTbody = doc.querySelector('#invWarnTable tbody');
+            var curTbody = document.querySelector('#invWarnTable tbody');
+            if (newTbody && curTbody) curTbody.innerHTML = newTbody.innerHTML;
+            var newLast = doc.querySelector('#lastQueryBlock');
+            var curLast = document.querySelector('#lastQueryBlock');
+            if (newLast && curLast) curLast.outerHTML = newLast.outerHTML;
+        })
+        .catch(function() { window.location.reload(); });  // 兜底：局部刷新失败则整页刷新
+}
+
 function doQuery() {
     var input = document.getElementById('demandFile');
     if (!input.files.length) { window.safeToast('请先选择需求单 Excel 文件', 'warning'); return; }
@@ -162,8 +178,8 @@ function pollInventoryQuery(card) {
                       '，失败 ' + s.fail + '，标红 ' + s.shortage + '，标黄 ' + s.warning;
             card.done(msg);
             window.safeToast(msg, 'success');
-            // 刷新整页：更新预警库缓存库存与上次查询摘要框
-            setTimeout(function() { window.location.reload(); }, 1500);
+            // 局部刷新：仅更新预警库缓存库存与上次查询摘要框，保留滚动位置与提示
+            setTimeout(refreshInventoryRegions, 1500);
         },
         onError: function(err, card) {
             card.fail(err || '查询失败');
