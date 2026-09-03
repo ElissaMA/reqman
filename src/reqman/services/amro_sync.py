@@ -13,7 +13,7 @@ import logging
 import secrets
 import threading
 from contextlib import contextmanager
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -397,16 +397,13 @@ async def import_amro_package(store, client, cookies, revnr, service=None, *, fe
     return persist_amro_package(store, service, package_data)
 
 
-async def list_amro_packages(client, cookies, *, base=None, days=7) -> list[dict]:
-    """BM_TSK_LIST 任务接收包列表（total 恒 0 单页返回；日期窗今±days）。"""
+async def list_amro_packages(client, cookies, *, base=None) -> list[dict]:
+    """BM_TSK_LIST 任务接收包列表（total 恒 0 单页返回；不过滤日期窗，返回接收页面全部任务包）。"""
     from ..config import AMRO_BASE_DEFAULT
     base = base or AMRO_BASE_DEFAULT
-    today = datetime.now(BJ).date()
     form = {
         "gjzStr": "", "initBase": "", "baseCode1": "", "baseCode": base,
         "chktp": "",
-        "planstdstr": (today - timedelta(days=days)).isoformat(),
-        "planstdEnd": (today + timedelta(days=days)).isoformat(),
         "revst": "WJS|ZB|YZB|KG", "xfdw": "", "actype": "", "acno": "",
         "gjz": "", "iftj": "", "ifgzrz": "", "page": 1, "rows": 50,
     }

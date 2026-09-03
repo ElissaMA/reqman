@@ -237,7 +237,7 @@ def _amro_err(kind, exc=None):
 
 @packages_bp.route("/packages/amro-list", methods=["GET", "POST"])
 def amro_package_list():
-    """AMRO 任务接收包列表（BM_TSK_LIST，baseCode=KM01，日期窗今±7天）。"""
+    """AMRO 任务接收包列表（BM_TSK_LIST，baseCode=KM01，不过滤日期窗）。"""
     if not amro_sync.require_amro_session():
         return _amro_err("session")
     svc = current_app.extensions["inventory_service"]

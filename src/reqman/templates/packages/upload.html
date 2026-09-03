@@ -15,7 +15,7 @@
         <button class="btn btn-primary btn-sm" id="amroPackRefresh">查询工作包</button>
     </div>
     <div class="card-body">
-        <p class="text-muted small mb-2">从 AMRO「任务接收」直读工卡清单（基地 KM01，日期窗今±7天），替代人工打印上传；需先在表头完成 AMRO 登录。</p>
+        <p class="text-muted small mb-2">从 AMRO「任务接收」直读工卡清单（基地 KM01，不过滤日期窗），替代人工打印上传；需先在表头完成 AMRO 登录。</p>
         {% if amro_last_pkg_query %}
         <div class="alert alert-success py-2 px-3 small mb-2">
             上次查询（{{ amro_last_pkg_query.finished_at }}）：{{ amro_last_pkg_query.summary }}
@@ -247,7 +247,7 @@ function renderAmroPacks(rows) {
     var tbody = document.querySelector('#amroPackTable tbody');
     if (!tbody) return;
     if (!window._amroPacks.length) {
-        tbody.innerHTML = '<tr class="empty-state-row"><td colspan="8" class="text-center text-muted py-3">日期窗内暂无任务包</td></tr>';
+        tbody.innerHTML = '<tr class="empty-state-row"><td colspan="8" class="text-center text-muted py-3">暂无任务包</td></tr>';
         return;
     }
     tbody.innerHTML = window._amroPacks.map(function(p, i) {
