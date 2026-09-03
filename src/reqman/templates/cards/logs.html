@@ -186,12 +186,8 @@ function previewTarget(el) {
     var type = el.getAttribute('data-target-type');
     var id = el.getAttribute('data-target-id');
     if (!type || !id) return;
-    if (type === 'aircraft') {
-        window.location.href = '/card/aircraft/' + id + '/edit';
-        return;
-    }
-    var url = type === 'set' ? '/card/sets/' + id : '/card/' + id;
-    var title = type === 'set' ? '工卡组详情' : '工卡详情';
+    var url = type === 'set' ? '/card/sets/' + id : (type === 'aircraft' ? '/card/aircraft/' + id : '/card/' + id);
+    var title = type === 'set' ? '工卡组详情' : (type === 'aircraft' ? '飞机详情' : '工卡详情');
     document.getElementById('previewModalTitle').textContent = title;
     document.getElementById('previewContent').innerHTML = '<p class="text-muted">加载中...</p>';
     new bootstrap.Modal(document.getElementById('previewModal')).show();
@@ -202,11 +198,12 @@ function previewTarget(el) {
         })
         .then(function(d) {
             if (d.error) throw new Error(d.error);
-            document.getElementById('previewContent').innerHTML = type === 'set' ? renderSetPreview(d) : renderCardPreview(d);
+            var html = type === 'set' ? renderSetPreview(d) : (type === 'aircraft' ? renderAircraftPreview(d) : renderCardPreview(d));
+            document.getElementById('previewContent').innerHTML = html;
         })
         .catch(function() {
             var changes = el.querySelector('td:last-child span[title]');
-            var extra = changes ? '<div class="mt-2"><label class="form-label small fw-bold">日志变更</label><div class="text-muted small">' + changes.getAttribute('title') + '</div></div>' : '';
+            var extra = changes ? '<div class="mt-2"><label class="form-label small fw-bold">日志变更</label><div class="text-muted small">' + escapeHtml(changes.getAttribute('title')) + '</div></div>' : '';
             document.getElementById('previewContent').innerHTML = '<div class="alert alert-secondary mb-0">该记录已删除' + extra + '</div>';
         });
 }
@@ -218,14 +215,14 @@ function renderCardPreview(d) {
         + (d.card_ok ? '<span class="badge bg-success">已确认</span>' : '<span class="badge bg-danger">未确认</span>')
         + '</span></div>';
     h += '<div class="row g-3 mb-3">'
-        + '<div class="col-md-3"><label class="form-label small">工卡号</label><div><strong>' + d.task_code + '</strong></div></div>'
-        + '<div class="col-md-5"><label class="form-label small">工卡描述</label><div>' + (d.task_name || '-') + '</div></div>'
-        + '<div class="col-md-2"><label class="form-label small">专业</label><div>' + (d.category || '-') + '</div></div>'
-        + '<div class="col-md-2"><label class="form-label small">类型</label><div>' + (d.task_type || '-') + '</div></div>'
+        + '<div class="col-md-3"><label class="form-label small">工卡号</label><div><strong>' + escapeHtml(d.task_code) + '</strong></div></div>'
+        + '<div class="col-md-5"><label class="form-label small">工卡描述</label><div>' + (escapeHtml(d.task_name) || '—') + '</div></div>'
+        + '<div class="col-md-2"><label class="form-label small">专业</label><div>' + (escapeHtml(d.category) || '—') + '</div></div>'
+        + '<div class="col-md-2"><label class="form-label small">类型</label><div>' + (escapeHtml(d.task_type) || '—') + '</div></div>'
         + '</div>';
-    h += '<div class="mb-3"><label class="form-label small">所属工卡组</label><div>' + (d.set_name || '-') + '</div></div>';
+    h += '<div class="mb-3"><label class="form-label small">所属工卡组</label><div>' + (escapeHtml(d.set_name) || '—') + '</div></div>';
     h += '<div class="mb-3"><label class="form-label small fw-bold">&#x1F514; 提醒类型</label><div>'
-        + (d.reminder_type || '无') + '</div></div>';
+        + (escapeHtml(d.reminder_type) || '无') + '</div></div>';
     h += '<span class="small text-muted">提醒确认状态：'
         + (d.reminder_confirmed ? '<span class="badge bg-success">已确认</span>' : '<span class="badge bg-warning">未确认</span>')
         + '</span>';
@@ -233,7 +230,7 @@ function renderCardPreview(d) {
     if (d.tools && d.tools.length) {
         h += '<table class="table table-bordered table-sm mb-2"><thead><tr><th>设备名称</th><th>件号</th><th>数量</th><th>备注</th><th>使用类型</th></tr></thead><tbody>';
         d.tools.forEach(function(t) {
-            h += '<tr><td>' + (t.device_name||'') + '</td><td>' + (t.part_number||'') + '</td><td>' + (t.quantity||'') + '</td><td>' + (t.remark||'') + '</td><td>' + (t.usage_type||'') + '</td></tr>';
+            h += '<tr><td>' + (escapeHtml(t.device_name)||'') + '</td><td>' + (escapeHtml(t.part_number)||'') + '</td><td>' + (t.quantity||'') + '</td><td>' + (escapeHtml(t.remark)||'') + '</td><td>' + (escapeHtml(t.usage_type)||'') + '</td></tr>';
         });
         h += '</tbody></table>';
     } else {
@@ -246,7 +243,7 @@ function renderCardPreview(d) {
     if (d.materials && d.materials.length) {
         h += '<table class="table table-bordered table-sm mb-2"><thead><tr><th>航材名称</th><th>件号</th><th>数量</th><th>备注</th><th>使用类型</th></tr></thead><tbody>';
         d.materials.forEach(function(m) {
-            h += '<tr><td>' + (m.material_name||'') + '</td><td>' + (m.part_number||'') + '</td><td>' + (m.quantity||'') + '</td><td>' + (m.remark||'') + '</td><td>' + (m.usage_type||'') + '</td></tr>';
+            h += '<tr><td>' + (escapeHtml(m.material_name)||'') + '</td><td>' + (escapeHtml(m.part_number)||'') + '</td><td>' + (m.quantity||'') + '</td><td>' + (escapeHtml(m.remark)||'') + '</td><td>' + (escapeHtml(m.usage_type)||'') + '</td></tr>';
         });
         h += '</tbody></table>';
     } else {
@@ -256,7 +253,20 @@ function renderCardPreview(d) {
         + (d.materials_confirmed ? '<span class="badge bg-success">已确认</span>' : '<span class="badge bg-warning">未确认</span>')
         + '</span></div>';
     h += '<div class="mb-0"><label class="form-label small fw-bold">备注</label><div class="text-muted">'
-        + (d.remark || '-') + '</div></div>';
+        + (escapeHtml(d.remark) || '—') + '</div></div>';
+    return h;
+}
+
+function renderAircraftPreview(d) {
+    var rows = [
+        ['飞机号', d.reg], ['机型', d.model], ['发动机', d.engine],
+        ['FSN', d.fsn], ['MSN', d.msn], ['APU', d.apu]
+    ];
+    var h = '<table class="table table-bordered table-sm mb-0"><tbody>';
+    rows.forEach(function(r) {
+        h += '<tr><th style="width:120px">' + r[0] + '</th><td>' + (escapeHtml(r[1]) || '—') + '</td></tr>';
+    });
+    h += '</tbody></table>';
     return h;
 }
 
@@ -267,11 +277,11 @@ function renderSetPreview(d) {
         + (d.card_ok ? '<span class="badge bg-success">已确认</span>' : '<span class="badge bg-danger">未确认</span>')
         + '</span></div>';
     h += '<div class="row g-3 mb-3">'
-        + '<div class="col-md-6"><label class="form-label small">名称</label><div><strong>' + (d.name || '') + '</strong></div></div>'
-        + '<div class="col-md-6"><label class="form-label small">专业</label><div>' + (d.category || '-') + '</div></div>'
+        + '<div class="col-md-6"><label class="form-label small">名称</label><div><strong>' + (escapeHtml(d.name) || '') + '</strong></div></div>'
+        + '<div class="col-md-6"><label class="form-label small">专业</label><div>' + (escapeHtml(d.category) || '—') + '</div></div>'
         + '</div>';
     h += '<div class="mb-3"><label class="form-label small fw-bold">&#x1F514; 提醒类型</label><div>'
-        + (d.reminder_type || '无') + '</div></div>';
+        + (escapeHtml(d.reminder_type) || '无') + '</div></div>';
     h += '<span class="small text-muted">提醒确认状态：'
         + (d.reminder_confirmed ? '<span class="badge bg-success">已确认</span>' : '<span class="badge bg-warning">未确认</span>')
         + '</span>';
@@ -279,7 +289,7 @@ function renderSetPreview(d) {
         h += '<label class="form-label small fw-bold">组内工卡</label>'
            + '<table class="table table-bordered table-sm mb-3"><thead><tr><th>工卡号</th><th>工卡名称</th></tr></thead><tbody>';
         d.cards.forEach(function(c) {
-            h += '<tr><td><code>' + (c.task_code || '') + '</code></td><td>' + (c.task_name || '') + '</td></tr>';
+            h += '<tr><td><code>' + (escapeHtml(c.task_code) || '') + '</code></td><td>' + (escapeHtml(c.task_name) || '') + '</td></tr>';
         });
         h += '</tbody></table>';
     }
@@ -287,7 +297,7 @@ function renderSetPreview(d) {
     if (d.tools && d.tools.length) {
         h += '<table class="table table-bordered table-sm mb-2"><thead><tr><th>设备名称</th><th>件号</th><th>数量</th><th>备注</th><th>使用类型</th></tr></thead><tbody>';
         d.tools.forEach(function(t) {
-            h += '<tr><td>' + (t.device_name||'') + '</td><td>' + (t.part_number||'') + '</td><td>' + (t.quantity||'') + '</td><td>' + (t.remark||'') + '</td><td>' + (t.usage_type||'') + '</td></tr>';
+            h += '<tr><td>' + (escapeHtml(t.device_name)||'') + '</td><td>' + (escapeHtml(t.part_number)||'') + '</td><td>' + (t.quantity||'') + '</td><td>' + (escapeHtml(t.remark)||'') + '</td><td>' + (escapeHtml(t.usage_type)||'') + '</td></tr>';
         });
         h += '</tbody></table>';
     } else {
@@ -300,7 +310,7 @@ function renderSetPreview(d) {
     if (d.materials && d.materials.length) {
         h += '<table class="table table-bordered table-sm mb-2"><thead><tr><th>航材名称</th><th>件号</th><th>数量</th><th>备注</th><th>使用类型</th></tr></thead><tbody>';
         d.materials.forEach(function(m) {
-            h += '<tr><td>' + (m.material_name||'') + '</td><td>' + (m.part_number||'') + '</td><td>' + (m.quantity||'') + '</td><td>' + (m.remark||'') + '</td><td>' + (m.usage_type||'') + '</td></tr>';
+            h += '<tr><td>' + (escapeHtml(m.material_name)||'') + '</td><td>' + (escapeHtml(m.part_number)||'') + '</td><td>' + (m.quantity||'') + '</td><td>' + (escapeHtml(m.remark)||'') + '</td><td>' + (escapeHtml(m.usage_type)||'') + '</td></tr>';
         });
         h += '</tbody></table>';
     } else {
@@ -310,7 +320,7 @@ function renderSetPreview(d) {
         + (d.materials_confirmed ? '<span class="badge bg-success">已确认</span>' : '<span class="badge bg-warning">未确认</span>')
         + '</span></div>';
     h += '<div class="mb-0"><label class="form-label small fw-bold">说明</label><div class="text-muted">'
-        + (d.description || '-') + '</div></div>';
+        + (escapeHtml(d.description) || '—') + '</div></div>';
     return h;
 }
 </script>

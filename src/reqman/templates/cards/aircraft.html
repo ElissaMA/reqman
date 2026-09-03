@@ -61,10 +61,10 @@
                         <td>{{ ac.fsn or '-' }}</td>
                         <td>{{ ac.msn or '-' }}</td>
                         <td>{{ ac.apu or '-' }}</td>
-                        <td>{{ ac.log_time or '—' }}</td>
-                        <td onclick="event.stopPropagation()">
+                        <td class="text-center">{{ ac.log_time or '—' }}</td>
+                        <td class="text-center text-nowrap" onclick="event.stopPropagation()">
                             <a href="javascript:void(0)" onclick="ListUI.openEditor('/card/aircraft/{{ ac.id }}/edit')" class="btn btn-outline-primary btn-sm py-0">编辑</a>
-                            <button type="button" onclick="ListUI.del('/card/aircraft/{{ ac.id }}/delete','确认删除飞机 {{ ac.reg }}？')" class="btn btn-outline-danger btn-sm py-0">删除</button>
+                            <button type="button" data-url="/card/aircraft/{{ ac.id }}/delete" data-confirm="确认删除飞机 {{ ac.reg }}？" onclick="ListUI.delFrom(this)" class="btn btn-outline-danger btn-sm py-0">删除</button>
                         </td>
                     </tr>
                 {% endfor %}
@@ -143,18 +143,17 @@ document.addEventListener('DOMContentLoaded', function() {
     pollAircraftSync(window.QueryCard.run('qCardAircraft', '查询飞机数据'));   // 页面加载时查询已在跑 → 恢复进度卡
     {% endif %}
 });
-</script>
 
 function showAcDetail(id) {
     var d = ac_list.find(function(ac) { return ac.id === id; });
     if (!d) return;
     var rows = [
-        ['飞机号', d.reg || '-'],
-        ['机型', d.model || '-'],
-        ['发动机', d.engine || '-'],
-        ['FSN', d.fsn || '-'],
-        ['MSN', d.msn || '-'],
-        ['APU', d.apu || '-']
+        ['飞机号', escapeHtml(d.reg) || '—'],
+        ['机型', escapeHtml(d.model) || '—'],
+        ['发动机', escapeHtml(d.engine) || '—'],
+        ['FSN', escapeHtml(d.fsn) || '—'],
+        ['MSN', escapeHtml(d.msn) || '—'],
+        ['APU', escapeHtml(d.apu) || '—']
     ];
     var h = '<table class="table table-bordered table-sm mb-0"><tbody>';
     rows.forEach(function(r) {
@@ -164,8 +163,7 @@ function showAcDetail(id) {
     document.getElementById('acDetailContent').innerHTML = h;
     new bootstrap.Modal(document.getElementById('acDetailModal')).show();
 }
-</script>
-<script>
+
 ['fReg:0','fModel:1','fEngine:2','fFSN:3','fMSN:4','fAPU:5'].forEach(function(p) {
     var id = p.split(':')[0], col = p.split(':')[1];
     var el = document.getElementById(id);

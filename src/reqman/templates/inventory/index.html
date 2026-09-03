@@ -81,8 +81,8 @@
                                 </td>
                                 <td>{{ w.note or '—' }}</td>
                                 <td class="text-end">
-                                    <a href="javascript:void(0)" onclick="ListUI.openEditor('/inventory-warning/{{ w.part_number | urlencode }}/edit')" class="btn btn-outline-primary btn-sm py-0">编辑</a>
-                                    <button type="button" onclick="ListUI.del('/inventory-warning/{{ w.part_number | urlencode }}/delete','确认删除件号 {{ w.part_number }} 的预警配置？')" class="btn btn-outline-danger btn-sm py-0">删除</button>
+                                    <a href="javascript:void(0)" onclick="ListUI.openEditor('/inventory-warning/{{ w.part_number | urlencode | replace('+', '%20') }}/edit')" class="btn btn-outline-primary btn-sm py-0">编辑</a>
+                                    <button type="button" data-url="/inventory-warning/{{ w.part_number | urlencode | replace('+', '%20') }}/delete" data-confirm="确认删除件号 {{ w.part_number }} 的预警配置？" onclick="ListUI.delFrom(this)" class="btn btn-outline-danger btn-sm py-0">删除</button>
                                 </td>
                             </tr>
                         {% else %}

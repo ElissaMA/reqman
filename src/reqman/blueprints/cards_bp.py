@@ -703,3 +703,16 @@ def aircraft_delete(aircraft_id):
             return api_error("服务器错误", "SERVER_ERROR", 200)
         flash("服务器错误", "error")
     return redirect("/card/aircraft")
+
+
+@cards_bp.route("/card/aircraft/<int:aircraft_id>")
+def aircraft_detail(aircraft_id):
+    """飞机详情 (AJAX，供操作日志行预览)"""
+    try:
+        ac = current_app.extensions['card_service'].get_aircraft(aircraft_id)
+        if not ac:
+            return jsonify({"error": "not found"}), 404
+        return jsonify(ac)
+    except Exception:
+        logger.exception("获取飞机信息详情失败")
+        return jsonify({"error": "server error"}), 500

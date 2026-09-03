@@ -136,6 +136,43 @@ class TestWarningCRUD:
         resp = client.post("/inventory-warning/KM-NOPE/delete", headers=ajax_headers)
         assert resp.status_code == 404
 
+    def test_edit_delete_part_number_with_slash(self, client, store, ajax_headers):
+        """含 '/' 件号（列表按钮原样拼接）不再 404：<path:> 转换器捕获整段。"""
+        store.save_inventory_warning(
+            {"part_number": "PR1425CFB1/2", "name": "密封胶", "threshold": 1.0}
+        )
+        try:
+            # 编辑页 GET（原样 '/'，修复前 404）
+            resp = client.get("/inventory-warning/PR1425CFB1/2/edit")
+            assert resp.status_code == 200
+            assert "PR1425CFB1/2" in resp.get_data(as_text=True)
+            # POST 保存（表单 encodeURIComponent → %2F，WSGI 解码后仍由 path 段捕获）
+            resp = client.post(
+                "/inventory-warning/PR1425CFB1%2F2/edit",
+                data={"name": "密封胶新", "threshold": "2"},
+                headers=ajax_headers,
+            )
+            assert resp.get_json()["success"] is True
+            w = store.get_inventory_warning("PR1425CFB1/2")
+            assert w["name"] == "密封胶新"
+            assert w["threshold"] == 2.0
+            # POST 删除（原样 '/'，修复前 404）
+            resp = client.post("/inventory-warning/PR1425CFB1/2/delete", headers=ajax_headers)
+            assert resp.get_json()["success"] is True
+            assert store.get_inventory_warning("PR1425CFB1/2") is None
+        finally:
+            store.delete_inventory_warning("PR1425CFB1/2")
+
+    def test_edit_get_with_space_part_number(self, client, store):
+        """含空格件号（模板 %20 编码）编辑页可打开（修复前 + 不还原致 404）。"""
+        store.save_inventory_warning({"part_number": "KM TEST H", "threshold": 1.0})
+        try:
+            resp = client.get("/inventory-warning/KM%20TEST%20H/edit")
+            assert resp.status_code == 200
+            assert "KM TEST H" in resp.get_data(as_text=True)
+        finally:
+            store.delete_inventory_warning("KM TEST H")
+
 
 # ============================================================
 # 页面渲染：预警面板 + 查询提示框
@@ -171,6 +208,19 @@ class TestWarningIndex:
             assert "table-danger" in html
         finally:
             store.delete_inventory_warning("KM-RED")
+
+    def test_index_renders_action_hrefs_with_slash_and_blank(self, client, store):
+        """列表编辑/删除链接：含 '/' 件号原样拼接，含空格件号编 %20（非 +）。"""
+        store.save_inventory_warning({"part_number": "PN/SLASH", "threshold": 1.0})
+        store.save_inventory_warning({"part_number": "PN BLANK", "threshold": 1.0})
+        try:
+            html = client.get("/inventory").get_data(as_text=True)
+            assert "/inventory-warning/PN/SLASH/edit" in html
+            assert "/inventory-warning/PN%20BLANK/edit" in html
+            assert "/inventory-warning/PN%20BLANK/delete" in html
+        finally:
+            store.delete_inventory_warning("PN/SLASH")
+            store.delete_inventory_warning("PN BLANK")
 
 
 # ============================================================

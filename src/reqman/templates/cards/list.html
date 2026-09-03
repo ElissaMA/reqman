@@ -69,7 +69,7 @@
                         <th>编写日期</th>
                         <th class="text-center">工具数</th>
                         <th class="text-center">航材数</th>
-                        <th class="sortable text-center" data-col="9" onclick="AppFilter.sort(document.getElementById('cardTable'),9)">新建/编辑日期 <span class="sort-arrow" data-dir="desc">▼</span></th>
+                        <th style="width:120px" class="sortable text-center" data-col="9" onclick="AppFilter.sort(document.getElementById('cardTable'),9)">新建/编辑日期 <span class="sort-arrow" data-dir="desc">▼</span></th>
                         <th style="width:120px" class="text-center">操作</th>
                     </tr>
                 </thead>
@@ -87,10 +87,10 @@
                         <td>{{ (card.write_date or '')[:10] or '—' }}</td>
                         <td class="text-center">{{ card.tools|length }}</td>
                         <td class="text-center">{{ card.materials|length }}</td>
-                        <td>{{ card.log_time or '—' }}</td>
-                        <td class="text-center" onclick="event.stopPropagation()">
+                        <td class="text-center">{{ card.log_time or '—' }}</td>
+                        <td class="text-center text-nowrap" onclick="event.stopPropagation()">
                             <a href="javascript:void(0)" onclick="ListUI.openEditor('/card/{{ card.id }}/edit')" class="btn btn-outline-primary btn-sm py-0">编辑</a>
-                            <button type="button" onclick="ListUI.del('/card/{{ card.id }}/delete','确认删除工卡 {{ card.task_code }}？')" class="btn btn-outline-danger btn-sm py-0">删除</button>
+                            <button type="button" data-url="/card/{{ card.id }}/delete" data-confirm="确认删除工卡 {{ card.task_code }}？" onclick="ListUI.delFrom(this)" class="btn btn-outline-danger btn-sm py-0">删除</button>
                         </td>
                     </tr>
                 {% endfor %}
@@ -133,16 +133,16 @@ function showDetail(id) {
         + '</span></div>';
     // 基本信息
     h += '<div class="row g-3 mb-3">'
-        + '<div class="col-md-3"><label class="form-label small">工卡号</label><div><strong>' + d.task_code + '</strong></div></div>'
-        + '<div class="col-md-5"><label class="form-label small">工卡描述</label><div>' + (d.task_name || '-') + '</div></div>'
-        + '<div class="col-md-2"><label class="form-label small">专业</label><div>' + (d.category || '-') + '</div></div>'
-        + '<div class="col-md-2"><label class="form-label small">类型</label><div>' + (d.task_type || '-') + '</div></div>'
+        + '<div class="col-md-3"><label class="form-label small">工卡号</label><div><strong>' + escapeHtml(d.task_code) + '</strong></div></div>'
+        + '<div class="col-md-5"><label class="form-label small">工卡描述</label><div>' + (escapeHtml(d.task_name) || '—') + '</div></div>'
+        + '<div class="col-md-2"><label class="form-label small">专业</label><div>' + (escapeHtml(d.category) || '—') + '</div></div>'
+        + '<div class="col-md-2"><label class="form-label small">类型</label><div>' + (escapeHtml(d.task_type) || '—') + '</div></div>'
         + '</div>';
-    h += '<div class="mb-3"><label class="form-label small">所属工卡组</label><div>' + (d.set_name || '-') + '</div></div>';
-    h += '<div class="mb-3"><label class="form-label small">编写日期</label><div>' + ((d.write_date || '').slice(0, 10) || '-') + '</div></div>';
+    h += '<div class="mb-3"><label class="form-label small">所属工卡组</label><div>' + (escapeHtml(d.set_name) || '—') + '</div></div>';
+    h += '<div class="mb-3"><label class="form-label small">编写日期</label><div>' + ((escapeHtml(d.write_date) || '').slice(0, 10) || '—') + '</div></div>';
     // 提醒区块（类型 + 确认状态）
     h += '<div class="mb-3"><label class="form-label small fw-bold">&#x1F514; 提醒类型</label><div>'
-        + (d.reminder_type || '无') + '</div></div>';
+        + (escapeHtml(d.reminder_type) || '无') + '</div></div>';
     h += '<span class="small text-muted">提醒确认状态：'
         + (d.reminder_confirmed ? '<span class="badge bg-success">已确认</span>' : '<span class="badge bg-warning">未确认</span>')
         + '</span>';
@@ -151,7 +151,7 @@ function showDetail(id) {
     if (d.tools && d.tools.length) {
         h += '<table class="table table-bordered table-sm mb-2"><thead><tr><th>设备名称</th><th>件号</th><th>数量</th><th>备注</th><th>使用类型</th></tr></thead><tbody>';
         d.tools.forEach(function(t) {
-            h += '<tr><td>' + (t.device_name||'') + '</td><td>' + (t.part_number||'') + '</td><td>' + (t.quantity||'') + '</td><td>' + (t.remark||'') + '</td><td>' + (t.usage_type||'') + '</td></tr>';
+            h += '<tr><td>' + (escapeHtml(t.device_name)||'') + '</td><td>' + (escapeHtml(t.part_number)||'') + '</td><td>' + (t.quantity||'') + '</td><td>' + (escapeHtml(t.remark)||'') + '</td><td>' + (escapeHtml(t.usage_type)||'') + '</td></tr>';
         });
         h += '</tbody></table>';
     } else {
@@ -165,7 +165,7 @@ function showDetail(id) {
     if (d.materials && d.materials.length) {
         h += '<table class="table table-bordered table-sm mb-2"><thead><tr><th>航材名称</th><th>件号</th><th>数量</th><th>备注</th><th>使用类型</th></tr></thead><tbody>';
         d.materials.forEach(function(m) {
-            h += '<tr><td>' + (m.material_name||'') + '</td><td>' + (m.part_number||'') + '</td><td>' + (m.quantity||'') + '</td><td>' + (m.remark||'') + '</td><td>' + (m.usage_type||'') + '</td></tr>';
+            h += '<tr><td>' + (escapeHtml(m.material_name)||'') + '</td><td>' + (escapeHtml(m.part_number)||'') + '</td><td>' + (m.quantity||'') + '</td><td>' + (escapeHtml(m.remark)||'') + '</td><td>' + (escapeHtml(m.usage_type)||'') + '</td></tr>';
         });
         h += '</tbody></table>';
     } else {
@@ -176,7 +176,7 @@ function showDetail(id) {
         + '</span></div>';
     // 底部备注
     h += '<div class="mb-0"><label class="form-label small fw-bold">备注</label><div class="text-muted">'
-        + (d.remark || '-') + '</div></div>';
+        + (escapeHtml(d.remark) || '—') + '</div></div>';
     document.getElementById('detailContent').innerHTML = h;
     new bootstrap.Modal(document.getElementById('detailModal')).show();
 }

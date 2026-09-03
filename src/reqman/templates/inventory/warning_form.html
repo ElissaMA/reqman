@@ -48,7 +48,7 @@ document.getElementById('warningForm').addEventListener('submit', function(e) {
     e.preventDefault();
     var form = e.target;
     var isEdit = {{ 'true' if warning else 'false' }};
-    var pn = '{{ warning.part_number if warning else "" }}';
+    var pn = {{ (warning.part_number if warning else '') | tojson }};
     var url = isEdit ? '/inventory-warning/' + encodeURIComponent(pn) + '/edit' : '/inventory-warning/new';
 
     window.showLoader();

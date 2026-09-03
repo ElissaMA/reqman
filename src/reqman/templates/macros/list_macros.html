@@ -13,7 +13,7 @@
 
 {# 统一空状态：居中图标 + 文案 + 可选引导按钮（open_modal=True 时按钮以弹窗打开） #}
 {% macro empty_state(msg, action_url='', action_label='', colspan=1, open_modal=False) %}
-<tr>
+<tr class="empty-state-row">
     <td colspan="{{ colspan }}" class="text-center py-4 text-muted">
         <div class="empty-state-icon">&#x1F4CB;</div>
         <p class="mt-2 mb-0">{{ msg }}</p>

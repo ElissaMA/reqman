@@ -308,7 +308,7 @@ def inventory_warning_new():
     return render_template("inventory/warning_form.html", warning=None, title="新增库存预警")
 
 
-@inventory_bp.route("/inventory-warning/<part_number>/edit", methods=["GET", "POST"])
+@inventory_bp.route("/inventory-warning/<path:part_number>/edit", methods=["GET", "POST"])
 def inventory_warning_edit(part_number):
     """编辑库存预警条目（弹窗表单 + AJAX）。"""
     store = current_app.extensions["store"]
@@ -351,7 +351,7 @@ def inventory_warning_edit(part_number):
     return render_template("inventory/warning_form.html", warning=existing, title="编辑库存预警")
 
 
-@inventory_bp.route("/inventory-warning/<part_number>/delete", methods=["POST"])
+@inventory_bp.route("/inventory-warning/<path:part_number>/delete", methods=["POST"])
 def inventory_warning_delete(part_number):
     """删除库存预警条目（AJAX，ListUI.del 调用）。"""
     store = current_app.extensions["store"]
