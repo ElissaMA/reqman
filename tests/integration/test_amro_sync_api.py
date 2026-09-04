@@ -327,7 +327,7 @@ class TestPackageVersionApi:
 
         today = datetime.now(ZoneInfo("Asia/Shanghai")).date()
         pkg_date = (today + timedelta(days=days_ahead)).strftime("%Y.%m.%d")
-        for code, name, cat in (("E-001", "电子例行卡", "电子"), ("J-001", "机体例行卡", "机体")):
+        for code, name, cat in (("EOJC-A320-31-2026-007-A", "电子例行卡", "电子"), ("EOJC-A320-99-2026-999-Z", "机体例行卡", "机体")):
             store.add(task_code=code, task_name=name, category=cat)
             store.update(store.find_by_code(code)["id"], tools_confirmed=True,
                          materials_confirmed=True, reminder_type="重点提醒",
@@ -340,12 +340,12 @@ class TestPackageVersionApi:
                          "reminder_type": "重点提醒", "card_ok": True,
                          "reminder_confirmed": True, "source": "例行",
                          "tools": [], "materials": []}
-                        for code, name, cat in (("E-001", "电子例行卡", "电子"),
-                                                ("J-001", "机体例行卡", "机体"))],
+                        for code, name, cat in (("EOJC-A320-31-2026-007-A", "电子例行卡", "电子"),
+                                                ("EOJC-A320-99-2026-999-Z", "机体例行卡", "机体"))],
             "new_cards": [], "cancelled": [],
             "all_items": [{"task_code": code, "task_name": name, "category": cat, "source": "例行"}
-                          for code, name, cat in (("E-001", "电子例行卡", "电子"),
-                                                  ("J-001", "机体例行卡", "机体"))],
+                          for code, name, cat in (("EOJC-A320-31-2026-007-A", "电子例行卡", "电子"),
+                                                  ("EOJC-A320-99-2026-999-Z", "机体例行卡", "机体"))],
             "routine_count": 2, "other_count": 0,
             "is_matched": True, "generated_at": "2026.08.23 10:00",
         })["package_id"]
@@ -353,7 +353,7 @@ class TestPackageVersionApi:
     def test_package_version_check_sync(self, client, app, ajax_headers, monkeypatch, tmp_path):
         """行级查询工作包工卡版本：后台线程比对 → 轮询状态 → 生成逐包改版清单（同包覆盖）。
 
-        包内卡非 CSCA 前缀（E/J 例）→ 走 TD_JC_ALL_GET_ENTITY_BY_JCNO 逐卡直查。
+        包内卡为 EO 家族 → 走 TD_JC_ALL_GET_ENTITY_BY_JCNO 逐卡直查。
         长任务移出请求线程，客户端轮询 /packages/amro-version-status 取进度。
         """
         import time as _time
@@ -364,10 +364,10 @@ class TestPackageVersionApi:
         monkeypatch.setattr(amro_sync, "OUTPUT_DIR", tmp_path)  # 报告与持久摘要落 tmp_path
 
         entity_rows = {
-            "E-001": {"JC_NO": "E-001", "WRITE_DATE": "2026-08-01 09:00:00", "ZY": "电子",
-                      "JCTITLE": "电子例行卡", "TASK": "RST"},
-            "J-001": {"JC_NO": "J-001", "WRITE_DATE": "2026-08-01 09:00:00", "ZY": "机体",
-                      "JCTITLE": "机体例行卡", "TASK": "RST"},
+            "EOJC-A320-31-2026-007-A": {"JC_NO": "EOJC-A320-31-2026-007-A", "WRITE_DATE": "2026-08-01 09:00:00", "ZY": "电子",
+                                       "JCTITLE": "电子例行卡", "TASK": "RST"},
+            "EOJC-A320-99-2026-999-Z": {"JC_NO": "EOJC-A320-99-2026-999-Z", "WRITE_DATE": "2026-08-01 09:00:00", "ZY": "机体",
+                                       "JCTITLE": "机体例行卡", "TASK": "RST"},
         }
 
         async def fake_query(client_, cookies, plugin, form, **kw):
@@ -395,11 +395,11 @@ class TestPackageVersionApi:
             _time.sleep(0.05)
         assert status.get("status") == "done", status
         s = status["summary"]
-        # 包内 E-001/J-001 原均无编写日期，检查后被填入 → 归入「新增」
+        # 包内 EO 家族卡原均无编写日期，检查后被填入 → 归入「新增」
         assert s["new_added"] == 2 and s["revised"] == 0 and s["cancelled"] == 0
         assert s["filename"] == f"amro_pkg_version_report_{pkg_id}.xlsx"
         assert (tmp_path / s["filename"]).exists()
-        assert store.find_by_code("E-001")["write_date"] == "2026-08-01 09:00:00"
+        assert store.find_by_code("EOJC-A320-31-2026-007-A")["write_date"] == "2026-08-01 09:00:00"
         # 持久摘要显示机号+描述，而非 package_id 编号串
         last = amro_sync.get_last_query_result("package_version", output_dir=tmp_path)
         assert "B-1234 46A" in last["summary"]

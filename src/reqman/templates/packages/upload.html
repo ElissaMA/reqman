@@ -330,8 +330,9 @@ function pkgVersionCheck(packageId, btn) {
 
 function buildVersionSummary(label, s) {
     s = s || {};
-    return '版本检查完成（' + (label || '') + '）：改版 ' + (s.revised || 0) + ' 张，作废 '
-            + (s.cancelled || 0) + ' 张（预览页可下载改版清单）';
+    return '版本检查完成（' + (label || '') + '）：改版 ' + (s.revised || 0) + ' 张，新增 '
+            + (s.new_added || 0) + ' 张，作废 ' + (s.cancelled || 0)
+            + ' 张（预览页可下载改版清单）';
 }
 
 function pollPkgVersionCheck(packageId, card) {

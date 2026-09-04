@@ -1,4 +1,5 @@
 """川航 AMRO 登录脚本：浏览器登录后自动探活、获取账号与凭证并上传。"""
+import argparse
 import asyncio
 import json
 import os
@@ -26,6 +27,14 @@ ACCOUNT_SELECTORS = (
 )
 
 
+def upload_url_for(server_arg: str | None) -> str:
+    """解析 Cookie 上传地址：有 --server 则以其为源拼 /inventory/login/upload，否则回退内置常量。"""
+    if server_arg:
+        return str(server_arg).rstrip("/") + "/inventory/login/upload"
+    return UPLOAD_URL
+
+
+
 def confirm():
     root = tk.Tk()
     root.withdraw()
@@ -48,13 +57,13 @@ async def _launch_browser(p):
     for kwargs in ({"channel": "chrome"}, {"channel": "msedge"}):
         try:
             return await p.chromium.launch(headless=False, **kwargs)
-        except Exception:
+        except Exception:  # noqa: BLE001, S110
             pass
     for path in _edge_candidates():
         if os.path.exists(path):
             try:
                 return await p.chromium.launch(headless=False, executable_path=path)
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
     print("未检测到 Chrome/Edge，请安装浏览器后重试")
     return None
@@ -82,7 +91,7 @@ async def _read_account(page) -> str:
             }""",
             list(ACCOUNT_SELECTORS),
         )
-    except Exception:
+    except Exception:  # noqa: BLE001
         return ""
     value = str(value or "").strip()
     return value if 2 <= len(value) <= 32 and all(c.isalnum() or c in "_-" for c in value) else ""
@@ -152,6 +161,10 @@ async def _wait_for_login(ctx, page, client: httpx.AsyncClient) -> tuple[str, li
 
 
 async def main() -> int:
+    parser = argparse.ArgumentParser(description="AMRO 登录脚本")
+    parser.add_argument("--server", default="",
+                        help="Cookie 上传目标服务地址；由 ReqManLogin 协议携带来源动态传入，缺省用内置兜底地址")
+    args = parser.parse_args()
     from playwright.async_api import async_playwright
 
     if not confirm():
@@ -170,8 +183,9 @@ async def main() -> int:
                 await page.goto(AMRO_HOME_URL, wait_until="domcontentloaded")
                 async with httpx.AsyncClient(verify=True, trust_env=False) as client:
                     account, cookies = await _wait_for_login(ctx, page, client)
+                    upload_url = upload_url_for(args.server)
                     response = await client.post(
-                        UPLOAD_URL,
+                        upload_url,
                         data={
                             "account": account,
                             "cookies": json.dumps(cookies, ensure_ascii=False),
@@ -191,7 +205,7 @@ async def main() -> int:
     except TimeoutError as exc:
         print(f"登录未完成：{exc}")
         return 1
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         print(f"登录未完成：{exc}")
         return 1
 

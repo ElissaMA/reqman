@@ -415,7 +415,7 @@
         var baseline = { loginAt: window.amroSession.loginAt, account: window.amroSession.account };
         stopAmroLoginPoll();
         window.safeToast('登录脚本已启动，请在 AMRO 页面完成登录，系统将自动获取凭证', 'info', 8000);
-        window.location.href = 'ReqManLogin://login';
+        window.location.href = 'ReqManLogin://' + window.location.host;
         var startedAt = Date.now();
         amroLoginPollTimer = setInterval(function() {
             window.amroCheckNow().then(function(status) {

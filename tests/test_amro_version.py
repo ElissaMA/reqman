@@ -403,3 +403,178 @@ class TestVersionPullSplit:
         assert queried == [("TD_JC_ALL_GET_ENTITY_BY_JCNO",
                             {"jcno": "EOJC-A320-31-2026-007-A"})]      # EO 逐卡直查
         assert [r["task_code"] for r in rep["revised"]] == ["EOJC-A320-31-2026-007-A"]
+
+
+class TestFamilyOf:
+    def test_four_families(self):
+        assert amro_sync._family_of("CSCA320-256652-01-1-X") == "CSC"
+        assert amro_sync._family_of("FLA-A320-1001-1") == "FLA"
+        assert amro_sync._family_of("EOJC-A320-31-2026-007-A") == "EO"
+        assert amro_sync._family_of("QECJC-A320-1001-1") == "QEC"
+        assert amro_sync._family_of("ERJC-A320-1001-1") == "QEC"
+
+    def test_out_of_scope(self):
+        assert amro_sync._family_of("DP1000000739") == ""
+        assert amro_sync._family_of("NRC12345") == ""
+        assert amro_sync._family_of("LS123") == ""
+        assert amro_sync._family_of("") == ""
+        assert amro_sync._is_in_scope("NRC12345") is False
+        assert amro_sync._is_in_scope("CSCA320-256652-01-1-X") is True
+
+
+class TestPullAmroFamily:
+    def test_prefix_filter_and_fleet(self, monkeypatch):
+        """全量拉取按前缀过滤（邻族不并入）+ 透传 fleet=A320。"""
+        seen = {}
+
+        async def fetch(client, cookies, plugin, base_form, **kw):
+            seen[plugin] = dict(base_form)
+            return [
+                _jcrow("FLA-A320-1001-1", "2026-08-01 09:00:00"),
+                _jcrow("CSCA320-256652-01-1-X", "2026-08-01 09:00:00"),  # 邻族应被过滤
+            ]
+
+        rows = _run(amro_sync._pull_amro_family(
+            None, {}, "TD_JC_NRCJC_LIST",
+            {"rows": 500, "fleet": "A320"}, ("FLA",), fetch=fetch))
+        assert seen["TD_JC_NRCJC_LIST"] == {"rows": 500, "fleet": "A320"}
+        assert list(rows) == ["FLA-A320-1001-1"]
+
+
+class TestCollectFourFamilies:
+    def test_qec_full_pull_via_qecjc_list(self, json_store, monkeypatch):
+        """QEC/ER（QECJC*/ERJC*）走专用 TD_JC_ALL_QECJC_LIST 全量拉（fleet=A320），不逐卡。"""
+        monkeypatch.setattr(amro_sync.amro.time, "monotonic", lambda: 1e9)
+        monkeypatch.setattr(amro_sync.amro.time, "sleep", lambda s: None)
+        r1 = json_store.add("QECJC-A320-1001-1", "卡", "机体", "QEC", "")
+        json_store.update(r1["id"], write_date="2026-07-01 09:00:00")
+        r2 = json_store.add("ERJC-A320-1001-1", "卡", "机体", "QEC", "")
+        json_store.update(r2["id"], write_date="2026-07-01 09:00:00")
+        fetched, queried = [], []
+
+        async def fetch(client, cookies, plugin, base_form, **kw):
+            fetched.append((plugin, dict(base_form)))
+            if plugin == "TD_JC_ALL_QECJC_LIST":
+                return [_jcrow("QECJC-A320-1001-1", "2026-08-01 09:00:00"),
+                        _jcrow("ERJC-A320-1001-1", "2026-08-02 09:00:00")]
+            return []
+
+        async def query(client, cookies, plugin, form, **kw):
+            queried.append(plugin)
+            return {"code": 200, "data": {}}
+
+        rep = _run(amro_sync.check_cards_against_amro(
+            json_store, None, {}, ["QECJC-A320-1001-1", "ERJC-A320-1001-1"],
+            fetch=fetch, query=query))
+        assert [p for p, _ in fetched] == ["TD_JC_ALL_QECJC_LIST"]
+        assert queried == []   # 不逐卡
+        assert {r["task_code"] for r in rep["revised"]} == {"QECJC-A320-1001-1", "ERJC-A320-1001-1"}
+
+    def test_fla_full_pull_via_nrcjc_list_when_confirmed(self, json_store, monkeypatch):
+        """FLA 端点已确认加入白名单后，走 TD_JC_NRCJC_LIST 全量拉；不逐卡。"""
+        monkeypatch.setattr(amro_sync.amro.time, "monotonic", lambda: 1e9)
+        monkeypatch.setattr(amro_sync.amro.time, "sleep", lambda s: None)
+        r = json_store.add("FLA-A320-1001-1", "卡", "机体", "FLA", "")
+        json_store.update(r["id"], write_date="2026-07-01 09:00:00")
+        fetched, queried = [], []
+
+        async def fetch(client, cookies, plugin, base_form, **kw):
+            fetched.append((plugin, dict(base_form)))
+            if plugin == "TD_JC_NRCJC_LIST":
+                return [_jcrow("FLA-A320-1001-1", "2026-08-01 09:00:00")]
+            return []
+
+        async def query(client, cookies, plugin, form, **kw):
+            queried.append((plugin, dict(form)))
+            return {"code": 200, "data": {}}
+
+        rep = _run(amro_sync.check_cards_against_amro(
+            json_store, None, {}, ["FLA-A320-1001-1"], fetch=fetch, query=query))
+        assert [p for p, _ in fetched] == ["TD_JC_NRCJC_LIST"]
+        assert queried == []   # 不逐卡
+        assert [r["task_code"] for r in rep["revised"]] == ["FLA-A320-1001-1"]
+
+    def test_fla_falls_back_to_per_card_when_whitelist_excludes_it(self, json_store, monkeypatch):
+        """防御性：若 FLA 端点不在白名单，回退逐卡直查；不调用未确认全量端点。"""
+        monkeypatch.setattr(amro_sync.amro.time, "monotonic", lambda: 1e9)
+        monkeypatch.setattr(amro_sync.amro.time, "sleep", lambda s: None)
+        monkeypatch.setattr(amro_sync.amro, "READONLY_PLUGINS",
+                            amro_sync.amro.READONLY_PLUGINS - {"TD_JC_NRCJC_LIST"})
+        r = json_store.add("FLA-A320-1001-1", "卡", "机体", "FLA", "")
+        json_store.update(r["id"], write_date="2026-07-01 09:00:00")
+        fetched, queried = [], []
+
+        async def fetch(client, cookies, plugin, base_form, **kw):
+            fetched.append(plugin)
+            return []
+
+        async def query(client, cookies, plugin, form, **kw):
+            queried.append((plugin, dict(form)))
+            if form.get("jcno") == "FLA-A320-1001-1":
+                return {"code": 200, "data": {"JC_NO": "FLA-A320-1001-1",
+                                              "WRITE_DATE": "2026-08-01 09:00:00"}}
+            return {"code": 200, "data": {}}
+
+        rep = _run(amro_sync.check_cards_against_amro(
+            json_store, None, {}, ["FLA-A320-1001-1"], fetch=fetch, query=query))
+        assert "TD_JC_NRCJC_LIST" not in fetched   # 未确认端点不被调用
+        assert queried == [("TD_JC_ALL_GET_ENTITY_BY_JCNO", {"jcno": "FLA-A320-1001-1"})]
+        assert [r["task_code"] for r in rep["revised"]] == ["FLA-A320-1001-1"]
+
+    def test_qec_full_pull_failure_falls_back_per_card(self, json_store, monkeypatch):
+        """QEC/ER 全量拉取失败 → 回退逐卡直查，避免误判作废。"""
+        monkeypatch.setattr(amro_sync.amro.time, "monotonic", lambda: 1e9)
+        monkeypatch.setattr(amro_sync.amro.time, "sleep", lambda s: None)
+        r = json_store.add("QECJC-A320-1001-1", "卡", "机体", "QEC", "")
+        json_store.update(r["id"], write_date="2026-07-01 09:00:00")
+        fetched, queried = [], []
+
+        async def fetch(client, cookies, plugin, base_form, **kw):
+            fetched.append(plugin)
+            raise RuntimeError("AMRO 全量拉取失败（瞬态）")
+
+        async def query(client, cookies, plugin, form, **kw):
+            queried.append((plugin, dict(form)))
+            if form.get("jcno") == "QECJC-A320-1001-1":
+                return {"code": 200, "data": {"JC_NO": "QECJC-A320-1001-1",
+                                              "WRITE_DATE": "2026-08-01 09:00:00"}}
+            return {"code": 200, "data": {}}
+
+        rep = _run(amro_sync.check_cards_against_amro(
+            json_store, None, {}, ["QECJC-A320-1001-1"], fetch=fetch, query=query))
+        assert "TD_JC_ALL_QECJC_LIST" in fetched
+        assert queried == [("TD_JC_ALL_GET_ENTITY_BY_JCNO", {"jcno": "QECJC-A320-1001-1"})]
+        assert [r["task_code"] for r in rep["revised"]] == ["QECJC-A320-1001-1"]
+
+    def test_out_of_scope_skipped_not_cancelled(self, json_store, monkeypatch, tmp_path):
+        """非四家族卡（如 NRC/航线）全库检查跳过：不查、不误报作废、保留在主库。"""
+        monkeypatch.setattr(amro_sync.amro.time, "monotonic", lambda: 1e9)
+        monkeypatch.setattr(amro_sync.amro.time, "sleep", lambda s: None)
+        cancelled_store = CancelledCardStore(str(tmp_path / "cancelled.json"))
+        r = json_store.add("NRC12345", "非四家族卡", "机体", "", "")
+
+        async def fetch(client, cookies, plugin, base_form, **kw):
+            return []
+
+        rep = _run(amro_sync.full_version_check(
+            json_store, None, {}, fetch=fetch, cancelled_store=cancelled_store))
+        assert rep["checked"] == 0
+        assert rep["cancelled"] == []
+        assert json_store.get(r["id"]) is not None   # 保留在主库
+
+    def test_package_out_of_scope_skipped(self, json_store, monkeypatch):
+        """包内非四家族卡不参与版本检查：checked 不计入、不查、不报作废。"""
+        monkeypatch.setattr(amro_sync.amro.time, "monotonic", lambda: 1e9)
+        monkeypatch.setattr(amro_sync.amro.time, "sleep", lambda s: None)
+        json_store.add("NRC12345", "非四家族卡", "机体", "", "")
+        queried = []
+
+        async def query(client, cookies, plugin, form, **kw):
+            queried.append(form.get("jcno"))
+            return {"code": 200, "data": {}}
+
+        rep = _run(amro_sync.check_cards_against_amro(
+            json_store, None, {}, ["NRC12345"], query=query))
+        assert queried == []           # 非四家族不查
+        assert rep["checked"] == 0
+        assert rep["cancelled"] == []

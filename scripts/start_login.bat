@@ -65,7 +65,17 @@ if errorlevel 1 (
 echo [安装完成] 运行环境就绪
 
 :run
+rem 一键登录协议（ReqManLogin://host:port）传入来源时，按来源动态定址上传，配置包通用
+if not "%~1"=="" (
+    set "ARG=%~1"
+    set "HOST=%ARG:ReqManLogin://=%"
+    if not "%HOST%"=="%ARG%" (
+        .runtime\venv\Scripts\python amro_login.py --server http://%HOST%
+        goto :after_login
+    )
+)
 .runtime\venv\Scripts\python amro_login.py
+:after_login
 set "LOGIN_EXIT=%errorlevel%"
 if not "%LOGIN_EXIT%"=="0" (
     echo [登录未完成] 请查看上方错误信息，本窗口将在 5 秒后关闭

@@ -216,7 +216,8 @@ function pollVersionCheck(card) {
         intervalMs: 2000,
         onDone: function(status, card) {
             var s = status.summary || {};
-            var msg = '查询完成：改版 ' + s.revised + ' 张，作废 ' + s.cancelled + ' 张';
+            var msg = '查询完成：改版 ' + (s.revised || 0) + ' 张，新增 ' + (s.new_added || 0)
+                    + ' 张，作废 ' + (s.cancelled || 0) + ' 张';
             card.done(msg);
             window.safeToast(msg, 'success', 8000);
             setTimeout(function() { window.location.reload(); }, 1500);

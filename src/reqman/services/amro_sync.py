@@ -435,6 +435,24 @@ async def _pull_smjc_versions(client, cookies, *, fetch=None) -> dict[str, dict]
             if (code := str(row.get("JC_NO", "")).strip())}
 
 
+async def _pull_amro_family(client, cookies, plugin, form, prefixes, *, fetch=None) -> dict[str, dict]:
+    """通用实时全量拉取某 AMRO 端点 → {task_code: row}（fleet 已在 form 内过滤）。
+
+    prefix 过滤避免邻族误并入（如 EOJC 端点也会带回 QECJC/ERJC）。拉取异常由调用方
+    回退逐卡 _get_entity_by_jcno，避免误判作废。
+    """
+    fetch = fetch or amro.fetch_all_pages
+    rows = await fetch(client, cookies, plugin, dict(form), timeout=150)
+    return {code: row for row in rows
+            if (code := str(row.get("JC_NO", "")).strip())
+            and code.startswith(prefixes)}
+
+
+# 飞机维护工卡（FLA）批量端点候选：待实时只读探测确认后加入 READONLY_PLUGINS。
+# 探测前保持不在白名单，_collect_card_versions 对其回退逐卡查询（功能不降级）。
+AMRO_FLA_PLUGIN = "TD_JC_NRCJC_LIST"
+
+
 async def _get_entity_by_jcno(client, cookies, jcno, *, query=None) -> dict | None:
     """TD_JC_ALL_GET_ENTITY_BY_JCNO 按卡号直查工卡实体 → row（查无返回 None）。
 
@@ -451,24 +469,75 @@ def _wd(row: dict | None) -> str:
     return str((row or {}).get("WRITE_DATE", "")).strip()
 
 
-async def _collect_card_versions(store, client, cookies, codes, *, fetch=None, query=None) -> dict[str, dict]:
-    """按卡号收集 AMRO 版本行（v3.6.0 取数策略，全量/逐包两处共用）。
+def _family_of(code: str) -> str:
+    """工卡所属权威源家族：CSC=定检，FLA=飞机维护，EO=EO工卡，QEC=QEC/ER。
 
-    定检例行卡（CSCA 前缀）→ SMJC 全量拉（fleet 过滤，约 2 页秒级）；
-    其余（EO/NRC/LS 等）→ TD_JC_ALL_GET_ENTITY_BY_JCNO 逐卡直查（~0.3s/次 + 限速），
-    实体端点两族通用，分类不精确也不会漏查。DP 前缀直接排除。
+    前缀兼容实际数据（如 CSCA* 归入 CSC 族）。非四家族 / 空 → 空串。
     """
-    wanted = {str(c).strip() for c in codes
-              if str(c).strip() and not str(c).strip().startswith("DP")}
+    code = str(code).strip().upper()
+    if code.startswith("CSC"):
+        return "CSC"
+    if code.startswith("FLA"):
+        return "FLA"
+    if code.startswith("EOJC"):
+        return "EO"
+    if code.startswith(("QECJC", "ERJC")):
+        return "QEC"
+    return ""
+
+
+def _is_in_scope(code: str) -> bool:
+    """仅四权威源家族参与版本检查（其余/DP 跳过，不查不判作废）。"""
+    return bool(_family_of(code))
+
+
+async def _collect_card_versions(store, client, cookies, codes, *, fetch=None, query=None) -> dict[str, dict]:
+    """按卡号收集 AMRO 版本行（实时四端点，全量/逐包两处共用）。
+
+    定检 CSC* → SMJC 全量拉；飞机维护 FLA* → FLA 端点全量拉（未确认前回退逐卡）；
+    QEC/ER（QECJC*/ERJC*）→ EOJC 端点全量拉；EO（EOJC*）→ 仅对候选集存在的号逐卡直查；
+    非四家族 / DP 不进 versions。各端点均按 fleet=A320 服务端过滤。
+    任一全量拉取失败 → 该家族回退逐卡 _get_entity_by_jcno，避免误判作废。
+    """
+    wanted = {str(c).strip() for c in codes if str(c).strip()}
+    fam: dict[str, set[str]] = {"CSC": set(), "FLA": set(), "QEC": set(), "EO": set()}
+    for c in wanted:
+        f = _family_of(c)
+        if f:
+            fam[f].add(c)
     versions: dict[str, dict] = {}
-    routine = {c for c in wanted if c.startswith("CSCA")}
-    other = wanted - routine
-    if routine:
-        versions.update(await _pull_smjc_versions(client, cookies, fetch=fetch))
-    for code in sorted(other):
-        row = await _get_entity_by_jcno(client, cookies, code, query=query)
-        if row is not None:
-            versions[code] = row
+
+    async def _fallback_per_card(codes_in: set[str]) -> None:
+        for code in sorted(codes_in):
+            row = await _get_entity_by_jcno(client, cookies, code, query=query)
+            if row is not None:
+                versions[code] = row
+
+    if fam["CSC"]:
+        try:
+            versions.update(await _pull_smjc_versions(client, cookies, fetch=fetch))
+        except (httpx.HTTPError, ValueError, RuntimeError):
+            await _fallback_per_card(fam["CSC"])
+    if fam["FLA"]:
+        # FLA 端点待实时只读探测确认后加入 amro.READONLY_PLUGINS；未确认前直走逐卡（不误判作废）。
+        if AMRO_FLA_PLUGIN in getattr(amro, "READONLY_PLUGINS", frozenset()):
+            try:
+                versions.update(await _pull_amro_family(
+                    client, cookies, AMRO_FLA_PLUGIN,
+                    {"rows": 500, "fleet": AMRO_CARD_FLEET}, ("FLA",), fetch=fetch))
+            except (httpx.HTTPError, ValueError, RuntimeError):
+                await _fallback_per_card(fam["FLA"])
+        else:
+            await _fallback_per_card(fam["FLA"])
+    if fam["QEC"]:
+        try:
+            versions.update(await _pull_amro_family(
+                client, cookies, "TD_JC_ALL_QECJC_LIST",
+                {"rows": 500, "fleet": AMRO_CARD_FLEET}, ("QECJC", "ERJC"), fetch=fetch))
+        except (httpx.HTTPError, ValueError, RuntimeError):
+            await _fallback_per_card(fam["QEC"])
+    if fam["EO"]:
+        await _fallback_per_card(fam["EO"])
     return versions
 
 
@@ -501,8 +570,8 @@ async def full_version_check(store, client, cookies, *, fetch=None, query=None,
                              cancelled_store=None) -> dict:
     """全库版本检查：库内卡逐一比对 AMRO 编写日期；作废整卡移入作废工卡库（决策#7 修订）。
 
-    DP 开头工卡（DP 项目）不在 AMRO 清单体系内，跳过不比对、不报作废。
-    checked = 参与比对的非 DP 卡数；cancelled_store=None 时作废仅入报告不删卡。
+    仅四权威源家族（CSC/FLA/EO/QEC-R）参与比对，其余（含 DP 项目）跳过不比对、不报作废。
+    checked = 参与比对的四家族卡数；cancelled_store=None 时作废仅入报告不删卡。
     """
     all_cards = store.get_all()
     versions = await _collect_card_versions(store, client, cookies,
@@ -512,7 +581,7 @@ async def full_version_check(store, client, cookies, *, fetch=None, query=None,
     checked = 0
     for card in all_cards:
         code = card.get("task_code", "")
-        if code.startswith("DP"):
+        if not _is_in_scope(code):
             continue
         checked += 1
         row = versions.get(code)
@@ -544,13 +613,12 @@ async def check_cards_against_amro(store, client, cookies, task_codes, *, fetch=
                                    cancelled_store=None) -> dict:
     """包级版本检查：拉清单 → 对指定工卡比对 AMRO 编写日期 → {revised, cancelled, checked}。
 
-    仅处理卡库已存在的卡（包内新卡由匹配流程负责，不进版本报告）；
+    仅处理卡库已存在的卡（包内新卡由人工前置入主库，不进版本报告）；
     作废整卡移入作废工卡库（cancelled_store=None 时仅入报告不删卡）。
-    取数复用 _collect_card_versions（v3.6.0 提速：CSCA 走 SMJC 全量拉，
-    其余逐卡直查，不再全量拉 EOJC 深分页）；DP 前缀直接排除：不查询、不误报作废。
+    取数复用 _collect_card_versions（四家族实时取数：CSC 走 SMJC 全量拉、FLA 走 FLA 端点、
+    QEC-R 走 EOJC 端点全量拉、EO 按卡号直查）；仅四家族参与，其余不查询、不误报作废。
     """
-    wanted = {str(c).strip() for c in task_codes
-              if str(c).strip() and not str(c).strip().startswith("DP")}
+    wanted = {str(c).strip() for c in task_codes if _is_in_scope(str(c).strip())}
     versions = await _collect_card_versions(store, client, cookies, wanted,
                                             fetch=fetch, query=query)
     all_cards = {c.get("task_code", ""): c for c in store.get_all()}
