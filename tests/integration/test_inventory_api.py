@@ -1,7 +1,9 @@
 """库存查询接口集成测试（mock AMRO）"""
 import io
+import re
 import zipfile
 from pathlib import Path
+from urllib.parse import unquote
 
 import openpyxl
 import pytest
@@ -36,9 +38,10 @@ def _build_demand(tmp_path: Path) -> Path:
 
 
 def _mock_amro_query(monkeypatch, app):
-    """预置登录并 mock 探活 + AMRO 查询。"""
+    """预置登录并 mock 探活 + AMRO 查询（不发起真实网络）。"""
     svc = app.extensions["inventory_service"]
     svc.session_store.save([{"name": "JSESSIONID", "value": "abc"}])
+    monkeypatch.setattr(svc, "check_login_state", lambda: "valid")
     monkeypatch.setattr(svc, "check_login", lambda: True)
 
     async def fake_query(client, cookies, pn):
@@ -88,24 +91,42 @@ class TestSession:
         assert data["data"]["ready"] is False
 
     def test_cache_probe_ok_ready(self, app, client, monkeypatch):
-        """缓存存在 + 探活成功 → P5 登录有效。"""
+        """缓存存在 + 探活成功 → 返回账号与登录时长。"""
         svc = app.extensions["inventory_service"]
-        svc.session_store.save([{"name": "JSESSIONID", "value": "abc"}])
+        svc.session_store.save([{"name": "JSESSIONID", "value": "abc"}], account="021219")
         monkeypatch.setattr(svc, "check_login", lambda: True)
         resp = client.get("/inventory/session", headers={"X-Requested-With": "XMLHttpRequest"})
         data = resp.get_json()
         assert data["data"]["ready"] is True
-        assert "登录有效" in data["data"]["message"]
+        assert data["data"]["state"] == "valid"
+        assert data["data"]["account"] == "021219"
+        assert "登录账号：021219已登录" in data["data"]["message"]
+        assert "login_duration_seconds" in data["data"]
 
     def test_cache_probe_fail_expired(self, app, client, monkeypatch):
-        """缓存存在 + 探活失败 → P7 登录已过期。"""
+        """缓存存在 + 探活失败 → P7 登录已失效。"""
         svc = app.extensions["inventory_service"]
-        svc.session_store.save([{"name": "JSESSIONID", "value": "abc"}])
+        svc.session_store.save([{"name": "JSESSIONID", "value": "abc"}], account="021219")
         monkeypatch.setattr(svc, "check_login", lambda: False)
+        svc._last_probe_state = "expired"
         resp = client.get("/inventory/session", headers={"X-Requested-With": "XMLHttpRequest"})
         data = resp.get_json()
         assert data["data"]["ready"] is False
+        assert data["data"]["state"] == "expired"
         assert "重新运行登录脚本" in data["data"]["message"]
+
+    def test_probe_error_state(self, app, client, monkeypatch):
+        """网络异常 → probe_error，不清缓存、不误报未登录。"""
+        svc = app.extensions["inventory_service"]
+        svc.session_store.save([{"name": "JSESSIONID", "value": "abc"}], account="021219")
+        monkeypatch.setattr(svc, "check_login", lambda: False)
+        svc._last_probe_state = "probe_error"
+        resp = client.get("/inventory/session", headers={"X-Requested-With": "XMLHttpRequest"})
+        data = resp.get_json()
+        assert data["data"]["ready"] is False
+        assert data["data"]["state"] == "probe_error"
+        assert "暂不可用" in data["data"]["message"]
+        assert svc.session_store.load() is not None  # 缓存保留
 
 
 class TestSetupPackage:
@@ -124,15 +145,16 @@ class TestSetupPackage:
         zf = zipfile.ZipFile(io.BytesIO(resp.data))
         return zf.read("start_login.bat").decode("utf-8")
 
-    def test_bat_foreground_with_fail_done(self, client):
-        """ZIP 内 start_login.bat 前台运行（无 start /min）、含 :fail/:done 标签与 pause。"""
+    def test_bat_foreground_auto_exit(self, client):
+        """ZIP 内 start_login.bat 前台运行、成功自动退出、失败传播退出码，不再要求回车。"""
         resp = client.get("/inventory/setup-package")
         assert resp.status_code == 200
         bat = self._bat_source(resp)
         assert "start /min" not in bat
         assert ":fail" in bat
-        assert ":done" in bat
-        assert "pause" in bat
+        assert "exit /b 0" in bat                       # 成功自动结束
+        assert "LOGIN_EXIT" in bat and "exit /b %LOGIN_EXIT%" in bat  # 失败传播码
+        assert ":done" not in bat                       # 不再保留 :done/pause 收尾
 
     def test_register_protocol_bat_self_locating(self, client):
         """register_protocol.bat 协议自定位（%~dp0，解压任意位置有效）+ 注册后立即启动登录，无桌面硬编码。"""
@@ -146,10 +168,10 @@ class TestSetupPackage:
         assert "%DESK%" not in bat                      # 不再探测桌面路径
         assert "amro_login_setup" not in bat
         assert 'call "%~dp0start_login.bat"' in bat     # 注册完成后立即启动登录
-        assert "pause" in bat
+        assert "exit /b %LOGIN_EXIT%" in bat            # 传播登录退出码，不再无条件 pause
         readme = zf.read("README.txt").decode("utf-8")
         assert "解压到【任意位置】" in readme
-        assert "注册+登录一步完成" in readme or "注册一键登录协议并立即启动登录" in readme
+        assert "无需点击页面按钮" in readme or "无需在窗口内回车" in readme
 
     def test_bat_install_compat(self, client):
         """ZIP 内 start_login.bat 安装兼容性：引号 cd、新镜像、代理豁免、免 Python 装 uv、venv 实跑校验。"""
@@ -209,12 +231,18 @@ class TestSetupPackage:
         assert "msedge.exe" in src
         assert "未检测到 Chrome/Edge，请安装浏览器后重试" in src
 
-    def test_py_login_version(self, client):
-        """amro_login.py 注入 LOGIN_VERSION 为当前版本（3）。"""
+    def test_py_login_version_and_auto_probe(self, client):
+        """amro_login.py 注入 LOGIN_VERSION=4，且为自动探活上传（无回车/无完成按钮）。"""
         resp = client.get("/inventory/setup-package")
         assert resp.status_code == 200
         src = self._py_source(resp)
-        assert 'LOGIN_VERSION = "3"' in src
+        assert 'LOGIN_VERSION = "4"' in src
+        assert "input(" not in src                      # 不再窗口回车
+        assert "_wait_confirm" not in src
+        assert "__reqman_done_btn" not in src           # 不再注入完成按钮
+        assert "MM_PARTNUMBERCHAXUN_LIST" in src        # 自动只读探活
+        assert "ACCOUNT_SELECTORS" in src               # 从页面读取账号
+        assert "raise SystemExit" in src                # 失败传播非零退出码
 
     def test_injects_configured_public_url(self, client, monkeypatch):
         """配置 AMRO_PUBLIC_URL → 注入配置的公网地址。"""
@@ -242,21 +270,38 @@ class TestCheckConfig:
 
 
 class TestLoginUpload:
-    def test_upload_saves(self, client):
+    def test_upload_saves_with_account(self, app, client):
         cookies_json = '[{"name":"JSESSIONID","value":"abc123"}]'
         resp = client.post(
             "/inventory/login/upload",
-            data={"cookies": cookies_json},
+            data={"cookies": cookies_json, "account": "021219"},
             headers={"X-Requested-With": "XMLHttpRequest"},
         )
         assert resp.status_code == 200
-        data = resp.get_json()
-        assert data["success"] is True
+        assert resp.get_json()["success"] is True
+        loaded = app.extensions["inventory_service"].session_store.load()
+        assert loaded["account"] == "021219"
+
+    def test_upload_requires_account(self, client):
+        resp = client.post(
+            "/inventory/login/upload",
+            data={"cookies": '[{"name":"JSESSIONID","value":"abc"}]'},
+            headers={"X-Requested-With": "XMLHttpRequest"},
+        )
+        assert resp.status_code == 400
+
+    def test_upload_requires_jsessionid(self, client):
+        resp = client.post(
+            "/inventory/login/upload",
+            data={"cookies": '[{"name":"OTHER","value":"x"}]', "account": "021219"},
+            headers={"X-Requested-With": "XMLHttpRequest"},
+        )
+        assert resp.status_code == 400
 
     def test_upload_invalid_json(self, client):
         resp = client.post(
             "/inventory/login/upload",
-            data={"cookies": "not json"},
+            data={"cookies": "not json", "account": "021219"},
             headers={"X-Requested-With": "XMLHttpRequest"},
         )
         assert resp.status_code == 400
@@ -277,6 +322,112 @@ class TestQuery:
         assert data["success"] is False
         assert "重新运行登录脚本" in data["message"]
 
+
+class TestDownloadFilenameEncoding:
+    """下载链接文件名 URL 编码：含 + 空格 & 的文件名必须经 quote 命中磁盘真实文件。"""
+
+    def test_download_with_special_chars_via_quoted_link(self, client, tmp_path, monkeypatch):
+        from urllib.parse import quote
+
+        import reqman.blueprints.inventory_bp as bp_mod
+        out_dir = tmp_path / "out_dl"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        monkeypatch.setattr(bp_mod, "OUTPUT_DIR", out_dir)
+        name = "定检需求单（B-6836 68A+24MO）2026.09.11_库存已填_20260904_152506.xlsx"
+        (out_dir / name).write_bytes(b"fake-xlsx")
+        resp = client.get(f"/inventory/download?file={quote(name)}")
+        assert resp.status_code == 200
+        assert resp.data == b"fake-xlsx"
+
+    def test_download_unencoded_plus_misses_file(self, client, tmp_path, monkeypatch):
+        """未编码的 + 被 WSGI 解码为空格 → 文件名不符 → 拒绝（证明编码必要）。"""
+        import reqman.blueprints.inventory_bp as bp_mod
+        out_dir = tmp_path / "out_dl2"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        monkeypatch.setattr(bp_mod, "OUTPUT_DIR", out_dir)
+        real = "68A+24MO_库存已填.xlsx"
+        (out_dir / real).write_bytes(b"fake")
+        resp = client.get(
+            "/inventory/download?file=68A+24MO_库存已填.xlsx",
+            headers={"X-Requested-With": "XMLHttpRequest"},
+        )
+        assert resp.status_code in (400, 404)  # 命中的是 "68A 24MO_库存已填.xlsx"（不存在）
+
+    def test_reconcile_keeps_encoded_link_when_file_exists(self, monkeypatch):
+        import tempfile
+        from urllib.parse import quote
+
+        import reqman.blueprints.inventory_bp as bp_mod
+        with tempfile.TemporaryDirectory() as td:
+            out_dir = Path(td)
+            monkeypatch.setattr(bp_mod, "OUTPUT_DIR", out_dir)
+            name = "68A+24MO_库存已填_20260904.xlsx"
+            (out_dir / name).write_bytes(b"x")
+            last = {"download_url": f"/inventory/download?file={quote(name)}"}
+            out = bp_mod._reconcile_inventory_download(dict(last))
+            assert out["download_url"] == last["download_url"]  # 保留原链接
+
+    def test_reconcile_falls_back_to_latest_and_quotes(self, monkeypatch):
+        import tempfile
+        from urllib.parse import quote
+
+        import reqman.blueprints.inventory_bp as bp_mod
+        with tempfile.TemporaryDirectory() as td:
+            out_dir = Path(td)
+            monkeypatch.setattr(bp_mod, "OUTPUT_DIR", out_dir)
+            latest = "定检需求单（B-6836 68A+24MO）_库存已填_20260905.xlsx"
+            (out_dir / latest).write_bytes(b"x")
+            stale = {"download_url": "/inventory/download?file=old_库存已填.xlsx"}
+            out = bp_mod._reconcile_inventory_download(dict(stale))
+            assert out["download_url"] == f"/inventory/download?file={quote(latest)}"
+
+    def test_reconcile_no_files_no_link(self, monkeypatch):
+        import tempfile
+
+        import reqman.blueprints.inventory_bp as bp_mod
+        with tempfile.TemporaryDirectory() as td:
+            monkeypatch.setattr(bp_mod, "OUTPUT_DIR", Path(td))
+            out = bp_mod._reconcile_inventory_download({"download_url": "/inventory/download?file=gone.xlsx"})
+            assert out["download_url"] == ""
+
+
+class TestRequireAmroSessionStates:
+    """前置探活三态：probe_error 放行（避免网络抖动误判未登录），none/expired 阻断。"""
+
+    def test_valid_allows_query(self, app, monkeypatch):
+        from reqman.services import amro_sync
+
+        svc = app.extensions["inventory_service"]
+        monkeypatch.setattr(svc, "check_login_state", lambda: "valid")
+        with app.test_request_context():
+            assert amro_sync.require_amro_session() is True
+
+    def test_probe_error_allows_query(self, app, monkeypatch):
+        from reqman.services import amro_sync
+
+        svc = app.extensions["inventory_service"]
+        monkeypatch.setattr(svc, "check_login_state", lambda: "probe_error")
+        with app.test_request_context():
+            assert amro_sync.require_amro_session() is True
+
+    def test_expired_blocks_query(self, app, monkeypatch):
+        from reqman.services import amro_sync
+
+        svc = app.extensions["inventory_service"]
+        monkeypatch.setattr(svc, "check_login_state", lambda: "expired")
+        with app.test_request_context():
+            assert amro_sync.require_amro_session() is False
+
+    def test_none_blocks_query(self, app, monkeypatch):
+        from reqman.services import amro_sync
+
+        svc = app.extensions["inventory_service"]
+        monkeypatch.setattr(svc, "check_login_state", lambda: "none")
+        with app.test_request_context():
+            assert amro_sync.require_amro_session() is False
+
+
+class TestQueryFlow:
     def test_query_success_returns_stats_and_file(self, app, client, tmp_path, monkeypatch, isolated_inventory):
         """成功路径：启动后台任务 → 轮询至 done → 统计 + 文件名 + 输出落盘 output/。"""
         _mock_amro_query(monkeypatch, app)
@@ -406,8 +557,6 @@ class TestLatestOutput:
         assert data["data"]["filename"] == "B_库存已填_2.xlsx"
 
 
-import re
-
 import reqman.services.amro_sync as amro_sync_mod
 
 
@@ -464,8 +613,8 @@ class TestInventoryLastQueryDisplay:
         assert "上次查询（" in html
         m = re.search(r'href="(/inventory/download\?file=[^"]+)"', html)
         assert m, "摘要块未渲染下载链接"
-        assert "已删除_库存已填" not in m.group(1)
-        assert "需求单_库存已填" in m.group(1)
-        dl = client.get(m.group(1))
+        assert "已删除_库存已填" not in unquote(m.group(1))
+        assert "需求单_库存已填" in unquote(m.group(1))  # 回退链接的文件名已 URL 编码
+        dl = client.get(m.group(1))  # 编码链接可直接下载命中真实文件
         assert dl.status_code == 200
         assert dl.data == b"xlsx-bytes"

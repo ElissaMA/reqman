@@ -66,18 +66,18 @@ echo [安装完成] 运行环境就绪
 
 :run
 .runtime\venv\Scripts\python amro_login.py
-if errorlevel 1 (
-    echo [登录未完成] 请查看上方错误信息，本窗口可安全关闭
-    goto :done
+set "LOGIN_EXIT=%errorlevel%"
+if not "%LOGIN_EXIT%"=="0" (
+    echo [登录未完成] 请查看上方错误信息，本窗口将在 5 秒后关闭
+    timeout /t 5 /nobreak >nul
+    exit /b %LOGIN_EXIT%
 )
-echo [已完成登录] 本窗口可安全关闭
-goto :done
+echo [已完成登录] 本窗口将在 3 秒后关闭
+timeout /t 3 /nobreak >nul
+exit /b 0
 
 
 :fail
 echo [安装失败] 可能是网络问题，请检查网络连接后重新运行，或手动安装运行环境
 pause
 exit /b 1
-
-:done
-pause

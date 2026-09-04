@@ -102,12 +102,12 @@ class TestCheckSession:
         client, _ = _make_client({"code": 100, "msg": "会话过期"})
         assert _run(amro.check_session(client, {}, "PN-1")) is False
 
-    def test_network_error_still_true(self):
+    def test_network_error_not_ready(self):
         class _FailClient:
             async def post(self, url, data=None, cookies=None, timeout=None):
                 raise httpx.ConnectError("no net")
 
-        assert _run(amro.check_session(_FailClient(), {}, "PN-1")) is True
+        assert _run(amro.check_session(_FailClient(), {}, "PN-1")) is False
 
 
 class TestQueryPlugin:

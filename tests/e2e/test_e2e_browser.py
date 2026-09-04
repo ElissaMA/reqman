@@ -262,7 +262,7 @@ def test_header_amro_login_trio(page, server_base):
     page.goto(server_base + "/card/list")
     page.wait_for_selector("#amroStatus")
     page.wait_for_selector("#amroQuickLogin")
-    assert "新建配置" in page.locator("a[href='/inventory/setup-package']").inner_text()
+    assert "下载登录配置包" in page.locator("a[href='/inventory/setup-package']").inner_text()
 
     # 点击徽章立即检查 → 徽章渲染为 ✅/❌ 两态之一（隔离DB无cookie → ❌）
     page.click("#amroStatus")
