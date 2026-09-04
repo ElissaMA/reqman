@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import NamedTuple
 
@@ -49,29 +50,81 @@ class InventoryService:
     def __init__(self, session_store: LoginSessionStore, max_concurrent: int = 10):
         self.session_store = session_store
         self.max_concurrent = max_concurrent
+        self._last_probe_state = "none"
+
+    @staticmethod
+    def _duration_seconds(login_at: str | None) -> int:
+        if not login_at:
+            return 0
+        try:
+            started = datetime.fromisoformat(login_at)
+            if started.tzinfo is None:
+                started = started.replace(tzinfo=timezone.utc)
+            now = datetime.now(timezone.utc)
+            return max(int((now - started.astimezone(timezone.utc)).total_seconds()), 0)
+        except (TypeError, ValueError, OverflowError):
+            return 0
+
+    async def _probe_cached_session(self, data: dict) -> str:
+        """严格探活：valid / expired / probe_error，不把网络异常当成有效。"""
+        async with httpx.AsyncClient(verify=True, trust_env=False) as client:
+            pn = data["cookies"].get("I_MFRPN") or "ST1946-107"
+            try:
+                await amro.query_single_pn(client, data["cookies"], pn, "01")
+                return "valid"
+            except amro.AmroSessionExpired:
+                return "expired"
+            except (httpx.HTTPError, OSError, ValueError, RuntimeError):
+                return "probe_error"
+
+    def check_login_state(self) -> str:
+        data = self.session_store.load()
+        if not data:
+            self._last_probe_state = "none"
+            return "none"
+        try:
+            state = asyncio.run(self._probe_cached_session(data))
+        except (httpx.HTTPError, OSError, ValueError, RuntimeError):
+            state = "probe_error"
+        self._last_probe_state = state
+        if state == "expired":
+            self.session_store.clear()
+        elif state in {"valid", "probe_error"}:
+            self.session_store.mark_probe(state)
+        return state
 
     def get_login_status(self) -> dict:
         data = self.session_store.load()
         if not data:
-            return {"ready": False, "remaining_seconds": 0}
-        return {"ready": self.check_login(), "remaining_seconds": self.session_store.remaining_seconds()}
+            self._last_probe_state = "none"
+            return {
+                "ready": False,
+                "state": "none",
+                "account": None,
+                "login_at": None,
+                "last_checked_at": None,
+                "login_duration_seconds": 0,
+            }
+        ready = self.check_login()
+        state = "valid" if ready else self._last_probe_state
+        if state not in {"valid", "expired", "probe_error"}:
+            state = "valid" if ready else "expired"
+        latest = self.session_store.load() or data
+        return {
+            "ready": ready,
+            "state": state,
+            "account": latest.get("account"),
+            "login_at": latest.get("login_at"),
+            "last_checked_at": latest.get("last_checked_at"),
+            "login_duration_seconds": self._duration_seconds(latest.get("login_at")),
+        }
 
     def check_login(self) -> bool:
-        """探活：有缓存则真实调用一次 AMRO API。"""
-        data = self.session_store.load()
-        if not data:
-            return False
-        async def _probe():
-            async with httpx.AsyncClient(verify=True) as client:
-                pn = data["cookies"].get("I_MFRPN") or "ST1946-107"
-                return await amro.check_session(client, data["cookies"], pn)
-        try:
-            return asyncio.run(_probe())
-        except (httpx.HTTPError, OSError, ValueError, RuntimeError):
-            return False
+        """探活：AMRO 明确失效才清缓存，网络异常返回不可用。"""
+        return self.check_login_state() == "valid"
 
-    def save_login(self, cookies: list[dict]) -> None:
-        self.session_store.save(cookies)
+    def save_login(self, cookies: list[dict], account: str | None = None) -> None:
+        self.session_store.save(cookies, account=account)
 
     def run_query(
         self,
@@ -98,7 +151,7 @@ class InventoryService:
             results: dict[str, float] = {}
             success = fail = 0
             sem = asyncio.Semaphore(self.max_concurrent)
-            async with httpx.AsyncClient(verify=True) as client:
+            async with httpx.AsyncClient(verify=True, trust_env=False) as client:
                 async def query_one(pn: str) -> None:
                     nonlocal success, fail
                     async with sem:

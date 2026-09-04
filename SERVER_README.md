@@ -93,7 +93,7 @@ scripts/            deploy.sh · db.sh · amro_login.py · start_login.bat · im
 
 | 变量 | 默认 | 说明 |
 |------|------|------|
-| `AMRO_SESSION_TTL` | 7200 | 登录凭证有效秒数 |
+| `AMRO_SESSION_TTL` | 0 | 已废弃：登录凭证长期有效，实际可用性由 AMRO 只读探活决定 |
 | `AMRO_RATE_SECONDS` | 1 | AMRO 请求最小间隔（限速保护） |
 | `AMRO_CARD_FLEET` | A320 | 工卡版本机队筛选 |
 | `AMRO_AC_FLEET` | A320 | 飞机同步机队过滤 |
@@ -108,6 +108,8 @@ scripts/            deploy.sh · db.sh · amro_login.py · start_login.bat · im
 ## 库存查询运维注意
 
 - 服务器无 GUI，AMRO 登录必须由用户在本机完成；凭证由本机脚本上传，服务器不持有密码。
+- 登录脚本（v4）在浏览器完成登录后自动读取账号、探活并上传，无需人工点击按钮或窗口回车；上传接口要求携带账号，Cookie 长期有效但实际可用性以 AMRO 探活为准（明确失效会清缓存，网络异常不误判）。
+- `data/cookie/` 存放明文会话 Cookie，属敏感文件，禁止纳入代码包或上传；`/inventory/login/upload` 当前无鉴权，公网部署应配合 HTTPS 与访问控制。
 - 输出暂存 `output/`，用户经页面「下载副本」获取；新查询自动清理旧 `*_库存已填_*.xlsx` 暂存。
 
 ## 常见问题

@@ -15,6 +15,7 @@ import threading
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -193,10 +194,11 @@ def package_report_label(pkg_data: dict) -> str:
 # ---------- AMRO 会话前置检查 ----------
 
 def require_amro_session() -> bool:
-    """AMRO 功能前置检查（spec §3.2）：真实探活一次，失效由路由层 401+P8 阻断。"""
+    """AMRO 功能前置检查：仅 无凭证/明确失效 阻断；网络未知（probe_error）放行，
+    避免偶发网络抖动/限流被误判未登录（真实失效由查询自身的 AMRO 调用暴露并 401）。"""
     from flask import current_app
     svc = current_app.extensions["inventory_service"]
-    return svc.check_login()
+    return svc.check_login_state() in ("valid", "probe_error")
 
 
 # ---------- 飞机域 ----------
@@ -775,7 +777,7 @@ def start_inventory_query(svc, staged_path: Path, output_stem: str,
                    f"失败 {result.fail}，标红 {result.shortage}，标黄 {result.warning}")
         save_last_query_result(
             "inventory_query", "查询库存", summary,
-            download_url=f"/inventory/download?file={filename}", output_dir=OUTPUT_DIR,
+            download_url=f"/inventory/download?file={quote(filename)}", output_dir=OUTPUT_DIR,
         )
         return {"filename": filename, "total": result.total, "success": result.success,
                 "fail": result.fail, "shortage": result.shortage, "warning": result.warning}

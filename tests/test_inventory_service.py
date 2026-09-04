@@ -13,35 +13,42 @@ def _store(tmp_path: Path):
 
 class TestGetLoginStatus:
     def test_not_ready(self, tmp_path: Path):
-        svc = InventoryService(_store(tmp_path))
-        status = svc.get_login_status()
+        status = InventoryService(_store(tmp_path)).get_login_status()
         assert status["ready"] is False
-        assert status["remaining_seconds"] == 0
+        assert status["state"] == "none"
+        assert status["account"] is None
+        assert status["login_duration_seconds"] == 0
 
     def test_ready_with_probe(self, tmp_path: Path, monkeypatch):
         store = _store(tmp_path)
-        store.save([{"name": "JSESSIONID", "value": "abc"}])
+        store.save([{"name": "JSESSIONID", "value": "abc"}], account="021219")
         svc = InventoryService(store)
         monkeypatch.setattr(svc, "check_login", lambda: True)
         status = svc.get_login_status()
         assert status["ready"] is True
-        assert status["remaining_seconds"] > 0
+        assert status["state"] == "valid"
+        assert status["account"] == "021219"
+        assert status["login_duration_seconds"] >= 0
 
     def test_probe_failed_not_ready(self, tmp_path: Path, monkeypatch):
         store = _store(tmp_path)
-        store.save([{"name": "JSESSIONID", "value": "abc"}])
+        store.save([{"name": "JSESSIONID", "value": "abc"}], account="021219")
         svc = InventoryService(store)
         monkeypatch.setattr(svc, "check_login", lambda: False)
+        svc._last_probe_state = "probe_error"
         status = svc.get_login_status()
         assert status["ready"] is False
+        assert status["state"] == "probe_error"
 
 
 class TestSaveLogin:
     def test_saves_and_ready(self, tmp_path: Path):
         store = _store(tmp_path)
         svc = InventoryService(store)
-        svc.save_login([{"name": "JSESSIONID", "value": "xyz"}])
-        assert store.load()["cookies"]["JSESSIONID"] == "xyz"
+        svc.save_login([{"name": "JSESSIONID", "value": "xyz"}], account="021219")
+        loaded = store.load()
+        assert loaded["cookies"]["JSESSIONID"] == "xyz"
+        assert loaded["account"] == "021219"
 
 
 class TestRunQuery:

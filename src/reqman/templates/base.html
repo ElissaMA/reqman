@@ -244,8 +244,8 @@
             <div id="amroAlert" class="topbar-alert" style="display:none"></div>
             <span class="d-flex align-items-center gap-2">
                 <span class="badge rounded-pill bg-secondary" id="amroStatus" style="cursor:pointer" title="点击立即检查 AMRO 登录状态">AMRO …</span>
-                <button class="btn btn-outline-secondary btn-sm" id="amroQuickLogin" title="唤起桌面一键登录脚本（需一次性注册 ReqManLogin 协议）">⚡一键登录</button>
-                <a class="btn btn-outline-secondary btn-sm" href="/inventory/setup-package" title="下载 AMRO 登录脚本配置包">🛠新建配置</a>
+                <button class="btn btn-outline-secondary btn-sm" id="amroQuickLogin" title="唤起本机 AMRO 登录脚本（需一次性注册 ReqManLogin 协议）">⚡登录 AMRO</button>
+                <a class="btn btn-outline-secondary btn-sm" href="/inventory/setup-package" title="下载 AMRO 登录脚本配置包">⬇下载登录配置包</a>
             </span>
         </div>
         <div class="main-content">
@@ -343,22 +343,44 @@
         return { run: run };
     })();
 
-    // ===== AMRO 登录状态（表头常驻：10 分钟轮询 + 点击徽章立即检查）=====
-    window.amroSession = { ready: false, message: '', remaining: 0 };
-    var AMRO_P6 = '⚠️ 登录有效期内若在其他浏览器/设备登录川航 AMRO，当前登录将被挤掉失效，需重新运行登录脚本';
+    // ===== AMRO 登录状态（长期缓存 + 页面回焦探活）=====
+    window.amroSession = { ready: false, state: 'none', message: '', account: null, loginAt: null, duration: 0 };
+    var amroProbeInFlight = null;
+    var amroLoginPollTimer = null;
+    function formatLoginDuration(seconds) {
+        seconds = Math.max(parseInt(seconds || 0, 10), 0);
+        var days = Math.floor(seconds / 86400);
+        var hours = Math.floor((seconds % 86400) / 3600);
+        var minutes = Math.floor((seconds % 3600) / 60);
+        return days + '天' + hours + '小时' + minutes + '分钟';
+    }
     window.amroCheckNow = function() {
-        return fetch('/inventory/session', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        if (amroProbeInFlight) return amroProbeInFlight;
+        amroProbeInFlight = fetch('/inventory/session', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
             .then(function(r) { return r.json(); })
             .then(function(d) {
                 var data = (d && d.data) || {};
-                window.amroSession = { ready: !!data.ready, message: data.message || '', remaining: data.remaining_seconds || 0 };
+                window.amroSession = {
+                    ready: !!data.ready,
+                    state: data.state || 'none',
+                    message: data.message || '',
+                    account: data.account || null,
+                    loginAt: data.login_at || null,
+                    duration: data.login_duration_seconds || 0
+                };
                 var badge = document.getElementById('amroStatus');
                 var alertBox = document.getElementById('amroAlert');
+                var duration = formatLoginDuration(data.login_duration_seconds);
                 if (badge) {
                     if (data.ready) {
-                        var mins = Math.max(Math.round((data.remaining_seconds || 0) / 60), 1);
-                        badge.textContent = 'AMRO ✅ 剩余' + mins + '分';
+                        badge.textContent = 'AMRO ✅ ' + (data.account || '未登记') + '已登录';
                         badge.className = 'badge rounded-pill bg-success';
+                    } else if (data.state === 'probe_error') {
+                        badge.textContent = 'AMRO ⚠️ 暂不可用';
+                        badge.className = 'badge rounded-pill bg-warning text-dark';
+                    } else if (data.state === 'expired') {
+                        badge.textContent = 'AMRO ❌ 已失效';
+                        badge.className = 'badge rounded-pill bg-danger';
                     } else {
                         badge.textContent = 'AMRO ❌ 未登录';
                         badge.className = 'badge rounded-pill bg-danger';
@@ -367,7 +389,8 @@
                 if (alertBox) {
                     if (data.ready) {
                         alertBox.className = 'topbar-alert topbar-info';
-                        alertBox.innerHTML = '<span class="text-muted">' + AMRO_P6 + '</span>';
+                        alertBox.textContent = (data.message || ('登录账号：' + (data.account || '未登记') + '已登录'))
+                            + ' · 登录时长：' + duration;
                     } else {
                         alertBox.className = 'topbar-alert topbar-warn';
                         alertBox.textContent = data.message || 'AMRO 未登录';
@@ -375,23 +398,55 @@
                     alertBox.style.display = 'block';
                 }
                 return window.amroSession;
-            }).catch(function() { return window.amroSession; });
+            }).catch(function() {
+                window.amroSession.state = 'probe_error';
+                return window.amroSession;
+            }).finally(function() { amroProbeInFlight = null; });
+        return amroProbeInFlight;
     };
+    function stopAmroLoginPoll() {
+        if (amroLoginPollTimer) {
+            clearInterval(amroLoginPollTimer);
+            amroLoginPollTimer = null;
+        }
+    }
     document.getElementById('amroStatus').addEventListener('click', function() { window.amroCheckNow(); });
     document.getElementById('amroQuickLogin').addEventListener('click', function() {
-        var launched = false;
-        var onBlur = function() { launched = true; };
-        window.addEventListener('blur', onBlur);
-        setTimeout(function() {
-            window.removeEventListener('blur', onBlur);
-            if (!launched) {
-                window.safeToast('一键登录未响应：可能尚未注册协议。请点击「新建配置」下载 ZIP，解压到任意位置后双击 register_protocol.bat（每台机器一次，注册+登录一步完成），或直接双击其中的 start_login.bat 登录', 'warning', 8000);
-            }
-        }, 8000);
+        var baseline = { loginAt: window.amroSession.loginAt, account: window.amroSession.account };
+        stopAmroLoginPoll();
+        window.safeToast('登录脚本已启动，请在 AMRO 页面完成登录，系统将自动获取凭证', 'info', 8000);
         window.location.href = 'ReqManLogin://login';
+        var startedAt = Date.now();
+        amroLoginPollTimer = setInterval(function() {
+            window.amroCheckNow().then(function(status) {
+                var isNewLogin = status.ready && (!baseline.loginAt || status.loginAt !== baseline.loginAt || status.account !== baseline.account);
+                if (isNewLogin) {
+                    stopAmroLoginPoll();
+                    window.safeToast('登录账号：' + (status.account || '未登记') + '已登录', 'success', 5000);
+                } else if (Date.now() - startedAt >= 300000) {
+                    stopAmroLoginPoll();
+                    window.safeToast('等待登录脚本超时：请确认已运行最新配置包并完成 AMRO 登录', 'warning', 8000);
+                }
+            });
+        }, 2000);
+    });
+    window.addEventListener('focus', function() { window.amroCheckNow(); });
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) window.amroCheckNow();
     });
     window.amroCheckNow();
     setInterval(window.amroCheckNow, 600000);
+    setInterval(function() {
+        if (!window.amroSession.ready || !window.amroSession.loginAt) return;
+        var badge = document.getElementById('amroStatus');
+        var alertBox = document.getElementById('amroAlert');
+        var duration = formatLoginDuration((window.amroSession.duration || 0) + 60);
+        window.amroSession.duration = (window.amroSession.duration || 0) + 60;
+        if (alertBox && alertBox.classList.contains('topbar-info')) {
+            alertBox.textContent = (window.amroSession.message || ('登录账号：' + (window.amroSession.account || '未登记') + '已登录'))
+                + ' · 登录时长：' + duration;
+        }
+    }, 60000);
 </script>
 
 {# 公共前端辅助：统一判空 / 表格监听 / 登录态校验 / 后台查询轮询收敛 #}

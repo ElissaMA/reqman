@@ -124,7 +124,7 @@ async def check_session(
     except RuntimeError as e:
         return not ("登录已失效" in str(e) or "会话过期" in str(e))
     except (httpx.HTTPError, ValueError):
-        return True
+        return False
 
 
 # ---------- 通用只读调用器（v3.5.0 三域同步基座） ----------
