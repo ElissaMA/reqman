@@ -2,7 +2,7 @@
 
 import logging
 
-from flask import current_app, flash, jsonify, redirect, render_template, request
+from flask import current_app, flash, redirect, render_template, request
 
 from ...config import CATEGORIES, REMINDER_TYPES, USAGE_TYPES
 from ...services.card_service import ServiceError
@@ -189,14 +189,14 @@ def card_set_detail(set_id):
     try:
         card_set = current_app.extensions['card_service'].get_card_set(set_id)
         if not card_set:
-            return jsonify({"error": "not found"}), 404
+            return api_error("工卡组不存在", "NOT_FOUND", 404)
         cards_in_set = current_app.extensions['card_service'].get_cards_in_set(set_id)
         card_set["cards"] = [{"task_code": c["task_code"], "task_name": c.get("task_name", "")}
                              for c in cards_in_set]
-        return jsonify(card_set)
+        return api_success(data=card_set)
     except Exception:
         logger.exception("获取工卡组详情失败")
-        return jsonify({"error": "server error"}), 500
+        return api_error("服务器错误", "SERVER_ERROR", 500)
 
 
 @cards_bp.route("/card/sets/<int:set_id>/delete", methods=["POST"])

@@ -318,7 +318,7 @@ document.getElementById("cardTableBody").addEventListener("change", function(e) 
         fetch("/card/list-json")
             .then(function(r) { return r.json(); })
             .then(function(data) {
-                allCards = data;
+                allCards = (data && data.data) ? data.data : [];
                 loadAllCards();
                 renderSelectedCards();
             });

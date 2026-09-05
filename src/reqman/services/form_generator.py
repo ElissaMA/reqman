@@ -34,11 +34,6 @@ LEFT_CENTER = Alignment(horizontal="left", vertical="center")
 DATA_ALIGN_CENTER = Alignment(horizontal="center", vertical="center", wrap_text=True)
 COLS = 9
 ROW_HEIGHT_DATA = 34
-CATEGORY_ORDER = {
-    0: "发动机",
-    1: "机体",
-    2: "电子",
-}
 
 
 def set_border(ws, row, col, border=FULL_THIN):

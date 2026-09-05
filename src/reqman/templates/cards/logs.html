@@ -197,8 +197,9 @@ function previewTarget(el) {
             return r.json();
         })
         .then(function(d) {
-            if (d.error) throw new Error(d.error);
-            var html = type === 'set' ? renderSetPreview(d) : (type === 'aircraft' ? renderAircraftPreview(d) : renderCardPreview(d));
+            if (!d.success) throw new Error(d.message || 'not found');
+            var payload = d.data || d;
+            var html = type === 'set' ? renderSetPreview(payload) : (type === 'aircraft' ? renderAircraftPreview(payload) : renderCardPreview(payload));
             document.getElementById('previewContent').innerHTML = html;
         })
         .catch(function() {

@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 
 from flask import Blueprint, current_app, flash, redirect, render_template, request, send_file
 
-from ..config import CATEGORIES, CONDITIONS, OUTPUT_DIR
+from ..config import CATEGORIES, CATEGORY_ORDER, CONDITIONS, OUTPUT_DIR
 from ..services.amro_sync import build_package_label
 from ..services.form_generator import generate_form
 from ..services.reminder_generator import generate_reminder
@@ -37,10 +37,13 @@ def _ensure_package_matched(pkg_data):
     matched, new_cards, cancelled = match_work_package_items(all_items, store, service)
 
     # 后处理：三块（工具/航材/提醒）任一未确认的工卡从已匹配移入新工卡区域
+    # 一次性批量查卡，避免循环内逐条 find_by_code 的 N+1 整库重读
+    codes = [item["task_code"] for item in matched if item.get("task_code")]
+    cards_by_code = store.find_by_codes(codes)
     unconfirmed = []
     still_matched = []
     for item in matched:
-        card = store.find_by_code(item["task_code"])
+        card = cards_by_code.get(item.get("task_code", ""))
         if card:
             tools_ok = card.get("tools_confirmed", False)
             materials_ok = card.get("materials_confirmed", False)
@@ -224,8 +227,8 @@ def _handle_generate_preview(pkg_data: dict, package_id: str):
     matched = pkg_data.get("matched", [])
     new_cards = pkg_data.get("new_cards", [])
 
-    # 分类排序权重
-    cat_order = {"发动机": 0, "机体": 1, "电子": 2}
+    # 分类排序权重（统一来源 config.CATEGORY_ORDER）
+    cat_order = CATEGORY_ORDER
 
     # 预览工具/航材/备用（按set_id去重，每组只取第一条代表输出）
     tool_preview, mat_preview, spare_preview = [], [], []

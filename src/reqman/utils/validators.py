@@ -33,45 +33,6 @@ def validate_required(data, field, label=None):
     return clean_text(value)
 
 
-def validate_required_fields(data, *fields, labels=None):
-    """批量验证多个必填字段，返回字段值元组"""
-    labels = labels or {}
-    results = []
-    for field in fields:
-        label = labels.get(field, field)
-        value = validate_required(data, field, label=label)
-        results.append(value)
-    return tuple(results) if len(results) > 1 else results[0]
-
-
-def validate_str_length(value, field, min_len=1, max_len=None, label=None):
-    """验证字符串长度"""
-    name = label or field
-    if len(value) < min_len:
-        raise ValidationError(f"{name}长度不能少于{min_len}个字符")
-    if max_len and len(value) > max_len:
-        raise ValidationError(f"{name}长度不能超过{max_len}个字符")
-    return value
-
-
-def validate_int(value, field, label=None):
-    """验证整数范围"""
-    name = label or field
-    try:
-        return int(value)
-    except (ValueError, TypeError):
-        raise ValidationError(f"{name}必须是数字")
-
-
-def validate_choice(value, choices, field, label=None):
-    """验证字段值必须在允许的选项中"""
-    name = label or field
-    if value not in choices:
-        allowed = ", ".join(str(c) for c in choices)
-        raise ValidationError(f"{name}必须是以下值之一: {allowed}")
-    return value
-
-
 def validate_file_extension(filename, allowed_extensions, label=None):
     """验证文件扩展名"""
     name = label or "文件"
@@ -82,11 +43,3 @@ def validate_file_extension(filename, allowed_extensions, label=None):
         allowed = ", ".join(f".{e}" for e in allowed_extensions)
         raise ValidationError(f"{name}格式不支持，仅支持: {allowed}")
     return ext
-
-
-def validate_tools_mats(tools, materials, tools_confirmed=False, materials_confirmed=False):
-    """验证工具/航材至少有一项或有确认标志"""
-    if not tools and not tools_confirmed:
-        raise ValidationError("请添加工具或确认无工具")
-    if not materials and not materials_confirmed:
-        raise ValidationError("请添加航材或确认无航材")

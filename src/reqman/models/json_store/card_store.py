@@ -143,6 +143,44 @@ class CardStore(JsonStoreCore):
             self._write(db)
             return self._norm(card, "card")
 
+    def bulk_update(self, updates: dict) -> None:
+        """批量更新工卡字段：单次读取 + 单次写入，消除逐卡 update 的 N+1 全文件 IO。
+
+        updates: {card_id: {field: value, ...}}；支持 write_date/card_ok 等合法字段，
+        自动维护工卡号索引与变更日志（与 update 行为一致）。
+        """
+        if not updates:
+            return
+        with self._lock:
+            db = self._read()
+            cards = db.get("cards", {})
+            code_index = db.setdefault("code_index", {})
+            for card_id, fields in updates.items():
+                card = cards.get(str(card_id))
+                if card is None:
+                    continue
+                old_card = dict(card)
+                for key in ("task_code", "task_name", "category", "task_type", "remark",
+                            "tools", "materials", "set_id", "tools_confirmed",
+                            "materials_confirmed", "reminder_type", "card_ok",
+                            "reminder_confirmed", "write_date"):
+                    if key in fields:
+                        card[key] = fields[key]
+                card["log_time"] = _today_iso()
+                old_code = old_card.get("task_code")
+                new_code = card.get("task_code")
+                if old_code and old_code != new_code:
+                    owner = code_index.get(new_code)
+                    if new_code and owner is not None and owner != card_id:
+                        raise ValueError(f"工卡号 {new_code} 已存在（卡 {owner}）")
+                    code_index.pop(old_code, None)
+                    if new_code:
+                        code_index[new_code] = card_id
+                changes = self._detect_changes(old_card, card, self._CARD_FIELDS)
+                self._add_log(db, "update", "card", card_id,
+                              card.get("task_code", ""), card.get("task_name", ""), changes)
+            self._write(db)
+
     def delete(self, card_id: int) -> bool:
         with self._lock:
             db = self._read()
@@ -330,6 +368,51 @@ class CardStore(JsonStoreCore):
                           ac.get("reg", ""), ac.get("model", ""), [])
             self._write(db)
             return True
+
+    def bulk_aircraft_sync(self, updates: dict, deletes: list, adds: list) -> None:
+        """飞机同步批量落盘：新增/更新/删除在单次读取 + 单次写入内完成，
+        消除逐架 store 方法的全文件 IO（134 架场景从 ~15s 降至一次写盘）。
+
+        updates: {aircraft_id: {field: value, ...}}
+        deletes: [aircraft_id, ...]
+        adds:    [{reg, model, engine, fsn, msn, apu}, ...]
+        """
+        with self._lock:
+            db = self._read()
+            acs = db.setdefault("aircraft", {})
+            for aid, fields in updates.items():
+                ac = acs.get(str(aid))
+                if ac is None:
+                    continue
+                old = dict(ac)
+                for key in ("reg", "model", "engine", "fsn", "msn", "apu"):
+                    if key in fields:
+                        ac[key] = fields[key]
+                ac["log_time"] = _today_iso()
+                changes = self._detect_changes(old, ac, self._AIRCRAFT_FIELDS)
+                self._add_log(db, "update", "aircraft", aid,
+                              ac.get("reg", ""), ac.get("model", ""), changes)
+            for aid in deletes:
+                ac = acs.pop(str(aid), None)
+                if ac:
+                    self._add_log(db, "delete", "aircraft", aid,
+                                  ac.get("reg", ""), ac.get("model", ""), [])
+            for a in adds:
+                aid = self._next_id(db)
+                ac = {
+                    "id": aid,
+                    "reg": a.get("reg", ""),
+                    "model": a.get("model", ""),
+                    "engine": a.get("engine", ""),
+                    "fsn": a.get("fsn", ""),
+                    "msn": a.get("msn", ""),
+                    "apu": a.get("apu", ""),
+                    "log_time": _today_iso(),
+                }
+                acs[str(aid)] = ac
+                self._add_log(db, "add", "aircraft", aid,
+                              ac.get("reg", ""), ac.get("model", ""), [])
+            self._write(db)
 
     # ---------- 工卡组同步 ----------
 

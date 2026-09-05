@@ -412,6 +412,7 @@ async def full_version_check(store, client, cookies, *, fetch=None, query=None,
                                             [c.get("task_code", "") for c in all_cards],
                                             fetch=fetch, query=query)
     revised, new_added, cancelled = [], [], []
+    write_date_updates = {}
     checked = 0
     for card in all_cards:
         code = card.get("task_code", "")
@@ -429,17 +430,19 @@ async def full_version_check(store, client, cookies, *, fetch=None, query=None,
         old_wd = str(card.get("write_date", "")).strip()
         if new_wd:
             if not old_wd:   # 原库无编写日期 → 本次新增（不计入改版）
-                store.update(card["id"], write_date=new_wd)
+                write_date_updates[card["id"]] = {"write_date": new_wd}
                 new_added.append({"task_code": code,
                                   "task_name": card.get("task_name", ""),
                                   "category": card.get("category", ""),
                                   "old_wd": "", "new_wd": new_wd})
             elif new_wd[:10] != old_wd[:10]:   # 按日期部分比对（界面 date 只存 YYYY-MM-DD）
-                store.update(card["id"], write_date=new_wd)
+                write_date_updates[card["id"]] = {"write_date": new_wd}
                 revised.append({"task_code": code,
                                 "task_name": card.get("task_name", ""),
                                 "category": card.get("category", ""),
                                 "old_wd": old_wd, "new_wd": new_wd})
+    if write_date_updates:
+        store.bulk_update(write_date_updates)
     return {"revised": revised, "new_added": new_added, "cancelled": cancelled, "checked": checked}
 
 
@@ -458,6 +461,7 @@ async def check_cards_against_amro(store, client, cookies, task_codes, *, fetch=
                                             fetch=fetch, query=query)
     all_cards = {c.get("task_code", ""): c for c in store.get_all()}
     revised, new_added, cancelled = [], [], []
+    write_date_updates = {}
     for code in sorted(wanted):
         card = all_cards.get(code)
         if card is None:
@@ -473,15 +477,17 @@ async def check_cards_against_amro(store, client, cookies, task_codes, *, fetch=
         old_wd = str(card.get("write_date", "")).strip()
         if new_wd:
             if not old_wd:   # 原库无编写日期 → 本次新增（不计入改版）
-                store.update(card["id"], write_date=new_wd)
+                write_date_updates[card["id"]] = {"write_date": new_wd}
                 new_added.append({"task_code": code,
                                   "task_name": card.get("task_name", ""),
                                   "category": card.get("category", ""),
                                   "old_wd": "", "new_wd": new_wd})
             elif new_wd[:10] != old_wd[:10]:   # 按日期部分比对（界面 date 只存 YYYY-MM-DD）
-                store.update(card["id"], write_date=new_wd)
+                write_date_updates[card["id"]] = {"write_date": new_wd}
                 revised.append({"task_code": code,
                                 "task_name": card.get("task_name", ""),
                                 "category": card.get("category", ""),
                                 "old_wd": old_wd, "new_wd": new_wd})
+    if write_date_updates:
+        store.bulk_update(write_date_updates)
     return {"revised": revised, "new_added": new_added, "cancelled": cancelled, "checked": len(wanted)}

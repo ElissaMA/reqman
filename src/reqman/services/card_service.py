@@ -227,17 +227,19 @@ class CardService:
         return self.store.get_set(set_id)
 
     def _assign_cards_to_set(self, set_id: int, card_codes: list[str]):
-        """将指定工卡关联到工卡组，同时解除不再属于此组的工卡"""
+        """将指定工卡关联到工卡组，同时解除不再属于此组的工卡（单次写盘）"""
         all_cards = self.store.get_all()
         codes = set(card_codes)
-
+        updates = {}
         for card in all_cards:
             code = card["task_code"]
             if code in codes:
                 if card.get("set_id") != set_id:
-                    self.store.update(card["id"], set_id=set_id)
+                    updates[card["id"]] = {"set_id": set_id}
             elif card.get("set_id") == set_id:
-                self.store.update(card["id"], set_id=None)
+                updates[card["id"]] = {"set_id": None}
+        if updates:
+            self.store.bulk_update(updates)
 
     def delete_card_set(self, set_id: int) -> None:
         if not self.store.delete_set(set_id):
@@ -401,9 +403,3 @@ class CardService:
     def delete_logs(self, log_ids: list[int]) -> int:
         """删除指定 ID 的日志，返回删除数量"""
         return self.store.delete_logs(log_ids)
-
-    def get_logs_by_ids(self, log_ids: list[int]) -> list[dict]:
-        """根据 ID 列表查询日志"""
-        all_logs = self.store.get_logs()
-        log_ids_set = set(log_ids)
-        return [log for log in all_logs if log.get("id") in log_ids_set]

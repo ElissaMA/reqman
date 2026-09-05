@@ -63,26 +63,24 @@ async def sync_aircraft(store, client, cookies, *, fetch=None) -> dict:
 
     existing_by_key = {_norm_reg(a.get("reg", "")): a for a in store.get_all_aircraft()}
 
-    added = updated = 0
+    adds, updates, deletes = [], {}, []
+    removed = []
     for key, row in amro_by_key.items():
         reg = f"B-{key}"
         fields = _aircraft_fields(row)
         old = existing_by_key.get(key)
         if old is None:
-            store.add_aircraft(reg=reg, model=fields["model"], engine=fields["engine"],
-                               fsn=fields["fsn"], msn=fields["msn"], apu=fields["apu"])
-            added += 1
+            adds.append({"reg": reg, **fields})
         elif any(old.get(f) != v for f, v in fields.items()) or old.get("reg") != reg:
-            store.update_aircraft(old["id"], reg=reg, **fields)
-            updated += 1
+            updates[old["id"]] = {"reg": reg, **fields}
 
-    removed = []
     for key, old in existing_by_key.items():
         if key not in amro_by_key:
-            store.delete_aircraft(old["id"])
+            deletes.append(old["id"])
             removed.append(old.get("reg", ""))
 
-    return {"added": added, "updated": updated, "removed": removed,
+    store.bulk_aircraft_sync(updates, deletes, adds)
+    return {"added": len(adds), "updated": len(updates), "removed": removed,
             "total_amro": len(amro_by_key)}
 
 

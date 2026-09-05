@@ -110,6 +110,8 @@ scripts/            deploy.sh · db.sh · amro_login.py · start_login.bat · im
 - 服务器无 GUI，AMRO 登录必须由用户在本机完成；凭证由本机脚本上传，服务器不持有密码。
 - 登录脚本（v4）在浏览器完成登录后自动读取账号、探活并上传，无需人工点击按钮或窗口回车；上传接口要求携带账号，Cookie 长期有效但实际可用性以 AMRO 探活为准（明确失效会清缓存，网络异常不误判）。
 - `data/cookie/` 存放明文会话 Cookie，属敏感文件，禁止纳入代码包或上传；`/inventory/login/upload` 当前无鉴权，公网部署应配合 HTTPS 与访问控制。
+- **上传大小上限 16 MB**：应用层 `MAX_CONTENT_LENGTH`（config.py）已强制，超出返回 413；Nginx `client_max_body_size` 须 ≥16MB，否则 413 早于应用触发，表现为「上传失败」。
+- **生产严禁 `FLASK_DEBUG=1`**：Werkzeug 交互式调试器存在 RCE 风险且错误页外泄完整堆栈；`config.DEBUG` 默认关闭，部署仅经 systemd + Gunicorn 运行，绝不显式开启调试。
 - 输出暂存 `output/`，用户经页面「下载副本」获取；新查询自动清理旧 `*_库存已填_*.xlsx` 暂存。
 
 ## 常见问题

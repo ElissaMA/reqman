@@ -20,7 +20,8 @@ class TestListCards:
         resp = prefilled_client.get("/card/list-json")
         assert resp.status_code == 200
         data = resp.get_json()
-        assert len(data) == 5
+        assert data["success"] is True
+        assert len(data["data"]) == 5
 
     def test_list_search_by_code(self, prefilled_client):
         """按工卡号搜索"""
@@ -51,9 +52,11 @@ class TestCardDetail:
         resp = prefilled_client.get("/card/1")
         assert resp.status_code == 200
         data = resp.get_json()
-        assert data["task_code"] == "ENG-001"
-        assert data["category"] == "发动机"
-        assert data["task_name"] == "发动机检查"
+        assert data["success"] is True
+        card = data["data"]
+        assert card["task_code"] == "ENG-001"
+        assert card["category"] == "发动机"
+        assert card["task_name"] == "发动机检查"
 
     def test_detail_not_found(self, prefilled_client):
         """不存在的工卡返回 404"""
@@ -69,7 +72,8 @@ class TestCardDetail:
         resp = prefilled_client.get("/card/1")
         assert resp.status_code == 200
         data = resp.get_json()
-        assert data.get("set_id") is not None
+        assert data["success"] is True
+        assert data["data"].get("set_id") is not None
 
 
 class TestCreateCard:

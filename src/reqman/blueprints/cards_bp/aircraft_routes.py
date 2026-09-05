@@ -7,7 +7,7 @@ import logging
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from flask import current_app, flash, jsonify, redirect, render_template, request, send_file
+from flask import current_app, flash, redirect, render_template, request, send_file
 
 import reqman.blueprints.cards_bp as cards_bp_pkg
 
@@ -205,8 +205,8 @@ def aircraft_detail(aircraft_id):
     try:
         ac = current_app.extensions['card_service'].get_aircraft(aircraft_id)
         if not ac:
-            return jsonify({"error": "not found"}), 404
-        return jsonify(ac)
+            return api_error("飞机信息不存在", "NOT_FOUND", 404)
+        return api_success(data=ac)
     except Exception:
         logger.exception("获取飞机信息详情失败")
-        return jsonify({"error": "server error"}), 500
+        return api_error("服务器错误", "SERVER_ERROR", 500)

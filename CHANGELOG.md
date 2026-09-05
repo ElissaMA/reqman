@@ -1,5 +1,26 @@
 # Changelog
 
+## [3.6.1] - Unreleased
+### Fixed（正确性）
+- 工卡列表异常分支渲染漏传 `categories`/`task_types` 导致错误页自身再抛 500、友好提示丢失：抽 `_render_card_list` helper，成功/失败共用同一 kwargs
+- 工卡详情/列表 JSON、工卡组详情、飞机详情接口直接 `jsonify` 缺 `success` 字段，前端 `Poller/apiSubmit` 按 `d.success` 分支被当失败：统一改 `api_success(data=...)` / `api_error(...)` 契约，并同步前端两处消费方读取 `d.data`
+- 专业排序 `CATEGORY_ORDER` 三处定义漂移（`config.py` 为权威，`generate_bp.py`/`form_generator.py` 内联副本）：统一 `from config import CATEGORY_ORDER`，删两处内联
+
+### Changed（性能 / 数据层）
+- 版本检查逐卡 `store.update(write_date=...)` 每卡全文件重读+重写+备份，热路径 O(N²) IO：新增 `CardStore.bulk_update(updates)`（单次读+写，字段白名单 + code_index 维护 + 变更日志），整轮检查内存攒改后单次 `_write()`
+- `generate` 后处理循环内逐条 `find_by_code` 回归 N+1：循环前一次性 `find_by_codes([...])` 建索引
+- `sync_aircraft` 逐架 add/update/delete 各一次全量读写：内存算 diff，单次 `_write()`
+- `_assign_cards_to_set` 遍历全卡逐张 `store.update(set_id=...)`：一次读 + 批量改隶属 + 单次写
+
+### Security（安全）
+- 复核确认上传大小上限 16MB 已生效（`MAX_CONTENT_LENGTH` 已配置并应用），部署文档补 `Nginx client_max_body_size` 须 ≥16MB 的硬性约束
+- AMRO Cookie 明文文件（`data/cookie/amro_cookies.json`）保持「用户私有目录 + 绝不入代码包/上传/打印」纪律（沿用只读红线，不做 DPAPI 加密，YAGNI）
+- 部署文档硬性约束生产 `FLASK_DEBUG=false` / `use_evalex=false`：防 Werkzeug 交互式调试器 RCE 与完整堆栈外泄
+
+### Refactor（清理）
+- 删死代码：`raise_or_flash`、`ConflictError`、`ServerError`、`validators` 未用函数（`validate_required_fields`/`validate_str_length`/`validate_int`/`validate_choice`/`validate_tools_mats`）、`get_logs_by_ids`
+- 登录配置包脚本生成由静默 `source.replace(...)` 改为 `_replace_once` 断言占位符恰好命中一次，缺失或重复立即抛错，不再静默产出仍指向硬编码 `localhost` 的配置包
+
 ## [3.6.0] - Unreleased
 ### Added（UI 大改：侧栏布局 + 查询体验统一 + 版本域重构）
 - 左侧垂直侧边栏导航：品牌区 + 数据管理组（飞机/工卡/工卡组）+ 顶级（工作包/库存查询/操作日志），当前页蓝条高亮；小屏（<992px）自动变顶部横排；主区顶部右侧白底 sticky 登录框（AMRO 状态徽章 + ⚡一键登录 + 🛠新建配置）

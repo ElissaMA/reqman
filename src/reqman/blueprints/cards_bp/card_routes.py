@@ -2,7 +2,7 @@
 
 import logging
 
-from flask import current_app, flash, jsonify, redirect, render_template, request
+from flask import current_app, flash, redirect, render_template, request
 
 from ...config import CATEGORIES, REMINDER_TYPES, TASK_TYPES, USAGE_TYPES
 from ...services import amro_sync
@@ -42,6 +42,7 @@ def card_list():
         logger.exception("获取工卡列表失败")
         flash("加载工卡列表失败，请稍后重试", "error")
         return render_template("cards/list.html", cards=[],
+                               categories=CATEGORIES, task_types=TASK_TYPES,
                                reminder_types=REMINDER_TYPES, amro_status={},
                                amro_last_query=amro_sync.get_last_query_result("full_version"))
 
@@ -203,11 +204,11 @@ def card_detail(card_id):
     try:
         card = current_app.extensions['card_service'].get_card(card_id)
         if not card:
-            return jsonify({"error": "not found"}), 404
-        return jsonify(card)
+            return api_error("工卡不存在", "NOT_FOUND", 404)
+        return api_success(data=card)
     except Exception:
         logger.exception("获取工卡详情失败")
-        return jsonify({"error": "server error"}), 500
+        return api_error("服务器错误", "SERVER_ERROR", 500)
 
 
 @cards_bp.route("/card/<int:card_id>/reset-confirm", methods=["POST"])
@@ -255,12 +256,12 @@ def card_list_json():
     """工卡列表 JSON（供 set_form.html 搜索用）"""
     try:
         cards = current_app.extensions['card_service'].list_cards()
-        return jsonify([{
-                    "id": c["id"],
+        return api_success(data=[{
+            "id": c["id"],
             "task_code": c["task_code"],
             "task_name": c["task_name"],
             "category": c["category"],
         } for c in cards])
     except Exception:
         logger.exception("获取工卡列表 JSON 失败")
-        return jsonify([])
+        return api_error("获取工卡列表失败", "SERVER_ERROR", 500)

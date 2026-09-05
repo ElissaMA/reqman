@@ -25,18 +25,6 @@ class NotFoundError(ApiException):
         super().__init__(message, error_code, status_code)
 
 
-class ConflictError(ApiException):
-    """资源冲突（如重复创建）"""
-    def __init__(self, message="资源冲突", error_code="CONFLICT", status_code=409):
-        super().__init__(message, error_code, status_code)
-
-
-class ServerError(ApiException):
-    """服务器内部错误"""
-    def __init__(self, message="服务器内部错误", error_code="SERVER_ERROR", status_code=500):
-        super().__init__(message, error_code, status_code)
-
-
 # ===================== 辅助函数 =====================
 
 
@@ -50,21 +38,6 @@ def _wants_json():
 def is_ajax():
     """判断请求是否为 AJAX（fetch/XHR）提交，对应前端的 X-Requested-With 约定。"""
     return request.headers.get("X-Requested-With") == "XMLHttpRequest"
-
-
-def raise_or_flash(exception_class, message, error_code=None, referer=None):
-    """在蓝图操作中统一处理错误。
-
-    AJAX 请求 -> 抛出异常（由全局处理器返回 JSON）
-    表单请求 -> flash 消息并重定向到来源页
-    """
-    if _wants_json():
-        kwargs = {"message": message}
-        if error_code:
-            kwargs["error_code"] = error_code
-        raise exception_class(**kwargs)
-    flash(message, "error")
-    return redirect(referer or request.headers.get("Referer", "/"))
 
 
 # ===================== 注册函数 =====================

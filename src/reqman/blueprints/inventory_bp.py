@@ -371,19 +371,36 @@ def inventory_warning_delete(part_number):
     return api_error("预警条目不存在", status_code=404)
 
 
+def _replace_once(source: str, old: str, new: str) -> str:
+    """替换占位符并断言恰好命中一次；缺失或重复均抛错，避免静默生成错误配置。"""
+    count = source.count(old)
+    if count != 1:
+        raise RuntimeError(
+            f"amro_login.py 占位符替换异常：{old!r} 命中 {count} 次（应为 1）"
+        )
+    return source.replace(old, new)
+
+
 def _login_py_template(server_url: str) -> str:
-    """从仓库静态脚本生成配置包版本，仅替换服务地址和版本号。"""
+    """从仓库静态脚本生成配置包版本，仅替换服务地址和版本号。
+
+    替换由 _replace_once 断言保护：占位符缺失或重复会立即抛错，
+    而非静默产出仍指向硬编码 localhost 的配置包。
+    """
     source_path = Path(__file__).resolve().parents[3] / "scripts" / "amro_login.py"
     source = source_path.read_text(encoding="utf-8")
-    source = source.replace(
+    source = _replace_once(
+        source,
         'SERVER_URL = "http://127.0.0.1:5001"',
         f'SERVER_URL = "{server_url}"',
     )
-    source = source.replace(
+    source = _replace_once(
+        source,
         'UPLOAD_URL = "http://127.0.0.1:5001/inventory/login/upload"',
         f'UPLOAD_URL = "{server_url}/inventory/login/upload"',
     )
-    source = source.replace(
+    source = _replace_once(
+        source,
         'LOGIN_VERSION = "4"',
         f'LOGIN_VERSION = "{AMRO_LOGIN_VERSION}"',
     )
