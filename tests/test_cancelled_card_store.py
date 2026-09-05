@@ -1,7 +1,10 @@
 """作废工卡库（CancelledCardStore）单元测试：全字段承接、upsert 幂等、彻底删除"""
 import pytest
 
-from reqman.models.cancelled_card_store import CancelledCardStore
+from reqman.models.cancelled_card_store import (
+    CancelledCardStore,
+    CancelledCardStoreCorruptionError,
+)
 
 
 @pytest.fixture
@@ -66,3 +69,54 @@ class TestCancelledCardStore:
         assert removed["task_code"] == "CSCA-X"
         assert store.get_all() == []
         assert store.remove(rec["id"]) is None       # 重复删除返回 None
+
+    def test_default_cards_are_isolated_between_paths(self, tmp_path):
+        first = CancelledCardStore(str(tmp_path / "first.json"))
+        second = CancelledCardStore(str(tmp_path / "second.json"))
+        first.add(_card("FIRST"), source="full_version")
+        assert [c["task_code"] for c in second.get_all()] == []
+
+    def test_nested_input_and_return_values_are_isolated(self, store):
+        source = _card("ISOLATED", tools=[{"device_name": "扳手"}], materials=[])
+        record = store.add(source, source="full_version")
+        source["tools"][0]["device_name"] = "被修改的输入"
+        record["tools"][0]["device_name"] = "被修改的返回值"
+        fresh = store.find_by_code("ISOLATED")
+        assert fresh["tools"][0]["device_name"] == "扳手"
+        fresh["tools"][0]["device_name"] = "再次修改"
+        assert store.find_by_code("ISOLATED")["tools"][0]["device_name"] == "扳手"
+
+    def test_corrupt_file_refuses_write_and_preserves_evidence(self, store):
+        with open(store._path, "w", encoding="utf-8") as f:
+            f.write("{corrupt")
+        with pytest.raises(CancelledCardStoreCorruptionError):
+            store.add(_card("NO_OVERWRITE"), source="full_version")
+        with open(store._path, encoding="utf-8") as f:
+            assert f.read() == "{corrupt"
+
+    def test_corrupt_file_recovers_from_valid_backup(self, store):
+        store.add(_card("BACKUP"), source="full_version")
+        with open(store._path, encoding="utf-8") as f:
+            backup = f.read()
+        with open(store._path, "w", encoding="utf-8") as f:
+            f.write("{corrupt")
+        with open(store._path + ".bak", "w", encoding="utf-8") as f:
+            f.write(backup)
+        recovered = CancelledCardStore(store._path)
+        assert recovered.find_by_code("BACKUP")["task_code"] == "BACKUP"
+
+    def test_add_creates_backup(self, store):
+        store.add(_card("BACKUP_CREATED"), source="full_version")
+        assert store._path.endswith("cancelled_cards.json")
+        with open(store._path + ".bak", encoding="utf-8") as f:
+            assert f.read()
+
+    def test_replace_failure_preserves_existing_file(self, store, monkeypatch):
+        store.add(_card("ORIGINAL"), source="full_version")
+        with open(store._path, encoding="utf-8") as f:
+            original = f.read()
+        monkeypatch.setattr("reqman.models.cancelled_card_store.os.replace", lambda *_: (_ for _ in ()).throw(OSError("blocked")))
+        with pytest.raises(OSError):
+            store.add(_card("NEW"), source="full_version")
+        with open(store._path, encoding="utf-8") as f:
+            assert f.read() == original

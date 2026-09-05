@@ -7,7 +7,7 @@ log_store 按业务域承载 JsonStore 的方法，统一经 JsonStoreCore 继�
 
 import os
 
-from .core import _RUNTIME_KEYS, _atomic_write
+from .core import _RUNTIME_KEYS, JsonStoreCorruptionError, _atomic_write
 from .log_store import LogStore as JsonStore
 
-__all__ = ["_RUNTIME_KEYS", "JsonStore", "_atomic_write", "os"]
+__all__ = ["_RUNTIME_KEYS", "JsonStore", "JsonStoreCorruptionError", "_atomic_write", "os"]

@@ -87,7 +87,49 @@ class TestRunQuery:
         ws2 = openpyxl.load_workbook(dest).active
         assert ws2["G15"].value == 1
 
-    def test_query_no_login_raises(self, tmp_path: Path):
-        svc = InventoryService(_store(tmp_path))
-        with pytest.raises(RuntimeError):
-            svc.run_query(tmp_path / "x.xlsx")
+    def test_session_expiry_aborts_batch_without_output_or_warning_write(self, tmp_path, monkeypatch):
+        import openpyxl
+
+        src = tmp_path / "expiry.xlsx"
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws["A14"] = "定检专业\n（航材）"
+        ws["A15"] = "发动机"; ws["B15"] = "螺钉"; ws["C15"] = "PN-EXPIRE"; ws["E15"] = "1"
+        wb.save(src)
+
+        import reqman.services.connectors.amro as amro_mod
+        import reqman.services.inventory_service as inv_mod
+        from reqman.services.connectors.amro import AmroSessionExpired
+
+        async def expired_query(client, cookies, pn):
+            raise AmroSessionExpired("session expired")
+
+        monkeypatch.setattr(amro_mod, "query_kunming_stock", expired_query)
+        out_dir = tmp_path / "out"
+        monkeypatch.setattr(inv_mod, "OUTPUT_DIR", out_dir)
+        warning_store = _WarningStoreSpy()
+        store = _store(tmp_path)
+        store.save([{"name": "JSESSIONID", "value": "abc"}])
+        svc = InventoryService(store, max_concurrent=2)
+
+        with pytest.raises(AmroSessionExpired):
+            svc.run_query(
+                src,
+                output_stem="expiry",
+                warning_thresholds={"PN-EXPIRE": 2},
+                warning_pns=["PN-EXPIRE"],
+                store=warning_store,
+            )
+        assert not out_dir.exists() or list(out_dir.iterdir()) == []
+        assert warning_store.saved == []
+
+
+class _WarningStoreSpy:
+    def __init__(self):
+        self.saved = []
+
+    def get_inventory_warning(self, part_number):
+        return {"part_number": part_number}
+
+    def save_inventory_warning(self, data):
+        self.saved.append(data)

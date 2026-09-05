@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from reqman.models.json_store import JsonStore
+from reqman.models.json_store import JsonStore, JsonStoreCorruptionError
 
 
 class TestInit:
@@ -350,7 +350,38 @@ class TestCorruptRefuseWrite:
         assert "CORR-001" in [c["task_code"] for c in core["cards"].values()]
 
 
-class TestQuickFixes:
+class TestCorruptionSafety:
+    @pytest.mark.parametrize("bad_value", [[], None, "bad"])
+    def test_invalid_json_root_is_rejected(self, tmp_path, bad_value):
+        db_path = str(tmp_path / "invalid-root.json")
+        with open(db_path, "w", encoding="utf-8") as f:
+            json.dump(bad_value, f)
+        with pytest.raises(JsonStoreCorruptionError):
+            JsonStore(db_path)
+
+    def test_corrupt_runtime_without_backup_does_not_reset_core(self, tmp_path):
+        db_path = str(tmp_path / "protected.json")
+        store = JsonStore(db_path)
+        store.add("KEEP-001", "保留卡", "机体", "", "")
+        runtime_path = str(tmp_path / "protected_runtime.json")
+        os.remove(runtime_path + ".bak")
+        with open(runtime_path, "w", encoding="utf-8") as f:
+            f.write("{corrupt")
+        with pytest.raises(JsonStoreCorruptionError):
+            JsonStore(db_path)
+        with open(db_path, encoding="utf-8") as f:
+            assert "KEEP-001" in json.dumps(json.load(f), ensure_ascii=False)
+
+    def test_legacy_defaults_are_not_shared(self, tmp_path):
+        db_path = str(tmp_path / "legacy.json")
+        with open(db_path, "w", encoding="utf-8") as f:
+            json.dump({"cards": {"1": {"id": 1, "task_code": "LEGACY"}}}, f)
+        store = JsonStore(db_path)
+        first = store.get(1)
+        first["tools"].append({"device_name": "临时"})
+        second = store.get(1)
+        assert second["tools"] == []
+
     def test_get_all_missing_key_safe(self, tmp_path):
         """数据缺 task_code 键时 get_all 不得 500（KeyError 防护）"""
         db_path = str(tmp_path / "missing.json")

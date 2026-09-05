@@ -8,6 +8,12 @@
 - 重排工作包、工卡、工卡组、飞机、作废工卡、库存、日志、需求单预览及各类表单页面；统一列表工具栏、空状态、状态反馈和表单分段
 - 修复静态资源 WSGI 透传：`RequestLogMiddleware` 不再吞掉 `FileWrapper` 内容，Bootstrap 与应用 CSS/JS 返回完整响应体，避免页面退化为无样式 HTML
 
+### Reliability（方案 A：非 SQLite 数据可靠性加固）
+- 作废工卡库修复共享可变默认值与嵌套对象别名；增加 `.bak` 恢复、损坏拒写、原子备份和独立损坏异常
+- JsonStore 增加 JSON 结构校验、`generation` 代际标记、唯一临时文件、读写锁和 fail-closed 恢复；损坏或双文件代际不一致时不再自动清空健康数据
+- 库存查询遇到 AMRO 会话中途失效时终止整批，不发布部分库存文件、不写回预警缓存
+- 新增作废库、JsonStore、库存会话失效故障测试；真实 `data/` 与 Cookie 数据未被测试修改
+
 ### Fixed（正确性）
 - 工卡列表异常分支渲染漏传 `categories`/`task_types` 导致错误页自身再抛 500、友好提示丢失：抽 `_render_card_list` helper，成功/失败共用同一 kwargs
 - 工卡详情/列表 JSON、工卡组详情、飞机详情接口直接 `jsonify` 缺 `success` 字段，前端 `Poller/apiSubmit` 按 `d.success` 分支被当失败：统一改 `api_success(data=...)` / `api_error(...)` 契约，并同步前端两处消费方读取 `d.data`

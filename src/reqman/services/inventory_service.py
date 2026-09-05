@@ -163,11 +163,21 @@ class InventoryService:
                             else:
                                 results[pn] = 0.0
                                 fail += 1
+                        except amro.AmroSessionExpired:
+                            raise
                         except (httpx.HTTPError, ValueError, RuntimeError) as e:
                             results[pn] = 0.0
                             fail += 1
                             logger.warning("查询失败 %s: %s", pn, e)
-                await asyncio.gather(*[query_one(pn) for pn in query_pns])
+                tasks = [asyncio.create_task(query_one(pn)) for pn in query_pns]
+                try:
+                    await asyncio.gather(*tasks)
+                except amro.AmroSessionExpired:
+                    for task in tasks:
+                        if not task.done():
+                            task.cancel()
+                    await asyncio.gather(*tasks, return_exceptions=True)
+                    raise
             return results, success, fail
 
         results, success, fail = asyncio.run(_run())

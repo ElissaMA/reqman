@@ -11,12 +11,14 @@
 card_store / work_package_store / log_store 子模块，统一继承 JsonStoreCore。
 """
 
+import copy
 import json
 import logging
 import os
-import shutil
+import tempfile
 import threading
 import time
+import uuid
 from datetime import datetime
 from typing import ClassVar
 from zoneinfo import ZoneInfo
@@ -25,27 +27,42 @@ logger = logging.getLogger(__name__)
 
 
 def _atomic_write(path: str, data: dict) -> None:
-    """原子写入：写到 .tmp 然后 rename。rename 在同文件系统上是原子的。
-    失败时保留原文件并抛出异常——绝不覆盖好数据"""
-    tmp = path + ".tmp"
+    """原子写入 JSON，使用唯一临时文件并尽力刷新到磁盘。"""
+    directory = os.path.dirname(path) or "."
+    base = os.path.basename(path)
+    fd, tmp = tempfile.mkstemp(prefix=f".{base}.", suffix=".tmp", dir=directory)
     try:
-        with open(tmp, "w", encoding="utf-8") as f:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
+            f.flush()
+            try:
+                os.fsync(f.fileno())
+            except OSError:
+                logger.debug("文件 fsync 不可用: %s", path)
         for attempt in range(3):
             try:
-                os.replace(tmp, path)  # Windows / Unix 上均为原子操作
+                os.replace(tmp, path)
                 break
             except PermissionError:
-                # Windows：并发读句柄会短暂占用目标文件导致 replace 被拒，稍候重试
                 if attempt == 2:
                     raise
                 time.sleep(0.05)
-    except (OSError, TypeError):
-        if os.path.exists(tmp):
+        try:
+            dir_fd = os.open(directory, getattr(os, "O_DIRECTORY", 0))
+        except (OSError, TypeError):
+            dir_fd = None
+        if dir_fd is not None:
             try:
-                os.remove(tmp)
+                os.fsync(dir_fd)
             except OSError:
-                logger.debug("Failed to remove temp file: %s", tmp)
+                logger.debug("目录 fsync 不可用: %s", directory)
+            finally:
+                os.close(dir_fd)
+    except (OSError, TypeError):
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
         raise
 
 
@@ -73,6 +90,11 @@ _RUNTIME_KEYS = {
     "next_id",
     "code_index",
 }
+_GENERATION_KEY = "__generation"
+
+
+class JsonStoreCorruptionError(RuntimeError):
+    """JSON 存储损坏或代际不一致，拒绝覆盖现场。"""
 
 
 class JsonStoreCore:
@@ -82,7 +104,7 @@ class JsonStoreCore:
     应在 .gitignore 中忽略运行时文件。
     """
 
-    _lock = threading.Lock()
+    _lock = threading.RLock()
 
     _FIELDS: ClassVar[dict] = {
         "card": {
@@ -116,7 +138,7 @@ class JsonStoreCore:
 
     def _norm(self, d, kind):
         defaults = self._FIELDS[kind]
-        return {k: d.get(k, v) for k, v in defaults.items()}
+        return {k: copy.deepcopy(d.get(k, v)) for k, v in defaults.items()}
 
     # ---------- 初始化 ----------
 
@@ -130,113 +152,197 @@ class JsonStoreCore:
         self._init_db()
 
     def _init_db(self):
-        """初始化或修复数据库。首次拆分时将运行时数据写入独立文件"""
-        if not os.path.exists(self._path) and not os.path.exists(self._runtime_path):
-            bak = self._path + ".bak"
-            if os.path.exists(bak):
-                logger.warning("主数据库缺失，从备份恢复")
-                shutil.copy2(bak, self._path)
-            else:
-                self._write(_EMPTY_DB)
-                return
-
-        # 核心文件缺失但运行时存在时，尝试从备份恢复核心文件
-        if not os.path.exists(self._path) and os.path.exists(self._runtime_path):
-            bak = self._path + ".bak"
-            if os.path.exists(bak):
-                logger.warning("核心数据库缺失，从备份恢复")
-                shutil.copy2(bak, self._path)
-            else:
-                # 无备份，用空核心
-                _atomic_write(self._path, {})
-
-        # 验证文件可读：读损坏不再抛异常而是置 _corrupt 标志，据此从 .bak 恢复
-        self._read()
-        if self._corrupt:
-            logger.error("数据库文件损坏，尝试从 .bak 恢复: %s", sorted(self._corrupt_files))
-            for p in list(self._corrupt_files):
-                bak = p + ".bak"
-                if os.path.exists(bak):
-                    shutil.copy2(bak, p)
+        """初始化数据库；损坏或缺失且无有效备份时 fail-closed，绝不清空现场。"""
+        with self._lock:
+            core_exists = os.path.exists(self._path)
+            runtime_exists = os.path.exists(self._runtime_path)
+            if not core_exists and not runtime_exists:
+                backup = self._valid_backup(self._path + ".bak")
+                if backup is not None:
+                    self._restore_file(self._path, backup)
+                    core_exists = True
+                else:
+                    self._write(copy.deepcopy(_EMPTY_DB))
+                    return
+            if not core_exists:
+                backup = self._valid_backup(self._path + ".bak")
+                if backup is None:
+                    raise JsonStoreCorruptionError(
+                        f"核心数据库缺失且无有效备份：{self._path}"
+                    )
+                self._restore_file(self._path, backup)
+            if not runtime_exists:
+                runtime_backup = self._valid_backup(self._runtime_path + ".bak")
+                if runtime_backup is not None:
+                    self._restore_file(self._runtime_path, runtime_backup)
+                else:
+                    # runtime 是由旧版单文件或旧测试夹具派生的可重建部分，
+                    # 创建空 runtime 不会覆盖核心业务数据。
+                    logger.warning("运行时数据库缺失，创建空 runtime: %s", self._runtime_path)
+                    _atomic_write(self._runtime_path, {})
             self._read()
             if self._corrupt:
-                # 仍损坏且无有效备份：重置为空库（蓄意重置，放行本次写入）
-                logger.error("数据库无法恢复，重置为空库")
-                self._corrupt = False
-                self._write(_EMPTY_DB)
+                corrupt_files = sorted(self._corrupt_files)
+                for path in corrupt_files:
+                    backup = self._valid_backup(path + ".bak")
+                    if backup is None:
+                        logger.error("数据库文件无有效备份，保留现场并拒绝启动: %s", path)
+                        raise JsonStoreCorruptionError(
+                            "数据库文件损坏且无可用备份：" + path
+                        )
+                    self._restore_file(path, backup)
+                self._read()
+                if self._corrupt:
+                    logger.error("数据库无法安全恢复，保留现场并拒绝启动：%s", corrupt_files)
+                    raise JsonStoreCorruptionError(
+                        "数据库文件损坏或代际不一致：" + ", ".join(corrupt_files)
+                    )
+                logger.warning("数据库已从有效备份恢复")
+
+    @staticmethod
+    def _validate_payload(data: dict) -> None:
+        """校验 JSON 数据结构；兼容旧数据的缺字段，但拒绝错误类型。"""
+        if not isinstance(data, dict):
+            raise TypeError("JSON 根节点必须是对象")
+        expected = {
+            "cards": dict,
+            "card_sets": dict,
+            "aircraft": dict,
+            "card_logs": list,
+            "inventory_warnings": list,
+            "work_packages": list,
+            "code_index": dict,
+        }
+        for key, type_ in expected.items():
+            if key in data and not isinstance(data[key], type_):
+                raise TypeError(f"字段 {key} 类型错误")
+        for key in ("next_id", "card_log_next_id"):
+            if key in data and (isinstance(data[key], bool) or not isinstance(data[key], int) or data[key] < 1):
+                raise TypeError(f"字段 {key} 类型错误")
+        for collection in ("cards", "card_sets", "aircraft"):
+            if collection in data and any(not isinstance(item, dict) for item in data[collection].values()):
+                raise ValueError(f"字段 {collection} 包含非对象记录")
+
+    def _valid_backup(self, path: str):
+        """校验备份为可用对象；无效备份返回 None。"""
+        if not os.path.exists(path):
+            return None
+        try:
+            with open(path, encoding="utf-8") as f:
+                data = json.load(f)
+            self._validate_payload(data)
+            return data
+        except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
+            logger.error("备份文件无效: %s (%s)", path, exc)
+        return None
+
+    def _restore_file(self, path: str, data: dict) -> None:
+        """通过原子写恢复文件，保留损坏文件现场。"""
+        _atomic_write(path, data)
+
+    def _is_legacy_single_file(self) -> bool:
+        """判断核心文件是否包含旧版单文件运行时键。"""
+        try:
+            with open(self._path, encoding="utf-8") as f:
+                data = json.load(f)
+            return isinstance(data, dict) and any(k in data for k in _RUNTIME_KEYS)
+        except (OSError, json.JSONDecodeError, TypeError, ValueError):
+            return False
 
     # ---------- 内部分方法 ----------
 
     def _read(self) -> dict:
-        """合并加载两个文件：核心数据 + 运行时数据"""
-        self._corrupt = False  # 本次读取正常则复位（外部修复/替换文件后自动恢复写入）
-        self._corrupt_files = set()
-        db = {}
-        if os.path.exists(self._path):
-            try:
-                with open(self._path, encoding="utf-8") as f:
-                    db.update(json.load(f))
-            except (OSError, json.JSONDecodeError):
-                self._corrupt = True
-                self._corrupt_files.add(self._path)
-                logger.warning("核心数据库读取失败: %s", self._path)
-        if os.path.exists(self._runtime_path):
-            try:
-                with open(self._runtime_path, encoding="utf-8") as f:
-                    db.update(json.load(f))
-            except (OSError, json.JSONDecodeError):
-                self._corrupt = True
-                self._corrupt_files.add(self._runtime_path)
-                logger.warning("运行时数据库读取失败: %s", self._runtime_path)
-        # 清理历史遗留的死键（无任何读者，飞机与工卡共用 next_id）
-        db.pop("next_ac_id", None)
-        db.pop("amro_sync_meta", None)  # v3.6.0 起查询状态改为内存态，防旧键迁入核心文件
-        # 内存中修复不完整/错误的索引（不持久化，下次 _write() 时自动保存）
-        if db.get("cards") and not self._index_ok(db):
-            logger.warning("code_index 校验失败，已重建索引")
-            self._rebuild_index(db)
-        # 计数器自愈：next_id 落后于现存实体时修正（幂等；防止下次创建静默覆盖现有数据）
-        max_id = 0
-        for coll in ("cards", "card_sets", "aircraft"):
-            for k in db.get(coll, {}):
+        """在同一锁内读取并合并 core/runtime，拒绝错误结构和混合代际。"""
+        with self._lock:
+            self._corrupt = False
+            self._corrupt_files = set()
+            loaded = []
+            db = {}
+            for path in (self._path, self._runtime_path):
+                if not os.path.exists(path):
+                    continue
                 try:
-                    max_id = max(max_id, int(k))
-                except (TypeError, ValueError):
-                    pass
-        if db.get("next_id", 1) <= max_id:
-            logger.warning("next_id=%s 落后于现存实体最大ID=%d，自愈为 %d",
-                           db.get("next_id"), max_id, max_id + 1)
-            db["next_id"] = max_id + 1
-        return db
+                    with open(path, encoding="utf-8") as f:
+                        value = json.load(f)
+                    self._validate_payload(value)
+                    loaded.append(value)
+                except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
+                    self._corrupt = True
+                    self._corrupt_files.add(path)
+                    logger.warning("数据库文件读取失败: %s (%s)", path, exc)
+            for value in loaded:
+                db.update(value)
+            generations = {value.get(_GENERATION_KEY) for value in loaded if value.get(_GENERATION_KEY)}
+            if len(generations) > 1:
+                self._corrupt = True
+                self._corrupt_files.update((self._path, self._runtime_path))
+                logger.error("核心与运行时数据库代际不一致: %s", generations)
+            db.pop("next_ac_id", None)
+            db.pop("amro_sync_meta", None)
+            if db.get("cards") and not self._index_ok(db):
+                logger.warning("code_index 校验失败，已重建索引")
+                self._rebuild_index(db)
+            max_id = 0
+            for coll in ("cards", "card_sets", "aircraft"):
+                for key in db.get(coll, {}):
+                    try:
+                        max_id = max(max_id, int(key))
+                    except (TypeError, ValueError):
+                        pass
+            if db.get("next_id", 1) <= max_id:
+                logger.warning("next_id=%s 落后于现存实体最大ID=%d，自愈为 %d", db.get("next_id"), max_id, max_id + 1)
+                db["next_id"] = max_id + 1
+            return db
 
     def _write(self, data: dict) -> None:
-        """拆分写入两个文件：运行时数据写入独立文件"""
-        if self._corrupt:
-            raise RuntimeError(
-                "数据库文件读取失败（损坏），已拒绝写入以保护数据；"
-                "请从 data/*.json.bak 或 data/backups/ 恢复后重启应用"
-            )
-        # 自动重建索引（处理数据导入后索引丢失或与实体不一致的情况）
-        if data.get("cards") and not self._index_ok(data):
-            self._rebuild_index(data)
-        core = {}
-        runtime = {}
-        for k, v in data.items():
-            if k in _RUNTIME_KEYS:
-                runtime[k] = v
-            else:
-                core[k] = v
-
-        _atomic_write(self._path, core)
-        _atomic_write(self._runtime_path, runtime)
-
-        # 备份核心与运行时文件（runtime 含计数器/索引/工作包，缺失会导致计数器回退）
-        for p in (self._path, self._runtime_path):
+        """以同一 generation 写入 core/runtime，并只发布完整可读代际。"""
+        with self._lock:
+            if self._corrupt:
+                raise JsonStoreCorruptionError(
+                    "数据库文件读取失败（损坏或代际不一致），已拒绝写入以保护数据；"
+                    "请从 data/*.json.bak 或 data/backups/ 恢复后重启应用"
+                )
+            if data.get("cards") and not self._index_ok(data):
+                self._rebuild_index(data)
+            generation = uuid.uuid4().hex
+            core = {}
+            runtime = {}
+            for key, value in data.items():
+                if key in _RUNTIME_KEYS:
+                    runtime[key] = value
+                else:
+                    core[key] = value
+            core[_GENERATION_KEY] = generation
+            runtime[_GENERATION_KEY] = generation
+            old_core = self._read_raw(self._path)
+            _atomic_write(self._path, core)
             try:
-                if os.path.exists(p):
-                    shutil.copy2(p, p + ".bak")
-            except OSError:
-                logger.warning("备份失败: %s.bak", p)
+                _atomic_write(self._runtime_path, runtime)
+            except Exception:
+                if old_core is not None:
+                    _atomic_write(self._path, old_core)
+                raise
+            self._backup_pair(core, runtime)
+            self._corrupt = False
+            self._corrupt_files = set()
+
+    @staticmethod
+    def _read_raw(path: str):
+        if not os.path.exists(path):
+            return None
+        try:
+            with open(path, encoding="utf-8") as f:
+                return json.load(f)
+        except (OSError, json.JSONDecodeError, TypeError, ValueError):
+            return None
+
+    def _backup_pair(self, core: dict, runtime: dict) -> None:
+        """分别原子更新备份；主文件已完整发布后才更新备份。"""
+        try:
+            _atomic_write(self._path + ".bak", core)
+            _atomic_write(self._runtime_path + ".bak", runtime)
+        except OSError:
+            logger.warning("数据库备份更新失败")
 
     def _next_id(self, db: dict) -> int:
         """从 db dict 中取 next_id 并递增，跳过已占用的实体 ID（cards/sets/aircraft 共用计数器）。

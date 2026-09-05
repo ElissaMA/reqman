@@ -3,6 +3,7 @@
 工卡版本检查检测到作废后整卡移入本库（承接原卡全部字段），主库随即删除：
 作废卡因此自动退出工卡清单/工卡组/匹配/版本检查，本库不做任何参与性补查。
 """
+import copy
 import json
 import logging
 import os
@@ -17,6 +18,10 @@ logger = logging.getLogger(__name__)
 _BJ = ZoneInfo("Asia/Shanghai")
 
 _EMPTY = {"next_id": 1, "cards": {}}
+
+
+class CancelledCardStoreCorruptionError(RuntimeError):
+    """作废工卡库损坏且没有可用备份，拒绝覆盖现场。"""
 
 
 class CancelledCardStore:
@@ -34,32 +39,49 @@ class CancelledCardStore:
 
     def _read(self) -> dict:
         if not os.path.exists(self._path):
-            return dict(_EMPTY)
+            return copy.deepcopy(_EMPTY)
         try:
             with open(self._path, encoding="utf-8") as f:
                 data = json.load(f)
-        except (OSError, json.JSONDecodeError):
-            logger.error("作废工卡库读取失败: %s", self._path)
-            return dict(_EMPTY)
-        if not isinstance(data, dict) or "cards" not in data:
-            return dict(_EMPTY)
-        return data
+            if not isinstance(data, dict) or not isinstance(data.get("cards"), dict):
+                raise TypeError("root/cards must be objects")
+            return data
+        except (OSError, json.JSONDecodeError, ValueError) as exc:
+            backup = self._path + ".bak"
+            if os.path.exists(backup):
+                try:
+                    with open(backup, encoding="utf-8") as f:
+                        data = json.load(f)
+                    if isinstance(data, dict) and isinstance(data.get("cards"), dict):
+                        _atomic_write(self._path, data)
+                        return data
+                except (OSError, json.JSONDecodeError, ValueError):
+                    pass
+            logger.error("作废工卡库读取失败，已拒绝写入: %s (%s)", self._path, exc)
+            raise CancelledCardStoreCorruptionError(
+                f"作废工卡库损坏且无有效备份：{self._path}"
+            ) from exc
 
     def _write(self, data: dict) -> None:
         _atomic_write(self._path, data)
+        try:
+            if os.path.exists(self._path):
+                _atomic_write(self._path + ".bak", data)
+        except OSError:
+            logger.warning("作废工卡库备份失败: %s.bak", self._path)
 
     def get_all(self) -> list[dict]:
         """全部作废工卡，按作废时间倒序（同刻按 id 倒序保稳定）。"""
         with self._lock:
             cards = list(self._read().get("cards", {}).values())
         cards.sort(key=lambda c: (c.get("cancelled_at", ""), c.get("id", 0)), reverse=True)
-        return cards
+        return copy.deepcopy(cards)
 
     def find_by_code(self, code: str) -> dict | None:
         with self._lock:
             for card in self._read().get("cards", {}).values():
                 if card.get("task_code") == code:
-                    return card
+                    return copy.deepcopy(card)
         return None
 
     def add(self, card: dict, source: str, set_name: str = "") -> dict:
@@ -68,7 +90,7 @@ class CancelledCardStore:
         with self._lock:
             data = self._read()
             cards: dict = data.setdefault("cards", {})
-            record = dict(card)
+            record = copy.deepcopy(card)
             record["orig_id"] = card.get("id")
             record["cancelled_at"] = datetime.now(_BJ).strftime("%Y-%m-%d %H:%M:%S")
             record["cancel_source"] = source
