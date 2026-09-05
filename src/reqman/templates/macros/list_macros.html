@@ -1,25 +1,43 @@
-{# 列表页公共组件：筛选行与空状态 #}
-
-{# 统一筛选行：fields 为 (placeholder, id) 元组列表 #}
-{% macro filter_row(fields, colspan_extra=0) %}
-<tr class="filter-row">
+{# 列表页公共组件：兼容旧表头筛选调用，同时提供统一空状态 #}
+{% macro filter_row(fields, colspan_extra=0, table_id='') %}
+<tr class="filter-row"{% if table_id %} data-filter-table="{{ table_id }}"{% endif %}>
     {% for placeholder, fid in fields %}
-    <th><input class="form-control form-control-sm" placeholder="{{ placeholder }}"
-               onkeyup="AppFilter.filter('{{ fid }}')" id="{{ fid }}"></th>
+    {% set safe_fid = fid if fid != '_' else 'filter_' ~ loop.index %}
+    <th>
+        {% if placeholder %}<label class="visually-hidden" for="{{ safe_fid }}">{{ placeholder }}</label>{% endif %}
+        <input class="form-control form-control-sm" placeholder="{{ placeholder }}" aria-label="{{ placeholder or '筛选' }}"
+               onkeyup="AppFilter.filter('{{ safe_fid }}')" id="{{ safe_fid }}">
+    </th>
     {% endfor %}
     {% for i in range(colspan_extra) %}<th></th>{% endfor %}
 </tr>
 {% endmacro %}
 
-{# 统一空状态：居中图标 + 文案 + 可选引导按钮（open_modal=True 时按钮以弹窗打开） #}
-{% macro empty_state(msg, action_url='', action_label='', colspan=1, open_modal=False) %}
+{% macro filter_toolbar(fields, table_id, clear_label='清空筛选') %}
+<div class="filter-toolbar" data-filter-toolbar="{{ table_id }}">
+    {% for placeholder, fid in fields %}
+    {% set safe_fid = fid if fid != '_' else 'filter_' ~ loop.index %}
+    <div class="filter-field">
+        <label for="{{ safe_fid }}">{{ placeholder or '筛选条件' }}</label>
+        <input class="form-control form-control-sm" placeholder="{{ placeholder }}" aria-label="{{ placeholder or '筛选' }}"
+               data-table="{{ table_id }}" data-filter-table="{{ table_id }}" onkeyup="AppFilter.filter('{{ safe_fid }}')" id="{{ safe_fid }}">
+    </div>
+    {% endfor %}
+    <div class="filter-actions">
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="AppFilter.clear('{{ table_id }}')">{{ clear_label }}</button>
+    </div>
+</div>
+{% endmacro %}
+
+{% macro empty_state(msg, action_url='', action_label='', colspan=1, open_modal=False, title='暂无数据') %}
 <tr class="empty-state-row">
-    <td colspan="{{ colspan }}" class="text-center py-4 text-muted">
-        <div class="empty-state-icon">&#x1F4CB;</div>
-        <p class="mt-2 mb-0">{{ msg }}</p>
+    <td colspan="{{ colspan }}" class="text-center">
+        <div class="empty-state-icon" aria-hidden="true">—</div>
+        <p class="empty-state-title">{{ title }}</p>
+        <p class="empty-state-help">{{ msg }}</p>
         {% if action_url and action_label %}
             {% if open_modal %}
-            <a href="javascript:void(0)" onclick="ListUI.openEditor('{{ action_url }}')" class="btn btn-primary btn-sm mt-2">{{ action_label }}</a>
+            <button type="button" onclick="ListUI.openEditor('{{ action_url }}')" class="btn btn-primary btn-sm mt-2">{{ action_label }}</button>
             {% else %}
             <a href="{{ action_url }}" class="btn btn-primary btn-sm mt-2">{{ action_label }}</a>
             {% endif %}

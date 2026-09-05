@@ -1,0 +1,57 @@
+{# 统一页面级 UI 宏：标题、区块、状态和空状态 #}
+{% macro page_header(title, description='', count=None, back_url='', back_label='返回', primary_label='', primary_url='', primary_onclick='') %}
+<header class="page-header">
+    <div class="page-heading">
+        {% if back_url %}<a class="small text-decoration-none d-inline-block mb-2" href="{{ back_url }}">← {{ back_label }}</a>{% endif %}
+        <h1>{{ title }}</h1>
+        {% if description %}<p>{{ description }}</p>{% endif %}
+    </div>
+    <div class="page-actions">
+        {% if count is not none %}<span class="page-count">共 {{ count }} 条</span>{% endif %}
+        {% if primary_label %}
+            {% if primary_onclick %}<button type="button" class="btn btn-primary btn-sm" onclick="{{ primary_onclick }}">{{ primary_label }}</button>
+            {% else %}<a class="btn btn-primary btn-sm" href="{{ primary_url }}">{{ primary_label }}</a>{% endif %}
+        {% endif %}
+        {% if caller %}{{ caller() }}{% endif %}
+    </div>
+</header>
+{% endmacro %}
+
+{% macro section_header(title, description='', status='', action_html='') %}
+<div class="card-header">
+    <div>
+        <h2>{{ title }}</h2>
+        {% if description %}<p class="section-description">{{ description }}</p>{% endif %}
+    </div>
+    <div class="page-actions">
+        {% if status %}<span class="page-count">{{ status }}</span>{% endif %}
+        {% if action_html %}{{ action_html|safe }}{% endif %}
+        {% if caller %}{{ caller() }}{% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+{% macro inline_status(state='info', label='', message='') %}
+<div class="state-panel state-{{ state }}" role="status">
+    <span class="state-mark" aria-hidden="true">{{ 'OK' if state == 'success' else '!' if state in ['warning', 'danger'] else 'i' }}</span>
+    <div><h3>{{ label }}</h3>{% if message %}<p>{{ message }}</p>{% endif %}</div>
+</div>
+{% endmacro %}
+
+{% macro state_panel(kind='info', title='', message='', action_url='', action_label='') %}
+<div class="state-panel state-{{ kind }}" role="status">
+    <span class="state-mark" aria-hidden="true">{{ 'OK' if kind == 'success' else '!' if kind in ['warning', 'danger'] else 'i' }}</span>
+    <div>
+        {% if title %}<h3>{{ title }}</h3>{% endif %}
+        {% if message %}<p>{{ message }}</p>{% endif %}
+        {% if action_url and action_label %}<a class="btn btn-primary btn-sm mt-2" href="{{ action_url }}">{{ action_label }}</a>{% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+{% macro detail_field(label, value, wide=False) %}
+<div class="detail-field{% if wide %} detail-field-wide{% endif %}">
+    <dt>{{ label }}</dt>
+    <dd>{{ value if value is not none and value != '' else '—' }}</dd>
+</div>
+{% endmacro %}

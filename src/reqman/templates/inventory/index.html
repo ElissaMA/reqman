@@ -1,99 +1,79 @@
 {% extends "base.html" %}
-{% block title %}库存查询 - ReqMan定检准备系统{% endblock %}
+{% import "macros/list_macros.html" as list %}
+{% block title %}库存查询 - ReqMan 定检准备系统{% endblock %}
 {% block content %}
-<div class="card mb-4">
-    <div class="card-header"><h5 class="mb-0">📦 库存查询</h5></div>
-    <div class="card-body">
-        <!-- AMRO 登录状态与配置已迁移至表头（base.html），本页仅保留查询功能 -->
 
-        <!-- 查询区 -->
+<header class="page-header">
+    <div class="page-heading">
+        <div class="context-kicker">INVENTORY / AMRO QUERY</div>
+        <h1>库存查询</h1>
+        <p>上传需求单并从 AMRO 获取库存；下方预警规则用于持续关注常用件号。</p>
+    </div>
+    <div class="page-actions"><span class="page-count">预警 {{ warnings|length }} 条</span></div>
+</header>
+
+<div class="card">
+    <div class="card-header">
+        <div><h2>查询库存</h2><p class="section-description">先选择需求单 Excel，再执行查询。</p></div>
+        <span class="page-count">主工作区</span>
+    </div>
+    <div class="card-body">
         {% if amro_status and amro_status.status == 'running' %}
-        <div class="alert alert-info py-2 px-3 small mb-2">⏳ 查询库存进行中（{{ amro_status.started_at }}）…</div>
+        <div class="alert alert-info py-2 px-3 small">查询库存进行中（{{ amro_status.started_at }}）…</div>
         {% elif amro_status and amro_status.status == 'error' %}
-        <div class="alert alert-danger py-2 px-3 small mb-2">上次库存查询失败：{{ amro_status.error }}（{{ amro_status.finished_at }}）</div>
+        <div class="alert alert-danger py-2 px-3 small">上次库存查询失败：{{ amro_status.error }}（{{ amro_status.finished_at }}）</div>
         {% elif amro_last_query %}
-        <div class="alert alert-success py-2 px-3 small mb-2" id="lastQueryBlock">
+        <div class="alert alert-success py-2 px-3 small" id="lastQueryBlock">
             上次查询（{{ amro_last_query.finished_at }}）：{{ amro_last_query.summary }}
-            {% if amro_last_query.download_url %}<a class="btn btn-outline-primary btn-sm ms-2 py-0" href="{{ amro_last_query.download_url }}" title="下载上次库存查询结果副本">⬇下载副本</a>{% endif %}
+            {% if amro_last_query.download_url %}<a class="btn btn-outline-primary btn-sm ms-2 py-0" href="{{ amro_last_query.download_url }}" title="⬇下载副本">下载副本</a>{% endif %}
         </div>
         {% endif %}
-        <div class="alert alert-warning py-2 px-3 small mb-2">{{ messages.P1 }}</div>
-        <div class="row g-3">
-            <div class="col-md-8">
-                <div class="upload-zone" id="zoneDemand" tabindex="0" role="button" aria-label="上传需求单 Excel，点击或按回车选择文件" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('demandFile').click()}">
-                    <div class="icon">📋</div>
-                    <h6 class="mt-2">点击上传需求单 Excel</h6>
-                    <p class="text-muted small mb-0">支持 .xlsx（含航材区/备用区）</p>
-                    <input type="file" id="demandFile" name="file" accept=".xlsx" style="display:none"
-                           onchange="fileSelected(this,'zoneDemand')">
+        <div class="alert alert-warning py-2 px-3 small">{{ messages.P1 }}</div>
+        <div class="row g-3 align-items-stretch">
+            <div class="col-lg-8">
+                <div class="upload-zone h-100" id="zoneDemand" tabindex="0" role="button" aria-label="上传需求单 Excel，点击或按回车选择文件" onclick="document.getElementById('demandFile').click()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('demandFile').click()}">
+                    <div class="icon" aria-hidden="true">XL</div>
+                    <h3 class="h6 mt-2">选择需求单 Excel</h3>
+                    <p class="text-muted small mb-0">支持 .xlsx，包含航材区或备用区</p>
+                    <input type="file" id="demandFile" name="file" accept=".xlsx" class="visually-hidden" onchange="fileSelected(this,'zoneDemand')">
                     <div class="file-name small text-success mt-2" style="display:none"></div>
                 </div>
             </div>
-            <div class="col-md-4 d-flex align-items-center">
-                <button class="btn btn-success btn-sm px-4" id="startQueryBtn" title="上传需求单后查询库存并填回结果；同时刷新预警库内件号缓存库存">查询库存</button>
+            <div class="col-lg-4 d-flex flex-column justify-content-center gap-2">
+                <p class="small text-muted mb-0">查询前会检查 AMRO 登录状态。结果完成后，预警表中的缓存库存会同步更新。</p>
+                <button class="btn btn-success px-4" id="startQueryBtn" type="button">查询库存</button>
             </div>
         </div>
         <div class="q-card" id="qCardStock" style="display:none"></div>
+    </div>
+</div>
 
-        <!-- 清单区：库存预警库 + 以后新增清单统一放此处 -->
-        <hr class="my-4">
-        <!-- 库存预警数据库 -->
-        <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h6 class="mb-0">📊 库存预警数据库</h6>
-                <a href="javascript:void(0)" onclick="ListUI.openEditor('/inventory-warning/new')" class="btn btn-primary btn-sm">+ 新增预警</a>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover table-sm mb-0" id="invWarnTable">
-                        <thead>
-                            <tr class="filter-row">
-                                <th><input class="form-control form-control-sm" id="invWarnFilter" placeholder="按件号搜索..." onkeyup="AppFilter.filter('invWarnFilter')" data-col="0"></th>
-                                <th></th><th></th><th></th><th></th><th></th>
-                            </tr>
-                            <tr>
-                                <th>件号</th>
-                                <th>名称</th>
-                                <th>预警线</th>
-                                <th>库存（缓存）</th>
-                                <th>备注</th>
-                                <th class="text-end">操作</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        {% for w in warnings %}
-                            {% if w.stock is not none and w.stock <= 0 %}
-                            <tr class="table-danger">
-                            {% elif w.stock is not none and w.stock < w.threshold %}
-                            <tr class="table-warning">
-                            {% else %}
-                            <tr>
-                            {% endif %}
-                                <td>{{ w.part_number }}</td>
-                                <td>{{ w.name or '—' }}</td>
-                                <td>{{ w.threshold }}</td>
-                                <td>
-                                    {% if w.stock is none %}—
-                                    {% else %}{{ w.stock }}
-                                        {% if w.stock <= 0 %}<span class="badge bg-danger ms-1">缺货</span>
-                                        {% elif w.stock < w.threshold %}<span class="badge bg-warning text-dark ms-1">低于警戒线</span>{% endif %}
-                                    {% endif %}
-                                </td>
-                                <td>{{ w.note or '—' }}</td>
-                                <td class="text-end">
-                                    <a href="javascript:void(0)" onclick="ListUI.openEditor('/inventory-warning/{{ w.part_number | urlencode | replace('+', '%20') }}/edit')" class="btn btn-outline-primary btn-sm py-0">编辑</a>
-                                    <button type="button" data-url="/inventory-warning/{{ w.part_number | urlencode | replace('+', '%20') }}/delete" data-confirm="确认删除件号 {{ w.part_number }} 的预警配置？" onclick="ListUI.delFrom(this)" class="btn btn-outline-danger btn-sm py-0">删除</button>
-                                </td>
-                            </tr>
-                        {% else %}
-                            <tr class="empty-state-row"><td colspan="6" class="text-center text-muted py-3">暂无库存预警条目，点击「+ 新增预警」添加常用件号</td></tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                <div class="small text-muted mt-2">共 {{ warnings|length }} 条；每次库存查询会同步把此处件号的 AMRO 库存缓存到「库存（缓存）」列并按警戒线整行着色。</div>
-            </div>
+<div class="card">
+    <div class="card-header">
+        <div><h2>库存预警数据库</h2><p class="section-description">低于预警线标黄，库存为零标红；缓存数量来自最近一次查询。</p></div>
+        <button type="button" onclick="ListUI.openEditor('/inventory-warning/new')" class="btn btn-primary btn-sm">新增预警规则</button>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-toolbar">
+            <div class="result-count">共 {{ warnings|length }} 条规则</div>
+            <div class="filter-field filter-narrow mb-0"><label for="invWarnFilter">搜索件号</label><input class="form-control form-control-sm" id="invWarnFilter" placeholder="按件号搜索..." onkeyup="AppFilter.filter('invWarnFilter')" data-table="invWarnTable" data-col="0"></div>
         </div>
+        <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0" id="invWarnTable">
+                <thead><tr><th>件号</th><th>名称</th><th>预警线</th><th>库存（缓存）</th><th>备注</th><th class="text-end">操作</th></tr></thead>
+                <tbody>
+                {% for w in warnings %}
+                    {% if w.stock is not none and w.stock <= 0 %}<tr class="table-danger">{% elif w.stock is not none and w.stock < w.threshold %}<tr class="table-warning">{% else %}<tr>{% endif %}
+                        <td><strong>{{ w.part_number }}</strong></td><td>{{ w.name or '—' }}</td><td>{{ w.threshold }}</td>
+                        <td>{% if w.stock is none %}—{% else %}{{ w.stock }}{% if w.stock <= 0 %}<span class="badge bg-danger ms-1">缺货</span>{% elif w.stock < w.threshold %}<span class="badge bg-warning text-dark ms-1">低于警戒线</span>{% endif %}{% endif %}</td>
+                        <td>{{ w.note or '—' }}</td>
+                        <td class="text-end"><div class="table-action"><button type="button" onclick="ListUI.openEditor('/inventory-warning/{{ w.part_number | urlencode | replace('+', '%20') }}/edit')" class="btn btn-outline-primary btn-sm py-0">编辑</button><button type="button" data-url="/inventory-warning/{{ w.part_number | urlencode | replace('+', '%20') }}/delete" data-confirm="确认删除件号 {{ w.part_number }} 的预警配置？" onclick="event.stopPropagation();ListUI.delFrom(this)" class="btn btn-outline-danger btn-sm py-0">删除</button></div></td>
+                    </tr>
+                {% else %}{{ list.empty_state('点击右上角新增预警规则，查询库存后会自动填入缓存数量。', '/inventory-warning/new', '新增预警规则', colspan=6, open_modal=True) }}{% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="small text-muted px-3 py-2">预警规则只影响提示颜色，不会修改 AMRO 数据。</div>
     </div>
 </div>
 {% endblock %}
@@ -101,91 +81,13 @@
 {% block scripts %}
 <script>
 const MSG = {{ messages | tojson }};
-
-function fileSelected(input, zoneId) {
-    var zone = document.getElementById(zoneId);
-    var name = input.files[0] ? input.files[0].name : '';
-    if (name) {
-        zone.classList.add('has-file');
-        zone.querySelector('.file-name').textContent = '✅ ' + name;
-        zone.querySelector('.file-name').style.display = 'block';
-    }
-}
-
 document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('startQueryBtn').addEventListener('click', function() {
-        doQuery();
-    });
-    // 恢复进行中的库存查询轮询（刷新/重进页面后继续等待结果）
-    fetch('/inventory/query-status', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-        .then(function(r) { return r.json(); }).then(function(d) {
-            var status = (d && d.data) || {};
-            if (status.status === 'running') {
-                var card = window.QueryCard.run('qCardStock', '查询库存');
-                pollInventoryQuery(card);
-            }
-        }).catch(function(){});
+    var start = document.getElementById('startQueryBtn');
+    if (start) start.addEventListener('click', doQuery);
+    fetch('/inventory/query-status', { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).then(function(r) { return r.json(); }).then(function(d) { var status = (d && d.data) || {}; if (status.status === 'running') pollInventoryQuery(window.QueryCard.run('qCardStock', '查询库存')); }).catch(function() { window.safeToast('无法读取查询状态，请刷新页面重试', 'error'); });
 });
-
-function refreshInventoryRegions() {
-    // 局部刷新预警表缓存库存与「上次查询」摘要框，避免整页 reload 丢失滚动位置/提示
-    fetch('/inventory', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-        .then(function(r) { return r.text(); })
-        .then(function(html) {
-            var doc = new DOMParser().parseFromString(html, 'text/html');
-            var newTbody = doc.querySelector('#invWarnTable tbody');
-            var curTbody = document.querySelector('#invWarnTable tbody');
-            if (newTbody && curTbody) curTbody.innerHTML = newTbody.innerHTML;
-            var newLast = doc.querySelector('#lastQueryBlock');
-            var curLast = document.querySelector('#lastQueryBlock');
-            if (newLast && curLast) curLast.outerHTML = newLast.outerHTML;
-        })
-        .catch(function() { window.location.reload(); });  // 兜底：局部刷新失败则整页刷新
-}
-
-function doQuery() {
-    var input = document.getElementById('demandFile');
-    if (!input.files.length) { window.safeToast('请先选择需求单 Excel 文件', 'warning'); return; }
-    if (!window.amroSession || !window.amroSession.ready) { window.safeToast(MSG.P4, 'warning'); return; }
-    var fd = new FormData();
-    fd.append('file', input.files[0]);
-    var card = window.QueryCard.run('qCardStock', '查询库存');
-    fetch('/inventory/query', { method: 'POST', body: fd,
-        headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-        .then(function(r) { return r.json().then(function(d) { return {code: r.status, d: d}; }); })
-        .then(function(x) {
-            if (x.code === 200 && x.d.success) {
-                pollInventoryQuery(card);
-            } else if (x.code === 409) {
-                card.fail((x.d && x.d.message) || '已有查询任务进行中');
-            } else {
-                card.fail((x.d && x.d.message) || '启动失败');
-            }
-        }).catch(function() {
-            card.fail('启动失败');
-        });
-}
-
-function pollInventoryQuery(card) {
-    window.Poller.poll({
-        statusUrl: '/inventory/query-status',
-        card: card,
-        deadlineMin: 30,
-        intervalMs: 2000,
-        onDone: function(status, card) {
-            var s = status.summary || {};
-            var msg = '查询完成：共 ' + s.total + ' 件号，成功 ' + s.success +
-                      '，失败 ' + s.fail + '，标红 ' + s.shortage + '，标黄 ' + s.warning;
-            card.done(msg);
-            window.safeToast(msg, 'success');
-            // 局部刷新：仅更新预警库缓存库存与上次查询摘要框，保留滚动位置与提示
-            setTimeout(refreshInventoryRegions, 1500);
-        },
-        onError: function(err, card) {
-            card.fail(err || '查询失败');
-            window.safeToast(err || '查询失败', 'error');
-        }
-    });
-}
+function refreshInventoryRegions() { fetch('/inventory', { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).then(function(r) { return r.text(); }).then(function(html) { var doc = new DOMParser().parseFromString(html, 'text/html'); var newTbody = doc.querySelector('#invWarnTable tbody'); var curTbody = document.querySelector('#invWarnTable tbody'); if (newTbody && curTbody) curTbody.innerHTML = newTbody.innerHTML; var newLast = doc.querySelector('#lastQueryBlock'); var curLast = document.querySelector('#lastQueryBlock'); if (newLast && curLast) curLast.outerHTML = newLast.outerHTML; }).catch(function() { window.location.reload(); }); }
+function doQuery() { var input = document.getElementById('demandFile'); if (!input.files.length) { window.safeToast('请先选择需求单 Excel 文件', 'warning'); return; } if (!window.amroSession || !window.amroSession.ready) { window.safeToast(MSG.P4, 'warning'); return; } var fd = new FormData(); fd.append('file', input.files[0]); var card = window.QueryCard.run('qCardStock', '查询库存'); fetch('/inventory/query', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } }).then(function(r) { return r.json().then(function(d) { return {code: r.status, d: d}; }); }).then(function(x) { if (x.code === 200 && x.d.success) pollInventoryQuery(card); else if (x.code === 409) card.fail((x.d && x.d.message) || '已有查询任务进行中'); else card.fail((x.d && x.d.message) || '启动失败'); }).catch(function() { card.fail('启动失败，请重试'); }); }
+function pollInventoryQuery(card) { window.Poller.poll({ statusUrl: '/inventory/query-status', card: card, deadlineMin: 30, intervalMs: 2000, onDone: function(status, card) { var s = status.summary || {}; var msg = '查询完成：共 ' + s.total + ' 件号，成功 ' + s.success + '，失败 ' + s.fail + '，标红 ' + s.shortage + '，标黄 ' + s.warning; card.done(msg); window.safeToast(msg, 'success'); setTimeout(refreshInventoryRegions, 1500); }, onError: function(err, card) { card.fail(err || '查询失败'); window.safeToast(err || '查询失败', 'error'); } }); }
 </script>
 {% endblock %}

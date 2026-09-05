@@ -1,16 +1,22 @@
 {% extends "base.html" %}
-{% block title %}{{ "编辑飞机" if edit_mode else "新增飞机" }} - ReqMan定检准备系统{% endblock %}
+{% block title %}{{ "编辑飞机" if edit_mode else "新增飞机" }} - ReqMan 定检准备系统{% endblock %}
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h5 class="mb-0">{{ "编辑飞机" if edit_mode else "新增飞机" }}</h5>
-    <a href="/card/aircraft" class="btn btn-outline-secondary btn-sm">&larr; 返回</a>
-</div>
+<header class="page-header">
+    <div class="page-heading">
+        <div class="context-kicker">DATA MANAGEMENT / AIRCRAFT</div>
+        <h1>{{ "编辑飞机" if edit_mode else "新增飞机" }}</h1>
+        <p>登记飞机识别信息，保存后可在飞机清单中查看。</p>
+    </div>
+    <div class="page-actions"><a href="/card/aircraft" class="btn btn-outline-secondary btn-sm">返回飞机清单</a></div>
+</header>
 
 <div class="card">
     <div class="card-body">
         <form method="POST" id="acForm">
-            <div class="row g-3 mb-4">
+            <section class="form-section">
+                <div class="form-section-heading"><div><h2>基本信息</h2><p class="section-description">机号为必填字段。</p></div></div>
+                <div class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label small" for="reg">飞机号 <span class="text-danger">*</span></label>
                     <input type="text" class="form-control form-control-sm" name="reg" id="reg"
@@ -41,10 +47,10 @@
                     <input type="text" class="form-control form-control-sm" name="apu" id="apu"
                            value="{{ ac.apu if ac else "" }}">
                 </div>
-            </div>
-            <div class="d-flex justify-content-between">
+            </section>
+            <div class="form-actions">
                 <a href="/card/aircraft" class="btn btn-outline-secondary btn-sm">取消</a>
-                <button type="submit" class="btn btn-primary btn-sm px-4">保存</button>
+                <button type="submit" class="btn btn-primary btn-sm px-4">{{ "保存修改" if edit_mode else "保存飞机" }}</button>
             </div>
         </form>
     </div>

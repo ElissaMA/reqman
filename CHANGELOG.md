@@ -1,6 +1,13 @@
 # Changelog
 
 ## [3.6.1] - Unreleased
+### UI（全站重设计）
+- 全站统一为“航空运控”视觉系统：深海军蓝窄侧栏 + 主工作区、雾灰画布、统一状态色/间距/表格密度/焦点样式，新增 `static/css/reqman.css` 设计令牌
+- 重做公共页面壳：统一页面标题、上下文栏、AMRO 状态区、移动端导航抽屉、Toast/Loader/确认弹窗和无障碍语义
+- 新增 `static/js/reqman.js` 公共交互层：统一筛选、清空筛选、列表删除、上传文件反馈、查询进度、轮询、表单提交和 AMRO 状态探活
+- 重排工作包、工卡、工卡组、飞机、作废工卡、库存、日志、需求单预览及各类表单页面；统一列表工具栏、空状态、状态反馈和表单分段
+- 修复静态资源 WSGI 透传：`RequestLogMiddleware` 不再吞掉 `FileWrapper` 内容，Bootstrap 与应用 CSS/JS 返回完整响应体，避免页面退化为无样式 HTML
+
 ### Fixed（正确性）
 - 工卡列表异常分支渲染漏传 `categories`/`task_types` 导致错误页自身再抛 500、友好提示丢失：抽 `_render_card_list` helper，成功/失败共用同一 kwargs
 - 工卡详情/列表 JSON、工卡组详情、飞机详情接口直接 `jsonify` 缺 `success` 字段，前端 `Poller/apiSubmit` 按 `d.success` 分支被当失败：统一改 `api_success(data=...)` / `api_error(...)` 契约，并同步前端两处消费方读取 `d.data`

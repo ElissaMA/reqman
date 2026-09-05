@@ -1,186 +1,95 @@
 {% extends "base.html" %}
 {% import "macros/tables.html" as tables %}
-{% block title %}{{ "编辑工卡组" if set else "新增工卡组" }} - ReqMan定检准备系统{% endblock %}
+{% block title %}{{ "编辑工卡组" if set else "新增工卡组" }} - ReqMan 定检准备系统{% endblock %}
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h5 class="mb-0">{{ "编辑工卡组" if set else "新增工卡组" }}</h5>
-    <a href="/card/sets" class="btn btn-outline-secondary btn-sm">&larr; 返回</a>
-</div>
+<header class="page-header">
+    <div class="page-heading">
+        <div class="context-kicker">DATA MANAGEMENT / CARD SETS</div>
+        <h1>{{ "编辑工卡组" if set else "新增工卡组" }}</h1>
+        <p>组合工卡、工具和航材，形成可复用的定检准备模板。</p>
+    </div>
+    <div class="page-actions"><a href="/card/sets" class="btn btn-outline-secondary btn-sm">返回工卡组清单</a></div>
+</header>
 
 <div class="card">
     <div class="card-body">
         <form method="POST" id="setForm">
-            <!-- 工卡组数据确认状态（总确认，表头横幅） -->
-            <div class="mb-3 d-flex justify-content-between align-items-center p-2 rounded
-                        {{ 'bg-success-subtle' if set and set.card_ok else 'bg-danger-subtle' }}">
-                <span class="small">
-                    <strong>工卡组数据已确认</strong>
-                    {% if set and set.card_ok %}<span class="badge bg-success">已确认</span>
-                    {% else %}<span class="badge bg-danger">未确认</span>{% endif %}
-                </span>
-                {% if set and set.card_ok %}
-                <button type="button" class="btn btn-outline-danger btn-sm py-0"
-                        onclick="resetSetConfirm({{ set.id }})">重置确认</button>
-                {% endif %}
+            <div class="state-panel state-{{ 'success' if set and set.card_ok else 'danger' }} mb-3">
+                <span class="state-mark" aria-hidden="true">{{ 'OK' if set and set.card_ok else '!' }}</span>
+                <div class="flex-grow-1"><h3>工卡组数据确认：{{ '已确认' if set and set.card_ok else '未确认' }}</h3><p>保存前请确认工卡、工具、航材和提醒信息完整。</p></div>
+                {% if set and set.card_ok %}<button type="button" class="btn btn-outline-danger btn-sm" onclick="resetSetConfirm({{ set.id }})">重置确认</button>{% endif %}
             </div>
-
-            <div class="row g-3 mb-3">
+            <section class="form-section">
+                <div class="form-section-heading">
+                    <div><h2>基本信息</h2><p class="section-description">工卡组名称为必填字段。</p></div>
+                    <span class="page-count">工卡组</span>
+                </div>
+                <div class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label small" for="setName">名称 <span class="text-danger">*</span></label>
                     <input type="text" class="form-control form-control-sm" name="name" id="setName"
                            value="{{ set.name if set else "" }}" required>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label small" for="setCategory">专业</label>
+                    <label class="form-label" for="setCategory">专业</label>
                     <select class="form-select form-select-sm" name="category" id="setCategory">
                         <option value="">请选择专业</option>
-                        {% for c in categories %}
-                        <option value="{{ c }}" {{ 'selected' if set and set.category == c }}>{{ c }}</option>
-                        {% endfor %}
+                        {% for c in categories %}<option value="{{ c }}" {{ 'selected' if set and set.category == c }}>{{ c }}</option>{% endfor %}
                     </select>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label small" for="setDescription">说明</label>
-                    <input type="text" class="form-control form-control-sm" name="description" id="setDescription"
-                           value="{{ set.description if set else "" }}">
+                    <label class="form-label" for="setDescription">说明</label>
+                    <input type="text" class="form-control form-control-sm" name="description" id="setDescription" value="{{ set.description if set else '' }}">
                 </div>
-            </div>
-
-            <!-- 提醒类型区块 -->
-            <div id="reminderSection" class="mb-2">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <label class="form-label fw-bold mb-0" for="reminderTypeSelect">&#x1F514; 提醒类型</label>
                 </div>
-                <div class="row">
-                    <div class="col-md-4">
-                        <select class="form-select form-select-sm" name="reminder_type" id="reminderTypeSelect">
-                            <option value="">请选择提醒类型</option>
-                            {% for rt in reminder_types %}
-                            <option value="{{ rt }}" {{ "selected" if set and set.reminder_type == rt }}>{{ rt }}</option>
-                            {% endfor %}
-                        </select>
+            </section>
+            <section class="form-section">
+                <div class="form-section-heading"><div><h2>提醒设置</h2><p class="section-description">选择提醒类型，或明确确认无需提醒。</p></div></div>
+                <div id="reminderSection">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-5">
+                            <label class="form-label" for="reminderTypeSelect">提醒类型</label>
+                            <select class="form-select form-select-sm" name="reminder_type" id="reminderTypeSelect">
+                                <option value="">请选择提醒类型</option>
+                                {% for rt in reminder_types %}<option value="{{ rt }}" {{ "selected" if set and set.reminder_type == rt }}>{{ rt }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-7"><span class="small text-muted">确认状态：{% if set and set.reminder_confirmed %}<span class="badge bg-success">已确认</span>{% else %}<span class="badge bg-warning">未确认</span>{% endif %}</span></div>
                     </div>
                 </div>
-            </div>
-            <div class="mb-3 d-flex align-items-center gap-3">
-                <span class="small text-muted">
-                    提醒确认状态：
-                    {% if set and set.reminder_confirmed %}
-                    <span class="badge bg-success">已确认</span>
-                    {% else %}
-                    <span class="badge bg-warning">未确认</span>
-                    {% endif %}
-                </span>
-                <div class="form-check mb-0">
-                    <input class="form-check-input" type="checkbox" id="confirmNoReminder" name="confirm_no_reminder" value="1"
-                           {{ "checked" if set and set.reminder_confirmed and not set.reminder_type else "" }}>
-                    <label class="form-check-label small text-muted" for="confirmNoReminder">确认无需提醒</label>
-                </div>
-            </div>
+                <div class="form-check mt-3"><input class="form-check-input" type="checkbox" id="confirmNoReminder" name="confirm_no_reminder" value="1" {{ "checked" if set and set.reminder_confirmed and not set.reminder_type else "" }}><label class="form-check-label small" for="confirmNoReminder">确认无需提醒</label></div>
+            </section>
 
-            <div class="mb-3">
-                <label class="form-label fw-bold mb-2">已选工卡</label>
-                <div id="selectedCardsArea" class="border rounded bg-light p-2" style="min-height:60px">
-                    <table class="table table-bordered table-sm mb-0" id="selectedCardsTable" style="display:none">
-                        <thead class="table-light">
-                            <tr>
-                                <th style="width:30%">工卡号</th>
-                                <th style="width:60%">工卡名称</th>
-                                <th style="width:10%" class="text-center">操作</th>
-                            </tr>
-                        </thead>
-                        <tbody id="selectedCardsBody">
-                        </tbody>
-                    </table>
-                    <span class="text-muted small" id="selectedCardsEmpty">尚未选择工卡</span>
+            <section class="form-section">
+                <div class="form-section-heading"><div><h2>工卡选择</h2><p class="section-description">先查看已选工卡，再搜索并勾选需要加入的工卡。</p></div><span class="page-count">至少选择 2 张</span></div>
+                <div class="mb-3">
+                    <label class="form-label" for="cardSearch">已选工卡</label>
+                    <div id="selectedCardsArea" class="selected-cards-area border rounded p-2">
+                        <table class="table table-sm mb-0" id="selectedCardsTable" style="display:none"><thead><tr><th>工卡号</th><th>工卡名称</th><th class="text-center">操作</th></tr></thead><tbody id="selectedCardsBody"></tbody></table>
+                        <span class="text-muted small" id="selectedCardsEmpty">尚未选择工卡</span>
+                    </div>
                 </div>
-            </div>
-            <div class="mb-3">
-                <label class="form-label fw-bold mb-2">新增工卡</label>
-                <div class="mb-2">
-                    <input type="text" class="form-control form-control-sm" id="cardSearch"
-                           placeholder="搜索工卡号或描述..."
-                           oninput="loadAllCards()" autocomplete="off">
+                <div>
+                    <label class="form-label" for="cardSearch">搜索可用工卡</label>
+                    <input type="text" class="form-control form-control-sm mb-2" id="cardSearch" placeholder="搜索工卡号或描述..." oninput="loadAllCards()" autocomplete="off">
+                    <div class="table-responsive card-picker"><table class="table table-sm mb-0"><thead><tr><th style="width:42px"><label class="visually-hidden" for="selectAllCards">全选工卡</label><input type="checkbox" id="selectAllCards" onchange="toggleAllCards(this)"></th><th>工卡号</th><th>工卡描述</th><th>专业</th></tr></thead><tbody id="cardTableBody"><tr class="empty-state-row"><td colspan="4">请输入关键字搜索工卡</td></tr></tbody></table></div>
                 </div>
-                <div class="table-responsive" style="max-height:300px; overflow-y:auto">
-                    <table class="table table-sm table-bordered mb-0">
-                        <thead class="table-light sticky-top">
-                            <tr>
-                                <th style="width:30px">
-                                    <input type="checkbox" id="selectAllCards" onchange="toggleAllCards(this)">
-                                </th>
-                                <th>工卡号</th>
-                                <th>工卡描述</th>
-                                <th>专业</th>
-                            </tr>
-                        </thead>
-                        <tbody id="cardTableBody">
-                            <tr class="empty-state-row"><td colspan="4" class="text-muted text-center py-2">
-                                请输入关键字搜索工卡
-                            </td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            </section>
 
-            <!-- 工具清单区块 -->
-            <div id="toolSection">
-            <div class="mb-2">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <label class="form-label fw-bold mb-0">&#x1F527; 共用工具清单</label>
-                    <button type="button" class="btn btn-outline-success btn-sm"
-                            onclick="addRow('tool')">+ 新增工具</button>
-                </div>
+            <section class="form-section" id="toolSection">
+                <div class="form-section-heading"><div><h2>共用工具清单</h2><p class="section-description">填写工卡组内需要准备的工具。</p></div><button type="button" class="btn btn-outline-success btn-sm" onclick="addRow('tool')">新增工具</button></div>
                 {{ tables.tool_table(set.tools if set else [], usage_types, editable=true, show_delete=true) }}
-            </div>
-            </div>
-            <div class="mb-3 d-flex align-items-center gap-3">
-                <span class="small text-muted">
-                    工具确认状态：
-                    {% if set and set.tools_confirmed %}
-                    <span class="badge bg-success">已确认</span>
-                    {% else %}
-                    <span class="badge bg-warning">未确认</span>
-                    {% endif %}
-                </span>
-                <div class="form-check mb-0">
-                    <input class="form-check-input" type="checkbox" id="confirmNoTools" name="confirm_no_tools" value="1"
-                           {{ "checked" if set and set.tools_confirmed and not set.tools else "" }}>
-                    <label class="form-check-label small text-muted" for="confirmNoTools">确认无工具</label>
-                </div>
-            </div>
-
-            <!-- 航材清单区块 -->
-            <div id="matSection">
-            <div class="mb-2">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <label class="form-label fw-bold mb-0">&#x1F4E6; 共用航材清单</label>
-                    <button type="button" class="btn btn-outline-success btn-sm"
-                            onclick="addRow('mat')">+ 新增航材</button>
-                </div>
+                <div class="d-flex flex-wrap align-items-center gap-3 mt-3"><span class="small text-muted">确认状态：{% if set and set.tools_confirmed %}<span class="badge bg-success">已确认</span>{% else %}<span class="badge bg-warning">未确认</span>{% endif %}</span><div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="confirmNoTools" name="confirm_no_tools" value="1" {{ "checked" if set and set.tools_confirmed and not set.tools else "" }}><label class="form-check-label small" for="confirmNoTools">确认无工具</label></div></div>
+            </section>
+            <section class="form-section" id="matSection">
+                <div class="form-section-heading"><div><h2>共用航材清单</h2><p class="section-description">填写工卡组内需要准备的航材。</p></div><button type="button" class="btn btn-outline-success btn-sm" onclick="addRow('mat')">新增航材</button></div>
                 {{ tables.material_table(set.materials if set else [], usage_types, editable=true, show_delete=true) }}
-            </div>
-            </div>
-            <div class="mb-3 d-flex align-items-center gap-3">
-                <span class="small text-muted">
-                    航材确认状态：
-                    {% if set and set.materials_confirmed %}
-                    <span class="badge bg-success">已确认</span>
-                    {% else %}
-                    <span class="badge bg-warning">未确认</span>
-                    {% endif %}
-                </span>
-                <div class="form-check mb-0">
-                    <input class="form-check-input" type="checkbox" id="confirmNoMats" name="confirm_no_mats" value="1"
-                           {{ "checked" if set and set.materials_confirmed and not set.materials else "" }}>
-                    <label class="form-check-label small text-muted" for="confirmNoMats">确认无航材</label>
-                </div>
-            </div>
-
-            <div class="d-flex justify-content-between">
+                <div class="d-flex flex-wrap align-items-center gap-3 mt-3"><span class="small text-muted">确认状态：{% if set and set.materials_confirmed %}<span class="badge bg-success">已确认</span>{% else %}<span class="badge bg-warning">未确认</span>{% endif %}</span><div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="confirmNoMats" name="confirm_no_mats" value="1" {{ "checked" if set and set.materials_confirmed and not set.materials else "" }}><label class="form-check-label small" for="confirmNoMats">确认无航材</label></div></div>
+            </section>
+            <div class="form-actions">
                 <a href="/card/sets" class="btn btn-outline-secondary btn-sm">取消</a>
-                <button type="submit" class="btn btn-primary btn-sm px-4">保存</button>
+                <button type="submit" class="btn btn-primary btn-sm px-4">{{ '保存修改' if set else '保存工卡组' }}</button>
             </div>
         </form>
     </div>

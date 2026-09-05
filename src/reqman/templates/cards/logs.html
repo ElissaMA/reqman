@@ -1,19 +1,20 @@
 {% extends "base.html" %}
-{% block title %}操作日志 - ReqMan定检准备系统{% endblock %}
+{% block title %}操作日志 - ReqMan 定检准备系统{% endblock %}
 {% block content %}
 
-<style>
-.log-table td, .log-table th {
-    vertical-align: middle;
-}
-</style>
+<header class="page-header">
+    <div class="page-heading">
+        <div class="context-kicker">AUDIT / ACTIVITY LOG</div>
+        <h1>操作日志</h1>
+        <p>追踪工卡、工卡组和飞机信息的新增、修改与删除记录。</p>
+    </div>
+    <div class="page-actions"><span class="page-count">共 {{ total }} 条</span></div>
+</header>
 
 <div class="card mb-3">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">操作日志 <span class="badge bg-secondary ms-2">共 {{ total }} 条</span></h5>
-    </div>
+    <div class="card-header"><div><h2>筛选日志</h2><p class="section-description">条件变化后可提交筛选；点击行查看目标详情。</p></div></div>
     <div class="card-body">
-        <form id="logFilterForm" class="row g-2 align-items-end" method="get" action="{{ url_for('logs.list_logs') }}">
+        <form id="logFilterForm" class="filter-toolbar p-0 border-0" method="get" action="{{ url_for('logs.list_logs') }}">
             <div class="col-auto">
                 <label class="form-label small mb-1 text-muted">操作类型</label>
                 <select name="operation" class="form-select form-select-sm" style="width:100px" onchange="this.form.submit()">
@@ -144,11 +145,11 @@
     </div>
 </div>
 
-<div class="modal fade" id="previewModal" tabindex="-1">
+<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalTitle" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
         <div class="modal-header">
-            <h5 class="modal-title" id="previewModalTitle">预览</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <h2 class="modal-title" id="previewModalTitle">日志目标预览</h2>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
         </div>
         <div class="modal-body" id="previewContent"><p class="text-muted">加载中...</p></div>
         <div class="modal-footer">

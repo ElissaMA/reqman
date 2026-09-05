@@ -3,13 +3,22 @@
 {% block title %}飞机信息 - ReqMan定检准备系统{% endblock %}
 {% block content %}
 
-<div class="card mb-3">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">飞机信息 <span class="badge bg-secondary ms-2">{{ ac_list|length }}</span></h5>
-        <span class="d-flex gap-2">
-            <a href="javascript:void(0)" onclick="amroSyncAircraft()" id="amroSyncAir" class="btn btn-outline-primary btn-sm">查询飞机数据</a>
-            <a href="javascript:void(0)" onclick="ListUI.openEditor('/card/aircraft/new')" class="btn btn-primary btn-sm">+ 新增飞机</a>
-        </span>
+<header class="page-header">
+    <div class="page-heading">
+        <div class="context-kicker">DATA MANAGEMENT / AIRCRAFT</div>
+        <h1>飞机信息</h1>
+        <p>维护机号、机型和关键识别信息，支持从 AMRO 同步最新数据。</p>
+    </div>
+    <div class="page-actions">
+        <span class="page-count">共 {{ ac_list|length }} 条</span>
+        <button type="button" onclick="amroSyncAircraft()" id="amroSyncAir" class="btn btn-outline-primary btn-sm">查询飞机数据</button>
+        <button type="button" onclick="ListUI.openEditor('/card/aircraft/new')" class="btn btn-primary btn-sm">新增飞机</button>
+    </div>
+</header>
+
+<div class="card">
+    <div class="card-header">
+        <div><h2>飞机清单</h2><p class="section-description">点击行查看飞机详情。</p></div>
     </div>
     <div class="card-body p-0">
         {% if amro_status and amro_status.status == 'running' %}
@@ -63,8 +72,10 @@
                         <td>{{ ac.apu or '-' }}</td>
                         <td class="text-center">{{ ac.log_time or '—' }}</td>
                         <td class="text-center text-nowrap" onclick="event.stopPropagation()">
-                            <a href="javascript:void(0)" onclick="ListUI.openEditor('/card/aircraft/{{ ac.id }}/edit')" class="btn btn-outline-primary btn-sm py-0">编辑</a>
-                            <button type="button" data-url="/card/aircraft/{{ ac.id }}/delete" data-id="{{ ac.id }}" data-confirm="确认删除飞机 {{ ac.reg }}？" onclick="ListUI.delFrom(this)" class="btn btn-outline-danger btn-sm py-0">删除</button>
+                            <div class="table-action">
+                                <button type="button" onclick="ListUI.openEditor('/card/aircraft/{{ ac.id }}/edit')" class="btn btn-outline-primary btn-sm py-0">编辑</button>
+                                <button type="button" data-url="/card/aircraft/{{ ac.id }}/delete" data-id="{{ ac.id }}" data-confirm="确认删除飞机 {{ ac.reg }}？" onclick="event.stopPropagation();ListUI.delFrom(this)" class="btn btn-outline-danger btn-sm py-0">删除</button>
+                            </div>
                         </td>
                     </tr>
                 {% endfor %}
@@ -77,11 +88,11 @@
     </div>
 </div>
 
-<div class="modal fade" id="acDetailModal" tabindex="-1">
+<div class="modal fade" id="acDetailModal" tabindex="-1" aria-labelledby="acDetailModalTitle" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
         <div class="modal-header">
-            <h5 class="modal-title">飞机信息详情</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <h2 class="modal-title" id="acDetailModalTitle">飞机信息详情</h2>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
         </div>
         <div class="modal-body" id="acDetailContent"><p class="text-muted">点击行加载...</p></div>
         <div class="modal-footer">

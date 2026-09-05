@@ -33,9 +33,17 @@ class RequestLogMiddleware:
         method = environ.get("REQUEST_METHOD", "")
         path = environ.get("PATH_INFO", "")
 
-        # 跳过静态资源
+        # 跳过静态资源，但仍需透传 WSGI 迭代器内容。
+        # __call__ 是生成器函数，直接 return 会把 FileWrapper 放入 StopIteration.value，
+        # 导致静态响应只有 Content-Length 而没有实际 body。
         if path.startswith("/static/"):
-            return self.app(environ, start_response)
+            wsgi_iter = self.app(environ, start_response)
+            try:
+                yield from wsgi_iter
+            finally:
+                if hasattr(wsgi_iter, "close"):
+                    wsgi_iter.close()
+            return
 
         start = time.time()
         response_size = [0]

@@ -2,140 +2,75 @@
 {% import "macros/list_macros.html" as list %}
 {% block title %}工作包 - ReqMan定检准备系统{% endblock %}
 {% block content %}
+<header class="page-header">
+    <div class="page-heading">
+        <div class="context-kicker">WORK PACKAGES / PREPARATION</div>
+        <h1>工作包</h1>
+        <p>从 AMRO 查询或上传工作清单，完成匹配后进入需求单预览。</p>
+    </div>
+    <div class="page-actions"><span class="page-count">工作流入口</span></div>
+</header>
 
-<style>
-.wp-warning td { background-color: #f0f0f0 !important; }
-.wp-danger td { background-color: #f8d7da !important; }
-</style>
-
-<!-- Card 0：从 AMRO 拉取工作包（v3.5.0 新增） -->
-<div class="card mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">查询工作包</h5>
-        <button class="btn btn-primary btn-sm" id="amroPackRefresh">查询工作包</button>
+<div class="card">
+    <div class="card-header">
+        <div><h2>从 AMRO 查询工作包</h2><p class="section-description">获取任务接收清单后可直接导入本地工作包。</p></div>
+        <button class="btn btn-primary btn-sm" id="amroPackRefresh" type="button">查询工作包</button>
     </div>
     <div class="card-body">
-        <p class="text-muted small mb-2">从 AMRO「任务接收」直读工卡清单（基地 KM01，不过滤日期窗），替代人工打印上传；需先在表头完成 AMRO 登录。</p>
-        {% if amro_last_pkg_query %}
-        <div class="alert alert-success py-2 px-3 small mb-2">
-            上次查询（{{ amro_last_pkg_query.finished_at }}）：{{ amro_last_pkg_query.summary }}
-        </div>
-        {% endif %}
+        <p class="text-muted small mb-3">读取基地 KM01 的任务接收清单，不过滤日期窗；查询前请先在顶部完成 AMRO 登录。</p>
+        {% if amro_last_pkg_query %}<div class="alert alert-success py-2 px-3 small">上次查询（{{ amro_last_pkg_query.finished_at }}）：{{ amro_last_pkg_query.summary }}</div>{% endif %}
         <div class="q-card" id="qCardPackages" style="display:none"></div>
         <div class="table-responsive">
             <table class="table table-sm table-hover mb-0" id="amroPackTable">
-                <thead><tr>
-                    <th>机号</th><th>描述</th><th>机型</th><th>发动机</th>
-                    <th>已分配分队</th><th>计划开工</th><th>计划总工时</th>
-                    <th class="text-center" style="width:90px">操作</th>
-                </tr></thead>
-                <tbody>
-                    <tr class="empty-state-row"><td colspan="8" class="text-center text-muted py-3">点击「查询工作包」从 AMRO 获取</td></tr>
-                </tbody>
+                <thead><tr><th>机号</th><th>描述</th><th>机型</th><th>发动机</th><th>已分配分队</th><th>计划开工</th><th>计划总工时</th><th class="text-center">操作</th></tr></thead>
+                <tbody><tr class="empty-state-row"><td colspan="8" class="text-center">点击“查询工作包”从 AMRO 获取任务包。</td></tr></tbody>
             </table>
         </div>
     </div>
 </div>
 
-<!-- Card 1：上传工作清单（保留不动） -->
-<div class="card mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">上传工作清单</h5>
-    </div>
+<div class="card">
+    <div class="card-header"><div><h2>上传工作清单</h2><p class="section-description">可分别上传例行清单和其他清单，格式均为 `.xlsx`。</p></div></div>
     <div class="card-body">
         <form method="POST" enctype="multipart/form-data" id="uploadForm">
             <div class="row g-3">
                 <div class="col-md-6">
-                    <div class="upload-zone" id="zoneRoutine"
-                         onclick="document.getElementById('routineFile').click()"
-                         tabindex="0" role="button" aria-label="上传例行清单（例行工卡清单），点击或按回车选择文件"
-                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('routineFile').click()}">
-                        <div class="icon">📋</div>
-                        <h6 class="mt-2">点击此处上传例行清单</h6>
-                        <p class="text-muted small mb-0">支持 .xlsx 格式</p>
-                        <input type="file" id="routineFile" name="routine_file"
-                               accept=".xlsx" style="display:none"
-                               onchange="fileSelected(this,'zoneRoutine')">
-                        <div class="file-name small text-success mt-2" style="display:none"></div>
+                    <div class="upload-zone" id="zoneRoutine" onclick="document.getElementById('routineFile').click()" tabindex="0" role="button" aria-label="上传例行清单，点击或按回车选择文件" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('routineFile').click()}">
+                        <div class="icon" aria-hidden="true">01</div><h3 class="h6 mt-2">例行清单</h3><p class="text-muted small mb-0">点击选择或拖拽 `.xlsx` 文件</p>
+                        <input type="file" id="routineFile" name="routine_file" accept=".xlsx" class="visually-hidden" onchange="fileSelected(this,'zoneRoutine')"><div class="file-name small text-success mt-2" style="display:none"></div>
                     </div>
                 </div>
                 <div class="col-md-6">
-                    <div class="upload-zone" id="zoneOther"
-                         onclick="document.getElementById('otherFile').click()"
-                         tabindex="0" role="button" aria-label="上传其他清单，点击或按回车选择文件"
-                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('otherFile').click()}">
-                        <div class="icon">📋</div>
-                        <h6 class="mt-2">点击此处上传其他清单</h6>
-                        <p class="text-muted small mb-0">支持 .xlsx 格式</p>
-                        <input type="file" id="otherFile" name="other_file"
-                               accept=".xlsx" style="display:none"
-                               onchange="fileSelected(this,'zoneOther')">
-                        <div class="file-name small text-success mt-2" style="display:none"></div>
+                    <div class="upload-zone" id="zoneOther" onclick="document.getElementById('otherFile').click()" tabindex="0" role="button" aria-label="上传其他清单，点击或按回车选择文件" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('otherFile').click()}">
+                        <div class="icon" aria-hidden="true">02</div><h3 class="h6 mt-2">其他清单</h3><p class="text-muted small mb-0">点击选择或拖拽 `.xlsx` 文件</p>
+                        <input type="file" id="otherFile" name="other_file" accept=".xlsx" class="visually-hidden" onchange="fileSelected(this,'zoneOther')"><div class="file-name small text-success mt-2" style="display:none"></div>
                     </div>
                 </div>
             </div>
-            <div class="text-center mt-4">
-                <button type="submit" class="btn btn-primary btn-sm px-4">上传</button>
-            </div>
+            <div class="form-actions"><span class="small text-muted">上传后系统会自动匹配数据库并生成预览。</span><button type="submit" class="btn btn-primary px-4">上传并匹配</button></div>
         </form>
     </div>
 </div>
 
 {% if work_packages %}
 <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">📦 已导入工作包 <span class="badge bg-secondary ms-2">{{ work_packages|length }}</span></h5>
-    </div>
+    <div class="card-header"><div><h2>已导入工作包</h2><p class="section-description">点击工作包行进入需求单预览；状态标记表示匹配数据完整度。</p></div><span class="page-count">共 {{ work_packages|length }} 条</span></div>
     <div class="card-body p-0">
-        {% if amro_last_pkg_ver %}
-        <div class="alert alert-success py-2 px-3 small mb-0" style="border-radius:0">
-            上次查询（{{ amro_last_pkg_ver.finished_at }}）：{{ amro_last_pkg_ver.summary }}
-            {% if amro_last_pkg_ver.download_url %}<a class="btn btn-outline-primary btn-sm ms-2 py-0" href="{{ amro_last_pkg_ver.download_url }}">⬇下载逐包改版清单</a>{% endif %}
+        {% if amro_last_pkg_ver %}<div class="alert alert-success m-3 mb-0 py-2 px-3 small">上次查询（{{ amro_last_pkg_ver.finished_at }}）：{{ amro_last_pkg_ver.summary }}{% if amro_last_pkg_ver.download_url %}<a class="btn btn-outline-primary btn-sm ms-2 py-0" href="{{ amro_last_pkg_ver.download_url }}" title="⬇下载逐包改版清单">下载逐包改版清单</a>{% endif %}</div>{% endif %}
+        <div class="q-card" id="qCardPkgVerCheck" style="display:none"></div>
+        <div class="filter-toolbar" data-filter-toolbar="wpTable">
+            <div class="filter-field"><label for="wpReg">搜索机号</label><input class="form-control form-control-sm" id="wpReg" data-table="wpTable" data-col="0" placeholder="输入机号..." onkeyup="AppFilter.filter('wpReg')"></div>
+            <div class="filter-field filter-narrow"><label for="wpDate">开工日期</label><select class="form-select form-select-sm" id="wpDate" data-table="wpTable" data-date-col="5" onchange="AppFilter.filter('wpDate')"><option value="">全部时间</option><option value="1">近一个月</option><option value="3">近3个月</option><option value="12">近一年</option></select></div>
+            <div class="filter-actions"><button type="button" class="btn btn-outline-secondary btn-sm" onclick="AppFilter.clear('wpTable')">清空筛选</button></div>
         </div>
-        {% endif %}
-        <div class="q-card" id="qCardPkgVerCheck" style="display:none;margin:12px"></div>
         <div class="table-responsive">
             <table class="table table-hover mb-0" id="wpTable">
-                <thead>
-                    {{ list.filter_row([('搜索机号...','wpReg'),('','_'),('','_'),('','_'),('','_'),('搜索开工日期...','wpDate'),('','_'),('','_'),('','_')]) }}
-                    <tr>
-                        <th data-col="0">机号</th>
-                        <th>描述</th>
-                        <th>机型</th>
-                        <th>发动机</th>
-                        <th>已分配分队</th>
-                        <th data-col="5">开工日期</th>
-                        <th>工卡数</th>
-                        <th>生成日期</th>
-                        <th style="width:270px" class="text-center">操作</th>
-                    </tr>
-                </thead>
+                <thead><tr><th>机号</th><th>描述</th><th>机型</th><th>发动机</th><th>已分配分队</th><th>开工日期</th><th>工卡数</th><th>生成日期</th><th class="text-center">操作</th></tr></thead>
                 <tbody>
                 {% for wp in work_packages %}
-                <tr onclick="window.open('/generate?package_id={{ wp.package_id }}', '_blank')"
-                    style="cursor:pointer"
-                    class="{% if wp.status == 'warning' %}wp-warning{% elif wp.status == 'danger' %}wp-danger{% endif %}">
-                    <td>{{ wp.aircraft_info.reg if wp.aircraft_info else wp.reg }}</td>
-                    <td>{{ (wp.aircraft_info.description if wp.aircraft_info else wp.description) or '' }}</td>
-                    <td>{{ (wp.aircraft_info.type if wp.aircraft_info else '') or '' }}</td>
-                    <td>{{ (wp.aircraft_info.engine if wp.aircraft_info else '') or '' }}</td>
-                    <td>{{ (wp.aircraft_info.squadron if wp.aircraft_info else '') or '' }}</td>
-                    <td>{{ wp.date }}</td>
-                    <td>{{ wp.routine_count }}+{{ wp.other_count }}</td>
-                    <td onclick="event.stopPropagation()">
-                        {{ wp.generated_at or '—' }}
-                    </td>
-                    <td onclick="event.stopPropagation()">
-                        <div class="d-flex gap-1 justify-content-center" style="white-space:nowrap">
-                            <form method="POST" action="/packages/{{ wp.package_id }}/rematch" style="display:inline">
-                                <button type="submit" class="btn btn-outline-secondary btn-sm"
-                                        onclick="return rematchPack(event, '{{ wp.package_id }}')">🔄 重新匹配</button>
-                            </form>
-                            <button type="button" class="btn btn-outline-primary btn-sm"
-                                    data-package-id="{{ wp.package_id }}"
-                                    onclick="pkgVersionCheck('{{ wp.package_id }}', this)">🔍 查询工作包工卡版本</button>
-                        </div>
-                    </td>
+                <tr onclick="window.open('/generate?package_id={{ wp.package_id }}', '_blank')" style="cursor:pointer" class="{% if wp.status == 'warning' %}wp-warning{% elif wp.status == 'danger' %}wp-danger{% endif %}">
+                    <td><strong>{{ wp.aircraft_info.reg if wp.aircraft_info else wp.reg }}</strong></td><td>{{ (wp.aircraft_info.description if wp.aircraft_info else wp.description) or '' }}</td><td>{{ (wp.aircraft_info.type if wp.aircraft_info else '') or '' }}</td><td>{{ (wp.aircraft_info.engine if wp.aircraft_info else '') or '' }}</td><td>{{ (wp.aircraft_info.squadron if wp.aircraft_info else '') or '' }}</td><td>{{ wp.date }}</td><td>{{ wp.routine_count }}+{{ wp.other_count }}</td><td>{{ wp.generated_at or '—' }}</td>
+                    <td onclick="event.stopPropagation()"><div class="table-action"><form method="POST" action="/packages/{{ wp.package_id }}/rematch"><button type="submit" class="btn btn-outline-secondary btn-sm" onclick="return rematchPack(event, '{{ wp.package_id }}')">重新匹配</button></form><button type="button" class="btn btn-outline-primary btn-sm" data-package-id="{{ wp.package_id }}" onclick="pkgVersionCheck('{{ wp.package_id }}', this)">查询版本</button></div></td>
                 </tr>
                 {% endfor %}
                 </tbody>
@@ -144,42 +79,13 @@
     </div>
 </div>
 {% else %}
-<div class="card text-center py-5">
-    <div class="card-body text-muted">
-        <div class="empty-state-icon">📋</div>
-        <p class="mt-2 mb-0">暂无工作包，请上传工作清单或从 AMRO 拉取</p>
-    </div>
-</div>
+<div class="state-panel state-info mb-3"><span class="state-mark" aria-hidden="true">i</span><div><h3>暂无已导入工作包</h3><p>可以从 AMRO 查询后导入，也可以上传本地工作清单。</p></div></div>
 {% endif %}
 
-<!-- Card 3：工卡版本变动日志（v3.5.0 新增，card_logs 筛选视图） -->
-<div class="card mb-4">
-    <div class="card-header">
-        <h5 class="mb-0">🕘 工卡版本变动日志 <span class="badge bg-secondary ms-2">{{ version_logs|length }}</span></h5>
-    </div>
+<div class="card">
+    <div class="card-header"><div><h2>工卡版本变动日志</h2><p class="section-description">记录版本检查发现的改版、作废和新增信息。</p></div><span class="page-count">{{ version_logs|length }} 条</span></div>
     <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-sm table-hover mb-0" id="amroVerLogTable">
-                <thead><tr>
-                    <th style="width:140px">时间</th><th>工卡号</th><th>工卡名称</th>
-                    <th>旧编写日期</th><th>新编写日期</th><th style="width:90px">操作</th>
-                </tr></thead>
-                <tbody>
-                {% for l in version_logs %}
-                    <tr>
-                        <td>{{ l.time }}</td>
-                        <td><strong>{{ l.task_code }}</strong></td>
-                        <td>{{ l.task_name or '—' }}</td>
-                        <td>{{ l.old or '—' }}</td>
-                        <td>{{ l.new }}</td>
-                        <td>{{ l.operation }}</td>
-                    </tr>
-                {% else %}
-                    <tr class="empty-state-row"><td colspan="6" class="text-center text-muted py-3">暂无版本变动记录（版本检查发现改版后自动记录）</td></tr>
-                {% endfor %}
-                </tbody>
-            </table>
-        </div>
+        <div class="table-responsive"><table class="table table-sm table-hover mb-0" id="amroVerLogTable"><thead><tr><th>时间</th><th>工卡号</th><th>工卡名称</th><th>旧编写日期</th><th>新编写日期</th><th>操作</th></tr></thead><tbody>{% for l in version_logs %}<tr><td>{{ l.time }}</td><td><strong>{{ l.task_code }}</strong></td><td>{{ l.task_name or '—' }}</td><td>{{ l.old or '—' }}</td><td>{{ l.new }}</td><td>{{ l.operation }}</td></tr>{% else %}<tr class="empty-state-row"><td colspan="6" class="text-center">暂无版本变动记录。</td></tr>{% endfor %}</tbody></table></div>
     </div>
 </div>
 

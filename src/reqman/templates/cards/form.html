@@ -1,43 +1,43 @@
 ﻿{% extends "base.html" %}
 {% import "macros/tables.html" as tables %}
-{% block title %}{{ "编辑工卡" if edit_mode else "新增工卡" }} - ReqMan定检准备系统{% endblock %}
+{% block title %}{{ "编辑工卡" if edit_mode else "新增工卡" }} - ReqMan 定检准备系统{% endblock %}
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h5 class="mb-0">{{ "编辑工卡" if edit_mode else "新增工卡" }}</h5>
-    <a href="/card/list" class="btn btn-outline-secondary btn-sm">&larr; 返回</a>
-</div>
+<header class="page-header">
+    <div class="page-heading">
+        <div class="context-kicker">DATA MANAGEMENT / WORK CARDS</div>
+        <h1>{{ "编辑工卡" if edit_mode else "新增工卡" }}</h1>
+        <p>维护工卡版本、提醒、工具与航材信息；保存后用于工作包匹配和需求单生成。</p>
+    </div>
+    <div class="page-actions"><a href="/card/list" class="btn btn-outline-secondary btn-sm">返回工卡清单</a></div>
+</header>
 
 <div class="card">
     <div class="card-body">
         <form method="POST" id="cardForm">
-            <!-- 工卡数据确认状态（总确认，表头横幅） -->
-            <div class="mb-3 d-flex justify-content-between align-items-center p-2 rounded
-                        {{ 'bg-success-subtle' if card and card.card_ok else 'bg-danger-subtle' }}">
-                <span class="small">
-                    <strong>工卡数据已确认</strong>
-                    {% if card and card.card_ok %}<span class="badge bg-success">已确认</span>
-                    {% else %}<span class="badge bg-danger">未确认</span>{% endif %}
-                </span>
-                {% if card and card.card_ok %}
-                <button type="button" class="btn btn-outline-danger btn-sm py-0"
-                        onclick="resetConfirm({{ card.id }})">重置确认</button>
-                {% endif %}
+            <div class="state-panel state-{{ 'success' if card and card.card_ok else 'danger' }} mb-3">
+                <span class="state-mark" aria-hidden="true">{{ 'OK' if card and card.card_ok else '!' }}</span>
+                <div class="flex-grow-1"><h3>工卡数据确认：{{ '已确认' if card and card.card_ok else '未确认' }}</h3><p>保存前请确认基本信息、提醒、工具和航材完整。</p></div>
+                {% if card and card.card_ok %}<button type="button" class="btn btn-outline-danger btn-sm" onclick="resetConfirm({{ card.id }})">重置确认</button>{% endif %}
             </div>
+            <section class="form-section">
+                <div class="form-section-heading">
+                    <div><h2>基本信息</h2><p class="section-description">工卡号、描述和版本日期。</p></div>
+                    <span class="page-count">必填：工卡号、描述、专业</span>
+                </div>
 
-            <!-- 基本信息 -->
-            <div class="row g-3 mb-4">
-                <div class="col-md-3">
+                <div class="row g-3">
+                    <div class="col-md-3">
                     <label class="form-label small" for="task_code">工卡号 <span class="text-danger">*</span></label>
                     <input type="text" class="form-control form-control-sm" name="task_code" id="task_code"
                            value="{{ card.task_code if card else prefill_code if prefill_code else "" }}" required>
-                </div>
-                <div class="col-md-4">
+                    </div>
+                    <div class="col-md-4">
                     <label class="form-label small" for="task_name">工卡描述</label>
                     <input type="text" class="form-control form-control-sm" name="task_name" id="task_name"
                            value="{{ card.task_name if card else prefill_name if prefill_name else "" }}" required>
-                </div>
-                <div class="col-md-1">
+                    </div>
+                    <div class="col-md-2">
                     <label class="form-label small" for="category">专业</label>
                     <select class="form-select form-select-sm" name="category" id="category">
                         <option value="">请选择专业</option>
@@ -45,8 +45,8 @@
                         <option value="{{ c }}" {{ "selected" if (card and card.category == c) or (prefill_category and prefill_category == c) }}>{{ c }}</option>
                         {% endfor %}
                     </select>
-                </div>
-                <div class="col-md-1">
+                    </div>
+                    <div class="col-md-2">
                     <label class="form-label small" for="task_type">类型</label>
                     <select class="form-select form-select-sm" name="task_type" id="task_type">
                         <option value="">请选择类型</option>
@@ -56,112 +56,54 @@
                         {% endif %}
                         {% endfor %}
                     </select>
-                </div>
-                <div class="col-md-3">
+                    </div>
+                    <div class="col-md-3">
                     <label class="form-label small" for="write_date">编写日期 <span class="text-muted">（工卡版本日期，留空待 AMRO 同步）</span></label>
                     <input type="date" class="form-control form-control-sm" name="write_date" id="write_date"
                            value="{{ (card.write_date if card else '')[:10] }}">
-                </div>
-            </div>
-
-            <!-- 提醒类型区块 -->
-            <div id="reminderSection" class="mb-2">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <label class="form-label fw-bold mb-0" for="reminderTypeSelect">&#x1F514; 提醒类型</label>
-                </div>
-                <div class="row">
-                    <div class="col-md-4">
-                        <select class="form-select form-select-sm" name="reminder_type" id="reminderTypeSelect">
-                            <option value="">请选择提醒类型</option>
-                            {% for rt in reminder_types %}
-                            <option value="{{ rt }}" {{ "selected" if card and card.reminder_type == rt }}>{{ rt }}</option>
-                            {% endfor %}
-                        </select>
                     </div>
                 </div>
-            </div>
-            <div class="mb-3 d-flex align-items-center gap-3">
-                <span class="small text-muted">
-                    提醒确认状态：
-                    {% if card and card.reminder_confirmed %}
-                    <span class="badge bg-success">已确认</span>
-                    {% else %}
-                    <span class="badge bg-warning">未确认</span>
-                    {% endif %}
-                </span>
-                <div class="form-check mb-0">
-                    <input class="form-check-input" type="checkbox" id="confirmNoReminder" name="confirm_no_reminder" value="1"
-                           {{ "checked" if card and card.reminder_confirmed and not card.reminder_type else "" }}>
-                    <label class="form-check-label small text-muted" for="confirmNoReminder">确认无需提醒</label>
-                </div>
-            </div>
+            </section>
 
-            <!-- 工具清单区块 -->
-            <div id="toolSection">
-            <div class="mb-2">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <label class="form-label fw-bold mb-0">&#x1F527; 工具清单</label>
-                    <button type="button" class="btn btn-outline-success btn-sm"
-                            onclick="addRow('tool')">+ 新增工具</button>
+            <section class="form-section">
+                <div class="form-section-heading"><div><h2>提醒设置</h2><p class="section-description">选择提醒类型，或明确确认无需提醒。</p></div></div>
+                <div id="reminderSection">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-5">
+                            <label class="form-label" for="reminderTypeSelect">提醒类型</label>
+                            <select class="form-select form-select-sm" name="reminder_type" id="reminderTypeSelect">
+                                <option value="">请选择提醒类型</option>
+                                {% for rt in reminder_types %}<option value="{{ rt }}" {{ "selected" if card and card.reminder_type == rt }}>{{ rt }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-7"><span class="small text-muted">确认状态：{% if card and card.reminder_confirmed %}<span class="badge bg-success">已确认</span>{% else %}<span class="badge bg-warning">未确认</span>{% endif %}</span></div>
+                    </div>
                 </div>
-                {{ tables.tool_table(tools, usage_types, editable=true, show_delete=true) }}
-            </div>
-            </div>
-            <div class="mb-3 d-flex align-items-center gap-3">
-                <span class="small text-muted">
-                    工具确认状态：
-                    {% if card and card.tools_confirmed %}
-                    <span class="badge bg-success">已确认</span>
-                    {% else %}
-                    <span class="badge bg-warning">未确认</span>
-                    {% endif %}
-                </span>
-                <div class="form-check mb-0">
-                    <input class="form-check-input" type="checkbox" id="confirmNoTools" name="confirm_no_tools" value="1"
-                           {{ "checked" if card and card.tools_confirmed and not card.tools else "" }}>
-                    <label class="form-check-label small text-muted" for="confirmNoTools">确认无工具</label>
-                </div>
-            </div>
+                <div class="form-check mt-3"><input class="form-check-input" type="checkbox" id="confirmNoReminder" name="confirm_no_reminder" value="1" {{ "checked" if card and card.reminder_confirmed and not card.reminder_type else "" }}><label class="form-check-label small" for="confirmNoReminder">确认无需提醒</label></div>
+            </section>
 
-            <!-- 航材清单区块 -->
-            <div id="matSection">
-            <div class="mb-2">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <label class="form-label fw-bold mb-0">&#x1F4E6; 航材清单</label>
-                    <button type="button" class="btn btn-outline-success btn-sm"
-                            onclick="addRow('mat')">+ 新增航材</button>
-                </div>
-                {{ tables.material_table(materials, usage_types, editable=true, show_delete=true) }}
-            </div>
-            </div>
-            <div class="mb-3 d-flex align-items-center gap-3">
-                <span class="small text-muted">
-                    航材确认状态：
-                    {% if card and card.materials_confirmed %}
-                    <span class="badge bg-success">已确认</span>
-                    {% else %}
-                    <span class="badge bg-warning">未确认</span>
-                    {% endif %}
-                </span>
-                <div class="form-check mb-0">
-                    <input class="form-check-input" type="checkbox" id="confirmNoMats" name="confirm_no_mats" value="1"
-                           {{ "checked" if card and card.materials_confirmed and not card.materials else "" }}>
-                    <label class="form-check-label small text-muted" for="confirmNoMats">确认无航材</label>
-                </div>
-            </div>
+            <section class="form-section">
+                <div class="form-section-heading"><div><h2>工具清单</h2><p class="section-description">填写需准备的工具；没有工具时可勾选确认。</p></div><button type="button" class="btn btn-outline-success btn-sm" onclick="addRow('tool')">新增工具</button></div>
+                <div id="toolSection">{{ tables.tool_table(tools, usage_types, editable=true, show_delete=true) }}</div>
+                <div class="d-flex flex-wrap align-items-center gap-3 mt-3"><span class="small text-muted">确认状态：{% if card and card.tools_confirmed %}<span class="badge bg-success">已确认</span>{% else %}<span class="badge bg-warning">未确认</span>{% endif %}</span></div>
+                <div class="form-check mt-3"><input class="form-check-input" type="checkbox" id="confirmNoTools" name="confirm_no_tools" value="1" {{ "checked" if card and card.tools_confirmed and not card.tools else "" }}><label class="form-check-label small" for="confirmNoTools">确认无工具</label></div>
+            </section>
 
-            <!-- 备注（表单底部） -->
-            <div class="mb-3">
-                    <label class="form-label small" for="remark">备注</label>
-                    <textarea class="form-control form-control-sm" name="remark" id="remark" rows="2"
-                          placeholder="补充说明...">{{ card.remark if card else "" }}</textarea>
-            </div>
+            <section class="form-section">
+                <div class="form-section-heading"><div><h2>航材清单</h2><p class="section-description">填写需准备的航材；没有航材时可勾选确认。</p></div><button type="button" class="btn btn-outline-success btn-sm" onclick="addRow('mat')">新增航材</button></div>
+                <div id="matSection">{{ tables.material_table(materials, usage_types, editable=true, show_delete=true) }}</div>
+                <div class="d-flex flex-wrap align-items-center gap-3 mt-3"><span class="small text-muted">确认状态：{% if card and card.materials_confirmed %}<span class="badge bg-success">已确认</span>{% else %}<span class="badge bg-warning">未确认</span>{% endif %}</span></div>
+                <div class="form-check mt-3"><input class="form-check-input" type="checkbox" id="confirmNoMats" name="confirm_no_mats" value="1" {{ "checked" if card and card.materials_confirmed and not card.materials else "" }}><label class="form-check-label small" for="confirmNoMats">确认无航材</label></div>
+            </section>
 
-            <div class="d-flex justify-content-between">
+            <section class="form-section">
+                <div class="form-section-heading"><div><h2>备注与确认</h2><p class="section-description">保存前检查必填信息和三类确认状态。</p></div></div>
+                <label class="form-label" for="remark">备注</label>
+                <textarea class="form-control form-control-sm" name="remark" id="remark" rows="3" placeholder="补充说明...">{{ card.remark if card else "" }}</textarea>
+            </section>
+            <div class="form-actions">
                 <a href="/card/list" class="btn btn-outline-secondary btn-sm">取消</a>
-                <button type="submit" class="btn btn-primary btn-sm px-4">
-                    {{ "保存修改" if edit_mode else "保存" }}
-                </button>
+                <button type="submit" class="btn btn-primary btn-sm px-4">{{ "保存修改" if edit_mode else "保存工卡" }}</button>
             </div>
         </form>
     </div>

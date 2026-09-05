@@ -3,10 +3,21 @@
 {% block title %}工卡组管理 - ReqMan定检准备系统{% endblock %}
 {% block content %}
 
-<div class="card mb-3">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">工卡组管理 <span class="badge bg-secondary ms-2">{{ sets|length }}</span></h5>
-        <a href="javascript:void(0)" onclick="ListUI.openEditor('/card/sets/new')" class="btn btn-primary btn-sm">+ 新增工卡组</a>
+<header class="page-header">
+    <div class="page-heading">
+        <div class="context-kicker">DATA MANAGEMENT / CARD SETS</div>
+        <h1>工卡组信息</h1>
+        <p>按定检场景组织工卡、工具和航材，统一维护确认状态。</p>
+    </div>
+    <div class="page-actions">
+        <span class="page-count">共 {{ sets|length }} 条</span>
+        <button type="button" onclick="ListUI.openEditor('/card/sets/new')" class="btn btn-primary btn-sm">新增工卡组</button>
+    </div>
+</header>
+
+<div class="card">
+    <div class="card-header">
+        <div><h2>工卡组清单</h2><p class="section-description">点击行查看工卡组详情。</p></div>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -56,8 +67,10 @@
                         <td class="text-center">{{ set.materials|length }}</td>
                         <td class="text-center">{{ set.log_time or '—' }}</td>
                         <td class="text-center text-nowrap" onclick="event.stopPropagation()">
-                            <a href="javascript:void(0)" onclick="ListUI.openEditor('/card/sets/{{ set.id }}/edit')" class="btn btn-outline-primary btn-sm py-0">编辑</a>
-                            <button type="button" data-url="/card/sets/{{ set.id }}/delete" data-id="{{ set.id }}" data-confirm="确认删除工卡组 {{ set.name }}？关联工卡将解除绑定。" onclick="ListUI.delFrom(this)" class="btn btn-outline-danger btn-sm py-0">删除</button>
+                            <div class="table-action">
+                                <button type="button" onclick="ListUI.openEditor('/card/sets/{{ set.id }}/edit')" class="btn btn-outline-primary btn-sm py-0">编辑</button>
+                                <button type="button" data-url="/card/sets/{{ set.id }}/delete" data-id="{{ set.id }}" data-confirm="确认删除工卡组 {{ set.name }}？关联工卡将解除绑定。" onclick="event.stopPropagation();ListUI.delFrom(this)" class="btn btn-outline-danger btn-sm py-0">删除</button>
+                            </div>
                         </td>
                     </tr>
                 {% endfor %}
@@ -70,11 +83,11 @@
     </div>
 </div>
 
-<div class="modal fade" id="setDetailModal" tabindex="-1">
+<div class="modal fade" id="setDetailModal" tabindex="-1" aria-labelledby="setDetailModalTitle" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
         <div class="modal-header">
-            <h5 class="modal-title">工卡组详情</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <h2 class="modal-title" id="setDetailModalTitle">工卡组详情</h2>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
         </div>
         <div class="modal-body" id="setDetailContent"><p class="text-muted">点击行加载...</p></div>
         <div class="modal-footer">

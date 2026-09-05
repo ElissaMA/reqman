@@ -1,17 +1,16 @@
 {% extends "base.html" %}
-{% block title %}{{ code }} - 错误 - ReqMan定检准备系统{% endblock %}
+{% block title %}{{ code }} - 错误 - ReqMan 定检准备系统{% endblock %}
 {% block content %}
-
-<div class="error-page">
-    <div class="code">{{ code }}</div>
-    <h4 class="text-muted mt-3">{{ message }}</h4>
-    {% if detail %}
-    <p class="text-muted small mt-2">{{ detail }}</p>
-    {% endif %}
-    <div class="mt-4">
-        <a href="/" class="btn btn-primary btn-sm">返回首页</a>
-        <button class="btn btn-outline-secondary btn-sm ms-2" onclick="history.back()">返回上页</button>
+<div class="state-panel state-danger error-page" role="alert">
+    <span class="state-mark" aria-hidden="true">!</span>
+    <div>
+        <div class="code">{{ code }}</div>
+        <h1 class="h4 mt-3">{{ message }}</h1>
+        {% if detail %}<p class="text-muted small mt-2">{{ detail }}</p>{% endif %}
+        <div class="d-flex flex-wrap justify-content-center gap-2 mt-4">
+            <a href="/" class="btn btn-primary btn-sm">返回工作包</a>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="history.back()">返回上页</button>
+        </div>
     </div>
 </div>
-
 {% endblock %}

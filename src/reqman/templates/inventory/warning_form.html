@@ -1,16 +1,21 @@
 {% extends "base.html" %}
-{% block title %}{{ title }} - ReqMan定检准备系统{% endblock %}
+{% block title %}{{ title }} - ReqMan 定检准备系统{% endblock %}
 {% block content %}
 
-<div class="container py-3" style="max-width: 640px;">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0">{{ title }}</h5>
-        <a href="javascript:void(0)" onclick="window.close()" class="btn btn-outline-secondary btn-sm">&larr; 关闭</a>
+<header class="page-header">
+    <div class="page-heading">
+        <div class="context-kicker">INVENTORY / WARNING RULES</div>
+        <h1>{{ title }}</h1>
+        <p>设置常用航材的库存预警线，查询库存后自动更新缓存数量。</p>
     </div>
+    <div class="page-actions"><button type="button" onclick="window.close()" class="btn btn-outline-secondary btn-sm">关闭窗口</button></div>
+</header>
 
-    <div class="card">
-        <div class="card-body">
-            <form method="POST" id="warningForm">
+<div class="card" style="max-width: 760px;">
+    <div class="card-body">
+        <form method="POST" id="warningForm">
+            <section class="form-section">
+                <div class="form-section-heading"><div><h2>预警规则</h2><p class="section-description">件号是唯一标识，编辑时不可修改。</p></div></div>
                 <div class="mb-3">
                     <label class="form-label small" for="part_number">件号 <span class="text-danger">*</span></label>
                     <input type="text" class="form-control form-control-sm" name="part_number" id="part_number"
@@ -32,12 +37,12 @@
                     <label class="form-label small" for="note">备注</label>
                     <textarea class="form-control form-control-sm" name="note" id="note" rows="3">{{ warning.note if warning else '' }}</textarea>
                 </div>
-                <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-primary btn-sm">保存</button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.close()">取消</button>
+                <div class="form-actions">
+                    <button type="button" onclick="window.close()" class="btn btn-outline-secondary btn-sm">取消</button>
+                    <button type="submit" class="btn btn-primary btn-sm">{{ '保存修改' if warning else '保存规则' }}</button>
                 </div>
-            </form>
-        </div>
+            </section>
+        </form>
     </div>
 </div>
 {% endblock %}

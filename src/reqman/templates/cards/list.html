@@ -1,25 +1,37 @@
 {% extends "base.html" %}
 {% import "macros/list_macros.html" as list %}
-{% block title %}工卡信息 - ReqMan定检准备系统{% endblock %}
+{% block title %}工卡信息 - ReqMan 定检准备系统{% endblock %}
 {% block content %}
 
-<div class="card mb-3">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">工卡信息 <span class="badge bg-secondary ms-2">{{ cards|length }}</span></h5>
-        <span class="d-flex gap-2">
-            <a href="javascript:void(0)" onclick="amroVerCheck()" id="amroVerCheckBtn" class="btn btn-outline-primary btn-sm">全量查询工卡版本</a>
-            <a href="javascript:void(0)" onclick="ListUI.openEditor('/card/new')" class="btn btn-primary btn-sm">+ 新增工卡</a>
-        </span>
+<header class="page-header">
+    <div class="page-heading">
+        <div class="context-kicker">DATA MANAGEMENT / WORK CARDS</div>
+        <h1>工卡信息</h1>
+        <p>维护定检工卡、确认工具与航材数据，并检查 AMRO 版本变化。</p>
+    </div>
+    <div class="page-actions">
+        <span class="page-count">共 {{ cards|length }} 条</span>
+        <button type="button" onclick="amroVerCheck()" id="amroVerCheckBtn" class="btn btn-outline-primary btn-sm">查询工卡版本</button>
+        <button type="button" onclick="ListUI.openEditor('/card/new')" class="btn btn-primary btn-sm">新增工卡</button>
+    </div>
+</header>
+
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h2>工卡清单</h2>
+            <p class="section-description">点击行查看详情；未完成确认的记录以左侧警示标记提示。</p>
+        </div>
     </div>
     <div class="card-body p-0">
         {% if amro_status and amro_status.status == 'running' %}
-        <div class="alert alert-info m-3 mb-0 small">⏳ 全量查询工卡版本进行中（约 3~15 分钟，后台执行）…</div>
+        <div class="alert alert-info m-3 mb-0 small">全量查询工卡版本进行中（约 3~15 分钟，后台执行）…</div>
         {% elif amro_status and amro_status.status == 'error' %}
         <div class="alert alert-danger m-3 mb-0 small">上次全量查询工卡版本失败：{{ amro_status.error }}（{{ amro_status.finished_at }}）</div>
         {% elif amro_last_query %}
         <div class="alert alert-success m-3 mb-0 small">
             上次查询（{{ amro_last_query.finished_at }}）：{{ amro_last_query.summary }}
-            {% if amro_last_query.download_url %}<a class="btn btn-outline-primary btn-sm ms-2 py-0" href="{{ amro_last_query.download_url }}">⬇下载改版清单</a>{% endif %}
+            {% if amro_last_query.download_url %}<a class="btn btn-outline-primary btn-sm ms-2 py-0" href="{{ amro_last_query.download_url }}" title="⬇下载改版清单">下载改版清单</a>{% endif %}
         </div>
         {% endif %}
         <div class="q-card" id="qCardVersion" style="display:none"></div>
@@ -89,8 +101,10 @@
                         <td class="text-center">{{ card.materials|length }}</td>
                         <td class="text-center">{{ card.log_time or '—' }}</td>
                         <td class="text-center text-nowrap" onclick="event.stopPropagation()">
-                            <a href="javascript:void(0)" onclick="ListUI.openEditor('/card/{{ card.id }}/edit')" class="btn btn-outline-primary btn-sm py-0">编辑</a>
-                            <button type="button" data-url="/card/{{ card.id }}/delete" data-id="{{ card.id }}" data-confirm="确认删除工卡 {{ card.task_code }}？" onclick="ListUI.delFrom(this)" class="btn btn-outline-danger btn-sm py-0">删除</button>
+                            <div class="table-action">
+                                <button type="button" onclick="ListUI.openEditor('/card/{{ card.id }}/edit')" class="btn btn-outline-primary btn-sm py-0">编辑</button>
+                                <button type="button" data-url="/card/{{ card.id }}/delete" data-id="{{ card.id }}" data-confirm="确认删除工卡 {{ card.task_code }}？" onclick="event.stopPropagation();ListUI.delFrom(this)" class="btn btn-outline-danger btn-sm py-0">删除</button>
+                            </div>
                         </td>
                     </tr>
                 {% endfor %}

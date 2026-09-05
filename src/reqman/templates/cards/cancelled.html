@@ -3,9 +3,18 @@
 {% block title %}作废工卡 - ReqMan定检准备系统{% endblock %}
 {% block content %}
 
-<div class="card mb-3">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">作废工卡 <span class="badge bg-secondary ms-2">{{ cards|length }}</span></h5>
+<header class="page-header">
+    <div class="page-heading">
+        <div class="context-kicker">DATA MANAGEMENT / ARCHIVE</div>
+        <h1>作废工卡</h1>
+        <p>只读查看已作废工卡；彻底删除后不可恢复。</p>
+    </div>
+    <div class="page-actions"><span class="page-count">共 {{ cards|length }} 条</span></div>
+</header>
+
+<div class="card">
+    <div class="card-header">
+        <div><h2>作废工卡清单</h2><p class="section-description">删除前请确认该记录不再需要留存。</p></div>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -62,7 +71,7 @@
                         <td>{{ (card.write_date or '')[:10] or '—' }}</td>
                         <td class="text-center">{{ (card.cancelled_at or '')[:10] or '—' }}</td>
                         <td class="text-center text-nowrap" onclick="event.stopPropagation()">
-                            <button type="button" data-url="/card/cancelled/{{ card.id }}/delete" data-id="{{ card.id }}" data-confirm="确认彻底删除作废工卡 {{ card.task_code }}？删除后不可恢复。" onclick="ListUI.delFrom(this)" class="btn btn-outline-danger btn-sm py-0">删除</button>
+                            <button type="button" data-url="/card/cancelled/{{ card.id }}/delete" data-id="{{ card.id }}" data-confirm="确认彻底删除作废工卡 {{ card.task_code }}？删除后不可恢复。" onclick="event.stopPropagation();ListUI.delFrom(this)" class="btn btn-outline-danger btn-sm py-0">彻底删除</button>
                         </td>
                     </tr>
                 {% endfor %}
@@ -75,11 +84,11 @@
     </div>
 </div>
 
-<div class="modal fade" id="detailModal" tabindex="-1">
+<div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="cancelledDetailModalTitle" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
         <div class="modal-header">
-            <h5 class="modal-title">作废工卡详情</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <h2 class="modal-title" id="cancelledDetailModalTitle">作废工卡详情</h2>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
         </div>
         <div class="modal-body" id="detailContent"><p class="text-muted">点击行加载...</p></div>
         <div class="modal-footer">
