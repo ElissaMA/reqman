@@ -74,4 +74,3 @@ class TestCardLogs:
         """删除不存在的日志返回0"""
         deleted = json_store.delete_logs([99999])
         assert deleted == 0
-

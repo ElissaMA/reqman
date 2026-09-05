@@ -181,5 +181,3 @@ class TestLastQueryResult:
                                          output_dir=tmp_path)
         meta = amro_sync.get_last_query_result("package", output_dir=tmp_path)
         assert meta["summary"] == "获取到 5 个任务包"   # 只留最近一份
-
-
