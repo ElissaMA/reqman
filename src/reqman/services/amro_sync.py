@@ -391,7 +391,7 @@ async def import_amro_package(store, client, cookies, revnr, service=None, *, fe
     package_data = {
         "reg": info.get("reg", ""),
         "description": info.get("description", ""),
-        "date": info.get("date", "") or datetime.now(BJ).strftime("%Y.%m.%d"),
+        "date": info.get("date", "") or datetime.now(BJ).strftime("%Y-%m-%d"),
         "aircraft_info": info,
         "all_items": out["all_items"],
         "source": "AMRO",
@@ -664,10 +664,11 @@ def _group_by_category(rows: list[dict]) -> list[tuple[str, list[dict]]]:
     return [(c, grouped[c]) for c in sorted(grouped, key=lambda c: (CATEGORY_ORDER.get(c, 99), c))]
 
 
-def _dot_date(ts: str) -> str:
-    """时间戳 YYYYMMDD[_HHMMSS] → 提醒单同款点分日期 2026.09.01（非法输入返回空串）。"""
-    d = (ts or "").strip()[:8]
-    return f"{d[:4]}.{d[4:6]}.{d[6:8]}" if len(d) == 8 and d.isdigit() else ""
+def _ymd_date(ts: str) -> str:
+    """时间戳 YYYY-MM-DD[_HH-MM-SS] 或 YYYYMMDD[_HHMMSS] → 统一日期 2026-09-01（非法输入返回空串）。"""
+    ts = (ts or "").strip()
+    d = ts.split("_")[0].replace("-", "")
+    return f"{d[:4]}-{d[4:6]}-{d[6:8]}" if len(d) == 8 and d.isdigit() else ""
 
 
 def build_version_report_excel(report: dict, title_label: str = "",
@@ -756,11 +757,11 @@ def start_full_version_check(store, session_store, output_dir, cancelled_store=N
         async def _inner():
             async with httpx.AsyncClient(verify=True, trust_env=False) as client:
                 rep = await full_version_check(store, client, cookies, cancelled_store=cancelled_store)
-            ts = datetime.now(BJ).strftime("%Y%m%d_%H%M%S")
+            ts = datetime.now(BJ).strftime("%Y-%m-%d_%H-%M-%S")
             filename = f"amro_full_version_report_{ts}.xlsx"
             (output_dir / filename).write_bytes(
                 build_version_report_excel(rep, title_label="全量",
-                                           finished_date=_dot_date(ts)))
+                                           finished_date=_ymd_date(ts)))
             rep["filename"] = filename
             return rep
 
@@ -785,7 +786,7 @@ def start_package_version_check(store, session_store, package_id: str, pkg_data:
     """
     label = build_package_label(pkg_data) or package_id
     cookies = (session_store.load() or {}).get("cookies", {})
-    finished_date = datetime.now(BJ).strftime("%Y.%m.%d")
+    finished_date = datetime.now(BJ).strftime("%Y-%m-%d")
 
     def job():
         task_codes = list(dict.fromkeys(

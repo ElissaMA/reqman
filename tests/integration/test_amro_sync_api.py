@@ -220,7 +220,7 @@ class TestAmroPackageApi:
         data = client.get("/packages/amro-version-logs").get_json()["data"]
         assert len(data["logs"]) == 1
         row = data["logs"][0]
-        assert row["task_code"] == "VLOG-1" and row["new"] == "2026-08-01 09:00:00"
+        assert row["task_code"] == "VLOG-1" and row["new"] == "2026-08-01"
         assert row["task_name"] == "改名"   # 名称列取日志 target_name
 
         html = client.get("/upload").get_data(as_text=True)

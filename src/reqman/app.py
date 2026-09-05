@@ -134,7 +134,7 @@ def _backup_on_exit():
         backup_dir.mkdir(parents=True, exist_ok=True)
 
         # 生成带时间戳的备份文件名
-        timestamp = datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d_%H-%M-%S")
 
         targets = [data_dir / "reqman_db.json", data_dir / "reqman_db_runtime.json"]
         for db_file in targets:

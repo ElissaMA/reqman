@@ -56,7 +56,7 @@ def _ensure_package_matched(pkg_data):
     matched[:] = still_matched
     new_cards = unconfirmed + new_cards
 
-    now_str = datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y.%m.%d %H:%M")
+    now_str = datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d %H:%M")
     pkg_data["matched"] = matched
     pkg_data["new_cards"] = new_cards
     pkg_data["cancelled"] = cancelled
@@ -155,7 +155,7 @@ def _handle_generate_post(pkg_data: dict, package_id: str):
                                      aircraft_info.get("package", "")),
         "description": request.form.get("description",
                                          aircraft_info.get("description", "")),
-        "date": request.form.get("date", datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y.%m.%d")),
+        "date": request.form.get("date", datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d")),
         "conditions": conditions,
         "spare_items": spare_items,
     }
@@ -312,7 +312,7 @@ def reminder_download():
         "fsn": fsn,
         "msn": msn,
         "apu": apu,
-        "date": ac.get("date", datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y.%m.%d")),
+        "date": ac.get("date", datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d")),
         "routine_count": pkg_data.get("routine_count", 0),
         "other_count": pkg_data.get("other_count", 0),
     }
@@ -337,7 +337,7 @@ def package_version_report():
     pkg_data = _get_store().get_work_package(package_id) or {}
     label = build_package_label(pkg_data, with_date=True) or package_id
     finished = datetime.fromtimestamp(
-        path.stat().st_mtime, ZoneInfo("Asia/Shanghai")).strftime("%Y.%m.%d")
+        path.stat().st_mtime, ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d")
     return send_file(path, as_attachment=True,
                      download_name=f"工卡改版清单（{label}）查询日期{finished}.xlsx",
                      mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")

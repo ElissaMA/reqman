@@ -117,7 +117,7 @@ def write_inventory_copy(
 ) -> tuple[io.BytesIO, str]:
     source = Path(source_path)
     if timestamp_suffix is None:
-        timestamp_suffix = datetime.datetime.now(datetime.timezone.utc).astimezone().strftime("%Y%m%d_%H%M%S")
+        timestamp_suffix = datetime.datetime.now(datetime.timezone.utc).astimezone().strftime("%Y-%m-%d_%H-%M-%S")
 
     stem = output_stem or source.stem
     filename = f"{stem}_库存已填_{timestamp_suffix}.xlsx"

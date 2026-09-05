@@ -133,7 +133,7 @@ def generate_form(form_data, parsed_data, output_filename=None):
         reg = form_data.get("reg", "XXXX")
         # Strip B- prefix if present
         reg = reg.removeprefix("B-")
-        date_str = form_data.get("date", datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y.%m.%d"))
+        date_str = form_data.get("date", datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d"))
         desc = form_data.get("description", "")
         output_filename = f"定检需求单（B-{reg} {desc}）{date_str}.xlsx"
 
@@ -167,7 +167,7 @@ def generate_form(form_data, parsed_data, output_filename=None):
     return buffer, output_filename
 
 def _fill_header(ws, form_data):
-    date_str = form_data.get("date", datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y.%m.%d"))
+    date_str = form_data.get("date", datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d"))
     reg = form_data.get("reg", "B-XXXX")
     desc = form_data.get("description", "XXA")
     ws["A1"].value = f"机务二队定检需求单（ {date_str}）"

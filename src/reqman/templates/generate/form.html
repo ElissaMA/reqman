@@ -59,7 +59,7 @@
                 <div class="col-md-3">
                     <label class="form-label small">日期</label>
                     <input type="text" class="form-control form-control-sm" name="date"
-                           value="{{ aircraft_info.date or now.strftime('%Y.%m.%d') }}">
+                           value="{{ aircraft_info.date or now.strftime('%Y-%m-%d') }}">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small">定检描述</label>
@@ -296,8 +296,8 @@
                 onclick="return confirmGen()">✅ 生成需求单下载</button>
         <button type="button" class="btn btn-outline-primary btn-sm px-4"
                 onclick="downloadReminder()">📋 生成提醒单下载</button>
-        <a href="/generate/package-version-report?package_id={{ package_id }}"
-           class="btn btn-outline-primary btn-sm px-4">📥 生成工卡改版下载</a>
+        <button type="button" class="btn btn-outline-primary btn-sm px-4"
+                onclick="downloadPkgVersionReport('{{ package_id }}')">📥 生成工卡改版下载</button>
     </div>
 </form>
 
@@ -320,6 +320,22 @@ function downloadReminder() {
     var inp = document.createElement('input');
     inp.type = 'hidden'; inp.name = 'package_id'; inp.value = '{{ package_id }}';
     form.appendChild(inp); document.body.appendChild(form); form.submit();
+}
+function downloadPkgVersionReport(packageId) {
+    // 未查询工卡版本时服务端返回 404 JSON，此处将其提示出来
+    var url = '/generate/package-version-report?package_id=' + encodeURIComponent(packageId);
+    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function(r) {
+            if (r.ok) { window.location = url; return; }   // 已生成 → 触发下载
+            return r.json().then(function(d) {
+                window.safeToast(
+                    (d && d.message) || (d && d.d && d.d.message) || '生成失败，请先在工作包页查询工卡版本',
+                    'error', 8000);
+            });
+        })
+        .catch(function() {
+            window.safeToast('生成失败，请重试', 'error', 8000);
+        });
 }
 
 // 监听子窗口保存成功消息 → 刷新预览页（新增/编辑工卡后同步）

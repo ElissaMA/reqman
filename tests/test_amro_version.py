@@ -154,10 +154,10 @@ class TestFullVersionCheck:
 
 
 class TestVersionReportExcel:
-    def test_dot_date(self):
-        assert amro_sync._dot_date("20260901_143025") == "2026.09.01"
-        assert amro_sync._dot_date("") == ""
-        assert amro_sync._dot_date("bad") == ""
+    def test_ymd_date(self):
+        assert amro_sync._ymd_date("20260901_143025") == "2026-09-01"
+        assert amro_sync._ymd_date("") == ""
+        assert amro_sync._ymd_date("bad") == ""
 
     def test_package_report_label(self):
         """版本报告标识：机号+描述+开工日期，日期归一化点分、可缺项。"""

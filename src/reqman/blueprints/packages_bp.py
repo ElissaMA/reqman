@@ -16,6 +16,7 @@ from ..services import amro_sync
 from ..services.connectors.amro import AmroSessionExpired
 from ..services.work_package_matcher import match_work_package_items
 from ..services.worklist_parser import WorklistError, merge_aircraft_info, parse_worklist
+from ..utils.dates import fmt_date10
 from ..utils.error_handlers import NotFoundError, ValidationError, is_ajax
 from ..utils.response import api_error, api_success
 from ..utils.validators import validate_file_extension
@@ -111,8 +112,8 @@ def _version_log_rows(store, limit: int = 50) -> list[dict]:
             "time": str(l.get("timestamp", ""))[:16].replace("T", " "),
             "task_code": l.get("target_identifier", ""),
             "task_name": l.get("target_name", ""),
-            "old": change.get("old", ""),
-            "new": change.get("new", ""),
+            "old": fmt_date10(change.get("old", "")),
+            "new": fmt_date10(change.get("new", "")),
             "operation": l.get("operation", ""),
         })
     return rows
@@ -162,7 +163,7 @@ def _handle_upload_post():
     package_data = {
         "reg": aircraft_info.get("reg", ""),
         "description": aircraft_info.get("description", ""),
-        "date": aircraft_info.get("date", datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y.%m.%d")),
+        "date": aircraft_info.get("date", datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d")),
         "aircraft_info": aircraft_info,
         "all_items": all_items,
     }
@@ -200,7 +201,7 @@ def package_rematch(package_id):
     service = current_app.extensions['card_service']
     matched, new_cards, cancelled = match_work_package_items(all_items, store, service)
 
-    now_str = datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y.%m.%d %H:%M")
+    now_str = datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d %H:%M")
     pkg_data["matched"] = matched
     pkg_data["new_cards"] = new_cards
     pkg_data["cancelled"] = cancelled

@@ -30,7 +30,7 @@ def generate_reminder(form_data: dict, items: list[dict]) -> tuple[io.BytesIO, s
         raise FileNotFoundError(f"模板文件不存在：{REMINDER_TEMPLATE_FILE}")
 
     reg = form_data.get("reg", "XXXX").removeprefix("B-")
-    date_str = form_data.get("date", datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y.%m.%d"))
+    date_str = form_data.get("date", datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d"))
     desc = form_data.get("description", "")
     filename = f"定检工作提醒单（B-{reg} {desc}）{date_str}.xlsx"
 
