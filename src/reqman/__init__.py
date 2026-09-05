@@ -85,7 +85,7 @@ class RequestLogMiddleware:
 
 def create_app():
     """应用工厂"""
-    app = Flask(__name__, template_folder="templates", static_folder=None)
+    app = Flask(__name__, template_folder="templates", static_folder="static", static_url_path="/static")
     app.secret_key = SECRET_KEY
     app.config["MAX_CONTENT_LENGTH"] = MAX_CONTENT_LENGTH
 

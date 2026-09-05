@@ -78,6 +78,18 @@
 - 结构（T1）：三大模块拆包——`services/amro_sync`、`blueprints/cards_bp`、`models/json_store` 均拆为包，`__init__` 重导出全部公开符号，外部 `import` 路径零改动。子模块经包级属性运行时取值以兼容测试 monkeypatch：`amro_sync.OUTPUT_DIR`/`QUERY_STATUS`/`sync_aircraft`、`cards_bp.OUTPUT_DIR`、`json_store.os`；拆分后 `JsonStore` 经 `JsonStoreCore → CardStore → WorkPackageStore → LogStore` 继承链组合
 - 测试审计（ponytail）：删除 `tests/conftest.py` 未使用的 `make_card`/`make_card_set`/`make_form`/`_ts` 与 `tests/integration/conftest.py` 未使用的 `make_form`/`make_card_form`（其中 `make_form` 在两处重复定义）；ruff 清理对应冗余 import；测试套件保持 514 通过（另 4 项性能 slow 测试通过）
 
+### UI 交互优化（可访问性 + 体验 + 内网自托管）
+- 抽公共 `window.apiSubmit(form, url, opts)`：统一 4 个表单的 fetch 提交（禁用按钮防连点 + loader + 字段级错误高亮 + 成功回调），消除重复样板
+- 字段级错误回显：后端 `api_error` 新增 `field` 透传，校验失败前端高亮对应 `name`/`id` 字段并聚焦、toast 提示；不再只看整页错误
+- 校验失败丢数据修复：工卡/工卡组/飞机 新建·编辑 校验失败改为用 `request.form` 回填 re-render（不再 `redirect` 到空白表单），已填内容不丢
+- 表单 `label[for]` 与 `input[id]` 关联（工卡/工卡组/飞机/库存预警/生成需求单 5 个表单），点击标签聚焦输入框，读屏可朗读
+- 列表详情行键盘可达：工卡/飞机/工卡组/作废工卡 行加 `tabindex=0 role=button`，Enter/空格触发详情
+- 可访问性补齐：skip-link「跳到主内容」、`:focus-visible` 焦点轮廓、`.status-cancelled` 对比度达标（白底深灰字）、`prefers-reduced-motion` 关闭动画；AMRO 状态徽章可键盘触发检查；JS 生成的行内「×」删除按钮加 `aria-label="删除此行"`；库存上传区键盘可达（Tab+回车选文件）
+- 自定义确认模态 `window.confirmModal()` 替原生 `confirm()/alert()`：可样式化、非阻塞、支持危险态红色；覆盖表单删除/重置、生成需求单、飞机 AMRO 同步、工作包重新匹配、工卡组重置
+- 删除/重置成功就地更新 DOM（移除行 / 局部刷新）替整页 `location.reload()`，减少闪烁；失败回退整页刷新
+- 内网自托管 Bootstrap：`static_folder` 由 `None` 改 `"static"`，Bootstrap 5.3.3 CSS/JS 入 `static/vendor/bootstrap/`，`base.html` CDN 引用改 `url_for('static', ...)`，断网/内网可用、去外部依赖（jsDelivr 内网多被墙）
+- 冗余清理：删除被 `apiSubmit` 替代的 4 表单 fetch 样板、被 `confirmModal` 替代的原生 `confirm/alert` 调用、危险的弹窗提交 `form.submit()` 兜底；全局 ruff + grep 扫描无孤立引用
+
 ## [3.5.0] - Unreleased
 ### Added（AMRO 三域数据同步——基于 amro-research 实测的 7 个只读端点，全程只读+审计留痕）
 - 通用只读调用器 `query_plugin`：端点白名单硬编码（写/导出/生成类一律拒绝）、全局限速 ≥2s、JSONL 审计（`data/amro_audit.jsonl`）、会话失效统一 401+P8 文案

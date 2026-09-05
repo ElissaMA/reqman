@@ -47,7 +47,9 @@
             <div class="row g-3">
                 <div class="col-md-6">
                     <div class="upload-zone" id="zoneRoutine"
-                         onclick="document.getElementById('routineFile').click()">
+                         onclick="document.getElementById('routineFile').click()"
+                         tabindex="0" role="button" aria-label="上传例行清单（例行工卡清单），点击或按回车选择文件"
+                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('routineFile').click()}">
                         <div class="icon">📋</div>
                         <h6 class="mt-2">点击此处上传例行清单</h6>
                         <p class="text-muted small mb-0">支持 .xlsx 格式</p>
@@ -59,7 +61,9 @@
                 </div>
                 <div class="col-md-6">
                     <div class="upload-zone" id="zoneOther"
-                         onclick="document.getElementById('otherFile').click()">
+                         onclick="document.getElementById('otherFile').click()"
+                         tabindex="0" role="button" aria-label="上传其他清单，点击或按回车选择文件"
+                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('otherFile').click()}">
                         <div class="icon">📋</div>
                         <h6 class="mt-2">点击此处上传其他清单</h6>
                         <p class="text-muted small mb-0">支持 .xlsx 格式</p>
@@ -125,7 +129,7 @@
                         <div class="d-flex gap-1 justify-content-center" style="white-space:nowrap">
                             <form method="POST" action="/packages/{{ wp.package_id }}/rematch" style="display:inline">
                                 <button type="submit" class="btn btn-outline-secondary btn-sm"
-                                        onclick="return confirm('重新匹配将使用当前数据库刷新匹配状态，确认？')">🔄 重新匹配</button>
+                                        onclick="return rematchPack(event, '{{ wp.package_id }}')">🔄 重新匹配</button>
                             </form>
                             <button type="button" class="btn btn-outline-primary btn-sm"
                                     data-package-id="{{ wp.package_id }}"
@@ -191,6 +195,19 @@ function fileSelected(input, zoneId) {
         zone.querySelector('.file-name').textContent = '✅ ' + fileName;
         zone.querySelector('.file-name').style.display = 'block';
     }
+}
+function rematchPack(e, packageId) {
+    e.preventDefault();
+    window.confirmModal({ title: '重新匹配', body: '重新匹配将使用当前数据库刷新匹配状态，确认？', okText: '重新匹配' }).then(function(ok) {
+        if (!ok) return;
+        var fd = new FormData();
+        fetch('/packages/' + packageId + '/rematch', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function(r) { return r.json(); }).then(function(d) {
+                if (d && d.success) { window.safeToast(d.message || '重新匹配完成', 'success'); window.location.reload(); }
+                else { window.safeToast((d && d.message) || '重新匹配失败', 'error'); }
+            }).catch(function() { window.safeToast('重新匹配失败', 'error'); });
+    });
+    return false;
 }
 ['wpReg:0','wpDate:5'].forEach(function(p) {
     var id = p.split(':')[0], col = p.split(':')[1];

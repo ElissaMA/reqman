@@ -72,7 +72,7 @@
     {% if editable and show_delete %}
     <td class="text-center">
         <button type="button" class="btn btn-outline-danger btn-sm"
-                onclick="this.closest('tr').remove()">&times;</button>
+                aria-label="删除此行" onclick="this.closest('tr').remove()">&times;</button>
     </td>
     {% endif %}
 </tr>
@@ -155,7 +155,7 @@
     {% if editable and show_delete %}
     <td class="text-center">
         <button type="button" class="btn btn-outline-danger btn-sm"
-                onclick="this.closest('tr').remove()">&times;</button>
+                aria-label="删除此行" onclick="this.closest('tr').remove()">&times;</button>
     </td>
     {% endif %}
 </tr>

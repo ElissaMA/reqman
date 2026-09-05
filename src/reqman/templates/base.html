@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}ReqMan定检准备系统{% endblock %}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}" rel="stylesheet">
     <style>
         /* ===== 布局（左侧竖向导航 + 右侧主区，类 AMRO 结构） ===== */
         body { background: #f5f7fa; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
@@ -213,10 +213,42 @@
         @media (max-width: 480px) {
             .table th, .table td { padding: 6px 4px; }
         }
+
+        /* ===== 可访问性（B3）：跳转链接 / 焦点可见 / 对比度 / 减少动效 ===== */
+        .skip-link {
+            position: absolute;
+            left: -9999px;
+            top: 0;
+            z-index: 20000;
+            background: #1a3a5c;
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 0 0 6px 0;
+            text-decoration: none;
+        }
+        .skip-link:focus { left: 0; color: #fff; }
+        .side-link:focus-visible,
+        #amroStatus:focus-visible,
+        .table tbody tr[role="button"]:focus-visible {
+            outline: 2px solid #6ea8fe;
+            outline-offset: 2px;
+        }
+        /* 作废工卡：白底 + 深灰字，对比度达标（≥7:1） */
+        .status-cancelled { background-color: #ffffff !important; color: #595959 !important; }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.001ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.001ms !important;
+            }
+            tr.blink-warn { animation: none !important; }
+            .global-loader .spinner { animation: none !important; }
+        }
     </style>
     {% block head %}{% endblock %}
 </head>
 <body>
+<a href="#main-content" class="skip-link">跳到主内容</a>
 
 <div class="app-shell">
     <aside class="side-nav">
@@ -243,18 +275,18 @@
         <div class="top-bar">
             <div id="amroAlert" class="topbar-alert" style="display:none"></div>
             <span class="d-flex align-items-center gap-2">
-                <span class="badge rounded-pill bg-secondary" id="amroStatus" style="cursor:pointer" title="点击立即检查 AMRO 登录状态">AMRO …</span>
+                <span class="badge rounded-pill bg-secondary" id="amroStatus" role="button" tabindex="0" style="cursor:pointer" title="点击立即检查 AMRO 登录状态" aria-label="检查 AMRO 登录状态">AMRO …</span>
                 <button class="btn btn-outline-secondary btn-sm" id="amroQuickLogin" title="唤起本机 AMRO 登录脚本（需一次性注册 ReqManLogin 协议）">⚡登录 AMRO</button>
                 <a class="btn btn-outline-secondary btn-sm" href="/inventory/setup-package" title="下载 AMRO 登录脚本配置包">⬇下载登录配置包</a>
             </span>
         </div>
-        <div class="main-content">
+        <div class="main-content" id="main-content">
             {% block content %}{% endblock %}
         </div>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
 <script>
     // ===== 全局工具函数 =====
     window.showLoader = function() {
@@ -411,6 +443,9 @@
         }
     }
     document.getElementById('amroStatus').addEventListener('click', function() { window.amroCheckNow(); });
+    document.getElementById('amroStatus').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.amroCheckNow(); }
+    });
     document.getElementById('amroQuickLogin').addEventListener('click', function() {
         var baseline = { loginAt: window.amroSession.loginAt, account: window.amroSession.account };
         stopAmroLoginPoll();
@@ -641,31 +676,46 @@ window.ListUI = (function() {
         window.open(url, '_blank', 'width=900,height=700');
     }
 
-    // AJAX 删除：confirm + fetch + 成功后保留状态刷新
-    function del(url, confirmMsg) {
-        if (!window.confirm(confirmMsg || '确认删除？')) return;
-        window.showLoader();
-        fetch(url, {
-            method: 'POST',
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        }).then(function(r) { return r.json(); }).then(function(d) {
-            window.hideLoader();
-            if (d && d.success) {
-                window.showToast(d.message || '删除成功', 'success');
-                saveState();
-                window.location.reload();
-            } else {
-                window.showToast((d && d.message) || '删除失败', 'error');
-            }
-        }).catch(function() {
-            window.hideLoader();
-            window.showToast('删除失败', 'error');
+    // AJAX 删除：confirmModal + fetch + 成功后就地移除行（C1/C2）
+    function del(url, confirmMsg, rowId, btn) {
+        window.confirmModal({ title: '确认删除', body: confirmMsg || '确认删除？', danger: true, okText: '删除' }).then(function(ok) {
+            if (!ok) return;
+            window.showLoader();
+            fetch(url, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            }).then(function(r) { return r.json(); }).then(function(d) {
+                window.hideLoader();
+                if (d && d.success) {
+                    window.showToast(d.message || '删除成功', 'success');
+                    var row = (btn && btn.closest) ? btn.closest('tr') : null;
+                    if (!row && rowId) row = document.querySelector('tr[data-id="' + (window.CSS ? CSS.escape(rowId) : rowId) + '"]');
+                    if (row) { row.remove(); updateEmptyState(); }
+                    else { saveState(); window.location.reload(); }
+                } else {
+                    window.showToast((d && d.message) || '删除失败', 'error');
+                }
+            }).catch(function() {
+                window.hideLoader();
+                window.showToast('删除失败', 'error');
+            });
         });
     }
 
-    // 从按钮 data-url/data-confirm 取参删除：确认文案含引号也不破坏 JS
+    // 表格无数据行时恢复空状态提示行
+    function updateEmptyState() {
+        document.querySelectorAll('table').forEach(function(tbl) {
+            var tbody = tbl.querySelector('tbody');
+            if (!tbody) return;
+            var dataRows = tbody.querySelectorAll('tr:not(.empty-state-row)');
+            var emptyRow = tbody.querySelector('.empty-state-row');
+            if (dataRows.length === 0 && emptyRow) emptyRow.style.display = '';
+        });
+    }
+
+    // 从按钮 data-url/data-confirm/data-id 取参删除：确认文案含引号也不破坏 JS
     function delFrom(btn) {
-        del(btn.getAttribute('data-url'), btn.getAttribute('data-confirm') || '确认删除？');
+        del(btn.getAttribute('data-url'), btn.getAttribute('data-confirm') || '确认删除？', btn.getAttribute('data-id'), btn);
     }
 
     // 监听子窗口保存成功消息 → 保存状态并刷新
@@ -687,6 +737,100 @@ window.ListUI = (function() {
     return { openEditor: openEditor, del: del, saveState: saveState, restoreState: restoreState };
 })();
 </script>
+{# 统一表单提交封装：禁用按钮 + loader + 字段级错误高亮/聚焦（A1/A2） #}
+<script>
+window.clearFieldErrors = function(form) {
+    if (!form) return;
+    form.querySelectorAll('.is-invalid').forEach(function(el) { el.classList.remove('is-invalid'); });
+};
+window.markFieldError = function(form, field, msg) {
+    if (!form || !field) { window.safeToast(msg || '保存失败', 'error'); return; }
+    var el = form.querySelector('[name="' + field + '"], #' + field);
+    if (!el) { window.safeToast(msg || '保存失败', 'error'); return; }
+    el.classList.add('is-invalid');
+    if (el.focus) { try { el.focus(); } catch (e) {} }
+    window.safeToast(msg || '请检查标红字段', 'error');
+};
+window.apiSubmit = function(form, url, opts) {
+    opts = opts || {};
+    var btn = opts.button || (form ? form.querySelector('button[type="submit"]') : null);
+    if (btn) btn.disabled = true;
+    window.clearFieldErrors(form);
+    window.showLoader();
+    fetch(url, {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    }).then(function(r) { return r.json(); }).then(function(d) {
+        window.hideLoader();
+        if (btn) btn.disabled = false;
+        if (d && d.success) {
+            if (opts.onSuccess) opts.onSuccess(d);
+            else window.safeToast(d.message || '保存成功', 'success');
+        } else {
+            if (d && d.field) window.markFieldError(form, d.field, d.message || '');
+            if (opts.onError) opts.onError(d);
+            else if (!d || !d.field) window.safeToast((d && d.message) || '保存失败', 'error');
+        }
+    }).catch(function() {
+        window.hideLoader();
+        if (btn) btn.disabled = false;
+        if (opts.onError) opts.onError();
+        else window.safeToast('提交失败，请重试', 'error');
+    });
+};
+</script>
+
+{# 自定义确认模态：替 window.confirm/alert（非阻塞、可样式化、返回 Promise）（C1） #}
+<script>
+window.confirmModal = function(opts) {
+    opts = opts || {};
+    return new Promise(function(resolve) {
+        var modal = document.getElementById('globalConfirmModal');
+        if (!modal || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
+            resolve(window.confirm(opts.body || '确认？'));
+            return;
+        }
+        var titleEl = modal.querySelector('.modal-title');
+        var bodyEl = modal.querySelector('.modal-body');
+        var okBtn = modal.querySelector('[data-role="ok"]');
+        var cancelBtn = modal.querySelector('[data-role="cancel"]');
+        if (titleEl) titleEl.textContent = opts.title || '请确认';
+        if (bodyEl) bodyEl.textContent = opts.body || '确认执行此操作？';
+        okBtn.textContent = opts.okText || '确认';
+        okBtn.className = 'btn btn-sm ' + (opts.danger ? 'btn-danger' : 'btn-primary');
+        function cleanup() {
+            okBtn.removeEventListener('click', onOk);
+            cancelBtn.removeEventListener('click', onCancel);
+            modal.removeEventListener('hidden.bs.modal', onCancel);
+        }
+        function onOk() { cleanup(); resolve(true); }
+        function onCancel() { cleanup(); resolve(false); }
+        okBtn.addEventListener('click', onOk);
+        cancelBtn.addEventListener('click', onCancel);
+        modal.addEventListener('hidden.bs.modal', onCancel);
+        bootstrap.Modal.getOrCreateInstance(modal).show();
+    });
+};
+</script>
+
+{# 全局确认模态（被 confirmModal 复用） #}
+<div class="modal fade" id="globalConfirmModal" tabindex="-1" aria-labelledby="globalConfirmModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title mb-0" id="globalConfirmModalTitle">请确认</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+            </div>
+            <div class="modal-body small"></div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-role="cancel">取消</button>
+                <button type="button" class="btn btn-primary btn-sm" data-role="ok">确认</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% block scripts %}{% endblock %}
 
 <div class="toast-container" id="toastContainer"></div>

@@ -47,23 +47,23 @@
         <div class="card-body">
             <div class="row g-3">
                 <div class="col-md-3">
-                    <label class="form-label small">机号</label>
-                    <input type="text" class="form-control form-control-sm" name="reg"
+                    <label class="form-label small" for="genReg">机号</label>
+                    <input type="text" class="form-control form-control-sm" name="reg" id="genReg"
                            value="{{ aircraft_info.reg }}">
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label small">机型</label>
-                    <input type="text" class="form-control form-control-sm" name="aircraft_type"
+                    <label class="form-label small" for="genType">机型</label>
+                    <input type="text" class="form-control form-control-sm" name="aircraft_type" id="genType"
                            value="{{ aircraft_info.type }}">
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label small">日期</label>
-                    <input type="text" class="form-control form-control-sm" name="date"
+                    <label class="form-label small" for="genDate">日期</label>
+                    <input type="text" class="form-control form-control-sm" name="date" id="genDate"
                            value="{{ aircraft_info.date or now.strftime('%Y-%m-%d') }}">
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label small">定检描述</label>
-                    <input type="text" class="form-control form-control-sm" name="description"
+                    <label class="form-label small" for="genDescription">定检描述</label>
+                    <input type="text" class="form-control form-control-sm" name="description" id="genDescription"
                            value="{{ aircraft_info.description }}">
                 </div>
             </div>
@@ -293,7 +293,7 @@
 
     <div class="text-center mb-4">
         <button type="submit" class="btn btn-primary btn-sm px-4"
-                onclick="return confirmGen()">✅ 生成需求单下载</button>
+                onclick="return confirmGen(event)">✅ 生成需求单下载</button>
         <button type="button" class="btn btn-outline-primary btn-sm px-4"
                 onclick="downloadReminder()">📋 生成提醒单下载</button>
         <button type="button" class="btn btn-outline-primary btn-sm px-4"
@@ -307,11 +307,15 @@
 {% block scripts %}
 <script>
 var newCardCount = {{ new_cards|length if new_cards else 0 }};
-function confirmGen() {
-    if (newCardCount > 0) {
-        return confirm('还有 ' + newCardCount + ' 个新工卡/未完善工卡未录入，是否继续导出下载？');
-    }
-    return confirm('确认生成并下载需求单？');
+function confirmGen(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    var body = newCardCount > 0
+        ? ('还有 ' + newCardCount + ' 个新工卡/未完善工卡未录入，是否继续导出下载？')
+        : '确认生成并下载需求单？';
+    window.confirmModal({ title: '生成需求单', body: body, okText: '下载' }).then(function(ok) {
+        if (ok) document.getElementById('generateForm').submit();
+    });
+    return false;
 }
 function downloadReminder() {
     // 纯同步生成提醒单（v3.6.0 起不再内嵌版本检查，改版清单走独立按钮下载）

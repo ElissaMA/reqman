@@ -28,18 +28,18 @@
             <!-- 基本信息 -->
             <div class="row g-3 mb-4">
                 <div class="col-md-3">
-                    <label class="form-label small">工卡号 <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control form-control-sm" name="task_code"
+                    <label class="form-label small" for="task_code">工卡号 <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control form-control-sm" name="task_code" id="task_code"
                            value="{{ card.task_code if card else prefill_code if prefill_code else "" }}" required>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label small">工卡描述</label>
-                    <input type="text" class="form-control form-control-sm" name="task_name"
+                    <label class="form-label small" for="task_name">工卡描述</label>
+                    <input type="text" class="form-control form-control-sm" name="task_name" id="task_name"
                            value="{{ card.task_name if card else prefill_name if prefill_name else "" }}" required>
                 </div>
                 <div class="col-md-1">
-                    <label class="form-label small">专业</label>
-                    <select class="form-select form-select-sm" name="category">
+                    <label class="form-label small" for="category">专业</label>
+                    <select class="form-select form-select-sm" name="category" id="category">
                         <option value="">请选择专业</option>
                         {% for c in categories %}
                         <option value="{{ c }}" {{ "selected" if (card and card.category == c) or (prefill_category and prefill_category == c) }}>{{ c }}</option>
@@ -47,8 +47,8 @@
                     </select>
                 </div>
                 <div class="col-md-1">
-                    <label class="form-label small">类型</label>
-                    <select class="form-select form-select-sm" name="task_type">
+                    <label class="form-label small" for="task_type">类型</label>
+                    <select class="form-select form-select-sm" name="task_type" id="task_type">
                         <option value="">请选择类型</option>
                         {% for t in task_types %}
                         {% if t %}
@@ -58,8 +58,8 @@
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label small">编写日期 <span class="text-muted">（工卡版本日期，留空待 AMRO 同步）</span></label>
-                    <input type="date" class="form-control form-control-sm" name="write_date"
+                    <label class="form-label small" for="write_date">编写日期 <span class="text-muted">（工卡版本日期，留空待 AMRO 同步）</span></label>
+                    <input type="date" class="form-control form-control-sm" name="write_date" id="write_date"
                            value="{{ (card.write_date if card else '')[:10] }}">
                 </div>
             </div>
@@ -67,7 +67,7 @@
             <!-- 提醒类型区块 -->
             <div id="reminderSection" class="mb-2">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <label class="form-label fw-bold mb-0">&#x1F514; 提醒类型</label>
+                    <label class="form-label fw-bold mb-0" for="reminderTypeSelect">&#x1F514; 提醒类型</label>
                 </div>
                 <div class="row">
                     <div class="col-md-4">
@@ -152,8 +152,8 @@
 
             <!-- 备注（表单底部） -->
             <div class="mb-3">
-                <label class="form-label small">备注</label>
-                <textarea class="form-control form-control-sm" name="remark" rows="2"
+                    <label class="form-label small" for="remark">备注</label>
+                    <textarea class="form-control form-control-sm" name="remark" id="remark" rows="2"
                           placeholder="补充说明...">{{ card.remark if card else "" }}</textarea>
             </div>
 
@@ -236,14 +236,14 @@ function addRow(type) {
             '<td><input type="text" class="form-control form-control-sm" name="tool_qty[]"></td>' +
             '<td><input type="text" class="form-control form-control-sm" name="tool_remark[]"></td>' +
             '<td><select class="form-select form-select-sm" name="tool_type[]">' + usageTypes.map(function(u){return '<option value="'+u+'">'+u+'</option>';}).join('') + '</select></td>' +
-            '<td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest(\'tr\').remove()">&times;</button></td>';
+            '<td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm" aria-label="删除此行" onclick="this.closest(\'tr\').remove()">&times;</button></td>';
     } else {
         tr.innerHTML = '<td><input type="text" class="form-control form-control-sm" name="mat_name[]" placeholder="航材名称"></td>' +
             '<td><input type="text" class="form-control form-control-sm" name="mat_pn[]"></td>' +
             '<td><input type="text" class="form-control form-control-sm" name="mat_qty[]"></td>' +
             '<td><input type="text" class="form-control form-control-sm" name="mat_remark[]" list="remark-options-new"><datalist id="remark-options-new"><option value="优先使用开封航化"></datalist></td>' +
             '<td><select class="form-select form-select-sm" name="mat_type[]">' + usageTypes.map(function(u){return '<option value="'+u+'">'+u+'</option>';}).join('') + '</select></td>' +
-            '<td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest(\'tr\').remove()">&times;</button></td>';
+            '<td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm" aria-label="删除此行" onclick="this.closest(\'tr\').remove()">&times;</button></td>';
     }
     tbody.appendChild(tr);
 }
@@ -333,50 +333,37 @@ document.getElementById("cardForm").addEventListener("submit", function(e) {
         return false;
     }
 
-    // 从列表页 window.open() 打开时：AJAX提交，成功后自动关闭并通知父页刷新
+    // 从列表页 window.open() 打开时：AJAX 提交（经 apiSubmit 统一封装，含字段级错误高亮/聚焦）
     if (window.opener) {
         e.preventDefault();
         var form = this;
-        var formData = new FormData(form);
         var cardId = '{{ card.id if card else "" }}';
         var url = cardId ? '/card/' + cardId + '/edit' : '/card/new';
-
-        window.showLoader();
-        fetch(url, {
-            method: 'POST',
-            body: formData,
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        }).then(function(resp) {
-            return resp.json();
-        }).then(function(d) {
-            window.hideLoader();
-            if (d && d.success) {
+        window.apiSubmit(form, url, {
+            onSuccess: function(d) {
                 window.safeToast('保存成功', 'success');
                 if (window.opener && !window.opener.closed) {
                     window.opener.postMessage({ type: 'cardSaved', cardId: cardId }, '*');
                 }
                 setTimeout(function() { window.close(); }, 800);
-            } else {
-                window.safeToast((d && d.message) || '保存失败', 'error');
             }
-        }).catch(function() {
-            window.hideLoader();
-            window.safeToast('提交失败，请重试', 'error');
         });
         return false;
     }
 });
 
 function resetConfirm(cardId) {
-    if (!confirm('重置确认状态？内容不会被清空，再次保存后将重新确认。')) return;
-    window.showLoader();
-    fetch('/card/' + cardId + '/reset-confirm', {
-        method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    }).then(function(r) { return r.json(); }).then(function(d) {
-        window.hideLoader();
-        if (d && d.success) { window.safeToast('已重置确认状态', 'success'); location.reload(); }
-        else { window.safeToast((d && d.message) || '重置失败', 'error'); }
-    }).catch(function() { window.hideLoader(); window.safeToast('重置失败', 'error'); });
+    window.confirmModal({ title: '重置确认', body: '重置确认状态？内容不会被清空，再次保存后将重新确认。', danger: true, okText: '重置' }).then(function(ok) {
+        if (!ok) return;
+        window.showLoader();
+        fetch('/card/' + cardId + '/reset-confirm', {
+            method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            window.hideLoader();
+            if (d && d.success) { window.safeToast('已重置确认状态', 'success'); location.reload(); }
+            else { window.safeToast((d && d.message) || '重置失败', 'error'); }
+        }).catch(function() { window.hideLoader(); window.safeToast('重置失败', 'error'); });
+    });
 }
 </script>
 {% endblock %}

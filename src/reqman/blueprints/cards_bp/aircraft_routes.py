@@ -18,6 +18,7 @@ from ...utils.messages import MESSAGES
 from ...utils.response import api_error, api_success
 from ...utils.validators import validate_required
 from . import cards_bp
+from .helpers import _aircraft_form_render_kwargs
 
 logger = logging.getLogger(__name__)
 
@@ -120,15 +121,17 @@ def aircraft_new():
 
     except (ServiceError, ValidationError) as e:
         if is_ajax():
-            return api_error(e.message, status_code=200)
+            return api_error(e.message, status_code=200, field=getattr(e, "field", None))
         flash(e.message, "error")
+        return render_template("cards/aircraft_form.html",
+                               **_aircraft_form_render_kwargs(request.form, ac=None, edit_mode=False))
     except Exception:
         logger.exception("新增飞机信息失败")
         if is_ajax():
             return api_error("服务器错误", "SERVER_ERROR", 200)
         flash("服务器错误", "error")
-
-    return redirect("/card/aircraft")
+        return render_template("cards/aircraft_form.html",
+                               **_aircraft_form_render_kwargs(request.form, ac=None, edit_mode=False))
 
 
 @cards_bp.route("/card/aircraft/<int:aircraft_id>/edit", methods=["GET", "POST"])
@@ -163,15 +166,17 @@ def aircraft_edit(aircraft_id):
 
     except (ServiceError, ValidationError) as e:
         if is_ajax():
-            return api_error(e.message, status_code=200)
+            return api_error(e.message, status_code=200, field=getattr(e, "field", None))
         flash(e.message, "error")
+        return render_template("cards/aircraft_form.html",
+                               **_aircraft_form_render_kwargs(request.form, ac=ac, edit_mode=True))
     except Exception:
         logger.exception("更新飞机信息失败")
         if is_ajax():
             return api_error("服务器错误", "SERVER_ERROR", 200)
         flash("服务器错误", "error")
-
-    return redirect("/card/aircraft")
+        return render_template("cards/aircraft_form.html",
+                               **_aircraft_form_render_kwargs(request.form, ac=ac, edit_mode=True))
 
 
 @cards_bp.route("/card/aircraft/<int:aircraft_id>/delete", methods=["POST"])
@@ -184,7 +189,7 @@ def aircraft_delete(aircraft_id):
         flash("飞机信息已删除", "success")
     except ServiceError as e:
         if is_ajax():
-            return api_error(e.message, status_code=200)
+            return api_error(e.message, status_code=200, field=getattr(e, "field", None))
         flash(e.message, "error")
     except Exception:
         logger.exception("删除飞机信息失败")

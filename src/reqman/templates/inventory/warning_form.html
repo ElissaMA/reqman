@@ -12,25 +12,25 @@
         <div class="card-body">
             <form method="POST" id="warningForm">
                 <div class="mb-3">
-                    <label class="form-label small">件号 <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control form-control-sm" name="part_number"
+                    <label class="form-label small" for="part_number">件号 <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control form-control-sm" name="part_number" id="part_number"
                            value="{{ warning.part_number if warning else '' }}"
                            {{ 'readonly' if warning }} required>
                     {% if warning %}<div class="form-text small text-muted">件号为唯一标识，不可修改</div>{% endif %}
                 </div>
                 <div class="mb-3">
-                    <label class="form-label small">名称 / 描述</label>
-                    <input type="text" class="form-control form-control-sm" name="name"
+                    <label class="form-label small" for="warningName">名称 / 描述</label>
+                    <input type="text" class="form-control form-control-sm" name="name" id="warningName"
                            value="{{ warning.name if warning else '' }}">
                 </div>
                 <div class="mb-3">
-                    <label class="form-label small">预警线（库存低于此值即标黄） <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control form-control-sm" name="threshold"
+                    <label class="form-label small" for="threshold">预警线（库存低于此值即标黄） <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control form-control-sm" name="threshold" id="threshold"
                            value="{{ warning.threshold if warning else '' }}" min="0" step="0.01" required>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label small">备注</label>
-                    <textarea class="form-control form-control-sm" name="note" rows="3">{{ warning.note if warning else '' }}</textarea>
+                    <label class="form-label small" for="note">备注</label>
+                    <textarea class="form-control form-control-sm" name="note" id="note" rows="3">{{ warning.note if warning else '' }}</textarea>
                 </div>
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-primary btn-sm">保存</button>
@@ -50,26 +50,14 @@ document.getElementById('warningForm').addEventListener('submit', function(e) {
     var isEdit = {{ 'true' if warning else 'false' }};
     var pn = {{ (warning.part_number if warning else '') | tojson }};
     var url = isEdit ? '/inventory-warning/' + encodeURIComponent(pn) + '/edit' : '/inventory-warning/new';
-
-    window.showLoader();
-    fetch(url, {
-        method: 'POST',
-        body: new FormData(form),
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    }).then(function(resp) { return resp.json(); }).then(function(d) {
-        window.hideLoader();
-        if (d && d.success) {
+    window.apiSubmit(form, url, {
+        onSuccess: function(d) {
             window.safeToast('保存成功', 'success');
             if (window.opener && !window.opener.closed) {
                 window.opener.postMessage({ type: 'inventoryWarningSaved' }, '*');
             }
             setTimeout(function() { window.close(); }, 800);
-        } else {
-            window.safeToast((d && d.message) || '保存失败', 'error');
         }
-    }).catch(function() {
-        window.hideLoader();
-        window.safeToast('提交失败，请重试', 'error');
     });
     return false;
 });

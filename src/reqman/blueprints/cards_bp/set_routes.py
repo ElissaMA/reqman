@@ -10,7 +10,7 @@ from ...utils.error_handlers import ValidationError, is_ajax
 from ...utils.response import api_error, api_success
 from ...utils.validators import validate_required
 from . import cards_bp
-from .helpers import _parse_and_validate_tools_mats, _parse_reminder
+from .helpers import _parse_and_validate_tools_mats, _parse_reminder, _set_form_render_kwargs
 
 logger = logging.getLogger(__name__)
 
@@ -93,13 +93,17 @@ def card_set_new():
             return redirect("/card/sets")
         except (ServiceError, ValidationError) as e:
             if is_ajax():
-                return api_error(e.message, status_code=200)
+                return api_error(e.message, status_code=200, field=getattr(e, "field", None))
             flash(e.message, "error")
+            return render_template("cards/set_form.html",
+                                   **_set_form_render_kwargs(request.form, set=None, edit_mode=False))
         except Exception:
             logger.exception("新增工卡组失败")
             if is_ajax():
                 return api_error("服务器错误", "SERVER_ERROR", 200)
             flash("服务器错误", "error")
+            return render_template("cards/set_form.html",
+                                   **_set_form_render_kwargs(request.form, set=None, edit_mode=False))
 
     return render_template("cards/set_form.html",
                            set=None,
@@ -157,13 +161,17 @@ def card_set_edit(set_id):
             return redirect("/card/sets")
         except (ServiceError, ValidationError) as e:
             if is_ajax():
-                return api_error(e.message, status_code=200)
+                return api_error(e.message, status_code=200, field=getattr(e, "field", None))
             flash(e.message, "error")
+            return render_template("cards/set_form.html",
+                                   **_set_form_render_kwargs(request.form, set=set, edit_mode=True))
         except Exception:
             logger.exception("更新工卡组失败")
             if is_ajax():
                 return api_error("服务器错误", "SERVER_ERROR", 200)
             flash("服务器错误", "error")
+            return render_template("cards/set_form.html",
+                                   **_set_form_render_kwargs(request.form, set=set, edit_mode=True))
 
     cards_in_set = current_app.extensions['card_service'].get_cards_in_set(set_id)
     set_card_codes = [{"code": c["task_code"], "name": c.get("task_name", "")} for c in cards_in_set]

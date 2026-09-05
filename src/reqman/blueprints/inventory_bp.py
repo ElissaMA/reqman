@@ -288,7 +288,7 @@ def inventory_warning_new():
         part_number = (request.form.get("part_number") or "").strip().upper()
         if not part_number:
             if is_ajax():
-                return api_error("件号不能为空")
+                return api_error("件号不能为空", field="part_number")
             flash("件号不能为空", "error")
             return redirect("/inventory-warning/new")
         threshold_raw = (request.form.get("threshold") or "").strip()
@@ -296,12 +296,12 @@ def inventory_warning_new():
             threshold = float(threshold_raw)
         except (ValueError, TypeError):
             if is_ajax():
-                return api_error("警戒线须为数字")
+                return api_error("警戒线须为数字", field="threshold")
             flash("警戒线须为数字", "error")
             return redirect("/inventory-warning/new")
         if threshold < 0:
             if is_ajax():
-                return api_error("警戒线须为非负数字")
+                return api_error("警戒线须为非负数字", field="threshold")
             flash("警戒线须为非负数字", "error")
             return redirect("/inventory-warning/new")
         store = current_app.extensions["store"]

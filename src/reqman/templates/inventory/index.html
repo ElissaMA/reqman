@@ -20,7 +20,7 @@
         <div class="alert alert-warning py-2 px-3 small mb-2">{{ messages.P1 }}</div>
         <div class="row g-3">
             <div class="col-md-8">
-                <div class="upload-zone" id="zoneDemand" onclick="document.getElementById('demandFile').click()">
+                <div class="upload-zone" id="zoneDemand" tabindex="0" role="button" aria-label="上传需求单 Excel，点击或按回车选择文件" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('demandFile').click()}">
                     <div class="icon">📋</div>
                     <h6 class="mt-2">点击上传需求单 Excel</h6>
                     <p class="text-muted small mb-0">支持 .xlsx（含航材区/备用区）</p>

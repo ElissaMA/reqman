@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 
 class ValidationError(ApiException):
     """参数校验失败"""
-    def __init__(self, message="请求参数无效", error_code="VALIDATION_ERROR", status_code=400):
-        super().__init__(message, error_code, status_code)
+    def __init__(self, message="请求参数无效", error_code="VALIDATION_ERROR", status_code=400, field=None):
+        super().__init__(message, error_code, status_code, field=field)
 
 
 class NotFoundError(ApiException):

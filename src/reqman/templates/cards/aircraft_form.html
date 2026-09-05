@@ -12,33 +12,33 @@
         <form method="POST" id="acForm">
             <div class="row g-3 mb-4">
                 <div class="col-md-4">
-                    <label class="form-label small">飞机号 <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control form-control-sm" name="reg"
+                    <label class="form-label small" for="reg">飞机号 <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control form-control-sm" name="reg" id="reg"
                            value="{{ ac.reg if ac else "" }}" required>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label small">机型</label>
-                    <input type="text" class="form-control form-control-sm" name="model"
+                    <label class="form-label small" for="model">机型</label>
+                    <input type="text" class="form-control form-control-sm" name="model" id="model"
                            value="{{ ac.model if ac else "" }}">
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label small">发动机</label>
-                    <input type="text" class="form-control form-control-sm" name="engine"
+                    <label class="form-label small" for="engine">发动机</label>
+                    <input type="text" class="form-control form-control-sm" name="engine" id="engine"
                            value="{{ ac.engine if ac else "" }}">
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label small">FSN</label>
-                    <input type="text" class="form-control form-control-sm" name="fsn"
+                    <label class="form-label small" for="fsn">FSN</label>
+                    <input type="text" class="form-control form-control-sm" name="fsn" id="fsn"
                            value="{{ ac.fsn if ac else "" }}">
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label small">MSN</label>
-                    <input type="text" class="form-control form-control-sm" name="msn"
+                    <label class="form-label small" for="msn">MSN</label>
+                    <input type="text" class="form-control form-control-sm" name="msn" id="msn"
                            value="{{ ac.msn if ac else "" }}">
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label small">APU</label>
-                    <input type="text" class="form-control form-control-sm" name="apu"
+                    <label class="form-label small" for="apu">APU</label>
+                    <input type="text" class="form-control form-control-sm" name="apu" id="apu"
                            value="{{ ac.apu if ac else "" }}">
                 </div>
             </div>
@@ -61,45 +61,23 @@ document.getElementById("acForm").addEventListener("submit", function(e) {
         window.safeToast("机号不能为空", 'warning');
         return false;
     }
-});
-
-// 如果是从其他页面 window.open() 打开的，AJAX提交成功后自动关闭并通知父页刷新
-if (window.opener) {
-    document.getElementById("acForm").addEventListener("submit", function(e) {
+    // 从列表页 window.open() 打开时：AJAX 提交（经 apiSubmit 统一封装）
+    if (window.opener) {
         e.preventDefault();
-        var reg = document.querySelector('input[name=reg]');
-        if (reg && isBlank(reg.value)) {
-            window.safeToast("机号不能为空", 'warning');
-            return false;
-        }
         var form = this;
-        var formData = new FormData(form);
         var acId = '{{ ac.id if ac else "" }}';
         var url = acId ? '/card/aircraft/' + acId + '/edit' : '/card/aircraft/new';
-
-        window.showLoader();
-        fetch(url, {
-            method: 'POST',
-            body: formData,
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        }).then(function(resp) {
-            return resp.json();
-        }).then(function(d) {
-            window.hideLoader();
-            if (d && d.success) {
+        window.apiSubmit(form, url, {
+            onSuccess: function(d) {
                 window.safeToast('保存成功', 'success');
                 if (window.opener && !window.opener.closed) {
                     window.opener.postMessage({ type: 'aircraftSaved' }, '*');
                 }
                 setTimeout(function() { window.close(); }, 800);
-            } else {
-                window.safeToast((d && d.message) || '保存失败', 'error');
             }
-        }).catch(function() {
-            window.hideLoader();
-            window.safeToast('提交失败，请重试', 'error');
         });
-    });
-}
+        return false;
+    }
+});
 </script>
 {% endblock %}

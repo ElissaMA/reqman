@@ -29,7 +29,7 @@ def validate_required(data, field, label=None):
     value = data.get(field)
     if is_blank(value):
         name = label or field
-        raise ValidationError(f"{name}不能为空")
+        raise ValidationError(f"{name}不能为空", field=field)
     return clean_text(value)
 
 

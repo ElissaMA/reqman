@@ -54,7 +54,7 @@
                 <tbody>
                 {% if ac_list %}
                 {% for ac in ac_list %}
-                    <tr onclick="showAcDetail({{ ac.id }})" style="cursor:pointer">
+                    <tr onclick="showAcDetail({{ ac.id }})" style="cursor:pointer" tabindex="0" role="button" data-id="{{ ac.id }}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showAcDetail({{ ac.id }})}">
                         <td><strong>{{ ac.reg }}</strong></td>
                         <td>{{ ac.model or '-' }}</td>
                         <td>{{ ac.engine or '-' }}</td>
@@ -64,7 +64,7 @@
                         <td class="text-center">{{ ac.log_time or '—' }}</td>
                         <td class="text-center text-nowrap" onclick="event.stopPropagation()">
                             <a href="javascript:void(0)" onclick="ListUI.openEditor('/card/aircraft/{{ ac.id }}/edit')" class="btn btn-outline-primary btn-sm py-0">编辑</a>
-                            <button type="button" data-url="/card/aircraft/{{ ac.id }}/delete" data-confirm="确认删除飞机 {{ ac.reg }}？" onclick="ListUI.delFrom(this)" class="btn btn-outline-danger btn-sm py-0">删除</button>
+                            <button type="button" data-url="/card/aircraft/{{ ac.id }}/delete" data-id="{{ ac.id }}" data-confirm="确认删除飞机 {{ ac.reg }}？" onclick="ListUI.delFrom(this)" class="btn btn-outline-danger btn-sm py-0">删除</button>
                         </td>
                     </tr>
                 {% endfor %}
@@ -98,23 +98,25 @@ var ac_list = [{% for ac in ac_list %}{{ ac|tojson }}{% if not loop.last %},{% e
 
 function amroSyncAircraft() {
     if (!window.amroRequireLogin()) return;
-    if (!confirm('将以 AMRO 在册机队覆盖更新飞机信息，不在册的飞机将被删除。确认查询飞机数据？')) return;
-    var btn = document.getElementById('amroSyncAir');
-    btn.disabled = true;
-    var card = window.QueryCard.run('qCardAircraft', '查询飞机数据');
-    fetch('/card/aircraft/amro-sync', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-        .then(function(r) { return r.json().then(function(d) { return {code: r.status, d: d}; }); })
-        .then(function(x) {
-            if (x.code === 200 && x.d.success) {
-                pollAircraftSync(card);
-            } else {
+    window.confirmModal({ title: '查询飞机数据', body: '将以 AMRO 在册机队覆盖更新飞机信息，不在册的飞机将被删除。确认查询飞机数据？', okText: '查询' }).then(function(ok) {
+        if (!ok) return;
+        var btn = document.getElementById('amroSyncAir');
+        btn.disabled = true;
+        var card = window.QueryCard.run('qCardAircraft', '查询飞机数据');
+        fetch('/card/aircraft/amro-sync', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function(r) { return r.json().then(function(d) { return {code: r.status, d: d}; }); })
+            .then(function(x) {
+                if (x.code === 200 && x.d.success) {
+                    pollAircraftSync(card);
+                } else {
+                    btn.disabled = false;
+                    card.fail((x.d && x.d.message) || '启动失败');
+                }
+            }).catch(function() {
                 btn.disabled = false;
-                card.fail((x.d && x.d.message) || '启动失败');
-            }
-        }).catch(function() {
-            btn.disabled = false;
-            card.fail('启动失败');
-        });
+                card.fail('启动失败');
+            });
+    });
 }
 
 function pollAircraftSync(card) {

@@ -14,26 +14,30 @@ def api_success(data=None, message="操作成功"):
     return jsonify(resp)
 
 
-def api_error(message="操作失败", error_code="UNKNOWN_ERROR", status_code=400):
+def api_error(message="操作失败", error_code="UNKNOWN_ERROR", status_code=400, field=None):
     """返回统一错误响应
 
     Args:
         message: 用户可读的错误消息
         error_code: 机器可读的错误代码（用于前端判断错误类型）
         status_code: HTTP 状态码（默认 400）
+        field: 出错的表单字段名（name），供前端高亮/聚焦，可选
     """
     resp = {"success": False, "message": message, "error_code": error_code}
+    if field is not None:
+        resp["field"] = field
     return jsonify(resp), status_code
 
 
 class ApiException(Exception):
     """API 异常 —— 可在任意层抛出，由全局异常处理器捕获并转换为统一错误响应"""
 
-    def __init__(self, message="操作失败", error_code="UNKNOWN_ERROR", status_code=400):
+    def __init__(self, message="操作失败", error_code="UNKNOWN_ERROR", status_code=400, field=None):
         super().__init__(message)
         self.message = message
         self.error_code = error_code
         self.status_code = status_code
+        self.field = field
 
     def to_response(self):
-        return api_error(self.message, self.error_code, self.status_code)
+        return api_error(self.message, self.error_code, self.status_code, field=self.field)

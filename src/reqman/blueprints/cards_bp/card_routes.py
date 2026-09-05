@@ -11,7 +11,7 @@ from ...utils.error_handlers import ValidationError, is_ajax
 from ...utils.response import api_error, api_success
 from ...utils.validators import validate_required
 from . import cards_bp
-from .helpers import _parse_and_validate_tools_mats, _parse_reminder, _parse_write_date
+from .helpers import _card_form_render_kwargs, _parse_and_validate_tools_mats, _parse_reminder, _parse_write_date
 
 logger = logging.getLogger(__name__)
 
@@ -83,15 +83,17 @@ def card_new():
 
         except (ServiceError, ValidationError) as e:
             if is_ajax():
-                return api_error(e.message, status_code=200)
+                return api_error(e.message, status_code=200, field=getattr(e, "field", None))
             flash(e.message, "error")
-            return redirect("/card/new")
+            return render_template("cards/form.html",
+                                   **_card_form_render_kwargs(request.form, card=None, edit_mode=False))
         except Exception:
             logger.exception("新增工卡失败")
             if is_ajax():
                 return api_error("服务器错误，请稍后重试", "SERVER_ERROR", 200)
             flash("服务器错误，请稍后重试", "error")
-            return redirect("/card/new")
+            return render_template("cards/form.html",
+                                   **_card_form_render_kwargs(request.form, card=None, edit_mode=False))
 
     prefill_code = request.args.get("task_code", "")
     prefill_name = request.args.get("task_name", "")
@@ -150,13 +152,17 @@ def card_edit(card_id):
 
         except (ServiceError, ValidationError) as e:
             if is_ajax():
-                return api_error(e.message, status_code=200)
+                return api_error(e.message, status_code=200, field=getattr(e, "field", None))
             flash(e.message, "error")
+            return render_template("cards/form.html",
+                                   **_card_form_render_kwargs(request.form, card=card, edit_mode=True))
         except Exception:
             logger.exception("更新工卡失败")
             if is_ajax():
                 return api_error("服务器错误", "SERVER_ERROR", 200)
             flash("服务器错误，请稍后重试", "error")
+            return render_template("cards/form.html",
+                                   **_card_form_render_kwargs(request.form, card=card, edit_mode=True))
 
     return render_template("cards/form.html",
                            card=card,

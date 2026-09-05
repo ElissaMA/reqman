@@ -77,7 +77,7 @@
                 {% if cards %}
                 {% for card in cards %}
 {% set blink = not card.card_ok or not (card.tools_confirmed and card.materials_confirmed and card.reminder_confirmed) %}
-                    <tr onclick="showDetail({{ card.id }})" style="cursor:pointer" class="{{ 'blink-warn' if blink }}">
+                    <tr onclick="showDetail({{ card.id }})" style="cursor:pointer" class="{{ 'blink-warn' if blink }}" tabindex="0" role="button" data-id="{{ card.id }}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showDetail({{ card.id }})}">
                         <td style="font-weight:700;font-family:Consolas,monospace">{{ card.task_code }}</td>
                         <td>{{ card.task_name[:60] }}{% if card.task_name|length > 60 %}...{% endif %}</td>
                         <td>{{ card.category }}</td>
@@ -90,7 +90,7 @@
                         <td class="text-center">{{ card.log_time or '—' }}</td>
                         <td class="text-center text-nowrap" onclick="event.stopPropagation()">
                             <a href="javascript:void(0)" onclick="ListUI.openEditor('/card/{{ card.id }}/edit')" class="btn btn-outline-primary btn-sm py-0">编辑</a>
-                            <button type="button" data-url="/card/{{ card.id }}/delete" data-confirm="确认删除工卡 {{ card.task_code }}？" onclick="ListUI.delFrom(this)" class="btn btn-outline-danger btn-sm py-0">删除</button>
+                            <button type="button" data-url="/card/{{ card.id }}/delete" data-id="{{ card.id }}" data-confirm="确认删除工卡 {{ card.task_code }}？" onclick="ListUI.delFrom(this)" class="btn btn-outline-danger btn-sm py-0">删除</button>
                         </td>
                     </tr>
                 {% endfor %}
