@@ -28,5 +28,8 @@ jobs:
       - name: Ruff lint & auto-fix imports
         run: ruff check src/ tests/ --fix
 
+      - name: Verify package imports
+        run: python -c "from scripts.lib.import_vba_config import import_vba_config"
+
       - name: 运行单元测试
         run: pytest

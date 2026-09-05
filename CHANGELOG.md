@@ -9,7 +9,7 @@
 - 修复静态资源 WSGI 透传：`RequestLogMiddleware` 不再吞掉 `FileWrapper` 内容，Bootstrap 与应用 CSS/JS 返回完整响应体，避免页面退化为无样式 HTML
 
 ### CI
-- GitHub Actions Ruff 步骤统一执行 `ruff check src/ tests/ --fix`，自动修复可安全修复的导入格式问题后再继续测试
+- GitHub Actions Ruff 步骤统一执行 `ruff check src/ tests/ --fix`，自动修复可安全修复的导入格式问题后再继续测试；新增 `scripts.lib` 包导入预检，提前暴露 checkout/打包遗漏
 
 ### Reliability（方案 A：非 SQLite 数据可靠性加固）
 - 作废工卡库修复共享可变默认值与嵌套对象别名；增加 `.bak` 恢复、损坏拒写、原子备份和独立损坏异常
