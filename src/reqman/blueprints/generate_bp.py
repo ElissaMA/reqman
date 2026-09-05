@@ -1,6 +1,7 @@
 """生成需求单蓝图 — 预览 + 下载 Excel + 提醒单（纯同步）+ 工卡改版下载"""
 
 import logging
+import re
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -327,10 +328,15 @@ def reminder_download():
 @generate_bp.route("/generate/package-version-report")
 def package_version_report():
     """下载某工作包的工卡改版清单（先在工作包页执行「查询工作包工卡版本」生成）。"""
-    package_id = request.args.get("package_id", "")
+    package_id = request.args.get("package_id", "").strip()
     if not package_id:
         return api_error("缺少工作包参数", "MISSING_PACKAGE_ID", 400)
+    # 防路径穿越：仅允许安全字符，且解析后父目录必须仍在 OUTPUT_DIR 内
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", package_id):
+        return api_error("工作包参数非法", "INVALID_PACKAGE_ID", 400)
     path = OUTPUT_DIR / f"amro_pkg_version_report_{package_id}.xlsx"
+    if path.resolve().parent != OUTPUT_DIR.resolve():
+        return api_error("工作包参数非法", "INVALID_PACKAGE_ID", 400)
     if not path.exists():
         return api_error("尚未查询该工作包的工卡版本，请先在工作包页点击「查询工作包工卡版本」",
                          "NO_VERSION_REPORT", 404)

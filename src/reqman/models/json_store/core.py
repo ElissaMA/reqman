@@ -1,0 +1,320 @@
+"""JsonStore 核心：持久化机制 + 共享常量/辅助。
+
+特点：
+1. 原子写入 — 先写临时文件再 rename，防止写入中途崩溃损坏数据
+2. 编码倒排索引 — O(1) 按工卡号查找
+3. 线程锁 — 保证 ID 生成的原子性
+4. 自动备份 — 每次保存后复制 .bak
+5. 启动自愈 — 如果主文件损坏，自动从 .bak 恢复
+
+各类业务方法（工卡/工卡组/飞机/工作包/库存预警/日志）拆分到同包的
+card_store / work_package_store / log_store 子模块，统一继承 JsonStoreCore。
+"""
+
+import json
+import logging
+import os
+import shutil
+import threading
+import time
+from datetime import datetime
+from typing import ClassVar
+from zoneinfo import ZoneInfo
+
+logger = logging.getLogger(__name__)
+
+
+def _atomic_write(path: str, data: dict) -> None:
+    """原子写入：写到 .tmp 然后 rename。rename 在同文件系统上是原子的。
+    失败时保留原文件并抛出异常——绝不覆盖好数据"""
+    tmp = path + ".tmp"
+    try:
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        for attempt in range(3):
+            try:
+                os.replace(tmp, path)  # Windows / Unix 上均为原子操作
+                break
+            except PermissionError:
+                # Windows：并发读句柄会短暂占用目标文件导致 replace 被拒，稍候重试
+                if attempt == 2:
+                    raise
+                time.sleep(0.05)
+    except (OSError, TypeError):
+        if os.path.exists(tmp):
+            try:
+                os.remove(tmp)
+            except OSError:
+                logger.debug("Failed to remove temp file: %s", tmp)
+        raise
+
+
+def _today_iso() -> str:
+    """当前北京日期 YYYY-MM-DD，用于条目新建/编辑日志时间。"""
+    return datetime.now(ZoneInfo("Asia/Shanghai")).date().isoformat()
+
+
+_EMPTY_DB = {
+    "next_id": 1,
+    "code_index": {},
+    "cards": {},
+    "card_sets": {},
+    "aircraft": {},
+    "card_logs": [],
+    "card_log_next_id": 1,
+}
+
+# 操作日志保留上限：每次新增日志后自动清理多余旧条目
+MAX_LOGS = 500
+
+# 运行时数据（不纳入 Git 追踪）的键列表
+_RUNTIME_KEYS = {
+    "work_packages",
+    "next_id",
+    "code_index",
+}
+
+
+class JsonStoreCore:
+    """双文件 JSON 存储核心机制：核心数据（飞机/工卡/工卡组/日志）+ 运行时数据（工作包/计数器）
+
+    核心数据默认受 Git 追踪，运行时数据（_RUNTIME_KEYS）写入独立文件，
+    应在 .gitignore 中忽略运行时文件。
+    """
+
+    _lock = threading.Lock()
+
+    _FIELDS: ClassVar[dict] = {
+        "card": {
+            "id": None, "task_code": "", "task_name": "", "category": "机体",
+            "task_type": "", "remark": "", "tools": [], "materials": [],
+            "tools_confirmed": False, "materials_confirmed": False,
+            "set_id": None, "reminder_type": "", "card_ok": False, "reminder_confirmed": False,
+            "write_date": "", "log_time": "",
+        },
+        "set": {
+            "id": None, "name": "", "description": "", "category": "机体",
+            "tools": [], "materials": [],
+            "tools_confirmed": False, "materials_confirmed": False,
+            "reminder_type": "", "card_ok": False, "reminder_confirmed": False,
+            "log_time": "",
+        },
+        "aircraft": {
+            "id": None, "reg": "", "model": "", "engine": "",
+            "fsn": "", "msn": "", "apu": "", "log_time": "",
+        },
+    }
+
+    # 字段映射表（用于变更检测）
+    _CARD_FIELDS: ClassVar[list] = ["task_code", "task_name", "category", "task_type", "remark",
+                    "tools", "materials", "tools_confirmed", "materials_confirmed",
+                    "set_id", "reminder_type", "card_ok", "reminder_confirmed", "write_date"]
+    _SET_FIELDS: ClassVar[list] = ["name", "description", "category", "tools", "materials",
+                   "tools_confirmed", "materials_confirmed",
+                   "reminder_type", "card_ok", "reminder_confirmed"]
+    _AIRCRAFT_FIELDS: ClassVar[list] = ["reg", "model", "engine", "fsn", "msn", "apu"]
+
+    def _norm(self, d, kind):
+        defaults = self._FIELDS[kind]
+        return {k: d.get(k, v) for k, v in defaults.items()}
+
+    # ---------- 初始化 ----------
+
+    def __init__(self, db_path: str):
+        self._path = str(db_path)
+        base, ext = os.path.splitext(self._path)
+        self._runtime_path = base + "_runtime" + ext
+        self._corrupt = False  # 读损坏标志：置位期间拒绝一切写入
+        self._corrupt_files: set[str] = set()
+        os.makedirs(os.path.dirname(self._path), exist_ok=True)
+        self._init_db()
+
+    def _init_db(self):
+        """初始化或修复数据库。首次拆分时将运行时数据写入独立文件"""
+        if not os.path.exists(self._path) and not os.path.exists(self._runtime_path):
+            bak = self._path + ".bak"
+            if os.path.exists(bak):
+                logger.warning("主数据库缺失，从备份恢复")
+                shutil.copy2(bak, self._path)
+            else:
+                self._write(_EMPTY_DB)
+                return
+
+        # 核心文件缺失但运行时存在时，尝试从备份恢复核心文件
+        if not os.path.exists(self._path) and os.path.exists(self._runtime_path):
+            bak = self._path + ".bak"
+            if os.path.exists(bak):
+                logger.warning("核心数据库缺失，从备份恢复")
+                shutil.copy2(bak, self._path)
+            else:
+                # 无备份，用空核心
+                _atomic_write(self._path, {})
+
+        # 验证文件可读：读损坏不再抛异常而是置 _corrupt 标志，据此从 .bak 恢复
+        self._read()
+        if self._corrupt:
+            logger.error("数据库文件损坏，尝试从 .bak 恢复: %s", sorted(self._corrupt_files))
+            for p in list(self._corrupt_files):
+                bak = p + ".bak"
+                if os.path.exists(bak):
+                    shutil.copy2(bak, p)
+            self._read()
+            if self._corrupt:
+                # 仍损坏且无有效备份：重置为空库（蓄意重置，放行本次写入）
+                logger.error("数据库无法恢复，重置为空库")
+                self._corrupt = False
+                self._write(_EMPTY_DB)
+
+    # ---------- 内部分方法 ----------
+
+    def _read(self) -> dict:
+        """合并加载两个文件：核心数据 + 运行时数据"""
+        self._corrupt = False  # 本次读取正常则复位（外部修复/替换文件后自动恢复写入）
+        self._corrupt_files = set()
+        db = {}
+        if os.path.exists(self._path):
+            try:
+                with open(self._path, encoding="utf-8") as f:
+                    db.update(json.load(f))
+            except (OSError, json.JSONDecodeError):
+                self._corrupt = True
+                self._corrupt_files.add(self._path)
+                logger.warning("核心数据库读取失败: %s", self._path)
+        if os.path.exists(self._runtime_path):
+            try:
+                with open(self._runtime_path, encoding="utf-8") as f:
+                    db.update(json.load(f))
+            except (OSError, json.JSONDecodeError):
+                self._corrupt = True
+                self._corrupt_files.add(self._runtime_path)
+                logger.warning("运行时数据库读取失败: %s", self._runtime_path)
+        # 清理历史遗留的死键（无任何读者，飞机与工卡共用 next_id）
+        db.pop("next_ac_id", None)
+        db.pop("amro_sync_meta", None)  # v3.6.0 起查询状态改为内存态，防旧键迁入核心文件
+        # 内存中修复不完整/错误的索引（不持久化，下次 _write() 时自动保存）
+        if db.get("cards") and not self._index_ok(db):
+            logger.warning("code_index 校验失败，已重建索引")
+            self._rebuild_index(db)
+        # 计数器自愈：next_id 落后于现存实体时修正（幂等；防止下次创建静默覆盖现有数据）
+        max_id = 0
+        for coll in ("cards", "card_sets", "aircraft"):
+            for k in db.get(coll, {}):
+                try:
+                    max_id = max(max_id, int(k))
+                except (TypeError, ValueError):
+                    pass
+        if db.get("next_id", 1) <= max_id:
+            logger.warning("next_id=%s 落后于现存实体最大ID=%d，自愈为 %d",
+                           db.get("next_id"), max_id, max_id + 1)
+            db["next_id"] = max_id + 1
+        return db
+
+    def _write(self, data: dict) -> None:
+        """拆分写入两个文件：运行时数据写入独立文件"""
+        if self._corrupt:
+            raise RuntimeError(
+                "数据库文件读取失败（损坏），已拒绝写入以保护数据；"
+                "请从 data/*.json.bak 或 data/backups/ 恢复后重启应用"
+            )
+        # 自动重建索引（处理数据导入后索引丢失或与实体不一致的情况）
+        if data.get("cards") and not self._index_ok(data):
+            self._rebuild_index(data)
+        core = {}
+        runtime = {}
+        for k, v in data.items():
+            if k in _RUNTIME_KEYS:
+                runtime[k] = v
+            else:
+                core[k] = v
+
+        _atomic_write(self._path, core)
+        _atomic_write(self._runtime_path, runtime)
+
+        # 备份核心与运行时文件（runtime 含计数器/索引/工作包，缺失会导致计数器回退）
+        for p in (self._path, self._runtime_path):
+            try:
+                if os.path.exists(p):
+                    shutil.copy2(p, p + ".bak")
+            except OSError:
+                logger.warning("备份失败: %s.bak", p)
+
+    def _next_id(self, db: dict) -> int:
+        """从 db dict 中取 next_id 并递增，跳过已占用的实体 ID（cards/sets/aircraft 共用计数器）。
+        调用方需持有 _lock"""
+        nid = db.get("next_id", 1)
+        taken = set()
+        for coll in ("cards", "card_sets", "aircraft"):
+            taken.update(str(k) for k in db.get(coll, {}))
+        while str(nid) in taken:
+            nid += 1
+        db["next_id"] = nid + 1
+        return nid
+
+    def _rebuild_index(self, db: dict) -> None:
+        """重建编码索引（缺 task_code 的卡跳过；重复码以后写入者为准并告警）"""
+        db["code_index"] = {}
+        coded = 0
+        for card_id, card in db.get("cards", {}).items():
+            code = card.get("task_code")
+            if code:
+                db["code_index"][code] = int(card_id)
+                coded += 1
+        if len(db["code_index"]) != coded:
+            logger.warning("检测到重复工卡号，索引以后写入者为准，请检查数据")
+
+    @staticmethod
+    def _index_ok(db: dict) -> bool:
+        """索引双向校验：每个键指向的卡存在且 task_code 匹配、有码卡数量一致。
+        能查出条数比较查不出的悬挂/错映射（如卡删除后索引残留）"""
+        cards = db["cards"]
+        ci = db.get("code_index", {})
+        cards_with_code = 0
+        for cid, card in cards.items():
+            code = card.get("task_code")
+            if not code:
+                continue
+            cards_with_code += 1
+            if ci.get(code) != int(cid):
+                return False
+        return len(ci) == cards_with_code
+
+    # ---------- 日志辅助方法 ----------
+
+    @staticmethod
+    def _detect_changes(old_data: dict, new_data: dict, field_map: list) -> list:
+        """检测两个数据字典之间的变更，返回 changes 列表"""
+        changes = []
+        for field in field_map:
+            old_val = old_data.get(field)
+            new_val = new_data.get(field)
+            if old_val != new_val:
+                changes.append({
+                    "field": field,
+                    "old": old_val,
+                    "new": new_val,
+                })
+        return changes
+
+    def _add_log(self, db: dict, operation: str, target_type: str,
+                 target_id: int, target_identifier: str, target_name: str,
+                 changes: list) -> dict:
+        """添加变更日志到 db（调用方需持有 _lock）"""
+        log_id = db.setdefault("card_log_next_id", 1)
+        db["card_log_next_id"] = log_id + 1
+        log = {
+            "id": log_id,
+            "operation": operation,
+            "target_type": target_type,
+            "target_id": target_id,
+            "target_identifier": target_identifier,
+            "target_name": target_name,
+            "changes": changes,
+            "timestamp": datetime.now(ZoneInfo("Asia/Shanghai")).isoformat(),
+        }
+        db.setdefault("card_logs", []).append(log)
+        # 自动清理：仅保留最新 MAX_LOGS 条（时间平局时按自增 id 判定新旧）
+        logs = db["card_logs"]
+        if len(logs) > MAX_LOGS:
+            logs.sort(key=lambda item: (item.get("timestamp", ""), item.get("id", 0)), reverse=True)
+            db["card_logs"] = logs[:MAX_LOGS]
+        return log

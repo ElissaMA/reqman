@@ -34,6 +34,12 @@ def _atomic_write(path: Path, data: dict) -> None:
                 if attempt == 2:
                     raise
                 time.sleep(0.05)
+        # 敏感凭证(含 JSESSIONID)限制为仅属主可读写；Windows 下 chmod 会置只读位导致后续写入失败，故仅非 Windows 执行。
+        if os.name != "nt":
+            try:
+                os.chmod(str(path), 0o600)
+            except OSError:
+                pass
     except (OSError, TypeError):
         if os.path.exists(tmp):
             try:
@@ -165,7 +171,3 @@ class LoginSessionStore:
                     self.path.unlink()
             except OSError:
                 logger.warning("清除登录凭证缓存失败: %s", self.path)
-
-    def remaining_seconds(self) -> int:
-        """旧接口兼容占位；长期缓存不再提供倒计时。"""
-        return 0

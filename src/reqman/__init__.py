@@ -8,7 +8,6 @@ from flask import Flask, jsonify, request
 from .config import (
     AMRO_COOKIE_FILE,
     AMRO_MAX_CONCURRENT,
-    AMRO_SESSION_TTL,
     BASE_DIR,
     DB_FILE,
     MAX_CONTENT_LENGTH,
@@ -106,7 +105,7 @@ def create_app():
     # 作废工卡库路径在调用时读取 config 属性（测试可按需改指临时文件）
     app.extensions["cancelled_cards"] = CancelledCardStore(str(_config.CANCELLED_CARDS_FILE))
     app.extensions["inventory_service"] = InventoryService(
-        LoginSessionStore(str(AMRO_COOKIE_FILE), ttl_seconds=AMRO_SESSION_TTL),
+        LoginSessionStore(str(AMRO_COOKIE_FILE)),
         max_concurrent=AMRO_MAX_CONCURRENT,
     )
     logger.info("依赖注入完成：store + card_service + inventory_service")

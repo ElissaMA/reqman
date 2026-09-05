@@ -10,12 +10,14 @@ except ImportError:
 
 BASE_DIR: Path = Path(__file__).resolve().parents[2]
 
+# 默认仅本机监听(127.0.0.1)；生产暴露须经反向代理(Nginx 等)+认证/防火墙，勿直接公网暴露 0.0.0.0。
 HOST: str = os.getenv(
     "SERVER_HOST",
     "0.0.0.0" if os.getenv("FLASK_ENV", "development") == "production" else "127.0.0.1",
 )
 PORT: int = int(os.getenv("SERVER_PORT", "5001"))
-DEBUG: bool = os.getenv("FLASK_ENV", "development") == "development"
+# Werkzeug 调试器存在 RCE 风险；默认关闭，显式 FLASK_DEBUG=1 才开启（仅开发自测）。
+DEBUG: bool = os.getenv("FLASK_DEBUG", "0") == "1"
 
 DB_FILE: Path = BASE_DIR / os.getenv("DB_FILE", "data/reqman_db.json")
 # 作废工卡独立存储（与主库分离，降低主库读写体积；gitignore 已忽略 data/）
@@ -64,7 +66,6 @@ DB_FILE.parent.mkdir(parents=True, exist_ok=True)
 # 库存实际调用经 query_plugin，此处仅保留配置项。
 AMRO_COOKIE_FILE: Path = BASE_DIR / os.getenv("AMRO_COOKIE_FILE", "data/cookie/amro_cookies.json")
 AMRO_MAX_CONCURRENT: int = int(os.getenv("AMRO_MAX_CONCURRENT", "10"))
-AMRO_SESSION_TTL: int = int(os.getenv("AMRO_SESSION_TTL", "0"))  # 已废弃：会话由 AMRO 探活决定
 AMRO_LOGIN_VERSION: str = os.getenv("AMRO_LOGIN_VERSION", "4")
 # 登录脚本 ZIP 注入的公网地址（服务器部署建议配置，保证多用户下载的 ZIP 注入地址一致可达；未配置回退当前访问地址）
 AMRO_PUBLIC_URL: str = os.getenv("AMRO_PUBLIC_URL", "").rstrip("/")

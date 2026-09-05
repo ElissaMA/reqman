@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from reqman.config import DB_FILE
 from reqman.models.json_store import JsonStore
-from reqman.services.import_vba_config import import_vba_config
+from scripts.lib.import_vba_config import import_vba_config
 
 
 def main() -> None:

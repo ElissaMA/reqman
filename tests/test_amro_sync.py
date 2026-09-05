@@ -183,18 +183,3 @@ class TestLastQueryResult:
         assert meta["summary"] == "获取到 5 个任务包"   # 只留最近一份
 
 
-class TestPackageDisplayLabel:
-    """工作包展示标识（机号+描述，aircraft_info 优先、顶层兜底）。"""
-
-    def test_prefers_aircraft_info_then_top_level(self):
-        assert amro_sync.package_display_label(
-            {"aircraft_info": {"reg": "B-1234", "description": "46A"},
-             "reg": "X", "description": "Y"}) == "B-1234 46A"
-        assert amro_sync.package_display_label(
-            {"reg": "B-1234", "description": "46A"}) == "B-1234 46A"
-
-    def test_mixed_and_empty(self):
-        assert amro_sync.package_display_label(
-            {"aircraft_info": {"reg": "B-1"}, "description": "D"}) == "B-1 D"
-        assert amro_sync.package_display_label({"reg": "", "description": ""}) == ""
-        assert amro_sync.package_display_label({}) == ""

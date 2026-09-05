@@ -38,11 +38,6 @@ class TestLoginSessionStore:
     def test_load_missing_returns_none(self, tmp_path: Path):
         assert LoginSessionStore(tmp_path / "nope.json").load() is None
 
-    def test_remaining_seconds_is_deprecated(self, tmp_path: Path):
-        store = LoginSessionStore(tmp_path / "session.json")
-        store.save(_cookies())
-        assert store.remaining_seconds() == 0
-
     def test_invalid_cookie_structure_rejected(self, tmp_path: Path):
         store = LoginSessionStore(tmp_path / "session.json")
         for cookies in ([], [{}], [{"name": "JSESSIONID", "value": ""}], ["bad"]):

@@ -75,21 +75,3 @@ class TestCardLogs:
         deleted = json_store.delete_logs([99999])
         assert deleted == 0
 
-    def test_trim_logs(self, json_store: JsonStore):
-        """裁剪日志保留最新N条"""
-        for i in range(10):
-            json_store.add(f"CARD-{i:03d}", f"工卡{i}", "发动机", "A", "")
-        deleted = json_store.trim_logs(max_count=3)
-        assert deleted >= 7
-        assert len(json_store.get_logs()) == 3
-
-    def test_trim_logs_under_limit(self, json_store: JsonStore):
-        """未超上限时返回0"""
-        json_store.add("CARD-001", "工卡1", "发动机", "A", "")
-        deleted = json_store.trim_logs(max_count=100)
-        assert deleted == 0
-
-    def test_trim_logs_empty(self, json_store: JsonStore):
-        """空日志返回0"""
-        deleted = json_store.trim_logs(max_count=5)
-        assert deleted == 0

@@ -159,24 +159,11 @@ class TestVersionReportExcel:
         assert amro_sync._ymd_date("") == ""
         assert amro_sync._ymd_date("bad") == ""
 
-    def test_package_report_label(self):
-        """版本报告标识：机号+描述+开工日期，日期归一化点分、可缺项。"""
-        assert amro_sync.package_report_label(
-            {"aircraft_info": {"reg": "B-1234", "description": "46A", "date": "2026-09-05"}}
-        ) == "B-1234 46A 2026.09.05"
-        assert amro_sync.package_report_label(
-            {"reg": "B-1", "description": "D", "date": "2026.09.05"}) == "B-1 D 2026.09.05"
-        assert amro_sync.package_report_label({"reg": "B-1", "description": "D"}) == "B-1 D"
-        assert amro_sync.package_report_label({}) == ""
-
     def test_build_package_label_unifies_display_and_report(self):
         """build_package_label 统一展示/报告标识；with_date 控制是否附加点分日期。"""
         pkg = {"aircraft_info": {"reg": "B-1234", "description": "46A", "date": "2026-09-05"}}
         assert amro_sync.build_package_label(pkg) == "B-1234 46A"
         assert amro_sync.build_package_label(pkg, with_date=True) == "B-1234 46A 2026.09.05"
-        # 旧别名等价
-        assert amro_sync.package_display_label(pkg) == amro_sync.build_package_label(pkg)
-        assert amro_sync.package_report_label(pkg) == amro_sync.build_package_label(pkg, with_date=True)
 
     def test_report_excel_reminder_template_layout(self):
         """改版清单以专用模板输出：标题含「查询日期」、单单元格三行、第三行按类型着色、保留绿底。"""

@@ -88,6 +88,19 @@ class TestCardCRUD:
     def test_find_by_code_not_found(self, json_store: JsonStore):
         assert json_store.find_by_code("NON-EXIST") is None
 
+    def test_find_by_codes_batch(self, json_store: JsonStore):
+        json_store.add("BC-001", "批量1", "发动机", "A", "")
+        json_store.add("BC-002", "批量2", "发动机", "A", "")
+        result = json_store.find_by_codes(["BC-001", "BC-002", "MISSING"])
+        assert set(result.keys()) == {"BC-001", "BC-002"}
+        assert result["BC-001"]["task_name"] == "批量1"
+
+    def test_find_by_codes_empty_and_dedup(self, json_store: JsonStore):
+        json_store.add("BC-003", "批量3", "发动机", "A", "")
+        assert json_store.find_by_codes([]) == {}
+        result = json_store.find_by_codes(["BC-003", "BC-003 "])
+        assert list(result.keys()) == ["BC-003"]
+
     def test_duplicate_code_returns_none(self, json_store: JsonStore):
         json_store.add("DUP-001", "工卡1", "发动机", "A", "")
         r2 = json_store.add("DUP-001", "工卡2", "发动机", "A", "")

@@ -18,9 +18,9 @@ from ..services.work_package_matcher import match_work_package_items
 from ..services.worklist_parser import WorklistError, merge_aircraft_info, parse_worklist
 from ..utils.dates import fmt_date10
 from ..utils.error_handlers import NotFoundError, ValidationError, is_ajax
+from ..utils.messages import MESSAGES
 from ..utils.response import api_error, api_success
 from ..utils.validators import validate_file_extension
-from .inventory_bp import MESSAGES
 
 logger = logging.getLogger(__name__)
 

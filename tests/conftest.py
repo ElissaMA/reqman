@@ -1,9 +1,6 @@
 """pytest 测试配置文件 — Fixtures & 测试数据工厂"""
 
-from datetime import datetime
 from pathlib import Path
-from typing import Any
-from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -63,51 +60,3 @@ def card_service(json_store: JsonStore) -> CardService:
 def prefilled_service(prefilled_store: JsonStore) -> CardService:
     """创建一个绑定预填充 JsonStore 的 CardService 实例"""
     return CardService(store=prefilled_store)
-
-
-# ============================================================
-# 测试数据工厂
-# ============================================================
-
-def _ts() -> str:
-    """返回当前时间戳字符串"""
-    return datetime.now(ZoneInfo("Asia/Shanghai")).isoformat()
-
-
-def make_card(**overrides: Any) -> dict:
-    """创建工卡测试数据"""
-    card = {
-        "task_code": "TEST-001",
-        "task_name": "测试工卡",
-        "category": "发动机",
-        "task_type": "A",
-        "remark": "",
-    }
-    card.update(overrides)
-    return card
-
-
-def make_card_set(**overrides: Any) -> dict:
-    """创建工卡组测试数据"""
-    card_set = {
-        "name": "测试工卡组",
-        "description": "测试用",
-        "category": "发动机",
-    }
-    card_set.update(overrides)
-    return card_set
-
-
-def make_form(**fields) -> dict:
-    """创建模拟 Flask request.form 对象"""
-    class MockForm:
-        def getlist(self, key, default=None):
-            return fields.get(key, default or [])
-
-        def get(self, key, default=None):
-            val = fields.get(key, default)
-            if isinstance(val, list):
-                return val[0] if val else default
-            return val
-
-    return MockForm()

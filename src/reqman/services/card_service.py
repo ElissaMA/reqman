@@ -252,6 +252,10 @@ class CardService:
     def get_cards_in_set(self, set_id: int) -> list[dict]:
         return self.store.get_cards_in_set(set_id)
 
+    def list_card_sets_with_cards(self) -> list[dict]:
+        """单次读取返回所有工卡组及其组内工卡（含 cards 字段）。"""
+        return self.store.get_card_sets_with_cards()
+
     # ---------- 飞机信息 ----------
 
     def list_aircraft(self) -> list[dict]:
@@ -292,12 +296,19 @@ class CardService:
             raise ServiceError("飞机信息不存在", "aircraft_id")
     # ---------- 工卡组传播与去重 ----------
 
-    def propagate_set_data(self, matched: list, all_items: list, new_cards: list) -> None:
+    def _lookup_card(self, code: str, cards_by_code: dict | None) -> dict | None:
+        """优先用批量查卡结果（单次读取），未提供时回退逐卡查询。"""
+        if cards_by_code is not None:
+            return cards_by_code.get(str(code).strip())
+        return self.store.find_by_code(code)
+
+    def propagate_set_data(self, matched: list, all_items: list, new_cards: list,
+                           cards_by_code: dict | None = None) -> None:
         """将工卡组的共用工具/航材传播给组内所有工卡"""
         for item in matched[:]:
             set_id = item.get("set_id")
             if not set_id:
-                card = self.store.find_by_code(item["task_code"])
+                card = self._lookup_card(item["task_code"], cards_by_code)
                 if card and card.get("set_id"):
                     set_id = card["set_id"]
             if not set_id:
@@ -314,7 +325,7 @@ class CardService:
             for other in all_items:
                 if other.get("set_id") == set_id and other is not item:
                     # 检查工卡本身的确认状态，未确认的不移入 matched
-                    other_card = self.store.find_by_code(other.get("task_code", ""))
+                    other_card = self._lookup_card(other.get("task_code", ""), cards_by_code)
                     if other_card:
                         tools_ok = other_card.get("tools_confirmed", False)
                         materials_ok = other_card.get("materials_confirmed", False)
@@ -351,11 +362,12 @@ class CardService:
                 existing_mat_names.add(m["material_name"])
         item["materials"] = merged_mats
 
-    def dedup_by_set(self, matched: list, new_cards: list) -> None:
+    def dedup_by_set(self, matched: list, new_cards: list,
+                     cards_by_code: dict | None = None) -> None:
         """识别新工卡中属于既有工卡组的项目，归入已匹配"""
         remove_idx = []
         for i, item in enumerate(new_cards):
-            card = self.store.find_by_code(item.get("task_code", ""))
+            card = self._lookup_card(item.get("task_code", ""), cards_by_code)
             if card and card.get("set_id"):
                 # 检查工卡本身的确认状态，未确认的不移入 matched
                 tools_ok = card.get("tools_confirmed", False)

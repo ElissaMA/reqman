@@ -17,13 +17,17 @@ def match_work_package_items(all_items, store, service):
     new_cards = []
     cancelled = []
 
+    # 单次读取批量查卡，避免逐卡 N+1 整库重读
+    codes = [str(item.get("task_code", "")).strip() for item in all_items]
+    cards_by_code = store.find_by_codes(codes)
+
     for item in all_items:
         if "撤销" in item.get("remark", ""):
             item["status"] = "cancelled"
             cancelled.append(item)
             continue
 
-        card = store.find_by_code(item["task_code"])
+        card = cards_by_code.get(str(item["task_code"]).strip())
         if card:
             item["reminder_type"] = card.get("reminder_type", "")
             item["card_ok"] = card.get("card_ok", False)
@@ -57,6 +61,6 @@ def match_work_package_items(all_items, store, service):
             item["status"] = "new"
             new_cards.append(item)
 
-    service.propagate_set_data(matched, all_items, new_cards)
-    service.dedup_by_set(matched, new_cards)
+    service.propagate_set_data(matched, all_items, new_cards, cards_by_code=cards_by_code)
+    service.dedup_by_set(matched, new_cards, cards_by_code=cards_by_code)
     return matched, new_cards, cancelled

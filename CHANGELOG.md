@@ -70,6 +70,14 @@
 ### Docs
 - 文档刷新：README 功能模块补充 AMRO 三域数据同步（飞机同步/工作包/工卡版本比对/作废工卡库），版本迭代标注 V3.6.0 已交付；SERVER_README 环境变量表对齐 config.py（移除已废弃 AMRO_API_URL，新增 AMRO_RATE_SECONDS/AMRO_AUDIT_FILE/AMRO_AC_FLEET/AMRO_BASE_DEFAULT/AMRO_CARD_FLEET），data/ 目录补充 cancelled_cards.json、cookie/、amro_audit.jsonl
 
+### 优化（结构 / 性能 / 安全 / 测试审计）
+- 安全：`config.DEBUG` 默认 `False`（仅显式 env 开启）；`generate_bp.package_version_report` 校验 `package_id` 格式（`^[A-Za-z0-9_-]+$`）+ `path.resolve().parent == OUTPUT_DIR` 断言，否则 400；`session._atomic_write` 写后 `os.chmod(0o600)`（父目录 `0o700`），Windows 经 `os.name != "nt"` 跳过只读位陷阱；移除废弃 `AMRO_SESSION_TTL` 与 session 的 `ttl_seconds/remaining_seconds/expires_at` 兼容桩
+- 死代码：删除 `amro_sync.package_display_label`/`package_report_label`、`json_store.trim_logs`（已先行移除）；修正 `amro_sync`「待确认加入」→「已确认」过时注释
+- 解耦：`MESSAGES` 由 `inventory_bp.py` 迁 `utils/messages.py`，`cards_bp`/`packages_bp`/`inventory_bp` 改 import；`services/import_vba_config.py` 迁 `scripts/lib/`，同步更新 `scripts/import_vba_config.py` 与 `tests/test_import_vba_config.py` 的 import
+- 性能：`JsonStore.find_by_codes(codes)` 单次 `_read()` 批量返回（消除逐卡 `find_by_code` 的 N+1 整库重读）；`work_package_matcher.match_work_package_items` 改用批量查、传 `cards_by_code` 给 `propagate_set_data`/`dedup_by_set`；`cards_bp.card_sets` 改单次读（`list_card_sets_with_cards`）；新增对应单测
+- 结构（T1）：三大模块拆包——`services/amro_sync`、`blueprints/cards_bp`、`models/json_store` 均拆为包，`__init__` 重导出全部公开符号，外部 `import` 路径零改动。子模块经包级属性运行时取值以兼容测试 monkeypatch：`amro_sync.OUTPUT_DIR`/`QUERY_STATUS`/`sync_aircraft`、`cards_bp.OUTPUT_DIR`、`json_store.os`；拆分后 `JsonStore` 经 `JsonStoreCore → CardStore → WorkPackageStore → LogStore` 继承链组合
+- 测试审计（ponytail）：删除 `tests/conftest.py` 未使用的 `make_card`/`make_card_set`/`make_form`/`_ts` 与 `tests/integration/conftest.py` 未使用的 `make_form`/`make_card_form`（其中 `make_form` 在两处重复定义）；ruff 清理对应冗余 import；测试套件保持 514 通过（另 4 项性能 slow 测试通过）
+
 ## [3.5.0] - Unreleased
 ### Added（AMRO 三域数据同步——基于 amro-research 实测的 7 个只读端点，全程只读+审计留痕）
 - 通用只读调用器 `query_plugin`：端点白名单硬编码（写/导出/生成类一律拒绝）、全局限速 ≥2s、JSONL 审计（`data/amro_audit.jsonl`）、会话失效统一 401+P8 文案

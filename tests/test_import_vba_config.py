@@ -2,7 +2,7 @@
 import openpyxl
 
 from reqman.models.json_store import JsonStore
-from reqman.services.import_vba_config import import_vba_config
+from scripts.lib.import_vba_config import import_vba_config
 
 
 def _build_config(tmp_path):
