@@ -8,6 +8,9 @@
 - 重排工作包、工卡、工卡组、飞机、作废工卡、库存、日志、需求单预览及各类表单页面；统一列表工具栏、空状态、状态反馈和表单分段
 - 修复静态资源 WSGI 透传：`RequestLogMiddleware` 不再吞掉 `FileWrapper` 内容，Bootstrap 与应用 CSS/JS 返回完整响应体，避免页面退化为无样式 HTML
 
+### CI
+- GitHub Actions Ruff 步骤统一执行 `ruff check src/ tests/ --fix`，自动修复可安全修复的导入格式问题后再继续测试
+
 ### Reliability（方案 A：非 SQLite 数据可靠性加固）
 - 作废工卡库修复共享可变默认值与嵌套对象别名；增加 `.bak` 恢复、损坏拒写、原子备份和独立损坏异常
 - JsonStore 增加 JSON 结构校验、`generation` 代际标记、唯一临时文件、读写锁和 fail-closed 恢复；损坏或双文件代际不一致时不再自动清空健康数据
