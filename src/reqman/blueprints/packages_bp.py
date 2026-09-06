@@ -83,7 +83,6 @@ def upload():
         return _handle_upload_post()
     store = current_app.extensions['store']
     work_packages = store.get_work_packages()
-    version_logs = _version_log_rows(store)
 
     # 自动删除过期>2天的工作包，并标记状态
     today = datetime.now(ZoneInfo("Asia/Shanghai")).date()
@@ -97,7 +96,6 @@ def upload():
         filtered.append(wp)
 
     return render_template("packages/upload.html", work_packages=filtered,
-                           version_logs=version_logs,
                            amro_pkg_query=amro_sync.get_last_package_query(),
                            amro_last_pkg_query=amro_sync.get_last_query_result("package"),
                            amro_last_pkg_ver=amro_sync.get_last_query_result("package_version"))

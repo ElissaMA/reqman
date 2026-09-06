@@ -8,6 +8,7 @@
     --rm-amber-600: #d97706;
     --rm-amber-100: #fff4df;
     --rm-green-700: #16825d;
+    --rm-green-800: #11654a;
     --rm-green-100: #e6f4ee;
     --rm-red-700: #c53030;
     --rm-red-100: #fdeaea;
@@ -233,9 +234,37 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .btn-success { background: var(--rm-green-700); border-color: var(--rm-green-700); }
 .btn-outline-secondary { color: var(--rm-navy-800); border-color: var(--rm-line-strong); }
 .btn-outline-danger { color: var(--rm-red-700); border-color: #e6a5a5; }
+/* 语义按钮：AMRO 查询/登录专属（绿色实心），与数据修改（深蓝）区分 */
+.btn-amro { color: #fff; background: var(--rm-green-700); border-color: var(--rm-green-700); }
+.btn-amro:hover, .btn-amro:focus { color: #fff; background: var(--rm-green-800); border-color: var(--rm-green-800); }
 .form-control, .form-select { color: var(--rm-ink); border-color: var(--rm-line-strong); border-radius: 6px; }
 .form-control:focus, .form-select:focus { border-color: var(--rm-blue-600); box-shadow: var(--rm-focus); }
 .form-label { color: var(--rm-navy-800); font-weight: 650; }
+
+/* 统一下载按钮：全站下载动作共用同一外观 */
+.btn-download {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 32px;
+    padding: 5px 14px;
+    border: 1px solid #8fb5d5;
+    border-radius: 6px;
+    color: var(--rm-navy-800);
+    background: var(--rm-surface);
+    font-size: 12px;
+    font-weight: 650;
+    text-decoration: none;
+    cursor: pointer;
+}
+.btn-download::before { content: "⬇"; font-size: 12px; line-height: 1; }
+.btn-download:hover, .btn-download:focus-visible {
+    color: #fff;
+    background: var(--rm-navy-800);
+    border-color: var(--rm-navy-800);
+    text-decoration: none;
+}
 
 /* 表格 */
 .table-responsive { overflow-x: auto; }

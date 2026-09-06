@@ -25,7 +25,7 @@
         {% elif amro_last_query %}
         <div class="alert alert-success py-2 px-3 small" id="lastQueryBlock">
             上次查询（{{ amro_last_query.finished_at }}）：{{ amro_last_query.summary }}
-            {% if amro_last_query.download_url %}<a class="btn btn-outline-primary btn-sm ms-2 py-0" href="{{ amro_last_query.download_url }}" title="⬇下载副本">下载副本</a>{% endif %}
+            {% if amro_last_query.download_url %}<a class="btn-download ms-2" href="{{ amro_last_query.download_url }}" data-download title="⬇下载库存查询">下载库存查询</a>{% endif %}
         </div>
         {% endif %}
         <div class="alert alert-warning py-2 px-3 small">{{ messages.P1 }}</div>
@@ -41,7 +41,7 @@
             </div>
             <div class="col-lg-4 d-flex flex-column justify-content-center gap-2">
                 <p class="small text-muted mb-0">查询前会检查 AMRO 登录状态。结果完成后，预警表中的缓存库存会同步更新。</p>
-                <button class="btn btn-success px-4" id="startQueryBtn" type="button">查询库存</button>
+                <button class="btn-amro px-4" id="startQueryBtn" type="button">查询库存</button>
             </div>
         </div>
         <div class="q-card" id="qCardStock" style="display:none"></div>

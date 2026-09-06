@@ -344,7 +344,11 @@ def package_version_report():
         return api_error("尚未查询该工作包的工卡版本，请先在工作包页点击「查询工作包工卡版本」",
                          "NO_VERSION_REPORT", 404)
     pkg_data = _get_store().get_work_package(package_id) or {}
-    label = build_package_label(pkg_data, with_date=True) or package_id
+    # 文件名安全化：去除路径分隔/非法字符，压缩空白；工作包记录被清理后回退「工作包」而非 UUID
+    label = re.sub(r'[\\/:*?"<>|\r\n\t]+', " ", build_package_label(pkg_data, with_date=True))
+    label = re.sub(r"\s+", " ", label).strip(" .-")[:60].strip()
+    if not label:
+        label = "工作包"
     finished = datetime.fromtimestamp(
         path.stat().st_mtime, ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d")
     return send_file(path, as_attachment=True,

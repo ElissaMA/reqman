@@ -215,7 +215,7 @@ class TestAmroPackageApi:
             release()
 
     def test_version_logs_view(self, client, store):
-        """版本变动日志：card_logs 筛选视图（JSON API + 页面区块，含工卡名称列）"""
+        """版本变动日志：card_logs 筛选视图（JSON API 保留；页面区块已移除）"""
         r = store.add("VLOG-1", "卡", "机体", "", "")
         store.update(r["id"], task_name="改名")                    # 非版本日志
         store.update(r["id"], write_date="2026-08-01 09:00:00")   # 版本日志
@@ -226,8 +226,8 @@ class TestAmroPackageApi:
         assert row["task_name"] == "改名"   # 名称列取日志 target_name
 
         html = client.get("/upload").get_data(as_text=True)
-        assert "工卡版本变动日志" in html and "VLOG-1" in html
-        assert "工卡名称" in html and "改名" in html   # 表头列 + 名称值
+        assert "工卡版本变动日志" not in html          # 工作包页已移除版本日志清单
+        assert "amroVerLogTable" not in html
 
 
 class TestVersionCheckApi:
@@ -529,6 +529,39 @@ class TestPackageVersionApi:
         assert "查询日期" in disp
         assert ".xlsx" in disp
 
+    def test_report_download_name_fallback_without_pkg(self, client, app, monkeypatch, tmp_path):
+        """工作包记录被清理后，下载名回退「工作包」而非 UUID（文件名规范）。"""
+        from urllib.parse import unquote
+
+        import reqman.blueprints.generate_bp as gb_mod
+        monkeypatch.setattr(gb_mod, "OUTPUT_DIR", tmp_path)
+        # 报告文件存在，但对应工作包记录不在库中（如过期自动删除）
+        (tmp_path / "amro_pkg_version_report_gone-pkg.xlsx").write_bytes(b"x")
+        resp = client.get("/generate/package-version-report?package_id=gone-pkg")
+        assert resp.status_code == 200
+        disp = unquote(resp.headers["Content-Disposition"])
+        assert "工卡改版清单（工作包）查询日期" in disp
+        assert "gone-pkg" not in disp
+
+    def test_report_download_name_sanitized(self, client, app, monkeypatch, tmp_path):
+        """机号/描述中的文件名非法字符（如 /）被替换，不进入下载名。"""
+        from urllib.parse import unquote
+
+        import reqman.blueprints.generate_bp as gb_mod
+        monkeypatch.setattr(gb_mod, "OUTPUT_DIR", tmp_path)
+        store = app.extensions["store"]
+        pkg_id = store.save_work_package({
+            "reg": "B-1234", "description": "24A/42A 检查", "date": "2026.09.06",
+            "aircraft_info": {"reg": "B-1234", "description": "24A/42A 检查", "date": "2026.09.06"},
+        })["package_id"]
+        (tmp_path / f"amro_pkg_version_report_{pkg_id}.xlsx").write_bytes(b"x")
+        resp = client.get(f"/generate/package-version-report?package_id={pkg_id}")
+        assert resp.status_code == 200
+        disp = unquote(resp.headers["Content-Disposition"])
+        name_part = disp.split("filename*=")[-1]
+        assert "/" not in name_part.replace("UTF-8''", "", 1).replace("%2F", "")
+        assert "24A 42A 检查" in disp
+
     def test_report_download_ok(self, client, monkeypatch, tmp_path):
         import reqman.blueprints.generate_bp as gb_mod
         monkeypatch.setattr(gb_mod, "OUTPUT_DIR", tmp_path)
@@ -543,13 +576,14 @@ class TestPackageVersionApi:
         assert resp.status_code == 200 and "spreadsheetml" in resp.mimetype
 
     def test_upload_row_button_and_generate_buttons(self, client, store):
-        """工作包行内「查询工作包工卡版本」按钮 + 预览页按钮排（生成工卡改版下载），勾选框已移除。"""
+        """工作包行内「查询工作包工卡版本」按钮 + 预览页按钮排（下载需求单/提醒单/工卡改版清单），勾选框已移除。"""
         pkg_id = self._make_package(store)
         html = client.get("/upload").get_data(as_text=True)
         # 行内按钮为 JS 拼装 URL：onclick="pkgVersionCheck('<package_id>', this)"
         assert f"pkgVersionCheck('{pkg_id}'" in html
         assert "查询工作包工卡版本" in html
         html2 = client.get(f"/generate?package_id={pkg_id}").get_data(as_text=True)
-        assert "生成工卡改版下载" in html2
-        assert "生成提醒单下载" in html2
+        assert "下载需求单" in html2
+        assert "下载提醒单" in html2
+        assert "下载工卡改版清单" in html2
         assert "versionCheck" not in html2   # 版本检查勾选框已移除

@@ -590,7 +590,7 @@ class TestInventoryLastQueryDisplay:
         html = resp.get_data(as_text=True)
         assert "上次查询（" in html
         assert 'id="lastQueryBlock"' in html
-        assert "⬇下载副本" in html
+        assert "⬇下载库存查询" in html
         m = re.search(r'href="(/inventory/download\?file=[^"]+)"', html)
         assert m, "摘要块未渲染下载链接"
         dl = client.get(m.group(1))

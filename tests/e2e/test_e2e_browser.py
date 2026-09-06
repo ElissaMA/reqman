@@ -298,11 +298,9 @@ def test_packages_page_relayout(page, server_base):
     page.wait_for_selector("#zoneOther")
     page.screenshot(path="output/e2e_t5_packages_top.png")
 
-    # Card2 工作包清单存在（有包或空态均可）
+    # Card2 工作包清单存在（有包或空态均可）；版本日志卡已移除
     assert page.locator("#wpTable").count() + page.locator(".empty-state-icon").count() >= 0
-    # Card3 版本日志区块
-    page.wait_for_selector("#amroVerLogTable")
-    page.screenshot(path="output/e2e_t5_packages_logs.png")
+    assert page.locator("#amroVerLogTable").count() == 0
 
     # Card1 上传功能保留：文件选择回调存在
     assert page.locator("#routineFile").count() == 1
@@ -313,7 +311,7 @@ def test_packages_page_relayout(page, server_base):
 
 # ---------- 12. v3.6.0：预览页按钮排 + 表头登录框共存 ----------
 def test_generate_page_buttons_and_header(page, server_base):
-    """预览页含「生成需求单/生成提醒单/生成工卡改版下载」按钮排；表头三件套与页面共存无JS错误。
+    """预览页含「下载需求单/下载提醒单/下载工卡改版清单」按钮排；表头三件套与页面共存无JS错误。
 
     提醒单已回退纯同步（无版本检查勾选框）；改版清单独立按钮下载（需先在工作包页查询）。
     """

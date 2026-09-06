@@ -216,9 +216,16 @@
             var arrow = table.querySelector('th.sortable[data-col="' + column + '"] .sort-arrow');
             var direction = arrow && arrow.getAttribute('data-dir') === 'asc' ? 1 : -1;
             var next = direction === 1 ? 'desc' : 'asc';
+            function cellText(row) {
+                var text = row.children[column] ? row.children[column].textContent : '';
+                text = text.trim().toLowerCase();
+                return (text === '—' || text === '-') ? '' : text;   // 空值占位符不参与大小比较
+            }
             rows.sort(function (a, b) {
-                var left = (a.children[column] ? a.children[column].textContent : '').trim().toLowerCase();
-                var right = (b.children[column] ? b.children[column].textContent : '').trim().toLowerCase();
+                var left = cellText(a);
+                var right = cellText(b);
+                if (!left && right) return 1;    // 空值恒排最后（与排序方向无关）
+                if (left && !right) return -1;
                 if (left < right) return -direction;
                 if (left > right) return direction;
                 return 0;
@@ -232,6 +239,49 @@
         }
         return { filter: filter, sort: sort, clear: clear };
     }());
+
+    // ===== 统一文件下载：fetch + Blob，保留服务端文件名，错误统一 toast，不跳页 =====
+    window.downloadFile = function (url, options) {
+        options = options || {};
+        window.showLoader();
+        fetch(url, {
+            method: options.method || 'GET',
+            body: options.body,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        }).then(function (response) {
+            var contentType = response.headers.get('Content-Type') || '';
+            if (!response.ok || contentType.indexOf('application/json') >= 0) {
+                return response.json().then(function (result) {
+                    throw new Error((result && result.message) || '下载失败，请重试');
+                });
+            }
+            var disposition = response.headers.get('Content-Disposition') || '';
+            var match = /filename\*=UTF-8''([^;]+)/i.exec(disposition) || /filename="?([^";]+)"?/i.exec(disposition);
+            var filename = '';
+            try { filename = match ? decodeURIComponent(match[1]) : ''; } catch (e) { filename = match ? match[1] : ''; }
+            return response.blob().then(function (blob) { return { blob: blob, filename: filename }; });
+        }).then(function (payload) {
+            window.hideLoader();
+            var link = document.createElement('a');
+            link.href = URL.createObjectURL(payload.blob);
+            if (payload.filename) link.download = payload.filename;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.setTimeout(function () { URL.revokeObjectURL(link.href); }, 3000);
+        }).catch(function (error) {
+            window.hideLoader();
+            window.safeToast(error && error.message ? error.message : '下载失败，请重试', 'error', 8000);
+        });
+    };
+    // 直链统一：a[data-download] 点击走 downloadFile（事件委托，局部刷新重建节点后依然生效）
+    document.addEventListener('click', function (event) {
+        if (!event.target || !event.target.closest) return;
+        var link = event.target.closest('a[data-download]');
+        if (!link) return;
+        event.preventDefault();
+        window.downloadFile(link.getAttribute('href'));
+    });
 
     window.ListUI = (function () {
         var storageKey = 'reqmanListState';

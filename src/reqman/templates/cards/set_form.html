@@ -78,12 +78,12 @@
             </section>
 
             <section class="form-section" id="toolSection">
-                <div class="form-section-heading"><div><h2>共用工具清单</h2><p class="section-description">填写工卡组内需要准备的工具。</p></div><button type="button" class="btn btn-outline-success btn-sm" onclick="addRow('tool')">新增工具</button></div>
+                <div class="form-section-heading"><div><h2>共用工具清单</h2><p class="section-description">填写工卡组内需要准备的工具。</p></div><button type="button" class="btn btn-outline-primary btn-sm" onclick="addRow('tool')">新增工具</button></div>
                 {{ tables.tool_table(set.tools if set else [], usage_types, editable=true, show_delete=true) }}
                 <div class="d-flex flex-wrap align-items-center gap-3 mt-3"><span class="small text-muted">确认状态：{% if set and set.tools_confirmed %}<span class="badge bg-success">已确认</span>{% else %}<span class="badge bg-warning">未确认</span>{% endif %}</span><div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="confirmNoTools" name="confirm_no_tools" value="1" {{ "checked" if set and set.tools_confirmed and not set.tools else "" }}><label class="form-check-label small" for="confirmNoTools">确认无工具</label></div></div>
             </section>
             <section class="form-section" id="matSection">
-                <div class="form-section-heading"><div><h2>共用航材清单</h2><p class="section-description">填写工卡组内需要准备的航材。</p></div><button type="button" class="btn btn-outline-success btn-sm" onclick="addRow('mat')">新增航材</button></div>
+                <div class="form-section-heading"><div><h2>共用航材清单</h2><p class="section-description">填写工卡组内需要准备的航材。</p></div><button type="button" class="btn btn-outline-primary btn-sm" onclick="addRow('mat')">新增航材</button></div>
                 {{ tables.material_table(set.materials if set else [], usage_types, editable=true, show_delete=true) }}
                 <div class="d-flex flex-wrap align-items-center gap-3 mt-3"><span class="small text-muted">确认状态：{% if set and set.materials_confirmed %}<span class="badge bg-success">已确认</span>{% else %}<span class="badge bg-warning">未确认</span>{% endif %}</span><div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="confirmNoMats" name="confirm_no_mats" value="1" {{ "checked" if set and set.materials_confirmed and not set.materials else "" }}><label class="form-check-label small" for="confirmNoMats">确认无航材</label></div></div>
             </section>

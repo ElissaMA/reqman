@@ -11,7 +11,7 @@
     </div>
     <div class="page-actions">
         <span class="page-count">共 {{ cards|length }} 条</span>
-        <button type="button" onclick="amroVerCheck()" id="amroVerCheckBtn" class="btn btn-outline-primary btn-sm">查询工卡版本</button>
+        <button type="button" onclick="amroVerCheck()" id="amroVerCheckBtn" class="btn-amro btn-sm">查询工卡版本</button>
         <button type="button" onclick="ListUI.openEditor('/card/new')" class="btn btn-primary btn-sm">新增工卡</button>
     </div>
 </header>
@@ -31,7 +31,7 @@
         {% elif amro_last_query %}
         <div class="alert alert-success m-3 mb-0 small">
             上次查询（{{ amro_last_query.finished_at }}）：{{ amro_last_query.summary }}
-            {% if amro_last_query.download_url %}<a class="btn btn-outline-primary btn-sm ms-2 py-0" href="{{ amro_last_query.download_url }}" title="⬇下载改版清单">下载改版清单</a>{% endif %}
+            {% if amro_last_query.download_url %}<a class="btn-download ms-2" href="{{ amro_last_query.download_url }}" data-download title="⬇下载改版清单（全量）">下载改版清单（全量）</a>{% endif %}
         </div>
         {% endif %}
         <div class="q-card" id="qCardVersion" style="display:none"></div>
@@ -78,7 +78,7 @@
                         <th>提醒类型</th>
                         <th>类型</th>
                         <th>所属工卡组</th>
-                        <th>编写日期</th>
+                        <th style="width:120px" class="sortable text-center" data-col="6" onclick="AppFilter.sort(document.getElementById('cardTable'),6)">编写日期 <span class="sort-arrow" data-dir="desc">▼</span></th>
                         <th class="text-center">工具数</th>
                         <th class="text-center">航材数</th>
                         <th style="width:120px" class="sortable text-center" data-col="9" onclick="AppFilter.sort(document.getElementById('cardTable'),9)">新建/编辑日期 <span class="sort-arrow" data-dir="desc">▼</span></th>
@@ -248,6 +248,9 @@ document.addEventListener('DOMContentLoaded', function() {
     {% if amro_status and amro_status.status == 'running' %}
     pollVersionCheck(window.QueryCard.run('qCardVersion', '全量查询工卡版本（约 3~15 分钟，后台执行）'));
     {% endif %}
+    // 默认按「新建/编辑日期」倒序展示（箭头显示下一次点击方向：升序）
+    var tbl = document.getElementById('cardTable');
+    if (tbl) AppFilter.sort(tbl, 9);
 });
 </script>
 {% endblock %}
