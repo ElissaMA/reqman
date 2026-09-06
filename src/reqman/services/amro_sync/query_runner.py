@@ -122,14 +122,18 @@ def get_query_status(key: str) -> dict:
 # 学习库存查询模式：每次查询结果可恢复显示在页面状态栏，报告类附下载链接。
 
 def save_last_query_result(key: str, label: str, summary: str, download_url: str = "",
-                           output_dir=None) -> None:
-    """写入最近一次查询结果简述（只留最新一份）。"""
+                           output_dir=None, file: str = "") -> None:
+    """写入最近一次查询结果简述（只留最新一份）。
+
+    file 为本次查询产出的报告文件名（如 amro_full_version_report_<ts>.xlsx），
+    下载路由据此与摘要一一绑定，避免目录里出现更新/更旧文件时错拿。
+    """
     out = output_dir or amro_sync.OUTPUT_DIR
     try:
         out.mkdir(parents=True, exist_ok=True)
         (out / f"last_query_{key}.json").write_text(json.dumps(
             {"label": label, "finished_at": _now(),
-             "summary": summary, "download_url": download_url},
+             "summary": summary, "download_url": download_url, "file": file},
             ensure_ascii=False), encoding="utf-8")
     except OSError:
         logger.warning("查询结果简述写入失败: last_query_%s", key)

@@ -181,3 +181,20 @@ class TestLastQueryResult:
                                          output_dir=tmp_path)
         meta = amro_sync.get_last_query_result("package", output_dir=tmp_path)
         assert meta["summary"] == "获取到 5 个任务包"   # 只留最近一份
+
+    def test_save_with_report_file_binding(self, tmp_path):
+        """摘要携带 file 字段，与 download_url 的 ?file= 一致（绑定下载）"""
+        amro_sync.save_last_query_result(
+            "full_version", "全量查询工卡版本", "改版 2 张，作废 0 张",
+            download_url="/card/amro-version-report?file=amro_full_version_report_20260906_120000.xlsx",
+            output_dir=tmp_path, file="amro_full_version_report_20260906_120000.xlsx")
+        meta = amro_sync.get_last_query_result("full_version", output_dir=tmp_path)
+        assert meta["file"] == "amro_full_version_report_20260906_120000.xlsx"
+        assert meta["download_url"].endswith("?file=" + meta["file"])
+
+    def test_save_without_file_field_defaults_empty(self, tmp_path):
+        """旧调用路径（无 file）兼容：JSON 写入空 file，读取不报错"""
+        amro_sync.save_last_query_result(
+            "aircraft", "查询飞机数据", "新增 1 架", output_dir=tmp_path)
+        meta = amro_sync.get_last_query_result("aircraft", output_dir=tmp_path)
+        assert meta.get("file", "") == ""

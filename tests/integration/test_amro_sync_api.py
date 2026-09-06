@@ -1,7 +1,9 @@
 """AMRO 三域同步集成测试 — Task 2: 表头登录三件套 + /inventory 简化"""
+import datetime as dt
 import io
 import json
 import zipfile
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -298,6 +300,88 @@ def _jcrow(jcno, wd, **kw):
     row = {"JC_NO": jcno, "WRITE_DATE": wd}
     row.update(kw)
     return row
+
+
+class TestVersionReportBinding:
+    """/card/amro-version-report 与摘要绑定：?file= / JSON file 字段 / 防穿越 / mtime 兜底"""
+
+    REPORT_PREFIX = "amro_full_version_report_"
+    _BJ = ZoneInfo("Asia/Shanghai")
+
+    def _setup(self, monkeypatch, out_dir):
+        import reqman.blueprints.cards_bp as cb_mod
+        monkeypatch.setattr(cb_mod, "OUTPUT_DIR", out_dir)
+
+    def _write_report(self, out_dir, name, stamp: float, content: bytes = b"xlsx-bytes"):
+        import os
+
+        path = out_dir / name
+        path.write_bytes(content)
+        os.utime(path, (stamp, stamp))
+        return path
+
+    def test_query_param_serves_bound_file(self, client, isolated_inventory, monkeypatch):
+        self._setup(monkeypatch, isolated_inventory)
+        sep4 = dt.datetime(2026, 9, 4, 15, 30, tzinfo=self._BJ).timestamp()
+        sep6 = dt.datetime(2026, 9, 6, 10, 0, tzinfo=self._BJ).timestamp()
+        self._write_report(isolated_inventory, f"{self.REPORT_PREFIX}20260904_153000.xlsx", sep4, b"old")
+        self._write_report(isolated_inventory, f"{self.REPORT_PREFIX}20260906_100000.xlsx", sep6, b"new")
+        name = f"{self.REPORT_PREFIX}20260906_100000.xlsx"
+
+        resp = client.get(f"/card/amro-version-report?file={name}")
+        assert resp.status_code == 200
+        assert resp.data == b"new"   # 绑定 9/6 文件，不再拿目录里旧的
+        from urllib.parse import unquote
+        assert "查询日期2026-09-06" in unquote(resp.headers["Content-Disposition"])
+
+    def test_query_param_rejects_traversal_and_bad_prefix(self, client, isolated_inventory, monkeypatch):
+        self._setup(monkeypatch, isolated_inventory)
+        for bad in ("../evil.xlsx", "last_query_full_version.json", "amro_pkg_version_report_x.xlsx"):
+            resp = client.get(f"/card/amro-version-report?file={bad}")
+            assert resp.status_code == 404, bad
+
+    def test_json_binding_file_served(self, client, isolated_inventory, monkeypatch):
+        from reqman.services import amro_sync
+        self._setup(monkeypatch, isolated_inventory)
+        name = f"{self.REPORT_PREFIX}20260906_100000.xlsx"
+        self._write_report(isolated_inventory, name,
+                           dt.datetime(2026, 9, 6, 10, 0, tzinfo=self._BJ).timestamp(), b"bound")
+        amro_sync.save_last_query_result(
+            "full_version", "全量查询工卡版本", "改版 1 张，作废 0 张，共检查 5 张",
+            download_url=f"/card/amro-version-report?file={name}",
+            output_dir=isolated_inventory, file=name)
+
+        resp = client.get("/card/amro-version-report")   # 无 ?file=，按 JSON 绑定
+        assert resp.status_code == 200
+        assert resp.data == b"bound"
+
+    def test_json_bound_file_missing_returns_404(self, client, isolated_inventory, monkeypatch):
+        from reqman.services import amro_sync
+        self._setup(monkeypatch, isolated_inventory)
+        name = f"{self.REPORT_PREFIX}20260906_100000.xlsx"
+        # 摘要说 9/6，但目录里只有 9/4 的旧文件 → 显式 404，绝不静默给旧文件
+        self._write_report(isolated_inventory, f"{self.REPORT_PREFIX}20260904_153000.xlsx",
+                           dt.datetime(2026, 9, 4, 15, 30, tzinfo=self._BJ).timestamp(), b"old")
+        amro_sync.save_last_query_result(
+            "full_version", "全量查询工卡版本", "改版 1 张，作废 0 张，共检查 5 张",
+            download_url=f"/card/amro-version-report?file={name}",
+            output_dir=isolated_inventory, file=name)
+
+        resp = client.get("/card/amro-version-report")
+        assert resp.status_code == 404
+        assert "不存在" in resp.get_json()["message"]
+
+    def test_no_json_falls_back_to_latest_mtime(self, client, isolated_inventory, monkeypatch):
+        self._setup(monkeypatch, isolated_inventory)
+        sep4 = dt.datetime(2026, 9, 4, 15, 30, tzinfo=self._BJ).timestamp()
+        sep6 = dt.datetime(2026, 9, 6, 10, 0, tzinfo=self._BJ).timestamp()
+        # 先写 9/6 再写 9/4：排除目录序影响，确认按 mtime 而非创建顺序
+        self._write_report(isolated_inventory, f"{self.REPORT_PREFIX}20260906_100000.xlsx", sep6, b"new")
+        self._write_report(isolated_inventory, f"{self.REPORT_PREFIX}20260904_153000.xlsx", sep4, b"old")
+
+        resp = client.get("/card/amro-version-report")
+        assert resp.status_code == 200
+        assert resp.data == b"new"
 
 
 def _occupy_query_slot(label: str):

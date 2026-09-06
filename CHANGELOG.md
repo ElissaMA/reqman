@@ -18,6 +18,8 @@
 - 新增作废库、JsonStore、库存会话失效故障测试；真实 `data/` 与 Cookie 数据未被测试修改
 
 ### Fixed（正确性）
+- 全量工卡改版清单「摘要与下载文件不一致」（摘要 9/6 下载 9/4）：摘要持久化新增 `file` 字段与报告文件一一绑定，`download_url` 带 `?file=<报告名>`；下载路由优先 `?file=` → 摘要绑定文件 → 目录内 mtime 最新（向后兼容），绑定文件缺失显式 404 不再静默回落旧文件；文件名白名单 + `resolve()` 防路径穿越；job 写完报告先落盘自检再写摘要
+- 全量/逐包版本检查报告写入后增加存在性自检，写失败走 error 态不再产出「成功摘要 + 缺失文件」
 - 工卡列表异常分支渲染漏传 `categories`/`task_types` 导致错误页自身再抛 500、友好提示丢失：抽 `_render_card_list` helper，成功/失败共用同一 kwargs
 - 工卡详情/列表 JSON、工卡组详情、飞机详情接口直接 `jsonify` 缺 `success` 字段，前端 `Poller/apiSubmit` 按 `d.success` 分支被当失败：统一改 `api_success(data=...)` / `api_error(...)` 契约，并同步前端两处消费方读取 `d.data`
 - 专业排序 `CATEGORY_ORDER` 三处定义漂移（`config.py` 为权威，`generate_bp.py`/`form_generator.py` 内联副本）：统一 `from config import CATEGORY_ORDER`，删两处内联

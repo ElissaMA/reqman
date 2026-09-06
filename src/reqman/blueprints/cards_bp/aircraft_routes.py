@@ -64,16 +64,56 @@ def amro_version_status():
 
 @cards_bp.route("/card/amro-version-report")
 def amro_version_report_latest():
-    """下载最近一次全量查询工卡版本的改版清单（output/ 内最新文件）。"""
-    reports = sorted(cards_bp_pkg.OUTPUT_DIR.glob("amro_full_version_report_*.xlsx"))
+    """下载最近一次全量查询工卡版本的改版清单。
+
+    文件优先级：?file= 参数 → last_query_full_version.json 的 file 字段
+    → 目录内按 mtime 最新的全量报告（向后兼容旧摘要无 file 字段）。
+    摘要绑定的文件缺失时显式 404，绝不静默回落旧文件。
+    """
+    output_dir = cards_bp_pkg.OUTPUT_DIR
+
+    def _serve(path):
+        finished = datetime.fromtimestamp(
+            path.stat().st_mtime, ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d")
+        return send_file(path, as_attachment=True,
+                         download_name=f"工卡改版清单（全量）查询日期{finished}.xlsx",
+                         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+    def _valid_report(name: str):
+        """校验文件名匹配全量报告前缀且解析后仍在 OUTPUT_DIR 内（防穿越）。"""
+        if not name or not name.startswith("amro_full_version_report_") \
+                or not name.endswith(".xlsx"):
+            return None
+        path = output_dir / name
+        try:
+            if path.resolve().parent != output_dir.resolve():
+                return None
+        except OSError:
+            return None
+        return path if path.is_file() else None
+
+    requested = request.args.get("file", "").strip()
+    if requested:
+        path = _valid_report(requested)
+        if path is None:
+            return api_error("改版清单参数非法或文件不存在，请重新执行「全量查询工卡版本」",
+                             "NO_REPORT", 404)
+        return _serve(path)
+
+    last_query = amro_sync.get_last_query_result("full_version", output_dir)
+    bound = _valid_report(str(last_query.get("file", "")))
+    if bound is not None:
+        return _serve(bound)
+    if last_query.get("file"):
+        return api_error("摘要对应的改版清单文件不存在（可能已被清理），请重新执行「全量查询工卡版本」",
+                         "NO_REPORT", 404)
+
+    # 向后兼容：旧摘要无 file 字段时取目录内 mtime 最新的全量报告
+    reports = sorted(output_dir.glob("amro_full_version_report_*.xlsx"),
+                     key=lambda p: p.stat().st_mtime)
     if not reports:
         return api_error("尚无改版清单，请先执行「全量查询工卡版本」", "NO_REPORT", 404)
-    path = reports[-1]
-    finished = datetime.fromtimestamp(
-        path.stat().st_mtime, ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d")
-    return send_file(path, as_attachment=True,
-                     download_name=f"工卡改版清单（全量）查询日期{finished}.xlsx",
-                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    return _serve(reports[-1])
 
 
 @cards_bp.route("/card/aircraft")

@@ -207,6 +207,9 @@ def start_full_version_check(store, session_store, output_dir, cancelled_store=N
             (output_dir / filename).write_bytes(
                 build_version_report_excel(rep, title_label="全量",
                                            finished_date=_ymd_date(ts)))
+            # 落盘自检：报告文件必须真实存在才允许写摘要，防止"新摘要+旧文件"
+            if not (output_dir / filename).is_file():
+                raise RuntimeError(f"改版清单写入失败：{filename}")
             rep["filename"] = filename
             return rep
 
@@ -214,7 +217,8 @@ def start_full_version_check(store, session_store, output_dir, cancelled_store=N
         save_last_query_result("full_version", "全量查询工卡版本",
                                _version_summary(len(rep["revised"]), len(rep["cancelled"]),
                                                 rep["checked"], len(rep["new_added"])),
-                               download_url="/card/amro-version-report", output_dir=output_dir)
+                               download_url=f"/card/amro-version-report?file={rep['filename']}",
+                               output_dir=output_dir, file=rep["filename"])
         return {"revised": len(rep["revised"]), "new_added": len(rep["new_added"]),
                 "cancelled": len(rep["cancelled"]),
                 "checked": rep["checked"], "filename": rep["filename"]}
@@ -248,6 +252,8 @@ def start_package_version_check(store, session_store, package_id: str, pkg_data:
         (amro_sync.OUTPUT_DIR / filename).write_bytes(build_version_report_excel(
             report, title_label=build_package_label(pkg_data, with_date=True) or package_id,
             finished_date=finished_date))
+        if not (amro_sync.OUTPUT_DIR / filename).is_file():
+            raise RuntimeError(f"改版清单写入失败：{filename}")
         summary = {"revised": len(report["revised"]), "new_added": len(report["new_added"]),
                    "cancelled": len(report["cancelled"]),
                    "checked": report["checked"], "filename": filename}
@@ -257,7 +263,7 @@ def start_package_version_check(store, session_store, package_id: str, pkg_data:
             f"{_version_summary(summary['revised'], summary['cancelled'], summary['checked'], summary['new_added'])}"
             f"（预览页可下载改版清单）",
             download_url=f"/generate/package-version-report?package_id={package_id}",
-            output_dir=amro_sync.OUTPUT_DIR)
+            output_dir=amro_sync.OUTPUT_DIR, file=filename)
         return summary
 
     return run_query("package_version", "查询工作包工卡版本", job,
