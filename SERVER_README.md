@@ -70,9 +70,9 @@ git pull origin main
 cp config/reqman.service /etc/systemd/system/reqman.service && systemctl daemon-reload  # 改过单元时
 ./venv/bin/pip install -e .     # 有新依赖时（幂等）
 sudo systemctl restart reqman
+curl -s -o /dev/null -w "%{http_code}" http://localhost:5001/   # 验证
 # 本地 scp 上传数据：
 # scp data/reqman_db.json data/reqman_db_runtime.json root@8.137.15.167:/root/workspace/reqman/data/
-curl -s -o /dev/null -w "%{http_code}" http://localhost:5001/   # 验证
 ```
 
 > dev 分支仅本地不推送；只有 main 发布到 GitHub。合并 main 前须完成全量测试；数据文件始终按 scp 同步。

@@ -88,6 +88,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 .brand-copy { min-width: 0; }
 .side-brand .brand-en { display: block; color: #fff; font-size: 17px; font-weight: 750; letter-spacing: .04em; line-height: 1.15; }
+.brand-ver { color: #a9bfd2; font-size: 10px; font-weight: 600; letter-spacing: .06em; margin-left: 6px; vertical-align: 2px; }
 .side-brand .brand-zh { display: block; margin-top: 3px; color: #a9bfd2; font-size: 11px; letter-spacing: .12em; white-space: nowrap; }
 .side-nav-body { flex: 1; padding: 18px 10px; overflow-y: auto; }
 .side-section-label {

@@ -12,6 +12,7 @@ from .config import (
     DB_FILE,
     MAX_CONTENT_LENGTH,
     SECRET_KEY,
+    VERSION,
 )
 from .utils.openpyxl_patch import apply_patches
 
@@ -96,6 +97,7 @@ def create_app():
     app = Flask(__name__, template_folder="templates", static_folder="static", static_url_path="/static")
     app.secret_key = SECRET_KEY
     app.config["MAX_CONTENT_LENGTH"] = MAX_CONTENT_LENGTH
+    app.config["VERSION"] = VERSION
 
     # openpyxl 猴子补丁
     apply_patches(BASE_DIR)

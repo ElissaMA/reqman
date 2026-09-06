@@ -58,6 +58,9 @@ CONDITIONS: list[str] = [
 SECRET_KEY: str = os.getenv("SECRET_KEY") or os.urandom(24).hex()
 MAX_CONTENT_LENGTH: int = 16 * 1024 * 1024
 
+# 应用版本（网页侧栏项目名旁显示；变更规则见 CHANGELOG 文件头）
+VERSION: str = "3.7.0"
+
 # 自动创建必要目录
 DB_FILE.parent.mkdir(parents=True, exist_ok=True)
 
