@@ -66,7 +66,7 @@ class TestReminderDownload:
         import openpyxl
         wb = openpyxl.load_workbook(io.BytesIO(resp.data))
         ws = wb["工卡提醒"]
-        assert "定检级别：46A" in str(ws["B2"].value)
+        assert "定检描述：46A" in str(ws["B2"].value)
         assert "APU型号：APU-5" in str(ws["C3"].value)
         assert "FSN：F-999" in str(ws["A4"].value)
         assert "MSN：MSN-77" in str(ws["B4"].value)

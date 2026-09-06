@@ -39,18 +39,34 @@ class TestGenerateReminder:
         wb.close()
 
     def test_aircraft_info_cells(self):
-        """B2=定检级别、C3=APU、A4=FSN、B4=MSN"""
+        """B2=定检描述、C3=APU、A4=FSN、B4=MSN"""
         form = {"reg": "B-100", "aircraft_type": "A320", "description": "46A",
                 "level": "46A", "fsn": "F-123", "msn": "MSN-88", "apu": "APU-9",
                 "date": "2026.08.23"}
         buffer, _ = generate_reminder(form, [])
         wb = openpyxl.load_workbook(buffer)
         ws = wb["工卡提醒"]
-        assert "定检级别：46A" in str(ws["B2"].value)
+        assert "定检描述：46A" in str(ws["B2"].value)
         assert "APU型号：APU-9" in str(ws["C3"].value)
         assert "FSN：F-123" in str(ws["A4"].value)
         assert "MSN：MSN-88" in str(ws["B4"].value)
         wb.close()
+
+    def test_b2_prefers_description_over_level(self):
+        """B2 输出工作包描述（AMRO REVTITLE），描述缺失时回退定检级别。"""
+        form = {"reg": "B-100", "description": "A320 4C检", "level": "4C",
+                "date": "2026.08.23"}
+        buffer, _ = generate_reminder(form, [])
+        wb = openpyxl.load_workbook(buffer)
+        ws = wb["工卡提醒"]
+        assert str(ws["B2"].value) == "定检描述：A320 4C检"
+        wb.close()
+
+        form2 = {"reg": "B-100", "description": "", "level": "4C", "date": "2026.08.23"}
+        buffer2, _ = generate_reminder(form2, [])
+        wb2 = openpyxl.load_workbook(buffer2)
+        assert str(wb2["工卡提醒"]["B2"].value) == "定检描述：4C"
+        wb2.close()
 
     def test_second_row_appends(self):
         """同专业多条 → 依次写入 7、8 行"""

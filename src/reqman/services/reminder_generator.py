@@ -38,7 +38,9 @@ def generate_reminder(form_data: dict, items: list[dict]) -> tuple[io.BytesIO, s
     ws = wb["工卡提醒"]
 
     ws["A2"].value = f"时间：{date_str}"
-    ws["B2"].value = f"定检级别：{form_data.get('level', '')}"
+    # B2 输出工作包描述（AMRO=REVTITLE）；描述缺失时回退定检级别（Excel 导入两字段同源）
+    level_desc = form_data.get("description", "") or form_data.get("level", "")
+    ws["B2"].value = f"定检描述：{level_desc}"
     ws["C2"].value = f"总份数：{form_data.get('routine_count', '')}+{form_data.get('other_count', '')}"
     ws["A3"].value = f"机号：{form_data.get('reg', '')}"
     ws["B3"].value = f"机型：{form_data.get('aircraft_type', '')}"
