@@ -312,7 +312,7 @@ def amro_version_logs():
 
 @packages_bp.route("/packages/<package_id>/amro-version-check", methods=["POST"])
 def package_amro_version_check(package_id):
-    """查询工作包工卡版本（后台线程，前端轮询状态）：实时比对包内工卡 → 更新版本 → 生成逐包改版清单。
+    """检查工作包工卡版本（后台线程，前端轮询状态）：实时比对包内工卡 → 更新版本 → 生成逐包改版清单。
 
     长任务移出请求线程，避免 gunicorn 120s 杀请求；前端轮询 /amro-version-status 取进度。
     """

@@ -44,7 +44,7 @@ def aircraft_amro_status():
 
 @cards_bp.route("/card/amro-version-check", methods=["POST"])
 def amro_version_check():
-    """全量查询工卡版本（后台线程：实时拉 AMRO 比对 write_date，约 3~15 分钟）。"""
+    """全量检查工卡版本（后台线程：实时拉 AMRO 比对 write_date，约 3~15 分钟）。"""
     if not amro_sync.require_amro_session():
         return api_error(MESSAGES["P8"], "LOGIN_EXPIRED", 401)
     store = current_app.extensions["store"]
@@ -58,13 +58,13 @@ def amro_version_check():
 
 @cards_bp.route("/card/amro-version-status")
 def amro_version_status():
-    """全量查询工卡版本进度/简要结果（内存态）。"""
+    """全量检查工卡版本进度/简要结果（内存态）。"""
     return api_success(data=amro_sync.get_query_status("full_version"))
 
 
 @cards_bp.route("/card/amro-version-report")
 def amro_version_report_latest():
-    """下载最近一次全量查询工卡版本的改版清单。
+    """下载最近一次全量检查工卡版本的改版清单。
 
     文件优先级：?file= 参数 → last_query_full_version.json 的 file 字段
     → 目录内按 mtime 最新的全量报告（向后兼容旧摘要无 file 字段）。
@@ -76,7 +76,7 @@ def amro_version_report_latest():
         finished = datetime.fromtimestamp(
             path.stat().st_mtime, ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d")
         return send_file(path, as_attachment=True,
-                         download_name=f"工卡改版清单（全量）查询日期{finished}.xlsx",
+                         download_name=f"工卡改版清单（全量）检查日期{finished}.xlsx",
                          mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
     def _valid_report(name: str):
@@ -96,7 +96,7 @@ def amro_version_report_latest():
     if requested:
         path = _valid_report(requested)
         if path is None:
-            return api_error("改版清单参数非法或文件不存在，请重新执行「全量查询工卡版本」",
+            return api_error("改版清单参数非法或文件不存在，请重新执行「全量检查工卡版本」",
                              "NO_REPORT", 404)
         return _serve(path)
 
@@ -105,14 +105,14 @@ def amro_version_report_latest():
     if bound is not None:
         return _serve(bound)
     if last_query.get("file"):
-        return api_error("摘要对应的改版清单文件不存在（可能已被清理），请重新执行「全量查询工卡版本」",
+        return api_error("摘要对应的改版清单文件不存在（可能已被清理），请重新执行「全量检查工卡版本」",
                          "NO_REPORT", 404)
 
     # 向后兼容：旧摘要无 file 字段时取目录内 mtime 最新的全量报告
     reports = sorted(output_dir.glob("amro_full_version_report_*.xlsx"),
                      key=lambda p: p.stat().st_mtime)
     if not reports:
-        return api_error("尚无改版清单，请先执行「全量查询工卡版本」", "NO_REPORT", 404)
+        return api_error("尚无改版清单，请先执行「全量检查工卡版本」", "NO_REPORT", 404)
     return _serve(reports[-1])
 
 

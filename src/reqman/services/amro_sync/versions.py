@@ -21,6 +21,7 @@ from reqman.services import amro_sync
 
 from ...config import (
     AMRO_CARD_FLEET,
+    CATEGORIES,
     CATEGORY_ORDER,
     CHECK_TEMPLATE_FILE,
 )
@@ -85,12 +86,55 @@ def _move_to_cancelled(store, cancelled_store, card: dict, source: str) -> None:
 
 
 
-def _version_summary(revised_n: int, cancelled_n: int, checked_n: int, new_added_n: int = 0) -> str:
-    """两处版本检查共用的基础摘要文案。
+def _bucket_text(items: list[dict], label: str) -> str:
+    """摘要桶文案：`改版 5 张（发动机 2、机体 3）`；桶为空返回空串（零值省略）。
 
-    new_added_n 为原库无编写日期、本次版本检查被新填入的工卡数（不计入「改版」）。
+    专业顺序：CATEGORY_ORDER（发动机/机体/电子）→ CATEGORIES（特检/支援）→ 其余（如 其他）。
     """
-    return f"改版 {revised_n} 张，新增 {new_added_n} 张，作废 {cancelled_n} 张，共检查 {checked_n} 张"
+    n = len(items)
+    if not n:
+        return ""
+    by_cat: dict[str, int] = {}
+    for it in items:
+        cat = str(it.get("category", "")).strip() or "其他"
+        by_cat[cat] = by_cat.get(cat, 0) + 1
+    order = list(CATEGORY_ORDER) + [c for c in CATEGORIES if c not in CATEGORY_ORDER]
+    ordered = sorted(by_cat, key=lambda c: (order.index(c) if c in order else len(order), c))
+    detail = "、".join(f"{c} {by_cat[c]}" for c in ordered)
+    return f"{label} {n} 张（{detail}）"
+
+
+def _version_summary(revised: list[dict], new_added: list[dict], cancelled: list[dict],
+                     checked_n: int, unchecked_note: str = "") -> str:
+    """两处版本检查共用的基础摘要：改版/新增/作废按专业细分（零值省略）+ 检查总数 + 未检查说明。
+
+    revised/new_added/cancelled 为报告条目列表（含 category 字段）；
+    unchecked_note 为 `_unchecked_note` 产出（不含前置逗号），无未检查时传空。
+    """
+    parts = [t for t in (_bucket_text(revised, "改版"),
+                         _bucket_text(new_added, "新增"),
+                         _bucket_text(cancelled, "作废")) if t]
+    parts.append(f"检查总数 {checked_n} 张")
+    text = "，".join(parts)
+    if unchecked_note:
+        text += f"，{unchecked_note}"
+    return text
+
+
+
+def _unchecked_note(skipped_dp: int, skipped_other: int, skipped_not_in_store: int = 0) -> str:
+    """未检查项的原因说明（DP 项目 / 其他工卡 / 未录入主库），无跳过返回空串。"""
+    total = skipped_dp + skipped_other + skipped_not_in_store
+    if not total:
+        return ""
+    parts = []
+    if skipped_dp:
+        parts.append(f"DP 项目 {skipped_dp} 张")
+    if skipped_other:
+        parts.append(f"其他工卡 {skipped_other} 张")
+    if skipped_not_in_store:
+        parts.append(f"未录入主库 {skipped_not_in_store} 张")
+    return f"未检查 {total} 张（{'、'.join(parts)}）"
 
 
 
@@ -117,7 +161,7 @@ def _ymd_date(ts: str) -> str:
 
 def build_version_report_excel(report: dict, title_label: str = "",
                                finished_date: str = "") -> bytes:
-    """改版清单 Excel —— 以专用模板《工卡改版清单》输出（两处查询共用）。
+    """改版清单 Excel —— 以专用模板《工卡改版清单》输出（两处检查共用）。
 
     模板（assets/check_template.xlsx）结构：行1 标题（A1:C1 合并）、行2 专业表头
     （A 电子 / B 发动机 / C 机体，深绿白字）、行3+ 数据区（已删飞机信息块与图例，
@@ -140,7 +184,7 @@ def build_version_report_excel(report: dict, title_label: str = "",
         return row
 
     label_part = f"（{title_label}）" if title_label else ""
-    title = f"工卡改版清单{label_part}查询日期{finished_date}"
+    title = f"工卡改版清单{label_part}检查日期{finished_date}"
 
     wb = load_template(CHECK_TEMPLATE_FILE)
     ws = wb["改版清单"]
@@ -195,7 +239,7 @@ def build_version_report_excel(report: dict, title_label: str = "",
 
 
 def start_full_version_check(store, session_store, output_dir, cancelled_store=None) -> bool:
-    """启动全量查询工卡版本后台任务。返回 False = 已有查询在跑（全局互斥，不排队）。"""
+    """启动全量检查工卡版本后台任务。返回 False = 已有查询在跑（全局互斥，不排队）。"""
     def job():
         cookies = (session_store.load() or {}).get("cookies", {})
 
@@ -214,16 +258,19 @@ def start_full_version_check(store, session_store, output_dir, cancelled_store=N
             return rep
 
         rep = asyncio.run(_inner())
-        save_last_query_result("full_version", "全量查询工卡版本",
-                               _version_summary(len(rep["revised"]), len(rep["cancelled"]),
-                                                rep["checked"], len(rep["new_added"])),
+        text = _version_summary(rep["revised"], rep["new_added"], rep["cancelled"],
+                                rep["checked"],
+                                _unchecked_note(rep["skipped_dp"], rep["skipped_other"]))
+        save_last_query_result("full_version", "全量检查工卡版本", text,
                                download_url=f"/card/amro-version-report?file={rep['filename']}",
                                output_dir=output_dir, file=rep["filename"])
         return {"revised": len(rep["revised"]), "new_added": len(rep["new_added"]),
                 "cancelled": len(rep["cancelled"]),
-                "checked": rep["checked"], "filename": rep["filename"]}
+                "checked": rep["checked"], "filename": rep["filename"],
+                "skipped_dp": rep["skipped_dp"], "skipped_other": rep["skipped_other"],
+                "skipped_total": rep["skipped_total"], "text": text}
 
-    return run_query("full_version", "全量查询工卡版本", job)
+    return run_query("full_version", "全量检查工卡版本", job)
 
 
 
@@ -254,19 +301,22 @@ def start_package_version_check(store, session_store, package_id: str, pkg_data:
             finished_date=finished_date))
         if not (amro_sync.OUTPUT_DIR / filename).is_file():
             raise RuntimeError(f"改版清单写入失败：{filename}")
+        text = _version_summary(report["revised"], report["new_added"], report["cancelled"],
+                                report["checked"],
+                                _unchecked_note(report["skipped_dp"], report["skipped_other"],
+                                                report["skipped_not_in_store"]))
         summary = {"revised": len(report["revised"]), "new_added": len(report["new_added"]),
                    "cancelled": len(report["cancelled"]),
-                   "checked": report["checked"], "filename": filename}
+                   "checked": report["checked"], "filename": filename, "text": text,
+                   "skipped_total": report["skipped_total"]}
         save_last_query_result(
-            "package_version", "查询工作包工卡版本",
-            f"版本检查完成（{label}）："
-            f"{_version_summary(summary['revised'], summary['cancelled'], summary['checked'], summary['new_added'])}"
-            f"（预览页可下载改版清单）",
+            "package_version", "检查工作包工卡版本",
+            f"版本检查完成（{label}）：{text}（预览页可下载改版清单）",
             download_url=f"/generate/package-version-report?package_id={package_id}",
             output_dir=amro_sync.OUTPUT_DIR, file=filename)
         return summary
 
-    return run_query("package_version", "查询工作包工卡版本", job,
+    return run_query("package_version", "检查工作包工卡版本", job,
                      extra={"package_id": package_id, "label": label})
 
 
@@ -420,9 +470,15 @@ async def full_version_check(store, client, cookies, *, fetch=None, query=None,
     revised, new_added, cancelled = [], [], []
     write_date_updates = {}
     checked = 0
+    skipped_dp = skipped_other = 0
     for card in all_cards:
-        code = card.get("task_code", "")
+        code = card.get("task_code", "").strip()
         if not _is_in_scope(code):
+            # 未检查分类：DP 项目不在 AMRO 清单体系；其余为前缀不属于四家族的其他工卡
+            if code.upper().startswith("DP"):
+                skipped_dp += 1
+            else:
+                skipped_other += 1
             continue
         checked += 1
         row = versions.get(code)
@@ -449,29 +505,39 @@ async def full_version_check(store, client, cookies, *, fetch=None, query=None,
                                 "old_wd": old_wd, "new_wd": new_wd})
     if write_date_updates:
         store.bulk_update(write_date_updates)
-    return {"revised": revised, "new_added": new_added, "cancelled": cancelled, "checked": checked}
+    return {"revised": revised, "new_added": new_added, "cancelled": cancelled, "checked": checked,
+            "skipped_dp": skipped_dp, "skipped_other": skipped_other,
+            "skipped_total": skipped_dp + skipped_other}
 
 
 
 async def check_cards_against_amro(store, client, cookies, task_codes, *, fetch=None, query=None,
                                    cancelled_store=None) -> dict:
-    """包级版本检查：拉清单 → 对指定工卡比对 AMRO 编写日期 → {revised, cancelled, checked}。
+    """包级版本检查：拉清单 → 对指定工卡比对 AMRO 编写日期 → {revised, cancelled, checked, skipped_*}。
 
     仅处理卡库已存在的卡（包内新卡由人工前置入主库，不进版本报告）；
     作废整卡移入作废工卡库（cancelled_store=None 时仅入报告不删卡）。
     取数复用 _collect_card_versions（四家族实时取数：CSC 走 SMJC 全量拉、FLA 走 FLA 端点、
-    QEC-R 走 EOJC 端点全量拉、EO 按卡号直查）；仅四家族参与，其余不查询、不误报作废。
+    QEC-R 走 EOJC 端点全量拉、EO 按卡号直查）；仅四家族参与比对，其余按原因计入未检查：
+    DP 项目 / 其他工卡（前缀不属于四家族）/ 未录入主库（四家族但卡库无记录）。
     """
-    wanted = {str(c).strip() for c in task_codes if _is_in_scope(str(c).strip())}
+    all_codes = list(dict.fromkeys(str(c).strip() for c in task_codes if str(c).strip()))
+    wanted = {c for c in all_codes if _is_in_scope(c)}
+    skipped_dp = sum(1 for c in all_codes if c.upper().startswith("DP"))
+    skipped_other = len(all_codes) - len(wanted) - skipped_dp
     versions = await _collect_card_versions(store, client, cookies, wanted,
                                             fetch=fetch, query=query)
     all_cards = {c.get("task_code", ""): c for c in store.get_all()}
     revised, new_added, cancelled = [], [], []
     write_date_updates = {}
+    checked = 0
+    skipped_not_in_store = 0
     for code in sorted(wanted):
         card = all_cards.get(code)
         if card is None:
+            skipped_not_in_store += 1
             continue
+        checked += 1
         row = versions.get(code)
         if row is None:
             cancelled.append({"task_code": code,
@@ -496,4 +562,7 @@ async def check_cards_against_amro(store, client, cookies, task_codes, *, fetch=
                                 "old_wd": old_wd, "new_wd": new_wd})
     if write_date_updates:
         store.bulk_update(write_date_updates)
-    return {"revised": revised, "new_added": new_added, "cancelled": cancelled, "checked": len(wanted)}
+    return {"revised": revised, "new_added": new_added, "cancelled": cancelled, "checked": checked,
+            "skipped_dp": skipped_dp, "skipped_other": skipped_other,
+            "skipped_not_in_store": skipped_not_in_store,
+            "skipped_total": skipped_dp + skipped_other + skipped_not_in_store}

@@ -110,6 +110,7 @@ class TestFullVersionCheck:
                                                 query=fake_entity_query,
                                                 cancelled_store=cancelled_store))
         assert rep["checked"] == 2
+        assert rep["skipped_dp"] == 1 and rep["skipped_other"] == 0
         assert "TD_JC_ALL_EOJC_LIST" not in plugins   # EOJC 深分页已根除
 
     def test_unchanged_card_not_relogged(self, json_store, fake_amro_cards, monkeypatch):
@@ -166,7 +167,7 @@ class TestVersionReportExcel:
         assert amro_sync.build_package_label(pkg, with_date=True) == "B-1234 46A 2026.09.05"
 
     def test_report_excel_reminder_template_layout(self):
-        """改版清单以专用模板输出：标题含「查询日期」、单单元格三行、第三行按类型着色、保留绿底。"""
+        """改版清单以专用模板输出：标题含「检查日期」、单单元格三行、第三行按类型着色、保留绿底。"""
         buf = amro_sync.build_version_report_excel({
             "revised": [
                 {"task_code": "C-1", "task_name": "卡一", "category": "电子",
@@ -184,7 +185,7 @@ class TestVersionReportExcel:
         wb = openpyxl.load_workbook(io.BytesIO(buf))
         assert wb.sheetnames == ["改版清单"]
         ws = wb["改版清单"]
-        assert ws["A1"].value == "工卡改版清单（B-1234 46A 2026.09.05）查询日期2026.09.01"
+        assert ws["A1"].value == "工卡改版清单（B-1234 46A 2026.09.05）检查日期2026.09.01"
         assert (ws["A2"].value, ws["B2"].value, ws["C2"].value) == ("电子", "发动机", "机体")
         assert ws["A2"].fill.start_color.rgb == "FF00703C"   # 表头深绿白字样式保留
         a3 = ws["A3"]   # 电子列：改版卡一，单单元格三行
@@ -300,6 +301,8 @@ class TestCheckCardsAgainstAmro:
             query=query, cancelled_store=cancelled_store))
         assert [c["task_code"] for c in rep["cancelled"]] == ["EOJC-A320-57-2025-002-B"]
         assert rep["checked"] == 1
+        assert rep["skipped_dp"] == 1 and rep["skipped_other"] == 0
+        assert rep["skipped_total"] == 1
         assert json_store.find_by_code("EOJC-A320-57-2025-002-B") is None
         rec = cancelled_store.find_by_code("EOJC-A320-57-2025-002-B")
         assert rec["cancel_source"] == "package_version"
@@ -307,10 +310,65 @@ class TestCheckCardsAgainstAmro:
 
 class TestVersionSummaryText:
     def test_base_format(self):
-        """两处版本检查共用的基础摘要文案：改版X张，新增N张，作废Y张，共检查Z张。"""
-        assert amro_sync._version_summary(2, 1, 10) == "改版 2 张，新增 0 张，作废 1 张，共检查 10 张"
-        assert amro_sync._version_summary(0, 0, 0) == "改版 0 张，新增 0 张，作废 0 张，共检查 0 张"
-        assert amro_sync._version_summary(2, 1, 10, 3) == "改版 2 张，新增 3 张，作废 1 张，共检查 10 张"
+        """基础摘要：改版/新增/作废按专业细分（零值省略）+ 检查总数 + 未检查说明。"""
+        revised = [{"category": "发动机"}, {"category": "发动机"}, {"category": "机体"}]
+        new_added = [{"category": "电子"}]
+        cancelled = [{"category": "特检"}]
+        assert amro_sync._version_summary(revised, new_added, cancelled, 30) == (
+            "改版 3 张（发动机 2、机体 1），新增 1 张（电子 1），"
+            "作废 1 张（特检 1），检查总数 30 张")
+
+    def test_zero_buckets_and_categories_omitted(self):
+        """为 0 的桶与专业省略；全零仅输出检查总数。"""
+        revised = [{"category": "机体"}, {"category": "其他"}]
+        assert amro_sync._version_summary(revised, [], [], 12) == \
+            "改版 2 张（机体 1、其他 1），检查总数 12 张"
+        assert amro_sync._version_summary([], [], [], 30) == "检查总数 30 张"
+
+    def test_with_unchecked_note(self):
+        """未检查说明由 _unchecked_note 产出，拼在检查总数之后。"""
+        note = amro_sync._unchecked_note(2, 3)
+        assert amro_sync._version_summary([], [], [], 10, note) == \
+            "检查总数 10 张，未检查 5 张（DP 项目 2 张、其他工卡 3 张）"
+
+    def test_unchecked_note_variants(self):
+        """未检查说明：无跳过返回空串；为零的分类不出现。"""
+        assert amro_sync._unchecked_note(0, 0) == ""
+        assert amro_sync._unchecked_note(0, 0, 0) == ""
+        assert amro_sync._unchecked_note(2, 0) == "未检查 2 张（DP 项目 2 张）"
+        assert amro_sync._unchecked_note(0, 3) == "未检查 3 张（其他工卡 3 张）"
+        assert amro_sync._unchecked_note(1, 3, 2) == \
+            "未检查 6 张（DP 项目 1 张、其他工卡 3 张、未录入主库 2 张）"
+
+    def test_full_check_skipped_classification(self, json_store, fake_amro_cards,
+                                                fake_entity_query, monkeypatch):
+        """全量未检查分类：DP 项目与其他工卡（非四家族前缀）分别计数。"""
+        monkeypatch.setattr(amro_sync.amro.time, "monotonic", lambda: 1e9)
+        monkeypatch.setattr(amro_sync.amro.time, "sleep", lambda s: None)
+        json_store.add("CSCA320-256652-01-1-X", "检查救生衣", "电子", "RST", "")
+        json_store.add("DP1000000739", "DP项目卡", "机体", "", "")
+        json_store.add("NRC-A320-001", "非家族卡", "特检", "", "")
+        rep = _run(amro_sync.full_version_check(json_store, None, {},
+                                                fetch=fake_amro_cards,
+                                                query=fake_entity_query))
+        assert rep["checked"] == 1
+        assert rep["skipped_dp"] == 1 and rep["skipped_other"] == 1
+        assert rep["skipped_total"] == 2
+
+    def test_package_check_skipped_classification(self, json_store, fake_amro_cards,
+                                                   fake_entity_query, monkeypatch):
+        """逐包未检查三分类：DP 项目 / 其他工卡 / 未录入主库；checked=实际比对数。"""
+        monkeypatch.setattr(amro_sync.amro.time, "monotonic", lambda: 1e9)
+        monkeypatch.setattr(amro_sync.amro.time, "sleep", lambda s: None)
+        json_store.add("CSCA320-256652-01-1-X", "检查救生衣", "电子", "RST", "")
+        codes = ["CSCA320-256652-01-1-X", "DP1000000739",
+                 "NRC-A320-001", "EOJC-A320-31-2026-007-A"]   # EO 在库外 → 未录入主库
+        rep = _run(amro_sync.check_cards_against_amro(
+            json_store, None, {}, codes, fetch=fake_amro_cards, query=fake_entity_query))
+        assert rep["checked"] == 1
+        assert rep["skipped_dp"] == 1 and rep["skipped_other"] == 1
+        assert rep["skipped_not_in_store"] == 1
+        assert rep["skipped_total"] == 3
 
 
 class TestVersionPullSplit:

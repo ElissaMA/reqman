@@ -13,6 +13,7 @@ __all__ = (
     "QUERY_STATUS",
     "QueryBusyError",
     "_aircraft_fields",
+    "_bucket_text",
     "_collect_card_versions",
     "_family_of",
     "_get_entity_by_jcno",
@@ -26,6 +27,7 @@ __all__ = (
     "_package_header",
     "_pull_amro_family",
     "_pull_smjc_versions",
+    "_unchecked_note",
     "_version_summary",
     "_wd",
     "_ymd_date",
@@ -95,6 +97,7 @@ from .query_runner import (
 )
 from .versions import (
     AMRO_FLA_PLUGIN,
+    _bucket_text,
     _collect_card_versions,
     _family_of,
     _get_entity_by_jcno,
@@ -103,6 +106,7 @@ from .versions import (
     _move_to_cancelled,
     _pull_amro_family,
     _pull_smjc_versions,
+    _unchecked_note,
     _version_summary,
     _wd,
     _ymd_date,

@@ -56,7 +56,7 @@
 <div class="card">
     <div class="card-header"><div><h2>已导入工作包</h2><p class="section-description">点击工作包行进入需求单预览；状态标记表示匹配数据完整度。</p></div><span class="page-count">共 {{ work_packages|length }} 条</span></div>
     <div class="card-body p-0">
-        {% if amro_last_pkg_ver %}<div class="alert alert-success m-3 mb-0 py-2 px-3 small">上次查询（{{ amro_last_pkg_ver.finished_at }}）：{{ amro_last_pkg_ver.summary }}{% if amro_last_pkg_ver.download_url %}<a class="btn-download ms-2" href="{{ amro_last_pkg_ver.download_url }}" data-download title="⬇下载逐包改版清单">下载逐包改版清单</a>{% endif %}</div>{% endif %}
+        {% if amro_last_pkg_ver %}<div class="alert alert-success m-3 mb-0 py-2 px-3 small">上次检查（{{ amro_last_pkg_ver.finished_at }}）：{{ amro_last_pkg_ver.summary }}{% if amro_last_pkg_ver.download_url %}<a class="btn-download ms-2" href="{{ amro_last_pkg_ver.download_url }}" data-download title="⬇下载逐包改版清单">下载逐包改版清单</a>{% endif %}</div>{% endif %}
         <div class="q-card" id="qCardPkgVerCheck" style="display:none"></div>
         <div class="filter-toolbar" data-filter-toolbar="wpTable">
             <div class="filter-field"><label for="wpReg">搜索机号</label><input class="form-control form-control-sm" id="wpReg" data-table="wpTable" data-col="0" placeholder="输入机号..." onkeyup="AppFilter.filter('wpReg')"></div>
@@ -70,7 +70,7 @@
                 {% for wp in work_packages %}
                 <tr onclick="window.open('/generate?package_id={{ wp.package_id }}', '_blank')" style="cursor:pointer" class="{% if wp.status == 'warning' %}wp-warning{% elif wp.status == 'danger' %}wp-danger{% endif %}">
                     <td><strong>{{ wp.aircraft_info.reg if wp.aircraft_info else wp.reg }}</strong></td><td>{{ (wp.aircraft_info.description if wp.aircraft_info else wp.description) or '' }}</td><td>{{ (wp.aircraft_info.type if wp.aircraft_info else '') or '' }}</td><td>{{ (wp.aircraft_info.engine if wp.aircraft_info else '') or '' }}</td><td>{{ (wp.aircraft_info.squadron if wp.aircraft_info else '') or '' }}</td><td>{{ wp.date }}</td><td>{{ wp.routine_count }}+{{ wp.other_count }}</td><td>{{ wp.generated_at or '—' }}</td>
-                    <td onclick="event.stopPropagation()"><div class="table-action"><form method="POST" action="/packages/{{ wp.package_id }}/rematch"><button type="submit" class="btn btn-outline-primary btn-sm" onclick="return rematchPack(event, '{{ wp.package_id }}')">重新匹配</button></form><button type="button" class="btn-amro btn-sm" data-package-id="{{ wp.package_id }}" onclick="pkgVersionCheck('{{ wp.package_id }}', this)">查询版本</button></div></td>
+                    <td onclick="event.stopPropagation()"><div class="table-action"><form method="POST" action="/packages/{{ wp.package_id }}/rematch"><button type="submit" class="btn btn-outline-primary btn-sm" onclick="return rematchPack(event, '{{ wp.package_id }}')">重新匹配</button></form><button type="button" class="btn-amro btn-sm" data-package-id="{{ wp.package_id }}" onclick="pkgVersionCheck('{{ wp.package_id }}', this)">检查版本</button></div></td>
                 </tr>
                 {% endfor %}
                 </tbody>
@@ -214,7 +214,7 @@ function importPack(btn, idx) {
         });
 }
 
-// ===== 工作包行级：查询工作包工卡版本（后台线程，前端轮询进度） =====
+// ===== 工作包行级：检查工作包工卡版本（后台线程，前端轮询进度） =====
 function pkgVersionCheck(packageId, btn) {
     if (!amroRequireLogin()) return;
     btn.disabled = true;
@@ -222,7 +222,7 @@ function pkgVersionCheck(packageId, btn) {
     var reg = tr && tr.cells[0] ? (tr.cells[0].textContent || '').trim() : '';
     var desc = tr && tr.cells[1] ? (tr.cells[1].textContent || '').trim() : '';
     var label = (reg + ' ' + desc).trim() || packageId;   // 进度条显示机号+描述，不再显示编号
-    var card = window.QueryCard.run('qCardPkgVerCheck', '查询工作包工卡版本 - ' + label);
+    var card = window.QueryCard.run('qCardPkgVerCheck', '检查工作包工卡版本 - ' + label);
     var fd = new FormData();
     fd.append('package_id', packageId);
     fetch('/packages/' + packageId + '/amro-version-check', { method: 'POST', body: fd,
@@ -246,9 +246,8 @@ function pkgVersionCheck(packageId, btn) {
 
 function buildVersionSummary(label, s) {
     s = s || {};
-    return '版本检查完成（' + (label || '') + '）：改版 ' + (s.revised || 0) + ' 张，新增 '
-            + (s.new_added || 0) + ' 张，作废 ' + (s.cancelled || 0)
-            + ' 张（预览页可下载改版清单）';
+    return '版本检查完成（' + (label || '') + '）：' + (s.text || '')
+            + '（预览页可下载改版清单）';
 }
 
 function pollPkgVersionCheck(packageId, card) {
@@ -289,7 +288,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 var reg = tr && tr.cells[0] ? tr.cells[0].textContent.trim() : '';
                 var desc = tr && tr.cells[1] ? tr.cells[1].textContent.trim() : '';
                 var label = (reg + ' ' + desc).trim() || status.package_id;
-                var card = window.QueryCard.run('qCardPkgVerCheck', '查询工作包工卡版本 - ' + (status.label || label));
+                var card = window.QueryCard.run('qCardPkgVerCheck', '检查工作包工卡版本 - ' + (status.label || label));
                 pollPkgVersionCheck(status.package_id, card);
             }
         }).catch(function(){});

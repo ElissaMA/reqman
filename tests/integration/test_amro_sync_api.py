@@ -293,7 +293,7 @@ class TestVersionCheckApi:
         dl = client.get("/card/amro-version-report")
         assert dl.status_code == 200
         from urllib.parse import unquote
-        assert "工卡改版清单（全量）查询日期" in unquote(dl.headers["Content-Disposition"])
+        assert "工卡改版清单（全量）检查日期" in unquote(dl.headers["Content-Disposition"])
 
 
 def _jcrow(jcno, wd, **kw):
@@ -332,7 +332,7 @@ class TestVersionReportBinding:
         assert resp.status_code == 200
         assert resp.data == b"new"   # 绑定 9/6 文件，不再拿目录里旧的
         from urllib.parse import unquote
-        assert "查询日期2026-09-06" in unquote(resp.headers["Content-Disposition"])
+        assert "检查日期2026-09-06" in unquote(resp.headers["Content-Disposition"])
 
     def test_query_param_rejects_traversal_and_bad_prefix(self, client, isolated_inventory, monkeypatch):
         self._setup(monkeypatch, isolated_inventory)
@@ -512,10 +512,10 @@ class TestPackageVersionApi:
         monkeypatch.setattr(gb_mod, "OUTPUT_DIR", tmp_path)
         resp = client.get("/generate/package-version-report?package_id=p1")
         assert resp.status_code == 404
-        assert "尚未查询" in resp.get_json()["message"]
+        assert "尚未检查" in resp.get_json()["message"]
 
     def test_report_download_chinese_name(self, client, app, monkeypatch, tmp_path):
-        """逐包改版清单下载名 = 工卡改版清单（机号 描述 开工日期）查询日期.xlsx。"""
+        """逐包改版清单下载名 = 工卡改版清单（机号 描述 开工日期）检查日期.xlsx。"""
         from urllib.parse import unquote
 
         import reqman.blueprints.generate_bp as gb_mod
@@ -526,7 +526,7 @@ class TestPackageVersionApi:
         assert resp.status_code == 200
         disp = unquote(resp.headers["Content-Disposition"])
         assert "工卡改版清单（B-1234 46A " in disp   # 括号内含机号+描述+开工日期（fixture 动态）
-        assert "查询日期" in disp
+        assert "检查日期" in disp
         assert ".xlsx" in disp
 
     def test_report_download_name_fallback_without_pkg(self, client, app, monkeypatch, tmp_path):
@@ -540,7 +540,7 @@ class TestPackageVersionApi:
         resp = client.get("/generate/package-version-report?package_id=gone-pkg")
         assert resp.status_code == 200
         disp = unquote(resp.headers["Content-Disposition"])
-        assert "工卡改版清单（工作包）查询日期" in disp
+        assert "工卡改版清单（工作包）检查日期" in disp
         assert "gone-pkg" not in disp
 
     def test_report_download_name_sanitized(self, client, app, monkeypatch, tmp_path):
@@ -581,7 +581,7 @@ class TestPackageVersionApi:
         html = client.get("/upload").get_data(as_text=True)
         # 行内按钮为 JS 拼装 URL：onclick="pkgVersionCheck('<package_id>', this)"
         assert f"pkgVersionCheck('{pkg_id}'" in html
-        assert "查询工作包工卡版本" in html
+        assert "检查工作包工卡版本" in html
         html2 = client.get(f"/generate?package_id={pkg_id}").get_data(as_text=True)
         assert "下载需求单" in html2
         assert "下载提醒单" in html2

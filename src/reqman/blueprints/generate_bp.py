@@ -330,7 +330,7 @@ def reminder_download():
 
 @generate_bp.route("/generate/package-version-report")
 def package_version_report():
-    """下载某工作包的工卡改版清单（先在工作包页执行「查询工作包工卡版本」生成）。"""
+    """下载某工作包的工卡改版清单（先在工作包页执行「检查工作包工卡版本」生成）。"""
     package_id = request.args.get("package_id", "").strip()
     if not package_id:
         return api_error("缺少工作包参数", "MISSING_PACKAGE_ID", 400)
@@ -341,7 +341,7 @@ def package_version_report():
     if path.resolve().parent != OUTPUT_DIR.resolve():
         return api_error("工作包参数非法", "INVALID_PACKAGE_ID", 400)
     if not path.exists():
-        return api_error("尚未查询该工作包的工卡版本，请先在工作包页点击「查询工作包工卡版本」",
+        return api_error("尚未检查该工作包的工卡版本，请先在工作包页点击「检查工作包工卡版本」",
                          "NO_VERSION_REPORT", 404)
     pkg_data = _get_store().get_work_package(package_id) or {}
     # 文件名安全化：去除路径分隔/非法字符，压缩空白；工作包记录被清理后回退「工作包」而非 UUID
@@ -352,5 +352,5 @@ def package_version_report():
     finished = datetime.fromtimestamp(
         path.stat().st_mtime, ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d")
     return send_file(path, as_attachment=True,
-                     download_name=f"工卡改版清单（{label}）查询日期{finished}.xlsx",
+                     download_name=f"工卡改版清单（{label}）检查日期{finished}.xlsx",
                      mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
