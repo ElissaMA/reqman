@@ -32,6 +32,7 @@
         text.textContent = message == null ? '' : String(message);
         toast.appendChild(icon);
         toast.appendChild(text);
+        toast.classList.add('show');
         container.appendChild(toast);
         window.setTimeout(function () { if (toast.parentNode) toast.remove(); }, duration || 4000);
     };
