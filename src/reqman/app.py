@@ -48,9 +48,12 @@ from reqman import create_app
 
 def _decode_windows_output(value):
     """按 Windows 本地代码页解码命令输出，避免 Git Bash UTF-8 环境误解码。"""
-    if isinstance(value, bytes):
+    if not isinstance(value, bytes):
+        return value or ""
+    try:
         return value.decode("mbcs", errors="replace")
-    return value or ""
+    except LookupError:  # 非 Windows 测试环境没有 mbcs 编解码器
+        return value.decode("cp936", errors="replace")
 
 
 def find_pid_by_port(port):
