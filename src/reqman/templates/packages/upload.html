@@ -204,6 +204,7 @@ function importPack(btn, idx) {
             if (d.success) {
                 window.safeToast(d.message, 'success', 6000);
                 btn.textContent = '✅ 已导入';
+                setTimeout(function () { window.location.reload(); }, 800);   // 刷新下方工作包清单（对齐 rematch 模式）
             } else {
                 window.safeToast(d.message || '导入失败', 'error', 6000);
                 btn.disabled = false; btn.textContent = '导入';

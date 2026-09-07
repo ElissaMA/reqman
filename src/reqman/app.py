@@ -46,58 +46,72 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 from reqman import create_app
 
 
+def _decode_windows_output(value):
+    """按 Windows 本地代码页解码命令输出，避免 Git Bash UTF-8 环境误解码。"""
+    if isinstance(value, bytes):
+        return value.decode("mbcs", errors="replace")
+    return value or ""
+
+
 def find_pid_by_port(port):
-    """跨平台：根据端口查找占用进程的 PID"""
+    """跨平台：根据端口查找占用进程的 PID。"""
     system = platform.system()
     try:
         if system == "Windows":
-            output = subprocess.check_output(
-                ["netstat", "-ano"], text=True, stderr=subprocess.DEVNULL
+            raw = subprocess.check_output(
+                ["netstat", "-ano"], stderr=subprocess.DEVNULL
             )
+            output = _decode_windows_output(raw)
             for line in output.splitlines():
                 if f":{port}" in line and "LISTENING" in line:
                     parts = line.strip().split()
                     if parts:
                         return parts[-1]
         else:
-            # Linux / macOS
             result = subprocess.run(
                 ["lsof", "-i", f":{port}", "-t"],
                 capture_output=True, text=True, check=False
             )
             if result.stdout.strip():
                 return result.stdout.strip().split("\n")[0]
-    except (OSError, subprocess.CalledProcessError):
+    except (OSError, subprocess.CalledProcessError, UnicodeError):
         pass
     return None
 
 
 def kill_process(pid):
-    """跨平台：终止指定 PID 的进程"""
+    """跨平台：终止指定 PID 的进程。"""
     system = platform.system()
     try:
         if system == "Windows":
-            subprocess.run(["taskkill", "-f", "-pid", str(pid)],
-                           capture_output=True, text=True, check=False)
+            result = subprocess.run(
+                ["taskkill", "/F", "/PID", str(pid)],
+                capture_output=True, text=True, encoding="mbcs",
+                errors="replace", check=False
+            )
         else:
-            subprocess.run(["kill", "-9", str(pid)],
-                           capture_output=True, text=True, check=False)
-        return True
-    except (OSError, subprocess.CalledProcessError):
+            result = subprocess.run(
+                ["kill", "-9", str(pid)],
+                capture_output=True, text=True, check=False
+            )
+        return result.returncode == 0
+    except (OSError, subprocess.CalledProcessError, UnicodeError):
         return False
 
 
 def free_port(port):
+    """释放端口并返回最终建议使用的端口。"""
     pid = find_pid_by_port(port)
     if pid:
         print(f"[启动] 端口 {port} 被 PID {pid} 占用，正在释放...")
         kill_process(pid)
         time.sleep(1)
         if find_pid_by_port(port):
-            print(f"[警告] 端口 {port} 释放失败，将尝试备用端口")
-            return False
+            fallback = port + 1
+            print(f"[警告] 端口 {port} 释放失败，将尝试备用端口 {fallback}")
+            return fallback
         print(f"[启动] 端口 {port} 已释放")
-    return True
+    return port
 
 
 def wait_and_open(port):
@@ -164,21 +178,23 @@ if __name__ == "__main__":
     print("  架构: 工厂模式 + 蓝图 + 服务层")
     print("=" * 50)
 
-    free_port(port)
-
-    threading.Thread(target=wait_and_open, args=(port,), daemon=True).start()
+    port = free_port(port)
 
     # debug 跟随配置（开发模式 FLASK_ENV=development 时开启，模板自动重载）
     debug = app.config.get("DEBUG", False)
 
     try:
+        threading.Thread(target=wait_and_open, args=(port,), daemon=True).start()
         app.run(debug=debug, host="127.0.0.1", port=port)
     except OSError as e:
-        if "address already in use" in str(e).lower() or "权限" in str(e):
-            print(f"[错误] 端口 {port} 仍被占用，尝试使用端口 {port + 1}...")
-            port += 1
+        address_busy = getattr(e, "errno", None) == 10048
+        address_busy = address_busy or "address already in use" in str(e).lower() or "权限" in str(e)
+        if address_busy:
+            fallback = port + 1
+            print(f"[错误] 端口 {port} 仍被占用，尝试使用备用端口 {fallback}...")
             try:
-                app.run(debug=debug, host="127.0.0.1", port=port)
+                threading.Thread(target=wait_and_open, args=(fallback,), daemon=True).start()
+                app.run(debug=debug, host="127.0.0.1", port=fallback)
             except OSError as e2:
                 print(f"[错误] 无法启动服务: {e2}")
                 sys.exit(1)

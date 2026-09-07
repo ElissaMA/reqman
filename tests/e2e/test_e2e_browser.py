@@ -38,13 +38,17 @@ def test_pages_render(page, server_base):
     # 详情页(JSON API)：取真实工卡id
     r = page.request.get(server_base + "/card/list-json")
     assert r.status == 200, "list-json非200"
-    cards = r.json()
+    payload = r.json()
+    assert payload.get("success") is True, f"list-json失败: {payload}"
+    cards = payload.get("data") or []
     assert len(cards) > 0, "list-json为空"
     cid = cards[0].get("id")
     assert cid, "list-json缺少id字段"
     resp = page.goto(server_base + f"/card/{cid}")
     assert resp.status == 200, "详情页非200"
-    data = resp.json()
+    detail = resp.json()
+    assert detail.get("success") is True, f"详情接口失败: {detail}"
+    data = detail.get("data") or {}
     assert data.get("task_code"), "详情数据缺少task_code"
 
     assert not js_errors, f"页面存在JS错误: {js_errors}"
@@ -59,7 +63,7 @@ def test_edit_card_popup(page, server_base):
     code = first.locator("td").first.inner_text().strip()
 
     with page.expect_popup() as pi:
-        first.locator("a[onclick*='openEditor']").first.click()
+        first.locator("button[onclick*='openEditor']").first.click()
     popup = pi.value
     popup.wait_for_load_state("load")
     popup.wait_for_selector("input[name=task_code]")
@@ -85,7 +89,7 @@ def test_new_card_popup(page, server_base):
     page.wait_for_selector("#cardTable tbody tr")
 
     with page.expect_popup() as pi:
-        page.click("a[onclick*='/card/new']")
+        page.click("button[onclick*='/card/new']")
     popup = pi.value
     popup.wait_for_load_state("load")
     popup.wait_for_selector("input[name=task_code]")
@@ -113,7 +117,7 @@ def test_validation_toasts(page, server_base):
     page.goto(server_base + "/card/list")
     page.wait_for_selector("#cardTable tbody tr")
     with page.expect_popup() as pi:
-        page.locator("#cardTable tbody tr").first.locator("a[onclick*='openEditor']").first.click()
+        page.locator("#cardTable tbody tr").first.locator("button[onclick*='openEditor']").first.click()
     popup1 = pi.value
     popup1.wait_for_load_state("load")
     popup1.wait_for_selector("select[name=category]")
@@ -127,7 +131,7 @@ def test_validation_toasts(page, server_base):
     # 场景2：半空行（名称空但有件号）→ toast "缺少名称"
     # 注：新规格删除"仅填写名称"拦截（名称是必需字段，其他可选），故本场景改为验证"缺少名称"方向
     with page.expect_popup() as pi2:
-        page.click("a[onclick*='/card/new']")
+        page.click("button[onclick*='/card/new']")
     popup2 = pi2.value
     popup2.wait_for_load_state("load")
     popup2.wait_for_selector("input[name=task_code]")
@@ -145,7 +149,7 @@ def test_validation_toasts(page, server_base):
 
     # 场景3：未勾选确认无工具 → toast "请添加工具或确认无工具"
     with page.expect_popup() as pi3:
-        page.click("a[onclick*='/card/new']")
+        page.click("button[onclick*='/card/new']")
     popup3 = pi3.value
     popup3.wait_for_load_state("load")
     popup3.wait_for_selector("input[name=task_code]")
@@ -175,8 +179,8 @@ def test_card_id_correct(page, server_base):
 
     rows = page.locator("#cardTable tbody tr")
     for i in range(min(3, len(ids))):
-        onclick = rows.nth(i).locator("a[onclick*='openEditor']").first.get_attribute("onclick")
-        mm = re.search(r"openEditor\('/card/(\d+)/edit'\)", onclick)
+        onclick = rows.nth(i).locator("button[onclick*='openEditor']").first.get_attribute("onclick")
+        mm = re.search(r"ListUI\.openEditor\('/card/(\d+)/edit'\)", onclick)
         assert mm is not None, f"第{i}行编辑URL格式异常: {onclick!r}"
         assert mm.group(1) == ids[i], f"第{i}行编辑URL id={mm.group(1)} 与cards数组 id={ids[i]} 不一致"
 
@@ -269,7 +273,8 @@ def test_header_amro_login_trio(page, server_base):
     page.wait_for_function(
         "document.getElementById('amroStatus').textContent.indexOf('…') < 0", timeout=5000)
     badge = page.locator("#amroStatus").inner_text()
-    assert ("✅" in badge) or ("❌" in badge), f"徽章未渲染状态: {badge!r}"
+    assert any(text in badge for text in ("已登录", "未登录", "暂不可用", "已失效")), \
+        f"徽章未渲染状态: {badge!r}"
     # 提示条显示（未登录=P4/P7 文案；登录=P6 常驻小字）
     assert page.locator("#amroAlert").is_visible()
     page.screenshot(path="output/e2e_t2_header_amro.png")

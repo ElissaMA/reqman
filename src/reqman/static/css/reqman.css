@@ -342,7 +342,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .modal-header { color: var(--rm-navy-900); background: #fbfcfe; border-bottom-color: var(--rm-line); }
 .modal-footer { background: #fbfcfe; border-top-color: var(--rm-line); }
 .toast-container { position: fixed; top: 84px; right: 22px; z-index: 11000; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
-.toast-container .toast { min-width: 260px; max-width: 390px; padding: 11px 14px; color: #fff; border: 0; border-radius: 7px; box-shadow: var(--rm-shadow-md); pointer-events: auto; }
+.toast-container .toast { display: flex; align-items: center; gap: 8px; min-width: 260px; max-width: 390px; padding: 11px 14px; color: #fff; border: 0; border-radius: 7px; box-shadow: var(--rm-shadow-md); pointer-events: auto; }
 .toast-container .toast.success { background: var(--rm-green-700); }
 .toast-container .toast.error { background: var(--rm-red-700); }
 .toast-container .toast.info { background: var(--rm-navy-800); }
