@@ -73,11 +73,11 @@ class TestGenerateToolList:
         assert ws["B39"].value == "静电手环"      # 电子区首行
 
     def test_same_pn_different_name_merged_into_generic(self):
-        tools = [_tool("孔探仪", "发动机", "1", pn="IAE6F10408"),
-                 _tool("孔探仪带组件", "机体", "2", pn="IAE6F10408")]   # 同件号 → 同组
+        tools = [_tool("内窥镜", "发动机", "1", pn="IAE6F10408"),
+                 _tool("内窥镜带组件", "机体", "2", pn="IAE6F10408")]   # 同件号 → 同组
         buffer, _ = generate_tool_list(self._form(), tools)
         ws = _load_tool(buffer)
-        assert ws["B16"].value == "孔探仪"        # 两专业 → 通用区
+        assert ws["B16"].value == "内窥镜"        # 两专业 → 通用区
         assert ws["D16"].value == "2"             # 取最大
         assert ws["B19"].value is None           # 专业区不重复
 
@@ -90,7 +90,7 @@ class TestGenerateToolList:
         assert ws["B19"].value is None
 
     def test_scope_and_cross_major_skipped(self):
-        tools = [_tool("孔探仪", "发动机", "1", pn="IAE-1"),
+        tools = [_tool("内窥镜", "发动机", "1", pn="IAE-1"),
                  _tool("深度检测仪", "机体", "1", pn="DNS-2"),   # 件号名称均不同 → 不合并
                  _tool("特检工具", "特检", "1", pn="PN-S"),
                  _tool("支援工具", "支援", "1", pn="PN-Z"),
@@ -98,7 +98,7 @@ class TestGenerateToolList:
         buffer, _ = generate_tool_list(self._form(), tools)
         ws = _load_tool(buffer)
         written = [ws.cell(row=r, column=2).value for r in range(16, 49)]
-        assert written.count("孔探仪") == 1            # 各写一行，不合并
+        assert written.count("内窥镜") == 1            # 各写一行，不合并
         assert written.count("深度检测仪") == 1
         assert "特检工具" not in written and "支援工具" not in written
         assert "备用扳手" not in written
