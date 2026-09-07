@@ -25,6 +25,8 @@ CANCELLED_CARDS_FILE: Path = BASE_DIR / os.getenv("CANCELLED_CARDS_FILE", "data/
 TEMPLATE_FILE: Path = BASE_DIR / os.getenv("TEMPLATE_FILE", "assets/demand_template.xlsx")
 REMINDER_TEMPLATE_FILE: Path = BASE_DIR / os.getenv("REMINDER_TEMPLATE_FILE", "assets/reminder_template.xlsx")
 CHECK_TEMPLATE_FILE: Path = BASE_DIR / os.getenv("CHECK_TEMPLATE_FILE", "assets/check_template.xlsx")
+TOOLS_TEMPLATE_FILE: Path = BASE_DIR / os.getenv("TOOLS_TEMPLATE_FILE", "assets/tools_template.xlsx")
+MATERIALS_TEMPLATE_FILE: Path = BASE_DIR / os.getenv("MATERIALS_TEMPLATE_FILE", "assets/materials_template.xlsx")
 
 CATEGORIES: list[str] = os.getenv(
     "CATEGORIES", "发动机,机体,电子,特检,支援"
@@ -59,7 +61,7 @@ SECRET_KEY: str = os.getenv("SECRET_KEY") or os.urandom(24).hex()
 MAX_CONTENT_LENGTH: int = 16 * 1024 * 1024
 
 # 应用版本（网页侧栏项目名旁显示；变更规则见 CHANGELOG 文件头）
-VERSION: str = "3.7.0"
+VERSION: str = "3.7.1"
 
 # 自动创建必要目录
 DB_FILE.parent.mkdir(parents=True, exist_ok=True)
