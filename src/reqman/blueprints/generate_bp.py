@@ -9,6 +9,7 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 
 from ..config import CATEGORIES, CATEGORY_ORDER, CONDITIONS, OUTPUT_DIR
 from ..services.amro_sync import build_package_label
+from ..services.checklist_generator import generate_chemical_list, generate_tool_list
 from ..services.form_generator import generate_form
 from ..services.reminder_generator import generate_reminder
 from ..services.work_package_matcher import match_work_package_items
@@ -116,6 +117,29 @@ def _dedup_matched(matched):
         yield item
 
 
+def _flatten_matched(matched):
+    """按 set_id 去重铺平：每组一套工具/航材。返回 (tools, matched_materials, spare_auto)。
+
+    matched_materials = usage_type 为空/必须使用；spare_auto = 检查有问题领用（备用区）。
+    """
+    matched_tools, matched_materials, spare_auto = [], [], []
+    for item in _dedup_matched(matched):
+        category = item.get("category", "")
+        task_name = item.get("task_name", "")
+        set_name = item.get("set_name", "")
+
+        for t in item.get("tools", []):
+            matched_tools.append({**t, "category": category, "task_name": task_name, "set_name": set_name})
+
+        for m in item.get("materials", []):
+            entry = {**m, "category": category, "task_name": task_name, "set_name": set_name}
+            if m.get("usage_type") in ["", "必须使用"]:
+                matched_materials.append(entry)
+            else:
+                spare_auto.append(entry)
+    return matched_tools, matched_materials, spare_auto
+
+
 def _handle_generate_post(pkg_data: dict, package_id: str):
     """处理表单提交，生成并返回 Excel"""
     aircraft_info = pkg_data.get("aircraft_info", {})
@@ -165,22 +189,7 @@ def _handle_generate_post(pkg_data: dict, package_id: str):
     }
 
     # 组装匹配数据（按set_id去重，同组只输出一套工具/航材）
-    matched_tools, matched_materials, spare_auto = [], [], []
-
-    for item in _dedup_matched(pkg_data.get("matched", [])):
-        task_name = item.get("task_name", "")
-        category = item.get("category", "")
-        set_name = item.get("set_name", "")
-
-        for t in item.get("tools", []):
-            matched_tools.append({**t, "category": category, "task_name": task_name, "set_name": set_name})
-
-        for m in item.get("materials", []):
-            entry = {**m, "category": category, "task_name": task_name, "set_name": set_name}
-            if m.get("usage_type") in ["", "必须使用"]:
-                matched_materials.append(entry)
-            else:
-                spare_auto.append(entry)
+    matched_tools, matched_materials, spare_auto = _flatten_matched(pkg_data.get("matched", []))
 
     new_cards = pkg_data.get("new_cards", [])
     parsed_data = {
@@ -231,22 +240,7 @@ def _handle_generate_preview(pkg_data: dict, package_id: str):
     cat_order = CATEGORY_ORDER
 
     # 预览工具/航材/备用（按set_id去重，每组只取第一条代表输出）
-    tool_preview, mat_preview, spare_preview = [], [], []
-
-    for item in _dedup_matched(matched):
-        category = item.get("category", "")
-        task_name = item.get("task_name", "")
-        set_name = item.get("set_name", "")
-
-        for t in item.get("tools", []):
-            tool_preview.append({**t, "category": category, "task_name": task_name, "set_name": set_name})
-
-        for m in item.get("materials", []):
-            entry = {**m, "category": category, "task_name": task_name, "set_name": set_name}
-            if m.get("usage_type") in ["", "必须使用"]:
-                mat_preview.append(entry)
-            else:
-                spare_preview.append(entry)
+    tool_preview, mat_preview, spare_preview = _flatten_matched(matched)
 
     # 排序
     for lst in [tool_preview, mat_preview, spare_preview]:
@@ -322,6 +316,55 @@ def reminder_download():
     }
 
     buffer, filename = generate_reminder(form_data, items)
+    return send_file(
+        buffer, as_attachment=True, download_name=filename,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
+
+def _checklist_package():
+    """借用清单共用：解析 package_id → 取包 → 确保已匹配。"""
+    package_id = request.form.get("package_id", "")
+    if not package_id:
+        return api_error("缺少工作包参数", "MISSING_PACKAGE_ID", 400)
+    pkg_data = _get_store().get_work_package(package_id)
+    if not pkg_data:
+        raise NotFoundError("数据已过期，请重新上传工作清单")
+    return _ensure_package_matched(pkg_data)
+
+
+def _checklist_form_data(pkg_data: dict) -> dict:
+    """借用清单表头数据：机号/描述/日期（与需求单表单字段同义）。"""
+    ac = pkg_data.get("aircraft_info", {})
+    return {
+        "reg": ac.get("reg", ""),
+        "description": ac.get("description", ""),
+        "date": ac.get("date", datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d")),
+    }
+
+
+@generate_bp.route("/generate/tool-list", methods=["POST"])
+def tool_list_download():
+    """生成《定检中队零散工具借用清单》（按匹配结果自动汇总，系统匹配后预览页下载）。"""
+    pkg_data = _checklist_package()
+    if not isinstance(pkg_data, dict):   # api_error 短路
+        return pkg_data
+    tools, _, _ = _flatten_matched(pkg_data.get("matched", []))
+    buffer, filename = generate_tool_list(_checklist_form_data(pkg_data), tools)
+    return send_file(
+        buffer, as_attachment=True, download_name=filename,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
+
+@generate_bp.route("/generate/chemical-list", methods=["POST"])
+def chemical_list_download():
+    """生成《定检中队开封航化借用清单》（remark 含"开封航化"的航材汇总）。"""
+    pkg_data = _checklist_package()
+    if not isinstance(pkg_data, dict):   # api_error 短路
+        return pkg_data
+    _, materials, _ = _flatten_matched(pkg_data.get("matched", []))
+    buffer, filename = generate_chemical_list(_checklist_form_data(pkg_data), materials)
     return send_file(
         buffer, as_attachment=True, download_name=filename,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

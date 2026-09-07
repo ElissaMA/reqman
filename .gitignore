@@ -60,6 +60,7 @@ htmlcov/
 *.bak
 *.log
 *.tmp
+~$*
 data/*.json
 # data/reqman_db.json 不追踪（手动 scp 同步）
 data/reqman_db_runtime.json  # 运行时数据（工作包/日志）不追踪

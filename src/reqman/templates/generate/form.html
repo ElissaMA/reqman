@@ -53,6 +53,8 @@
     <button type="button" form="generateForm" class="btn-download" onclick="return confirmGen(event)">下载需求单</button>
     <button type="button" class="btn-download" onclick="downloadReminder()">下载提醒单</button>
     <button type="button" class="btn-download" onclick="downloadPkgVersionReport('{{ package_id }}')">下载工卡改版清单</button>
+    <button type="button" class="btn-download" onclick="downloadChecklist('/generate/tool-list')">下载工具借用清单</button>
+    <button type="button" class="btn-download" onclick="downloadChecklist('/generate/chemical-list')">下载开封航化借用清单</button>
 </div>
 
 {% endif %}
@@ -63,6 +65,7 @@
 var newCardCount = {{ new_cards|length if new_cards else 0 }};
 function confirmGen(e) { if (e && e.preventDefault) e.preventDefault(); var body = newCardCount > 0 ? ('还有 ' + newCardCount + ' 个新工卡/未完善工卡未录入，是否继续导出下载？') : '确认生成并下载需求单？'; window.confirmModal({ title: '下载需求单', body: body, okText: '下载' }).then(function(ok) { if (ok) { var form = document.getElementById('generateForm'); window.downloadFile(form.getAttribute('action') || '/generate', { method: 'POST', body: new FormData(form) }); } }); return false; }
 function downloadReminder() { var fd = new FormData(); fd.append('package_id', '{{ package_id }}'); window.downloadFile('/generate/reminder', { method: 'POST', body: fd }); }
+function downloadChecklist(url) { var fd = new FormData(); fd.append('package_id', '{{ package_id }}'); window.downloadFile(url, { method: 'POST', body: fd }); }
 function downloadPkgVersionReport(packageId) { window.downloadFile('/generate/package-version-report?package_id=' + encodeURIComponent(packageId)); }
 window.addEventListener('message', function(event) { if (event.data && event.data.type === 'cardSaved') location.reload(); });
 </script>
