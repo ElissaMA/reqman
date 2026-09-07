@@ -91,7 +91,7 @@ class TestGenerateToolList:
 
     def test_scope_and_cross_major_skipped(self):
         tools = [_tool("孔探仪", "发动机", "1", pn="IAE-1"),
-                 _tool("便携式孔探仪", "机体", "1", pn="DNS-2"),   # 件号名称均不同 → 不合并
+                 _tool("深度检测仪", "机体", "1", pn="DNS-2"),   # 件号名称均不同 → 不合并
                  _tool("特检工具", "特检", "1", pn="PN-S"),
                  _tool("支援工具", "支援", "1", pn="PN-Z"),
                  _tool("备用扳手", "发动机", "1", pn="PN-X", usage_type="检查有问题领用")]
@@ -99,7 +99,7 @@ class TestGenerateToolList:
         ws = _load_tool(buffer)
         written = [ws.cell(row=r, column=2).value for r in range(16, 49)]
         assert written.count("孔探仪") == 1            # 各写一行，不合并
-        assert written.count("便携式孔探仪") == 1
+        assert written.count("深度检测仪") == 1
         assert "特检工具" not in written and "支援工具" not in written
         assert "备用扳手" not in written
 
