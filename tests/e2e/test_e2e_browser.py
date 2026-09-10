@@ -164,7 +164,34 @@ def test_validation_toasts(page, server_base):
     popup3.close()
 
 
-# ---------- 5. cardId 编辑URL ----------
+# ---------- 5. 工卡组确认状态可逆 ----------
+def test_set_confirm_checkboxes_are_reversible(page, server_base):
+    """工卡组确认无工具/航材可取消，取消后区域可继续编辑。"""
+    page.goto(server_base + "/card/sets/new")
+    page.wait_for_selector("#setForm")
+
+    page.check("#confirmNoTools")
+    assert page.locator("#confirmNoTools").is_checked()
+    assert "section-disabled" in (page.locator("#toolSection").get_attribute("class") or "")
+    page.uncheck("#confirmNoTools")
+    assert not page.locator("#confirmNoTools").is_checked()
+    assert "section-disabled" not in (page.locator("#toolSection").get_attribute("class") or "")
+    page.click("button[onclick=\"addRow('tool')\"]")
+    tool_name = page.locator("#toolTable tbody input[name='tool_name[]']").last
+    tool_name.fill("测试工具")
+    assert tool_name.is_editable()
+
+    page.check("#confirmNoMats")
+    assert "section-disabled" in (page.locator("#matSection").get_attribute("class") or "")
+    page.uncheck("#confirmNoMats")
+    assert "section-disabled" not in (page.locator("#matSection").get_attribute("class") or "")
+    page.click("button[onclick=\"addRow('mat')\"]")
+    mat_name = page.locator("#matTable tbody input[name='mat_name[]']").last
+    mat_name.fill("测试航材")
+    assert mat_name.is_editable()
+
+
+# ---------- 6. cardId 编辑URL ----------
 def test_card_id_correct(page, server_base):
     """编辑页 cardId 正确：URL=/card/<id>/edit 与内嵌 cards 数组id一致。"""
     page.goto(server_base + "/card/list")

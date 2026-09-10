@@ -449,3 +449,76 @@ class TestAmroRuntime:
         json_store.update(r["id"], write_date="2026-08-01 09:00:00")  # 版本日志
         logs = json_store.get_version_logs()
         assert len(logs) == 1 and logs[0]["target_identifier"] == "C-1"
+
+
+class TestBulkUpdateLogSemantics:
+    """bulk_update log/touch 语义：自动批量刷新不写日志、不刷"新建/编辑时间"。"""
+
+    def test_log_false_touch_false_updates_fields_only(self, json_store: JsonStore):
+        card = json_store.add("BU-001", "卡", "机体", "", "")
+        log_time_before = json_store.get(card["id"])["log_time"]
+        logs_before = len(json_store._read()["card_logs"])
+
+        json_store.bulk_update({card["id"]: {"write_date": "2026-09-01 08:00:00"}},
+                               log=False, touch=False)
+
+        updated = json_store.get(card["id"])
+        assert updated["write_date"] == "2026-09-01 08:00:00"
+        assert updated["log_time"] == log_time_before          # 自动行为不冒充人工编辑
+        assert len(json_store._read()["card_logs"]) == logs_before  # 无新日志
+
+    def test_default_behaviour_unchanged(self, json_store: JsonStore):
+        """默认 log=True, touch=True：行为与旧版一致（写日志+刷时间）。"""
+        card = json_store.add("BU-002", "卡", "机体", "", "")
+        logs_before = len(json_store._read()["card_logs"])
+
+        json_store.bulk_update({card["id"]: {"write_date": "2026-09-02 08:00:00"}})
+
+        updated = json_store.get(card["id"])
+        assert updated["write_date"] == "2026-09-02 08:00:00"
+        assert updated["log_time"] != ""   # 已刷新为今天
+        assert len(json_store._read()["card_logs"]) == logs_before + 1
+
+    def test_touch_false_keeps_code_index_maintenance(self, json_store: JsonStore):
+        """touch=False 时工卡号索引维护照常执行（静默不改索引行为）。"""
+        card = json_store.add("BU-003", "卡", "机体", "", "")
+        json_store.bulk_update({card["id"]: {"task_code": "BU-003-NEW"}},
+                               log=False, touch=False)
+        assert json_store.get(card["id"])["task_code"] == "BU-003-NEW"
+        assert json_store._read()["code_index"]["BU-003-NEW"] == card["id"]
+        assert "BU-003" not in json_store._read()["code_index"]
+
+
+class TestSyncSetToCardsLog:
+    """sync_set_to_cards 属人工链：成员卡刷时间 + 1 条汇总日志；N=0 跳过。"""
+
+    def test_sync_writes_one_summary_log_and_touches_members(self, json_store: JsonStore):
+        c1 = json_store.add("SL-001", "同步卡1", "发动机", "A", "")
+        c2 = json_store.add("SL-002", "同步卡2", "发动机", "A", "")
+        s = json_store.add_set(name="汇总日志组", description="", category="发动机")
+        json_store.update(c1["id"], set_id=s["id"])
+        json_store.update(c2["id"], set_id=s["id"])
+        member_logs_before = len(json_store._read()["card_logs"])
+        old_times = {json_store.get(c["id"])["log_time"] for c in (c1, c2)}
+
+        json_store.sync_set_to_cards(s["id"])
+
+        logs = json_store._read()["card_logs"]
+        assert len(logs) == member_logs_before + 1   # 恰 1 条汇总日志
+        summary = logs[-1]
+        assert summary["operation"] == "update" and summary["target_type"] == "card"
+        assert "工卡组同步" in summary["target_identifier"]
+        assert summary["target_identifier"].startswith("SL-")
+        assert any(ch["field"] == "category" for ch in summary["changes"])  # changes 摘要可考证
+        for c in (c1, c2):
+            assert json_store.get(c["id"])["log_time"] not in (None, "") and \
+                json_store.get(c["id"])["log_time"] >= min(old_times)
+
+    def test_sync_empty_set_skips_log_and_touch(self, json_store: JsonStore):
+        """N=0（组内无卡）：不刷时间、不写汇总日志。"""
+        s = json_store.add_set(name="空组", description="", category="机体")
+        logs_before = len(json_store._read()["card_logs"])
+
+        json_store.sync_set_to_cards(s["id"])
+
+        assert len(json_store._read()["card_logs"]) == logs_before

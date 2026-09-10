@@ -91,7 +91,11 @@
         if (value === null || value === undefined) return true;
         return /^[\s\u00a0\u3000\u200b\u200c\u200d\u200e\u200f\u2028\u2029\u202f\u205f\u2060\ufeff]*$/.test(String(value));
     };
-    window.watchTable = function (tableId, checkbox) {
+    window.syncConfirmedSection = function (checkbox, sectionId) {
+        var section = byId(sectionId);
+        if (section && checkbox) section.classList.toggle('section-disabled', checkbox.checked);
+    };
+    window.watchTable = function (tableId, checkbox, sectionId) {
         var table = byId(tableId);
         if (!table || !checkbox) return;
         function hasValue() {
@@ -99,9 +103,14 @@
                 return !window.isBlank(input.value);
             });
         }
-        table.addEventListener('input', function () { if (hasValue()) checkbox.checked = false; });
-        var observer = new MutationObserver(function () { if (hasValue()) checkbox.checked = false; });
+        function syncFromTable() {
+            if (hasValue()) checkbox.checked = false;
+            window.syncConfirmedSection(checkbox, sectionId);
+        }
+        table.addEventListener('input', syncFromTable);
+        var observer = new MutationObserver(syncFromTable);
         observer.observe(table, { childList: true, subtree: true });
+        window.syncConfirmedSection(checkbox, sectionId);
     };
 
     window.Poller = (function () {
@@ -251,12 +260,18 @@
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         }).then(function (response) {
             var contentType = response.headers.get('Content-Type') || '';
+            var disposition = response.headers.get('Content-Disposition') || '';
+            var isAttachment = /(^|;)\s*attachment\s*(;|$)/i.test(disposition);
             if (!response.ok || contentType.indexOf('application/json') >= 0) {
-                return response.json().then(function (result) {
+                return response.text().then(function (body) {
+                    var result = {};
+                    try { result = JSON.parse(body); } catch (e) {}
                     throw new Error((result && result.message) || '下载失败，请重试');
                 });
             }
-            var disposition = response.headers.get('Content-Disposition') || '';
+            if (!isAttachment || contentType.indexOf('text/html') >= 0) {
+                throw new Error('文件生成失败：服务器未返回下载附件');
+            }
             var match = /filename\*=UTF-8''([^;]+)/i.exec(disposition) || /filename="?([^";]+)"?/i.exec(disposition);
             var filename = '';
             try { filename = match ? decodeURIComponent(match[1]) : ''; } catch (e) { filename = match ? match[1] : ''; }

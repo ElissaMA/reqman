@@ -77,14 +77,14 @@
                 </div>
             </section>
 
-            <section class="form-section" id="toolSection">
+            <section class="form-section">
                 <div class="form-section-heading"><div><h2>共用工具清单</h2><p class="section-description">填写工卡组内需要准备的工具。</p></div><button type="button" class="btn btn-outline-primary btn-sm" onclick="addRow('tool')">新增工具</button></div>
-                {{ tables.tool_table(set.tools if set else [], usage_types, editable=true, show_delete=true) }}
+                <div id="toolSection">{{ tables.tool_table(set.tools if set else [], usage_types, editable=true, show_delete=true) }}</div>
                 <div class="d-flex flex-wrap align-items-center gap-3 mt-3"><span class="small text-muted">确认状态：{% if set and set.tools_confirmed %}<span class="badge bg-success">已确认</span>{% else %}<span class="badge bg-warning">未确认</span>{% endif %}</span><div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="confirmNoTools" name="confirm_no_tools" value="1" {{ "checked" if set and set.tools_confirmed and not set.tools else "" }}><label class="form-check-label small" for="confirmNoTools">确认无工具</label></div></div>
             </section>
-            <section class="form-section" id="matSection">
+            <section class="form-section">
                 <div class="form-section-heading"><div><h2>共用航材清单</h2><p class="section-description">填写工卡组内需要准备的航材。</p></div><button type="button" class="btn btn-outline-primary btn-sm" onclick="addRow('mat')">新增航材</button></div>
-                {{ tables.material_table(set.materials if set else [], usage_types, editable=true, show_delete=true) }}
+                <div id="matSection">{{ tables.material_table(set.materials if set else [], usage_types, editable=true, show_delete=true) }}</div>
                 <div class="d-flex flex-wrap align-items-center gap-3 mt-3"><span class="small text-muted">确认状态：{% if set and set.materials_confirmed %}<span class="badge bg-success">已确认</span>{% else %}<span class="badge bg-warning">未确认</span>{% endif %}</span><div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="confirmNoMats" name="confirm_no_mats" value="1" {{ "checked" if set and set.materials_confirmed and not set.materials else "" }}><label class="form-check-label small" for="confirmNoMats">确认无航材</label></div></div>
             </section>
             <div class="form-actions">
@@ -110,7 +110,10 @@ var confirmNoReminder = document.getElementById("confirmNoReminder");
 var reminderTypeSelect = document.getElementById("reminderTypeSelect");
 
 reminderTypeSelect.addEventListener("change", function() {
-    if (this.value) confirmNoReminder.checked = false;
+    if (this.value) {
+        confirmNoReminder.checked = false;
+        document.getElementById("reminderSection").classList.remove("section-disabled");
+    }
 });
 confirmNoReminder.addEventListener("change", function() {
     if (this.checked) reminderTypeSelect.value = "";
@@ -118,37 +121,42 @@ confirmNoReminder.addEventListener("change", function() {
 });
 
 confirmNoTools.addEventListener("change", function() {
-    document.getElementById("toolSection").classList.toggle("section-disabled", this.checked);
+    window.syncConfirmedSection(this, "toolSection");
 });
 
 confirmNoMats.addEventListener("change", function() {
-    document.getElementById("matSection").classList.toggle("section-disabled", this.checked);
-})
+    window.syncConfirmedSection(this, "matSection");
+});
+
+function updateSelectAllCards() {
+    var selectAll = document.getElementById("selectAllCards");
+    if (!selectAll) return;
+    var current = Array.prototype.slice.call(
+        document.querySelectorAll('#cardTableBody input[data-filter-match="true"]')
+    );
+    var checked = current.filter(function(c) { return c.checked; }).length;
+    selectAll.checked = current.length > 0 && checked === current.length;
+    selectAll.indeterminate = checked > 0 && checked < current.length;
+}
 
 function loadAllCards() {
     var q = document.getElementById("cardSearch").value.trim().toLowerCase();
     var selectedCodes = {};
     selectedCards.forEach(function(s) { selectedCodes[s.code] = true; });
-
-    var matched = [];
-    var unmatchedSelected = [];
-    allCards.forEach(function(c) {
-        if (selectedCodes[c.task_code]) {
-            matched.push(c);
-        } else if (q && (c.task_code.toLowerCase().indexOf(q) >= 0 ||
-                   (c.task_name || "").toLowerCase().indexOf(q) >= 0)) {
-            matched.push(c);
-        } else if (!q) {
-            matched.push(c);
-        }
+    var matched = allCards.filter(function(c) {
+        return !q || c.task_code.toLowerCase().indexOf(q) >= 0 ||
+            (c.task_name || "").toLowerCase().indexOf(q) >= 0;
     });
-
-    selectedCards.forEach(function(s) {
-        if (!matched.some(function(c) { return c.task_code === s.code; })) {
-            unmatchedSelected.push({task_code: s.code, task_name: s.name || "", category: "-"});
-        }
+    var matchedCodes = {};
+    matched.forEach(function(c) { matchedCodes[c.task_code] = true; });
+    var unmatchedSelected = selectedCards.filter(function(s) {
+        return !matchedCodes[s.code];
+    }).map(function(s) {
+        return {task_code: s.code, task_name: s.name || "", category: "-", filterMatch: false};
     });
-    var list = matched.concat(unmatchedSelected);
+    var list = matched.map(function(c) {
+        return {task_code: c.task_code, task_name: c.task_name || "", category: c.category || "-", filterMatch: true};
+    }).concat(unmatchedSelected);
 
     var html = "";
     if (!list.length) {
@@ -156,19 +164,24 @@ function loadAllCards() {
                (q ? '无匹配工卡' : '请输入关键字搜索工卡') + '</td></tr>';
     }
     list.forEach(function(c) {
+        var code = window.escapeHtml(c.task_code);
+        var name = window.escapeHtml(c.task_name.substring(0, 40));
+        var category = window.escapeHtml(c.category);
         var checked = selectedCodes[c.task_code] ? " checked" : "";
         html += '<tr>' +
-            '<td><input type="checkbox" name="card_codes[]" value="' + c.task_code + '"' + checked + '></td>' +
-            '<td><code>' + c.task_code + '</code></td>' +
-            '<td>' + (c.task_name || "").substring(0, 40) + '</td>' +
-            '<td>' + (c.category || "-") + '</td>' +
+            '<td><input type="checkbox" name="card_codes[]" data-filter-match="' + c.filterMatch +
+            '" value="' + code + '"' + checked + '></td>' +
+            '<td><code>' + code + '</code></td>' +
+            '<td>' + name + '</td>' +
+            '<td>' + category + '</td>' +
             '</tr>';
     });
     document.getElementById("cardTableBody").innerHTML = html;
+    updateSelectAllCards();
 }
 
 function toggleAllCards(cb) {
-    document.querySelectorAll("#cardTableBody input[name=\"card_codes[]\"]").forEach(function(c) {
+    document.querySelectorAll('#cardTableBody input[data-filter-match="true"]').forEach(function(c) {
         c.checked = cb.checked;
         var code = c.value;
         var card = allCards.find(function(x) { return x.task_code === code; });
@@ -181,6 +194,7 @@ function toggleAllCards(cb) {
         }
     });
     renderSelectedCards();
+    updateSelectAllCards();
 }
 
 document.getElementById("cardTableBody").addEventListener("change", function(e) {
@@ -195,6 +209,7 @@ document.getElementById("cardTableBody").addEventListener("change", function(e) 
             selectedCards = selectedCards.filter(function(s) { return s.code !== code; });
         }
         renderSelectedCards();
+        updateSelectAllCards();
     }
 });
 
@@ -208,12 +223,8 @@ document.getElementById("cardTableBody").addEventListener("change", function(e) 
         if (matTable && matTable.querySelector('tbody tr')) {
             document.getElementById('confirmNoMats').checked = false;
         }
-        if (document.getElementById("confirmNoTools").checked) {
-            document.getElementById("toolSection").classList.add("section-disabled");
-        }
-        if (document.getElementById("confirmNoMats").checked) {
-            document.getElementById("matSection").classList.add("section-disabled");
-        }
+        window.syncConfirmedSection(document.getElementById("confirmNoTools"), "toolSection");
+        window.syncConfirmedSection(document.getElementById("confirmNoMats"), "matSection");
         // 如果已有提醒类型，确保复选框不勾选
         var reminderTypeSelect = document.querySelector('select[name=reminder_type]');
         if (reminderTypeSelect && reminderTypeSelect.value) {
@@ -222,8 +233,8 @@ document.getElementById("cardTableBody").addEventListener("change", function(e) 
         if (document.getElementById("confirmNoReminder").checked) {
             document.getElementById("reminderSection").classList.add("section-disabled");
         }
-        watchTable("toolTable", confirmNoTools);
-        watchTable("matTable", confirmNoMats);
+        watchTable("toolTable", confirmNoTools, "toolSection");
+        watchTable("matTable", confirmNoMats, "matSection");
         fetch("/card/list-json")
             .then(function(r) { return r.json(); })
             .then(function(data) {
@@ -267,8 +278,13 @@ function removeSelectedCard(idx) {
 }
 
 function addRow(type) {
-    if (type == "tool") confirmNoTools.checked = false;
-    else confirmNoMats.checked = false;
+    if (type == "tool") {
+        confirmNoTools.checked = false;
+        window.syncConfirmedSection(confirmNoTools, "toolSection");
+    } else {
+        confirmNoMats.checked = false;
+        window.syncConfirmedSection(confirmNoMats, "matSection");
+    }
 
     var table = document.getElementById(type == "tool" ? "toolTable" : "matTable");
     var tbody = table.querySelector("tbody");
@@ -358,13 +374,15 @@ document.getElementById("setForm").addEventListener("submit", function(e) {
             if (!isBlank(inp.value)) matHasContent = true;
         });
     }
-    if (confirmNoTools.checked) {
-        var tt = document.querySelector("#toolTable tbody");
-        if (tt) tt.innerHTML = "";
+    if (confirmNoTools.checked && toolHasContent) {
+        e.preventDefault();
+        window.safeToast("工具清单仍有内容，请取消确认无工具或先删除工具行", 'warning');
+        return false;
     }
-    if (confirmNoMats.checked) {
-        var tm = document.querySelector("#matTable tbody");
-        if (tm) tm.innerHTML = "";
+    if (confirmNoMats.checked && matHasContent) {
+        e.preventDefault();
+        window.safeToast("航材清单仍有内容，请取消确认无航材或先删除航材行", 'warning');
+        return false;
     }
     if (!toolHasContent && !confirmNoTools.checked) {
         e.preventDefault();

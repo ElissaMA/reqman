@@ -13,7 +13,7 @@ import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from openpyxl.styles import Font, PatternFill
+from openpyxl.styles import PatternFill
 
 from ..config import REMINDER_TEMPLATE_FILE
 from ..utils.template_cache import load_template
@@ -38,9 +38,12 @@ def generate_reminder(form_data: dict, items: list[dict]) -> tuple[io.BytesIO, s
     ws = wb["工卡提醒"]
 
     ws["A2"].value = f"时间：{date_str}"
-    # B2 输出工作包描述（AMRO=REVTITLE）；描述缺失时回退定检级别（Excel 导入两字段同源）
+    # B2 标签模板驱动：保留模板原文前缀（如"定检级别："），仅替换冒号后的动态值。
+    # 描述缺失时回退定检级别（Excel 导入两字段同源）。
     level_desc = form_data.get("description", "") or form_data.get("level", "")
-    ws["B2"].value = f"定检描述：{level_desc}"
+    template_b2 = str(ws["B2"].value or "")
+    label = template_b2.split("：")[0] + "：" if template_b2 else "定检描述："
+    ws["B2"].value = f"{label}{level_desc}"
     ws["C2"].value = f"总份数：{form_data.get('routine_count', '')}+{form_data.get('other_count', '')}"
     ws["A3"].value = f"机号：{form_data.get('reg', '')}"
     ws["B3"].value = f"机型：{form_data.get('aircraft_type', '')}"
@@ -55,11 +58,16 @@ def generate_reminder(form_data: dict, items: list[dict]) -> tuple[io.BytesIO, s
             continue
         row = _next_row(ws, col)
         cell = ws.cell(row=row, column=col)
-        cell.value = item.get("task_name", "")
-        is_other = item.get("source") == "其他"
-        cell.font = Font(name="宋体", size=11, color=RED if is_other else BLACK)
+        task_name = str(item.get("task_name", ""))
+        cell.value = task_name
+        # 继承模板字体属性（保留粗体/斜体等），仅改颜色
+        cell.font = cell.font.copy(color=RED if item.get("source") == "其他" else BLACK)
         if item.get("reminder_type") == "重点提醒":
             cell.fill = YELLOW_FILL
+        # 长工卡名按模板列宽换行，设最小行高避免裁切
+        lines = max(1, -(-len(task_name) // 25))   # A 列宽约 50 字符 ≈ 25 汉字/行
+        height = ws.row_dimensions[row].height or 14
+        ws.row_dimensions[row].height = max(height, lines * 14)
 
     buffer = io.BytesIO()
     wb.save(buffer)

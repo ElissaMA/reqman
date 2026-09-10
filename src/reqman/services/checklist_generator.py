@@ -23,19 +23,14 @@ import re
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from openpyxl.styles import Alignment, Border, Font, Side
-
 from ..config import MATERIALS_TEMPLATE_FILE, TOOLS_TEMPLATE_FILE
 from ..utils.template_cache import load_template
 
 TOOLS_SHEET = "定检工具"
 CHEM_SHEET = "定检航化"
 
-THIN = Side(style="thin")
-_CELL_FONT = Font(name="宋体", size=11)
-_CELL_BORDER = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
-# 与模板预印行观感一致：水平/垂直居中，不换行
-_CELL_ALIGNMENT = Alignment(horizontal="center", vertical="center")
+# 动态行直接继承模板空行样式；此常量已废弃，仅保留占位避免外部引用（无）。
+# （阶段2修复：不再强制统一宋体11/细边框/居中，保留模板区首尾 medium 边框与字号差异。）
 
 
 def _norm(value) -> str:
@@ -128,12 +123,22 @@ def _extend_zone(ws, label: str, extra: int = 1) -> None:
                        end_row=rng.max_row + extra, end_column=rng.max_col)
 
 
-def _write_zone_rows(ws, label: str, rows: list[dict], name_key: str) -> None:
-    """按行写 B=名称/C=件号/D=数量（统一显式格式）；从首个空白行续写（预印行视为已有）；区满自动扩行。"""
+def _row_occupied(ws, row: int, last_col: int) -> bool:
+    """整行占用判断：B..last_col 任一列有值即视为已被占用（预印行或人工填写行）。"""
+    for col in range(2, last_col + 1):
+        if str(ws.cell(row=row, column=col).value or "").strip():
+            return True
+    return False
+
+
+def _write_zone_rows(ws, label: str, rows: list[dict], name_key: str,
+                     last_col: int = 7) -> None:
+    """按行写 B=名称/C=件号/D=数量；从首个整行空白行续写（预印行与人工填写行
+    均不覆盖）；区满自动扩行。保留模板空行已有样式（不再强制统一字体/边框）。"""
     start, end = _zone_bounds(ws, label)
     row = start
-    while row <= end and str(ws.cell(row=row, column=2).value or "").strip():
-        row += 1   # 跳过预印行，不覆盖
+    while row <= end and _row_occupied(ws, row, last_col):
+        row += 1   # 跳过预印行/人工内容行，不覆盖
     for item in rows:
         start, end = _zone_bounds(ws, label)   # 扩行后坐标平移，实时解析
         while row > end:
@@ -142,11 +147,7 @@ def _write_zone_rows(ws, label: str, rows: list[dict], name_key: str) -> None:
         for col, value in enumerate(
                 (item.get(name_key), item.get("part_number"), str(item.get("quantity") or "").strip()),
                 start=2):
-            cell = ws.cell(row=row, column=col)
-            cell.value = value
-            cell.font = _CELL_FONT
-            cell.border = _CELL_BORDER
-            cell.alignment = _CELL_ALIGNMENT
+            ws.cell(row=row, column=col).value = value
         row += 1
 
 
@@ -255,7 +256,7 @@ def generate_chemical_list(form_data: dict, materials: list[dict]) -> tuple[io.B
             continue   # 命中 常用/外场航化 预印（同标准）→ 整组排除
         output.append(_merge_group(group))
 
-    _write_zone_rows(ws, "非例行", output, "material_name")
+    _write_zone_rows(ws, "非例行", output, "material_name", last_col=8)
 
     buffer = io.BytesIO()
     wb.save(buffer)

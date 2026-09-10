@@ -57,6 +57,20 @@ CONDITIONS: list[str] = [
     "AOG带件情况",
 ]
 
+# 条件区预填默认值（单一来源）：generate/form.html 预填与后端解析共用，
+# 需求单生成时 C/D/G 由表单值覆盖（动态白名单单元格）。
+CONDITION_DEFAULTS: list[dict] = [
+    {"requirement": "需要", "remark": "", "responsible": "MCC总控、维修支援中队负责"},
+    {"requirement": "需要", "remark": "优先514/513，若不是，请通知", "responsible": "MCC负责"},
+    {"requirement": "不需要", "remark": "", "responsible": "MCC负责"},
+    {"requirement": "不需要", "remark": "", "responsible": "MCC负责"},
+    {"requirement": "不需要", "remark": "", "responsible": "MCC负责"},
+    {"requirement": "不需要", "remark": "", "responsible": "MCC负责"},
+    {"requirement": "不需要", "remark": "", "responsible": "MCC负责"},
+    {"requirement": "不需要", "remark": "", "responsible": "MCC负责"},
+    {"requirement": "不需要", "remark": "", "responsible": "MCC负责"},
+]
+
 SECRET_KEY: str = os.getenv("SECRET_KEY") or os.urandom(24).hex()
 MAX_CONTENT_LENGTH: int = 16 * 1024 * 1024
 

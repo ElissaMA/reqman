@@ -177,10 +177,15 @@ def build_version_report_excel(report: dict, title_label: str = "",
         return (wd or "").strip()[:10]
 
     def _next_row(ws, col: int, start: int = 3) -> int:
-        """找到该列数据区下一个空行（从 start 起）。"""
+        """找到该列数据区下一个空行（从 start 起）；超出模板预置容量报错。"""
         row = start
         while ws.cell(row=row, column=col).value not in (None, ""):
             row += 1
+        # 模板数据区预置样式到 4996 行；超出后无绿底可继承，明确报错（M5）
+        if row > ws.max_row:
+            raise RuntimeError(
+                f"改版清单容量超限：第 {col} 列数据已超出模板预置 {ws.max_row} 行，"
+                "请清理历史输出或扩大模板预置范围。")
         return row
 
     label_part = f"（{title_label}）" if title_label else ""
@@ -226,10 +231,19 @@ def build_version_report_excel(report: dict, title_label: str = "",
                 cell.value = CellRichText(*seq)
                 # 显式换行（不依赖模板样式），超出行也保证三行显示
                 cell.alignment = Alignment(wrap_text=True, vertical="top")
+                # 三行内容需要显式行高：默认 14pt 会裁切
+                name_lines = max(1, -(-len(str(it.get("task_name", ""))) // 20))
+                ws.row_dimensions[cell.row].height = max(42, name_lines * 14)
 
     write_entries(report.get("revised", []), color=BLUE, with_dates=True)
     write_entries(report.get("new_added", []), color=RED, with_dates=True, prefix="新增")
     write_entries(report.get("cancelled", []), color=BLACK, with_dates=False)
+    # A1 长标题（含工作包标签+日期）：模板 25.5pt 可能不足，按长度抬高
+    ws.row_dimensions[1].height = max(25.5, 18 * (1 + len(title) // 60))
+    # 打印范围按实际最后写入行设置，避免 4996 行空白页
+    last_used = max((c.row for row in ws.iter_rows(min_row=3) for c in row
+                     if c.value not in (None, "")), default=2)
+    ws.print_area = f"改版清单!$A$1:$C${max(last_used + 1, 3)}"
     buf = io.BytesIO()
     wb.save(buf)
     wb.close()
@@ -504,7 +518,8 @@ async def full_version_check(store, client, cookies, *, fetch=None, query=None,
                                 "category": card.get("category", ""),
                                 "old_wd": old_wd, "new_wd": new_wd})
     if write_date_updates:
-        store.bulk_update(write_date_updates)
+        # 自动批量刷新：不写操作日志、不刷"新建/编辑时间"（变化以改版清单输出为准）
+        store.bulk_update(write_date_updates, log=False, touch=False)
     return {"revised": revised, "new_added": new_added, "cancelled": cancelled, "checked": checked,
             "skipped_dp": skipped_dp, "skipped_other": skipped_other,
             "skipped_total": skipped_dp + skipped_other}
@@ -561,7 +576,8 @@ async def check_cards_against_amro(store, client, cookies, task_codes, *, fetch=
                                 "category": card.get("category", ""),
                                 "old_wd": old_wd, "new_wd": new_wd})
     if write_date_updates:
-        store.bulk_update(write_date_updates)
+        # 自动批量刷新：不写操作日志、不刷"新建/编辑时间"（变化以改版清单输出为准）
+        store.bulk_update(write_date_updates, log=False, touch=False)
     return {"revised": revised, "new_added": new_added, "cancelled": cancelled, "checked": checked,
             "skipped_dp": skipped_dp, "skipped_other": skipped_other,
             "skipped_not_in_store": skipped_not_in_store,

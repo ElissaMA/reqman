@@ -119,7 +119,10 @@ var confirmNoReminder = document.getElementById("confirmNoReminder");
 var reminderTypeSelect = document.getElementById("reminderTypeSelect");
 
 reminderTypeSelect.addEventListener("change", function() {
-    if (this.value) confirmNoReminder.checked = false;
+    if (this.value) {
+        confirmNoReminder.checked = false;
+        document.getElementById("reminderSection").classList.remove("section-disabled");
+    }
 });
 confirmNoReminder.addEventListener("change", function() {
     if (this.checked) reminderTypeSelect.value = "";
@@ -127,11 +130,11 @@ confirmNoReminder.addEventListener("change", function() {
 });
 
 confirmNoTools.addEventListener("change", function() {
-    document.getElementById("toolSection").classList.toggle("section-disabled", this.checked);
+    window.syncConfirmedSection(this, "toolSection");
 });
 
 confirmNoMats.addEventListener("change", function() {
-    document.getElementById("matSection").classList.toggle("section-disabled", this.checked);
+    window.syncConfirmedSection(this, "matSection");
 });
 
 document.addEventListener("DOMContentLoaded", function() {
@@ -145,12 +148,8 @@ document.addEventListener("DOMContentLoaded", function() {
         document.getElementById('confirmNoMats').checked = false;
     }
     // 编辑页面初始状态：如果checkbox已勾选，添加禁止编辑红框
-    if (document.getElementById("confirmNoTools").checked) {
-        document.getElementById("toolSection").classList.add("section-disabled");
-    }
-    if (document.getElementById("confirmNoMats").checked) {
-        document.getElementById("matSection").classList.add("section-disabled");
-    }
+    window.syncConfirmedSection(document.getElementById("confirmNoTools"), "toolSection");
+    window.syncConfirmedSection(document.getElementById("confirmNoMats"), "matSection");
     // 如果已有提醒类型，确保复选框不勾选
     var reminderTypeSelect = document.querySelector('select[name=reminder_type]');
     if (reminderTypeSelect && reminderTypeSelect.value) {
@@ -159,15 +158,20 @@ document.addEventListener("DOMContentLoaded", function() {
     if (document.getElementById("confirmNoReminder").checked) {
         document.getElementById("reminderSection").classList.add("section-disabled");
     }
-    watchTable("toolTable", confirmNoTools);
-    watchTable("matTable", confirmNoMats);
+    watchTable("toolTable", confirmNoTools, "toolSection");
+    watchTable("matTable", confirmNoMats, "matSection");
 });
 
 var usageTypes = {{ usage_types|tojson }};
 
 function addRow(type) {
-    if (type == "tool") confirmNoTools.checked = false;
-    else confirmNoMats.checked = false;
+    if (type == "tool") {
+        confirmNoTools.checked = false;
+        window.syncConfirmedSection(confirmNoTools, "toolSection");
+    } else {
+        confirmNoMats.checked = false;
+        window.syncConfirmedSection(confirmNoMats, "matSection");
+    }
 
     var table = document.getElementById(type == "tool" ? "toolTable" : "matTable");
     var tbody = table.querySelector("tbody");
@@ -256,6 +260,16 @@ document.getElementById("cardForm").addEventListener("submit", function(e) {
         matTbody.querySelectorAll("input[type=text]").forEach(function(inp) {
             if (!isBlank(inp.value)) matHasContent = true;
         });
+    }
+    if (confirmNoTools.checked && toolHasContent) {
+        e.preventDefault();
+        window.safeToast("工具清单仍有内容，请取消确认无工具或先删除工具行", 'warning');
+        return false;
+    }
+    if (confirmNoMats.checked && matHasContent) {
+        e.preventDefault();
+        window.safeToast("航材清单仍有内容，请取消确认无航材或先删除航材行", 'warning');
+        return false;
     }
     if (!toolHasContent && !confirmNoTools.checked) {
         e.preventDefault();

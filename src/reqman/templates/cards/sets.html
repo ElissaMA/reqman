@@ -102,6 +102,20 @@
 <script>
 var sets = [{% for set in sets %}{{ set|tojson }}{% if not loop.last %},{% endif %}{% endfor %}];
 
+// 筛选框 → 列映射（0=名称 1=专业 2=提醒类型 6=新建/编辑日期）
+['fName:0', 'fCat:1', 'fReminder:2'].forEach(function (p) {
+    var id = p.split(':')[0], col = p.split(':')[1];
+    var el = document.getElementById(id);
+    if (el) el.setAttribute('data-col', col);
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    // 默认按「新建/编辑日期」倒序展示（与工卡列表一致）
+    var tbl = document.getElementById('setTable');
+    if (tbl) AppFilter.sort(tbl, 6);
+});
+
+
 function showSetDetail(id) {
     var d = sets.find(function(set) { return set.id === id; });
     if (!d) return;
