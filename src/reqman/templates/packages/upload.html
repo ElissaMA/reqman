@@ -65,11 +65,11 @@
         </div>
         <div class="table-responsive">
             <table class="table table-hover mb-0" id="wpTable">
-                <thead><tr><th>机号</th><th>描述</th><th>机型</th><th>发动机</th><th>已分配分队</th><th>开工日期</th><th>工卡数</th><th>生成日期</th><th class="text-center">操作</th></tr></thead>
+                <thead><tr><th>机号</th><th>描述</th><th>机型</th><th>发动机</th><th>已分配分队</th><th>开工日期</th><th>工卡数</th><th>撤销工卡</th><th>生成日期</th><th class="text-center">操作</th></tr></thead>
                 <tbody>
                 {% for wp in work_packages %}
                 <tr onclick="window.open('/generate?package_id={{ wp.package_id }}', '_blank')" style="cursor:pointer" class="{% if wp.status == 'warning' %}wp-warning{% elif wp.status == 'danger' %}wp-danger{% endif %}">
-                    <td><strong>{{ wp.aircraft_info.reg if wp.aircraft_info else wp.reg }}</strong></td><td>{{ (wp.aircraft_info.description if wp.aircraft_info else wp.description) or '' }}</td><td>{{ (wp.aircraft_info.type if wp.aircraft_info else '') or '' }}</td><td>{{ (wp.aircraft_info.engine if wp.aircraft_info else '') or '' }}</td><td>{{ (wp.aircraft_info.squadron if wp.aircraft_info else '') or '' }}</td><td>{{ wp.date }}</td><td>{{ wp.routine_count }}+{{ wp.other_count }}</td><td>{{ wp.generated_at or '—' }}</td>
+                    <td><strong>{{ wp.aircraft_info.reg if wp.aircraft_info else wp.reg }}</strong></td><td>{{ (wp.aircraft_info.description if wp.aircraft_info else wp.description) or '' }}</td><td>{{ (wp.aircraft_info.type if wp.aircraft_info else '') or '' }}</td><td>{{ (wp.aircraft_info.engine if wp.aircraft_info else '') or '' }}</td><td>{{ (wp.aircraft_info.squadron if wp.aircraft_info else '') or '' }}</td><td>{{ wp.date }}</td><td>{{ wp.routine_count }}+{{ wp.other_count }}</td><td>{% if wp.cancelled_count %}<span class="badge bg-warning text-dark">撤销 {{ wp.cancelled_count }} 张</span>{% else %}—{% endif %}</td><td>{{ wp.generated_at or '—' }}</td>
                     <td onclick="event.stopPropagation()"><div class="table-action"><form method="POST" action="/packages/{{ wp.package_id }}/rematch"><button type="submit" class="btn btn-outline-primary btn-sm" onclick="return rematchPack(event, '{{ wp.package_id }}')">重新匹配</button></form><button type="button" class="btn-amro btn-sm" data-package-id="{{ wp.package_id }}" onclick="pkgVersionCheck('{{ wp.package_id }}', this)">检查版本</button></div></td>
                 </tr>
                 {% endfor %}

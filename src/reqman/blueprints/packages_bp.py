@@ -179,6 +179,7 @@ def _persist_package(store, package_data: dict) -> dict:
     package_data["matched"] = []
     package_data["new_cards"] = []
     package_data["cancelled"] = []
+    package_data["cancelled_count"] = sum(1 for i in package_data.get("all_items", []) if i.get("cancelled"))
     package_data["routine_count"] = sum(1 for i in package_data.get("all_items", []) if i.get("source") == "例行")
     package_data["other_count"] = sum(1 for i in package_data.get("all_items", []) if i.get("source") == "其他")
     package_data["is_matched"] = False
@@ -203,6 +204,7 @@ def package_rematch(package_id):
     pkg_data["matched"] = matched
     pkg_data["new_cards"] = new_cards
     pkg_data["cancelled"] = cancelled
+    pkg_data["cancelled_count"] = len(cancelled)
     pkg_data["routine_count"] = sum(1 for i in all_items if i.get("source") == "例行")
     pkg_data["other_count"] = sum(1 for i in all_items if i.get("source") == "其他")
     pkg_data["is_matched"] = True
