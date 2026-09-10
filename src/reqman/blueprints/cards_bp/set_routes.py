@@ -36,6 +36,7 @@ def card_sets():
                 "reminder_type": set.get("reminder_type", ""),
                 "card_ok": set.get("card_ok", False),
                 "reminder_confirmed": set.get("reminder_confirmed", False),
+                "log_time": set.get("log_time", ""),
                 "cards": [{"task_code": cd["task_code"],
                             "task_name": cd.get("task_name", "")}
                            for cd in cards]

@@ -48,14 +48,17 @@ class TestFullVersionCheck:
         monkeypatch.setattr(amro_sync.amro.time, "monotonic", lambda: 1e9)
         monkeypatch.setattr(amro_sync.amro.time, "sleep", lambda s: None)
         r = json_store.add("CSCA320-256652-01-1-X", "检查救生衣", "电子", "RST", "")
+        log_time_before = json_store.get(r["id"])["log_time"]
+        logs_before = len(json_store._read()["card_logs"])
         rep = _run(amro_sync.full_version_check(json_store, None, {}, fetch=fake_amro_cards))
         card = json_store.get(r["id"])
         assert card["write_date"] == "2026-08-01 09:00:00"
         # 原库无编写日期、本次被填入 → 归入「新增」而非「改版」
         assert len(rep["revised"]) == 0
         assert rep["new_added"][0]["old_wd"] == "" and rep["new_added"][0]["new_wd"] == "2026-08-01 09:00:00"
-        assert any(c["field"] == "write_date" for l in json_store._read()["card_logs"]
-                   for c in l["changes"])
+        # 版本检查是自动行为：不写日志、不刷新"新建/编辑时间"（变化以改版清单为准）
+        assert len(json_store._read()["card_logs"]) == logs_before
+        assert json_store.get(r["id"])["log_time"] == log_time_before
 
     def test_cancelled_report_only_without_store(self, json_store, fake_amro_cards,
                                                  fake_entity_query, monkeypatch):

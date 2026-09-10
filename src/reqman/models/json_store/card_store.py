@@ -143,11 +143,13 @@ class CardStore(JsonStoreCore):
             self._write(db)
             return self._norm(card, "card")
 
-    def bulk_update(self, updates: dict) -> None:
+    def bulk_update(self, updates: dict, *, log: bool = True, touch: bool = True) -> None:
         """批量更新工卡字段：单次读取 + 单次写入，消除逐卡 update 的 N+1 全文件 IO。
 
         updates: {card_id: {field: value, ...}}；支持 write_date/card_ok 等合法字段，
         自动维护工卡号索引与变更日志（与 update 行为一致）。
+        log=False：不写操作日志（自动批量刷新场景）；touch=False：不刷新 log_time。
+        人工操作保持默认 log=True, touch=True。
         """
         if not updates:
             return
@@ -166,7 +168,8 @@ class CardStore(JsonStoreCore):
                             "reminder_confirmed", "write_date"):
                     if key in fields:
                         card[key] = fields[key]
-                card["log_time"] = _today_iso()
+                if touch:
+                    card["log_time"] = _today_iso()
                 old_code = old_card.get("task_code")
                 new_code = card.get("task_code")
                 if old_code and old_code != new_code:
@@ -176,9 +179,10 @@ class CardStore(JsonStoreCore):
                     code_index.pop(old_code, None)
                     if new_code:
                         code_index[new_code] = card_id
-                changes = self._detect_changes(old_card, card, self._CARD_FIELDS)
-                self._add_log(db, "update", "card", card_id,
-                              card.get("task_code", ""), card.get("task_name", ""), changes)
+                if log:
+                    changes = self._detect_changes(old_card, card, self._CARD_FIELDS)
+                    self._add_log(db, "update", "card", card_id,
+                                  card.get("task_code", ""), card.get("task_name", ""), changes)
             self._write(db)
 
     def delete(self, card_id: int) -> bool:
@@ -417,18 +421,35 @@ class CardStore(JsonStoreCore):
     # ---------- 工卡组同步 ----------
 
     def sync_set_to_cards(self, set_id: int) -> None:
-        """将工卡组的分类/工具/航材/提醒字段同步到组内所有卡"""
+        """将工卡组的分类/工具/航材/提醒字段同步到组内所有卡。
+
+        属人工操作链（工卡组保存触发）：成员卡刷新 log_time，并记 1 条汇总日志；
+        组内无卡（N=0）时跳过刷时间与日志。
+        """
         with self._lock:
             db = self._read()
             set = db.get("card_sets", {}).get(str(set_id))
             if not set:
                 return
+            members = [card for card in db.get("cards", {}).values()
+                       if card.get("set_id") == set_id]
+            if not members:
+                return
+            synced_fields = []
             for field in ("category", "tools", "materials",
                           "tools_confirmed", "materials_confirmed",
                           "card_ok", "reminder_type", "reminder_confirmed"):
                 if field not in set:
                     continue
-                for card in db.get("cards", {}).values():
-                    if card.get("set_id") == set_id:
-                        card[field] = set[field]
+                synced_fields.append(field)
+                for card in members:
+                    card[field] = set[field]
+            today = _today_iso()
+            for card in members:
+                card["log_time"] = today
+            first_code = members[0].get("task_code", "")
+            self._add_log(db, "update", "card", members[0].get("id"),
+                          f"{first_code} 等{len(members)}张（工卡组同步）",
+                          set.get("name", ""),
+                          [{"field": f, "old": None, "new": set[f]} for f in synced_fields])
             self._write(db)

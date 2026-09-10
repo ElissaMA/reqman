@@ -504,7 +504,8 @@ async def full_version_check(store, client, cookies, *, fetch=None, query=None,
                                 "category": card.get("category", ""),
                                 "old_wd": old_wd, "new_wd": new_wd})
     if write_date_updates:
-        store.bulk_update(write_date_updates)
+        # 自动批量刷新：不写操作日志、不刷"新建/编辑时间"（变化以改版清单输出为准）
+        store.bulk_update(write_date_updates, log=False, touch=False)
     return {"revised": revised, "new_added": new_added, "cancelled": cancelled, "checked": checked,
             "skipped_dp": skipped_dp, "skipped_other": skipped_other,
             "skipped_total": skipped_dp + skipped_other}
@@ -561,7 +562,8 @@ async def check_cards_against_amro(store, client, cookies, task_codes, *, fetch=
                                 "category": card.get("category", ""),
                                 "old_wd": old_wd, "new_wd": new_wd})
     if write_date_updates:
-        store.bulk_update(write_date_updates)
+        # 自动批量刷新：不写操作日志、不刷"新建/编辑时间"（变化以改版清单输出为准）
+        store.bulk_update(write_date_updates, log=False, touch=False)
     return {"revised": revised, "new_added": new_added, "cancelled": cancelled, "checked": checked,
             "skipped_dp": skipped_dp, "skipped_other": skipped_other,
             "skipped_not_in_store": skipped_not_in_store,

@@ -1,4 +1,4 @@
-# Excel 模板格式一致性分阶段修复方案
+# Excel 模板格式一致性与数据日志规范综合修复方案
 
 ## 1. 总原则
 
@@ -9,6 +9,46 @@
 5. 手动备用航材填写功能已弃用，备用航材只从数据库导出。
 6. 特检/支援专业按当前业务范围忽略，不扩展现有三专业模板。
 7. 测试使用隔离模板和隔离数据库，不修改真实业务数据。
+
+## 1A. 数据与日志规范（2026-09-10 新增，已确认规则）
+
+### 规则
+
+1. **日志与"新建/编辑时间"只记录人工行为**。AMRO 版本检查等自动批量刷新不写操作日志、不刷新 `log_time`；编写日期变化以改版清单输出为权威记录。
+2. **`MAX_LOGS` 保持 500 条**不变。日志噪音源消除后，500 条滚动窗口足以覆盖近期人工行为；历史被挤掉的条目不回填伪造。
+3. **`sync_set_to_cards` 属人工操作链**：工卡组保存后同步组内工卡，组内卡刷新 `log_time`，并只记 1 条汇总日志，不逐卡刷屏。
+4. 旧数据（无 `log_time` 的历史工卡/工卡组）不回填伪造时间，显示 `—` 排最后，编辑一次后自然刷新。
+
+### 已确认的问题与根因
+
+- 工卡组列表不显示"新建/编辑日期"、排序失效：`set_routes.py` 组装列表 dict 时丢弃了存储层已有的 `log_time` 字段；`sets.html` 还缺少载入自动排序（工卡列表页有）。
+- 工卡日志缺少"新建"条目：日志滚动窗口被自动噪音占满——AMRO 版本检查对每张日期变化卡调 `bulk_update` 写 1 条 update 日志，实测 500 条日志中 455 条 changes 仅含 write_date，纯自动刷新把人工 add 条目挤出保留窗口。
+
+### 实施内容（待执行）
+
+1. `set_routes.py`：列表 dict 补 `"log_time": set.get("log_time", "")`，恢复时间显示与服务端倒序。
+2. `sets.html`：DOMContentLoaded 增加 `AppFilter.sort(document.getElementById('setTable'), 6)` 默认倒序，与工卡列表一致。
+3. `card_store.py`：`bulk_update` 增加语义参数 `log=True, touch=True`——`log=False` 不写日志、跳过 `_detect_changes`；`touch=False` 不刷新 `card["log_time"]`（工卡号索引维护照常执行）；默认行为不变，现有调用方不受影响。
+4. `versions.py`：两处版本检查 `bulk_update` 调用改传 `log=False, touch=False`。
+5. `card_store.py`：`sync_set_to_cards` 同步后刷组内卡 `log_time` 并写 1 条汇总日志（identifier=首卡工卡号+` 等N张（工卡组同步）`）；**组内无卡（N=0）时跳过刷时间与汇总日志**；汇总日志 changes 携带同步字段摘要，保证日志页可考证。
+
+### 可行性审查补充结论（2026-09-10 二次核查）
+
+1. **必改现有测试**：`tests/test_amro_version.py:57-58` 断言版本检查后日志含 write_date 变更，与 `log=False` 直接冲突，实施时须按新语义改写（断言无新日志、log_time 不变）。
+2. **作废卡 delete 日志**：版本检查中 `_move_to_cancelled` → `store.delete` 仍对每张作废卡写 1 条 delete 日志，属自动行为残留噪声（量级小）。按规则 1 应同样视为自动行为——实施时需明确给 `delete` 增加静默参数或接受现状。
+3. **sets.html 既有死筛选**：名称/专业/提醒类型三个筛选框缺 `data-col`（仅日期筛选生效），属既有缺陷；本轮改 sets.html 时顺带补上，避免与新增自动排序 e2e 冲突。
+4. **可感知 UI 变化**：工卡组保存后成员卡 `log_time` 刷新，会使工卡列表（默认按时间倒序）成员卡集体置顶——语义符合"人工行为"规则，验收时知会即可。
+5. **版本日志 API 语义变化**：`/packages/amro-version-logs`（`get_version_logs` 筛 write_date 变更）在 `log=False` 后只剩人工编辑记录；该页面区块已移除、仅保留 API，影响低，不算回归。
+
+### 测试
+
+- 集成：sets 列表含 `log_time` 且倒序；`bulk_update(log=False, touch=False)` 更新字段但无新日志、`log_time` 不变；`sync_set_to_cards` 恰 1 条汇总日志（N>0）且组内卡时间刷新，N=0 无汇总日志；改写 `test_amro_version.py` 旧断言。
+- e2e：工卡组页面时间列显示与默认倒序（并入现有 e2e 套件回归）。
+
+### 与模板修复的衔接
+
+- 阶段 1（需求单）新增用例：版本检查批量刷新 write_date 后，工卡 `log_time` 与日志条数均不变（自动行为不冒充人工编辑）。
+- 阶段 4 公共能力：`bulk_update` 的 `log/touch` 语义参数写入公共数据访问规范，后续任何批量自动刷新调用必须显式声明语义。
 
 ## 2. 当前审计结论
 
