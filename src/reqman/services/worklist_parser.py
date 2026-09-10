@@ -11,6 +11,8 @@ import logging
 
 import openpyxl
 
+from .work_package_matcher import is_cancelled_item
+
 logger = logging.getLogger(__name__)
 
 # 文件大小上限
@@ -161,14 +163,16 @@ def _parse_items(ws, file_type: str) -> list[dict]:
             if len(row) > 11 and row[11].value:
                 remark = str(row[11].value).strip()
 
-            items.append({
+            item = {
                 "task_code": task_code,
                 "task_name": task_name,
                 "category": category,
                 "task_type": task_type,
                 "remark": remark,
                 "source": file_type,
-            })
+            }
+            item["cancelled"] = is_cancelled_item(item)
+            items.append(item)
 
         except (ValueError, AttributeError, TypeError) as e:
             error_rows.append(f"Row {row_idx}: {e}")

@@ -11,6 +11,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from ..connectors import amro
+from ..work_package_matcher import is_cancelled_item
 from .query_runner import _now
 
 logger = logging.getLogger(__name__)
@@ -66,7 +67,7 @@ def _item_from_row(row: dict, source: str) -> dict:
         "task_type": str(row.get("TASK", "")).strip(),
         "remark": remark,
         "source": source,
-        "cancelled": "撤销" in remark,
+        "cancelled": is_cancelled_item({"remark": remark}),
     }
 
 
@@ -98,6 +99,7 @@ def persist_amro_package(store, service, package_data: dict) -> dict:
     all_items = package_data.get("all_items", [])
     package_data.update({
         "matched": [], "new_cards": [], "cancelled": [],
+        "cancelled_count": sum(1 for i in all_items if is_cancelled_item(i)),
         "is_matched": False, "generated_at": None,
         "routine_count": sum(1 for i in all_items if i.get("source") == "例行"),
         "other_count": sum(1 for i in all_items if i.get("source") == "其他"),

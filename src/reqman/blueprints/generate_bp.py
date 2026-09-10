@@ -65,6 +65,7 @@ def _ensure_package_matched(pkg_data):
     pkg_data["matched"] = matched
     pkg_data["new_cards"] = new_cards
     pkg_data["cancelled"] = cancelled
+    pkg_data["cancelled_count"] = len(cancelled)
     pkg_data["routine_count"] = sum(1 for i in all_items if i.get("source") == "例行")
     pkg_data["other_count"] = sum(1 for i in all_items if i.get("source") == "其他")
     pkg_data["is_matched"] = True
@@ -309,6 +310,7 @@ def reminder_download():
     reg = ac.get("reg", "")
     level = ac.get("level", "") or ac.get("description", "")
     fsn = msn = apu = ""
+    db_type = db_engine = ""
     if reg:
         store = _get_store()
         ac_db = store.find_aircraft_by_reg(reg)
@@ -319,9 +321,16 @@ def reminder_download():
             fsn = ac_db.get("fsn", "")
             msn = ac_db.get("msn", "")
             apu = ac_db.get("apu", "")
+            db_type = ac_db.get("model", "")
+            db_engine = ac_db.get("engine", "")
+    # 机型/发动机/FSN/MSN/APU 统一以本地航空器数据库为唯一来源；
+    # 工作包 aircraft_info 仅作为机号、描述、日期等业务上下文，不回退其 type/engine。
+    aircraft_type = db_type
+    engine = db_engine
     form_data = {
         "reg": reg,
-        "aircraft_type": ac.get("type", ""),
+        "aircraft_type": aircraft_type,
+        "engine": engine,
         "description": ac.get("description", ""),
         "level": level,
         "fsn": fsn,

@@ -1,8 +1,17 @@
 """工作包工卡匹配服务 — 从 packages_bp 提取，供 generate_bp 复用"""
 
 import logging
+import re
+import unicodedata
 
 logger = logging.getLogger(__name__)
+
+
+def is_cancelled_item(item: dict) -> bool:
+    """统一判断工作清单项是否撤销（AMRO/Excel 两入口共用）。"""
+    remark = unicodedata.normalize("NFKC", str(item.get("remark") or ""))
+    remark = re.sub(r"\s+", "", remark)
+    return "撤销" in remark
 
 
 def match_work_package_items(all_items, store, service):
@@ -22,7 +31,8 @@ def match_work_package_items(all_items, store, service):
     cards_by_code = store.find_by_codes(codes)
 
     for item in all_items:
-        if "撤销" in item.get("remark", ""):
+        item["cancelled"] = is_cancelled_item(item)
+        if item["cancelled"]:
             item["status"] = "cancelled"
             cancelled.append(item)
             continue
