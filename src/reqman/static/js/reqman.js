@@ -91,7 +91,11 @@
         if (value === null || value === undefined) return true;
         return /^[\s\u00a0\u3000\u200b\u200c\u200d\u200e\u200f\u2028\u2029\u202f\u205f\u2060\ufeff]*$/.test(String(value));
     };
-    window.watchTable = function (tableId, checkbox) {
+    window.syncConfirmedSection = function (checkbox, sectionId) {
+        var section = byId(sectionId);
+        if (section && checkbox) section.classList.toggle('section-disabled', checkbox.checked);
+    };
+    window.watchTable = function (tableId, checkbox, sectionId) {
         var table = byId(tableId);
         if (!table || !checkbox) return;
         function hasValue() {
@@ -99,9 +103,14 @@
                 return !window.isBlank(input.value);
             });
         }
-        table.addEventListener('input', function () { if (hasValue()) checkbox.checked = false; });
-        var observer = new MutationObserver(function () { if (hasValue()) checkbox.checked = false; });
+        function syncFromTable() {
+            if (hasValue()) checkbox.checked = false;
+            window.syncConfirmedSection(checkbox, sectionId);
+        }
+        table.addEventListener('input', syncFromTable);
+        var observer = new MutationObserver(syncFromTable);
         observer.observe(table, { childList: true, subtree: true });
+        window.syncConfirmedSection(checkbox, sectionId);
     };
 
     window.Poller = (function () {

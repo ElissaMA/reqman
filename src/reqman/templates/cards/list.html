@@ -225,6 +225,7 @@ function amroVerCheck() {
 function pollVersionCheck(card) {
     window.Poller.poll({
         statusUrl: '/card/amro-version-status',
+        buttonSelector: '#amroVerCheckBtn',
         card: card,
         deadlineMin: 20,
         intervalMs: 2000,
@@ -245,6 +246,7 @@ function pollVersionCheck(card) {
 
 document.addEventListener('DOMContentLoaded', function() {
     {% if amro_status and amro_status.status == 'running' %}
+    document.getElementById('amroVerCheckBtn').disabled = true;
     pollVersionCheck(window.QueryCard.run('qCardVersion', '全量检查工卡版本（约 3~15 分钟，后台执行）'));
     {% endif %}
     // 默认按「新建/编辑日期」倒序展示（箭头显示下一次点击方向：升序）
