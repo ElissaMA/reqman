@@ -7,13 +7,13 @@ from zoneinfo import ZoneInfo
 
 from flask import Blueprint, current_app, flash, redirect, render_template, request, send_file
 
-from ..config import CATEGORIES, CATEGORY_ORDER, CONDITIONS, OUTPUT_DIR
+from ..config import CATEGORIES, CATEGORY_ORDER, CONDITION_DEFAULTS, CONDITIONS, OUTPUT_DIR
 from ..services.amro_sync import build_package_label
 from ..services.checklist_generator import generate_chemical_list, generate_tool_list
 from ..services.form_generator import generate_form
 from ..services.reminder_generator import generate_reminder
 from ..services.work_package_matcher import match_work_package_items
-from ..utils.error_handlers import NotFoundError, is_ajax
+from ..utils.error_handlers import NotFoundError, TemplateContractError, is_ajax
 from ..utils.response import api_error, api_success
 
 generate_bp = Blueprint("generate", __name__)
@@ -94,8 +94,24 @@ def generate():
     if request.method == "POST":
         try:
             return _handle_generate_post(pkg_data, package_id)
+        except TemplateContractError as exc:
+            # 模板契约失败：AJAX 下载返回 400 JSON，普通请求才重定向展示 flash。
+            logger.error("需求单模板契约失败: %s", exc)
+            if is_ajax():
+                return api_error(str(exc), "TEMPLATE_CONTRACT", 400)
+            flash(str(exc), "error")
+            return redirect("/generate?package_id=" + package_id)
+        except (AttributeError, RuntimeError, ValueError) as exc:
+            logger.exception("需求单模板结构异常")
+            message = f"需求单模板结构异常：{exc}"
+            if is_ajax():
+                return api_error(message, "TEMPLATE_CONTRACT", 400)
+            flash(message, "error")
+            return redirect("/generate?package_id=" + package_id)
         except Exception:
             logger.exception("生成需求单失败")
+            if is_ajax():
+                return api_error("需求单生成失败，请检查模板后重试", "GENERATE_ERROR", 500)
             flash("生成失败，请稍后重试", "error")
             return redirect("/generate?package_id=" + package_id)
 
@@ -260,6 +276,7 @@ def _handle_generate_preview(pkg_data: dict, package_id: str):
                            aircraft_info=aircraft_info,
                            new_cards=new_cards,
                            conditions=CONDITIONS,
+                           condition_defaults=CONDITION_DEFAULTS,
                            tool_groups=_group_by_category(tool_preview),
                            mat_groups=_group_by_category(mat_preview),
                            spare_groups=_group_by_category(spare_preview),
@@ -350,7 +367,11 @@ def tool_list_download():
     if not isinstance(pkg_data, dict):   # api_error 短路
         return pkg_data
     tools, _, _ = _flatten_matched(pkg_data.get("matched", []))
-    buffer, filename = generate_tool_list(_checklist_form_data(pkg_data), tools)
+    try:
+        buffer, filename = generate_tool_list(_checklist_form_data(pkg_data), tools)
+    except (RuntimeError, ValueError) as exc:
+        # 模板契约失败（如区标签被改动）→ 友好中文提示而非 500
+        raise TemplateContractError(f"工具借用清单生成失败：{exc}") from exc
     return send_file(
         buffer, as_attachment=True, download_name=filename,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -364,7 +385,10 @@ def chemical_list_download():
     if not isinstance(pkg_data, dict):   # api_error 短路
         return pkg_data
     _, materials, _ = _flatten_matched(pkg_data.get("matched", []))
-    buffer, filename = generate_chemical_list(_checklist_form_data(pkg_data), materials)
+    try:
+        buffer, filename = generate_chemical_list(_checklist_form_data(pkg_data), materials)
+    except (RuntimeError, ValueError) as exc:
+        raise TemplateContractError(f"航化借用清单生成失败：{exc}") from exc
     return send_file(
         buffer, as_attachment=True, download_name=filename,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

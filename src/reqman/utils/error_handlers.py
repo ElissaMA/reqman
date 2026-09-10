@@ -25,6 +25,12 @@ class NotFoundError(ApiException):
         super().__init__(message, error_code, status_code)
 
 
+class TemplateContractError(ApiException):
+    """模板契约失败：模板结构/固定文字被改动或不符合预期（下载返回 400 带中文提示）"""
+    def __init__(self, message="模板结构异常", error_code="TEMPLATE_CONTRACT", status_code=400):
+        super().__init__(message, error_code, status_code)
+
+
 # ===================== 辅助函数 =====================
 
 

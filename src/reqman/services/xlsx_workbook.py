@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import datetime
 import io
+import logging
 import re
 from pathlib import Path
 from typing import NamedTuple
@@ -21,6 +22,7 @@ YELLOW_FILL = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="s
 
 MATERIAL_HEADER = "定检专业\n（航材）"
 SPARE_HEADER = "备用航材需求"
+DEMAND_SHEET = "需求单"
 
 COL_PN = 3     # C
 COL_NAME = 2   # B
@@ -34,6 +36,10 @@ class DemandRow(NamedTuple):
     qty: float
     stock_cell: str
     row_idx: int
+
+
+class DemandSectionNotFoundError(ValueError):
+    """需求单读取契约失败：固定区关键字定位不到（通常为模板固定文字被改动）。"""
 
 
 def _find_data_start(ws: openpyxl.Worksheet, header_keyword: str) -> int | None:
@@ -66,13 +72,27 @@ def _parse_qty(raw: str | float | None) -> float:
 
 def read_demand(path: str | Path) -> list[DemandRow]:
     wb = openpyxl.load_workbook(path, data_only=True)
-    ws = wb.active
+    if DEMAND_SHEET in wb.sheetnames:
+        ws = wb[DEMAND_SHEET]
+    else:
+        ws = wb.active
     if ws is None:
-        raise ValueError("No active sheet")
+        raise DemandSectionNotFoundError("需求单文件中没有可读的工作表")
 
     rows: list[DemandRow] = []
     mat_start = _find_data_start(ws, MATERIAL_HEADER)
     spare_start = _find_data_start(ws, SPARE_HEADER)
+
+    # 读取侧契约：航材区是必需区域，找不到即报错；备用区在最小化需求单中可缺省
+    # （缺失时记警告并跳过该区回填，杜绝"备用区整段静默不回填"的中间态）。
+    if mat_start is None:
+        wb.close()
+        raise DemandSectionNotFoundError(
+            "需求单结构异常：航材区未找到（模板固定文字“定检专业（航材）”缺失）。"
+            "请确认上传的需求单由本系统生成，或模板固定文字未被改动。")
+    if spare_start is None:
+        logging.getLogger(__name__).warning(
+            "需求单未找到备用航材区（“备用航材需求”标题缺失），跳过备用区库存回填")
 
     if mat_start:
         end = _next_section_row(ws, mat_start) or (ws.max_row + 1)
@@ -123,9 +143,12 @@ def write_inventory_copy(
     filename = f"{stem}_库存已填_{timestamp_suffix}.xlsx"
 
     wb = openpyxl.load_workbook(source)
-    ws = wb.active
+    if DEMAND_SHEET in wb.sheetnames:
+        ws = wb[DEMAND_SHEET]
+    else:
+        ws = wb.active
     if ws is None:
-        raise ValueError("No active sheet")
+        raise DemandSectionNotFoundError("需求单文件中没有可读的工作表")
 
     for pn, cells in pn_cells.items():
         stock_val = results.get(pn, 0.0)

@@ -46,7 +46,7 @@ class TestGenerateReminder:
         buffer, _ = generate_reminder(form, [])
         wb = openpyxl.load_workbook(buffer)
         ws = wb["工卡提醒"]
-        assert "定检描述：46A" in str(ws["B2"].value)
+        assert "定检级别：46A" in str(ws["B2"].value)
         assert "APU型号：APU-9" in str(ws["C3"].value)
         assert "FSN：F-123" in str(ws["A4"].value)
         assert "MSN：MSN-88" in str(ws["B4"].value)
@@ -59,13 +59,13 @@ class TestGenerateReminder:
         buffer, _ = generate_reminder(form, [])
         wb = openpyxl.load_workbook(buffer)
         ws = wb["工卡提醒"]
-        assert str(ws["B2"].value) == "定检描述：A320 4C检"
+        assert str(ws["B2"].value) == "定检级别：A320 4C检"
         wb.close()
 
         form2 = {"reg": "B-100", "description": "", "level": "4C", "date": "2026.08.23"}
         buffer2, _ = generate_reminder(form2, [])
         wb2 = openpyxl.load_workbook(buffer2)
-        assert str(wb2["工卡提醒"]["B2"].value) == "定检描述：4C"
+        assert str(wb2["工卡提醒"]["B2"].value) == "定检级别：4C"
         wb2.close()
 
     def test_second_row_appends(self):

@@ -260,12 +260,18 @@
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         }).then(function (response) {
             var contentType = response.headers.get('Content-Type') || '';
+            var disposition = response.headers.get('Content-Disposition') || '';
+            var isAttachment = /(^|;)\s*attachment\s*(;|$)/i.test(disposition);
             if (!response.ok || contentType.indexOf('application/json') >= 0) {
-                return response.json().then(function (result) {
+                return response.text().then(function (body) {
+                    var result = {};
+                    try { result = JSON.parse(body); } catch (e) {}
                     throw new Error((result && result.message) || '下载失败，请重试');
                 });
             }
-            var disposition = response.headers.get('Content-Disposition') || '';
+            if (!isAttachment || contentType.indexOf('text/html') >= 0) {
+                throw new Error('文件生成失败：服务器未返回下载附件');
+            }
             var match = /filename\*=UTF-8''([^;]+)/i.exec(disposition) || /filename="?([^";]+)"?/i.exec(disposition);
             var filename = '';
             try { filename = match ? decodeURIComponent(match[1]) : ''; } catch (e) { filename = match ? match[1] : ''; }
