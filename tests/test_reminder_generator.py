@@ -52,6 +52,20 @@ class TestGenerateReminder:
         assert "MSN：MSN-88" in str(ws["B4"].value)
         wb.close()
 
+    def test_b3_only_values_type_and_engine(self):
+        """B3 只写数据值（无"机型：/发动机："标签）：斜杠分隔，无发动机时只写机型。"""
+        form = {"reg": "B-100", "aircraft_type": "A320", "engine": "CFM56",
+                "description": "46A", "date": "2026.08.23"}
+        ws = openpyxl.load_workbook(generate_reminder(form, [])[0])["工卡提醒"]
+        assert str(ws["B3"].value) == "A320 / CFM56"
+        assert "机型：" not in str(ws["B3"].value)
+        assert "发动机：" not in str(ws["B3"].value)
+
+        form2 = {"reg": "B-100", "aircraft_type": "A320", "description": "46A",
+                 "date": "2026.08.23"}
+        ws2 = openpyxl.load_workbook(generate_reminder(form2, [])[0])["工卡提醒"]
+        assert str(ws2["B3"].value) == "A320"
+
     def test_b2_prefers_description_over_level(self):
         """B2 输出工作包描述（AMRO REVTITLE），描述缺失时回退定检级别。"""
         form = {"reg": "B-100", "description": "A320 4C检", "level": "4C",

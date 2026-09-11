@@ -201,6 +201,12 @@ def build_version_report_excel(report: dict, title_label: str = "",
     RED = InlineFont(rFont="宋体", sz=11, color="FFFF0000")
     BLUE = InlineFont(rFont="宋体", sz=11, color="FF0000FF")
 
+    # 列宽约 50.6 ≈ 24 个汉字/行，用于行高与内容行数估算
+    CHARS_PER_LINE = 24
+
+    def _wrapped_lines(text: str) -> int:
+        return max(1, -(-len(str(text or "")) // CHARS_PER_LINE))
+
     def write_entries(rows: list[dict], *, color, with_dates: bool, prefix: str = "") -> None:
         for cat, items in _group_by_category(rows):
             col = COL_MAP.get(cat)
@@ -208,32 +214,38 @@ def build_version_report_excel(report: dict, title_label: str = "",
                 continue
             for it in items:
                 cell = ws.cell(row=_next_row(ws, col), column=col)
+                code = str(it.get("task_code", ""))
+                name = str(it.get("task_name", ""))
+                # 换行符附在非空白文本末尾：openpyxl 只在 text.strip() 非空时写
+                # xml:space="preserve"，独立的 "\n" 文本块会被 Excel/WPS 裁掉导致不换行。
                 seq: list = [
-                    TextBlock(BLACK, str(it.get("task_code", ""))),
-                    "\n",
-                    TextBlock(BLACK, str(it.get("task_name", ""))),
-                    "\n",
+                    TextBlock(BLACK, code + "\n"),
+                    TextBlock(BLACK, name + "\n"),
                 ]
+                mark = ""
                 if with_dates:
                     old, new = _date_span(it.get("old_wd", "")), _date_span(it.get("new_wd", ""))
                     if old and new:
-                        span = f"{old}→{new}"
+                        mark = f"{old}→{new}"
                     elif new:
-                        span = new
+                        mark = new
                     else:
-                        span = old
-                    if prefix and span:
-                        span = f"{prefix} {span}"
-                    if span:
-                        seq.append(TextBlock(color, span))
+                        mark = old
+                    if prefix and mark:
+                        mark = f"{prefix} {mark}"
                 else:
-                    seq.append(TextBlock(color, prefix or "作废"))
+                    mark = prefix or "作废"
+                if mark:
+                    seq.append(TextBlock(color, mark))
                 cell.value = CellRichText(*seq)
-                # 显式换行（不依赖模板样式），超出行也保证三行显示
-                cell.alignment = Alignment(wrap_text=True, vertical="top")
-                # 三行内容需要显式行高：默认 14pt 会裁切
-                name_lines = max(1, -(-len(str(it.get("task_name", ""))) // 20))
-                ws.row_dimensions[cell.row].height = max(42, name_lines * 14)
+                # 保留模板原有对齐，仅强制换行（不整体替换模板样式）
+                base = cell.alignment
+                cell.alignment = Alignment(horizontal=base.horizontal,
+                                           vertical=base.vertical,
+                                           wrap_text=True)
+                # 行高按实际内容行数：工卡号 + 名称 + 标记（长名称/长标记不裁切）
+                total_lines = _wrapped_lines(code) + _wrapped_lines(name) + _wrapped_lines(mark)
+                ws.row_dimensions[cell.row].height = max(45, total_lines * 15)
 
     write_entries(report.get("revised", []), color=BLUE, with_dates=True)
     write_entries(report.get("new_added", []), color=RED, with_dates=True, prefix="新增")

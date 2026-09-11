@@ -238,9 +238,48 @@ class TestVersionReportExcel:
         assert any(t.startswith("新增") for t in red), "新增标记应为红"
         assert any("→" in t for t in blue), "改版标记应为蓝"
         assert any(t == "作废" for t in black), "作废标记应为黑"
-        # 工卡号 / 名称行保持黑字
-        assert {"R-1", "N-1", "X-1"}.issubset(set(black)), "工卡号应为黑字"
+        # 工卡号 / 名称行保持黑字（换行符随文本段，末尾含 \n）
+        black_s = {t.rstrip("\r\n") for t in black}
+        assert {"R-1", "N-1", "X-1"}.issubset(black_s), "工卡号应为黑字"
         assert any("改版卡" in t for t in black) and any("新增卡" in t for t in black)
+
+    def test_report_excel_line_break_survives_xml(self, tmp_path):
+        """改版清单三行换行必须带 xml:space="preserve"（否则 Excel/WPS 裁掉纯空白节点导致不换行）。"""
+        buf = amro_sync.build_version_report_excel({
+            "revised": [
+                {"task_code": "C-1", "task_name": "卡一", "category": "电子",
+                 "old_wd": "2026-07-01", "new_wd": "2026-08-01"},
+            ],
+            "new_added": [], "cancelled": [],
+        })
+        p = tmp_path / "rt_break.xlsx"
+        p.write_bytes(buf)
+        with zipfile.ZipFile(p) as z:
+            xml = z.read("xl/worksheets/sheet1.xml").decode("utf-8", "ignore")
+        # 换行所在文本节点必须带 preserve，且换行附着在非空白文本末尾
+        assert 'xml:space="preserve"' in xml, "换行文本节点缺少 preserve 属性"
+        assert re.search(r'<t xml:space="preserve">C-1\s*</t>', xml), "工卡号段未携带换行"
+        assert not re.search(r"<r>\s*<t>\s*\r?\n\s*</t>\s*</r>", xml), "存在纯空白换行段（会被裁掉）"
+        # 单元格值仍可读回三行
+        wb = openpyxl.load_workbook(io.BytesIO(buf))
+        assert str(wb["改版清单"]["A3"].value) == "C-1\n卡一\n2026-07-01→2026-08-01"
+
+    def test_report_excel_row_height_fits_long_name(self, tmp_path):
+        """长工卡名行高按内容行数计算，不因固定 42pt 被裁切；水平对齐保留模板值。"""
+        long_name = "很长的工卡名称" * 8   # 56 字 ≈ 3 行
+        buf = amro_sync.build_version_report_excel({
+            "revised": [
+                {"task_code": "C-1", "task_name": long_name, "category": "电子",
+                 "old_wd": "2026-07-01", "new_wd": "2026-08-01"},
+            ],
+            "new_added": [], "cancelled": [],
+        })
+        wb = openpyxl.load_workbook(io.BytesIO(buf))
+        ws = wb["改版清单"]
+        # 工卡号 1 行 + 名称 3 行 + 标记 1 行 = 5 行 → 高度不低于 75
+        assert ws.row_dimensions[3].height >= 75
+        assert ws["A3"].alignment.wrap_text is True
+        assert ws["A3"].alignment.horizontal == "center"   # 模板水平对齐未被替换掉
 
 
 class TestCheckCardsAgainstAmro:

@@ -46,11 +46,12 @@ def generate_reminder(form_data: dict, items: list[dict]) -> tuple[io.BytesIO, s
     ws["B2"].value = f"{label}{level_desc}"
     ws["C2"].value = f"总份数：{form_data.get('routine_count', '')}+{form_data.get('other_count', '')}"
     ws["A3"].value = f"机号：{form_data.get('reg', '')}"
+    # B3 只写数据值（模板已有"机型："标签）：机型 / 发动机（发动机为空时只写机型）
     aircraft_type = str(form_data.get("aircraft_type", "")).strip()
     engine = str(form_data.get("engine", "")).strip()
-    b3 = f"机型：{aircraft_type}"
+    b3 = aircraft_type
     if engine:
-        b3 += f" / 发动机：{engine}"
+        b3 = f"{aircraft_type} / {engine}" if aircraft_type else engine
     ws["B3"].value = b3
     ws["C3"].value = f"APU型号：{form_data.get('apu', '')}"
     ws["A4"].value = f"FSN：{form_data.get('fsn', '')}"
