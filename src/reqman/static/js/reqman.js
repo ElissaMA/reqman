@@ -204,7 +204,9 @@
                         var col = parseInt(control.getAttribute('data-col'), 10);
                         if (!isNaN(col)) {
                             var needle = control.value.toLowerCase();
-                            var cellText = row.children[col] ? row.children[col].textContent.toLowerCase() : '';
+                            var cell = row.children[col];
+                            var cellText = cell ? (cell.getAttribute('data-search-text') || cell.textContent) : '';
+                            cellText = cellText.toLowerCase();
                             if (cellText.indexOf(needle) < 0) visible = false;
                         }
                     }

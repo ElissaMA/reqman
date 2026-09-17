@@ -361,7 +361,45 @@ def test_generate_page_buttons_and_header(page, server_base):
     assert not js_errors, f"页面存在JS错误: {js_errors}"
 
 
-# ---------- 13. v3.6.0 步骤1：左侧竖向导航布局（数据管理折叠组） ----------
+# ---------- 13. 工具/航材名称和件号搜索 ----------
+def test_tool_material_search_on_cards_and_sets(page, server_base):
+    """工卡与工卡组均可按工具/航材名称或件号过滤。"""
+    def exercise(path, table_id, tool_id, mat_id):
+        page.goto(server_base + path)
+        page.wait_for_selector(f"#{table_id} tbody tr")
+        for control_id, column in ((tool_id, 7 if table_id == "cardTable" else 4),
+                                   (mat_id, 8 if table_id == "cardTable" else 5)):
+            cells = page.locator(
+                f"#{table_id} tbody tr:not(.empty-state-row) td:nth-child({column + 1})[data-search-text]"
+            )
+            if not cells.count():
+                continue
+            search_texts = [cells.nth(i).get_attribute("data-search-text") or ""
+                            for i in range(cells.count())]
+            nonempty = next((text for text in search_texts if text.strip()), "")
+            if not nonempty:
+                continue
+            tokens = nonempty.split()
+            name_needle = tokens[0]
+            pn_needle = next((token for token in tokens[1:]
+                              if len(token) >= 3 and any(ch.isdigit() for ch in token)), None)
+            for needle in (name_needle, pn_needle):
+                if not needle:
+                    continue
+                page.fill(f"#{control_id}", needle)
+                page.evaluate("(id) => AppFilter.filter(id)", control_id)
+                visible = page.locator(f"#{table_id} tbody tr").evaluate_all(
+                    "rows => rows.filter(r => getComputedStyle(r).display !== 'none' && !r.classList.contains('empty-state-row')).length"
+                )
+                assert visible >= 1, f"{path} {control_id} 搜索 {needle!r} 未筛出结果"
+                page.fill(f"#{control_id}", "")
+                page.evaluate("(id) => AppFilter.filter(id)", control_id)
+
+    exercise("/card/list", "cardTable", "fTool", "fMat")
+    exercise("/card/sets", "setTable", "fTool", "fMat")
+
+
+# ---------- 14. v3.6.0 步骤1：左侧竖向导航布局（数据管理折叠组） ----------
 def test_side_nav_layout(page, server_base):
     """左侧竖向导航（数据管理与顶级项同级同款，4个子页在折叠组内）+ 顶部登录框，无JS错误。"""
     js_errors = []

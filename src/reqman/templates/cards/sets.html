@@ -34,7 +34,9 @@
                             <option value="无需提醒">无需提醒</option>
                             {% for rt in reminder_types %}<option value="{{ rt }}">{{ rt }}</option>{% endfor %}
                         </select></th>
-                        <th class="text-center"></th><th class="text-center"></th><th class="text-center"></th>
+                        <th class="text-center"></th>
+                        <th class="text-center"><input class="form-control form-control-sm" placeholder="搜索工具名称/件号..." onkeyup="AppFilter.filter('fTool')" id="fTool"></th>
+                        <th class="text-center"><input class="form-control form-control-sm" placeholder="搜索航材名称/件号..." onkeyup="AppFilter.filter('fMat')" id="fMat"></th>
                         <th><select class="form-select form-select-sm" id="fLogDate" data-date-col="6" onchange="AppFilter.filter('fLogDate')">
                             <option value="">全部时间</option>
                             <option value="1">近一个月</option>
@@ -63,8 +65,8 @@
                         <td>{{ set.category or '-' }}</td>
                         <td>{{ set.reminder_type or '-' }}</td>
                         <td class="text-center">{{ card_counts.get(set.id, 0) }}</td>
-                        <td class="text-center">{{ set.tools|length }}</td>
-                        <td class="text-center">{{ set.materials|length }}</td>
+                        <td class="text-center" data-search-text="{% for t in set.tools %}{{ t.device_name }} {{ t.part_number or '' }} {% endfor %}">{{ set.tools|length }}</td>
+                        <td class="text-center" data-search-text="{% for m in set.materials %}{{ m.material_name }} {{ m.part_number or '' }} {% endfor %}">{{ set.materials|length }}</td>
                         <td class="text-center">{{ set.log_time or '—' }}</td>
                         <td class="text-center text-nowrap" onclick="event.stopPropagation()">
                             <div class="table-action">
@@ -102,8 +104,8 @@
 <script>
 var sets = [{% for set in sets %}{{ set|tojson }}{% if not loop.last %},{% endif %}{% endfor %}];
 
-// 筛选框 → 列映射（0=名称 1=专业 2=提醒类型 6=新建/编辑日期）
-['fName:0', 'fCat:1', 'fReminder:2'].forEach(function (p) {
+// 筛选框 → 列映射（0=名称 1=专业 2=提醒类型 4=工具 5=航材 6=新建/编辑日期）
+['fName:0', 'fCat:1', 'fReminder:2', 'fTool:4', 'fMat:5'].forEach(function (p) {
     var id = p.split(':')[0], col = p.split(':')[1];
     var el = document.getElementById(id);
     if (el) el.setAttribute('data-col', col);
