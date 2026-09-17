@@ -399,7 +399,52 @@ def test_tool_material_search_on_cards_and_sets(page, server_base):
     exercise("/card/sets", "setTable", "fTool", "fMat")
 
 
-# ---------- 14. v3.6.0 步骤1：左侧竖向导航布局（数据管理折叠组） ----------
+# ---------- 14. 工卡/工卡组引用工具航材数据 ----------
+def test_reference_tools_materials_on_all_card_forms(page, server_base):
+    """四种新建/编辑窗口均有引用区域，工卡新建可搜索并追加源卡明细。"""
+    payload = page.request.get(server_base + "/card/list-json").json()
+    source = None
+    for item in payload.get("data", [])[:10]:
+        detail = page.request.get(server_base + f"/card/{item['id']}").json().get("data") or {}
+        if detail.get("tools") or detail.get("materials"):
+            source = detail
+            break
+    assert source, "隔离数据库没有可引用工具/航材的工卡"
+    source_code = source["task_code"]
+
+    page.goto(server_base + "/card/new")
+    page.wait_for_selector("#cardForm")
+    page.click("button[onclick='openCardReference()']")
+    page.wait_for_selector("#referenceModal.show")
+    assert page.locator("#referenceModal").is_visible()
+    # 工卡号与工卡名称均可搜索
+    page.fill("#referenceQuery", source["task_name"][:20])
+    page.wait_for_selector("#referenceResults .reference-result")
+    assert source_code in page.locator("#referenceResults .reference-result").first.inner_text()
+    page.fill("#referenceQuery", source_code)
+    page.wait_for_selector("#referenceResults .reference-result")
+    page.locator("#referenceResults .reference-result").first.click()
+    page.get_by_role("button", name="确认追加").click()
+    page.wait_for_timeout(200)
+    assert page.locator("#toolTable tbody tr").count() == len(source.get("tools", []))
+    assert page.locator("#matTable tbody tr").count() == len(source.get("materials", []))
+    assert "引用数据已追加" in page.locator("#toastContainer .toast").last.inner_text()
+
+    # 工卡编辑、工卡组新建、工卡组编辑均位于同一流程位置并提供按钮。
+    page.goto(server_base + f"/card/{source['id']}/edit")
+    page.wait_for_selector("#cardForm")
+    assert page.locator("button[onclick='openCardReference()']").count() == 1
+    page.goto(server_base + "/card/sets")
+    page.wait_for_selector("#setTable tbody tr:not(.empty-state-row)")
+    set_onclick = page.locator("#setTable tbody tr:not(.empty-state-row) button[onclick*='/card/sets/']").first.get_attribute("onclick")
+    set_match = re.search(r"/card/sets/(\d+)/edit", set_onclick or "")
+    assert set_match, f"未找到工卡组编辑地址: {set_onclick!r}"
+    page.goto(server_base + f"/card/sets/{set_match.group(1)}/edit")
+    page.wait_for_selector("#setForm")
+    assert page.locator("button[onclick='openCardReference()']").count() == 1
+
+
+# ---------- 15. v3.6.0 步骤1：左侧竖向导航布局（数据管理折叠组） ----------
 def test_side_nav_layout(page, server_base):
     """左侧竖向导航（数据管理与顶级项同级同款，4个子页在折叠组内）+ 顶部登录框，无JS错误。"""
     js_errors = []

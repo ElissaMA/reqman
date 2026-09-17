@@ -47,6 +47,24 @@ class TestListCards:
 class TestCardDetail:
     """工卡详情接口测试"""
 
+    def test_reference_search_by_code_and_name(self, prefilled_client):
+        for query in ("ENG-001", "发动机检查"):
+            resp = prefilled_client.get(f"/card/reference-search?q={query}")
+            assert resp.status_code == 200
+            payload = resp.get_json()
+            assert payload["success"] is True
+            assert any(row["task_code"] == "ENG-001" for row in payload["data"])
+            assert all("tools" not in row and "materials" not in row for row in payload["data"])
+
+    def test_reference_search_excludes_current_card(self, prefilled_client):
+        resp = prefilled_client.get("/card/reference-search?q=ENG&exclude_id=1")
+        assert resp.status_code == 200
+        assert all(row["id"] != 1 for row in resp.get_json()["data"])
+
+    def test_reference_search_requires_query(self, client):
+        resp = client.get("/card/reference-search?q=")
+        assert resp.status_code == 400
+
     def test_detail_existing(self, prefilled_client):
         """获取现有工卡详情"""
         resp = prefilled_client.get("/card/1")

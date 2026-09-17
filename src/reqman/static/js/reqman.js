@@ -113,6 +113,104 @@
         window.syncConfirmedSection(checkbox, sectionId);
     };
 
+    window.openReferencePicker = function (options) {
+        options = options || {};
+        var modalEl = byId(options.modalId || 'referenceModal');
+        var queryEl = byId(options.queryId || 'referenceQuery');
+        var resultsEl = byId(options.resultsId || 'referenceResults');
+        if (!modalEl || !queryEl || !resultsEl) return;
+        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        var timer;
+        function render(rows) {
+            if (!rows.length) {
+                resultsEl.innerHTML = '<div class="text-muted small p-3">未找到匹配工卡</div>';
+                return;
+            }
+            resultsEl.innerHTML = rows.map(function (card) {
+                return '<button type="button" class="list-group-item list-group-item-action reference-result" data-id="' +
+                    escapeHtml(card.id) + '">' +
+                    '<strong>' + escapeHtml(card.task_code) + '</strong> ' + escapeHtml(card.task_name) +
+                    '<span class="text-muted small ms-2">' + escapeHtml(card.category || '-') +
+                    ' · 工具 ' + card.tools_count + ' · 航材 ' + card.materials_count + '</span></button>';
+            }).join('');
+            resultsEl.querySelectorAll('.reference-result').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    var id = button.getAttribute('data-id');
+                    fetch('/card/' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                        .then(function (r) { return r.json(); })
+                        .then(function (payload) {
+                            if (!payload || !payload.success || !payload.data) throw new Error('读取引用工卡失败');
+                            var card = payload.data;
+                            var tools = Array.isArray(card.tools) ? card.tools : [];
+                            var materials = Array.isArray(card.materials) ? card.materials : [];
+                            if (!tools.length && !materials.length) {
+                                window.safeToast('该工卡没有可引用的工具/航材数据', 'warning');
+                                return;
+                            }
+                            return window.confirmModal({
+                                title: '确认引用工具/航材数据',
+                                body: '将追加 ' + tools.length + ' 项工具、' + materials.length +
+                                    ' 项航材，已有内容保留，可能存在重复，请追加后检查。',
+                                okText: '确认追加'
+                            }).then(function (ok) {
+                                if (!ok) return;
+                                options.onSelect(card);
+                                modal.hide();
+                            });
+                        })
+                        .catch(function (error) { window.safeToast(error.message || '读取引用工卡失败', 'error'); });
+                });
+            });
+        }
+        function search() {
+            var query = queryEl.value.trim();
+            if (!query) {
+                resultsEl.innerHTML = '<div class="text-muted small p-3">请输入工卡号或工卡名称</div>';
+                return;
+            }
+            var url = '/card/reference-search?q=' + encodeURIComponent(query);
+            if (options.excludeId) url += '&exclude_id=' + encodeURIComponent(options.excludeId);
+            fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function (r) { return r.json(); })
+                .then(function (payload) {
+                    if (!payload || !payload.success) throw new Error(payload && payload.message || '搜索失败');
+                    render(payload.data || []);
+                })
+                .catch(function (error) { resultsEl.innerHTML = ''; window.safeToast(error.message || '搜索失败', 'error'); });
+        }
+        queryEl.value = '';
+        resultsEl.innerHTML = '<div class="text-muted small p-3">请输入工卡号或工卡名称</div>';
+        queryEl.oninput = function () { window.clearTimeout(timer); timer = window.setTimeout(search, 250); };
+        queryEl.onkeydown = function (event) { if (event.key === 'Enter') { event.preventDefault(); window.clearTimeout(timer); search(); } };
+        modal.show();
+        modalEl.addEventListener('hidden.bs.modal', function () { queryEl.oninput = null; queryEl.onkeydown = null; }, { once: true });
+    };
+    window.appendReferenceItems = function (card, addRowFn) {
+        var addedTools = 0;
+        var addedMaterials = 0;
+        function append(items, type, prefix) {
+            (Array.isArray(items) ? items : []).forEach(function (item) {
+                addRowFn(type);
+                var row = byId(type === 'tool' ? 'toolTable' : 'matTable').querySelector('tbody tr:last-child');
+                if (!row) return;
+                var name = row.querySelector('input[name="' + prefix + '_name[]"]');
+                var pn = row.querySelector('input[name="' + prefix + '_pn[]"]');
+                var qty = row.querySelector('input[name="' + prefix + '_qty[]"]');
+                var remark = row.querySelector('input[name="' + prefix + '_remark[]"]');
+                var usage = row.querySelector('select[name="' + prefix + '_type[]"]');
+                if (name) name.value = item.device_name || item.material_name || '';
+                if (pn) pn.value = item.part_number || '';
+                if (qty) qty.value = item.quantity || '';
+                if (remark) remark.value = item.remark || '';
+                if (usage && item.usage_type) usage.value = item.usage_type;
+                if (type === 'tool') addedTools += 1; else addedMaterials += 1;
+            });
+        }
+        append(card.tools, 'tool', 'tool');
+        append(card.materials, 'mat', 'mat');
+        return { tools: addedTools, materials: addedMaterials };
+    };
+
     window.Poller = (function () {
         function reenable(selector) {
             if (!selector) return;

@@ -198,6 +198,32 @@ def card_delete(card_id):
     return redirect("/card/list")
 
 
+@cards_bp.route("/card/reference-search")
+def card_reference_search():
+    """搜索可引用工卡摘要（只返回工卡信息，不返回工具/航材明细）。"""
+    query = request.args.get("q", "").strip()
+    if not query:
+        return api_error("请输入工卡号或工卡名称", "MISSING_QUERY", 400)
+    exclude_id = request.args.get("exclude_id", "").strip()
+    try:
+        excluded = int(exclude_id) if exclude_id else None
+    except ValueError:
+        return api_error("当前工卡编号无效", "INVALID_EXCLUDE_ID", 400)
+    cards = current_app.extensions['card_service'].list_cards(search=query)
+    if excluded is not None:
+        cards = [card for card in cards if card.get("id") != excluded]
+    cards = cards[:30]
+    return api_success(data=[{
+        "id": card["id"],
+        "task_code": card.get("task_code", ""),
+        "task_name": card.get("task_name", ""),
+        "category": card.get("category", ""),
+        "task_type": card.get("task_type", ""),
+        "tools_count": len(card.get("tools", [])),
+        "materials_count": len(card.get("materials", [])),
+    } for card in cards])
+
+
 @cards_bp.route("/card/<int:card_id>")
 def card_detail(card_id):
     """工卡详情 (AJAX)"""

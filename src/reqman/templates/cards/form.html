@@ -82,6 +82,11 @@
                 <div class="form-check mt-3"><input class="form-check-input" type="checkbox" id="confirmNoReminder" name="confirm_no_reminder" value="1" {{ "checked" if card and card.reminder_confirmed and not card.reminder_type else "" }}><label class="form-check-label small" for="confirmNoReminder">确认无需提醒</label></div>
             </section>
 
+            <section class="form-section reference-section">
+                <div class="form-section-heading"><div><h2>引用工具/航材数据</h2><p class="section-description">按工卡号或名称搜索，将目标工卡的工具和航材追加到当前清单。</p></div><button type="button" class="btn btn-outline-secondary btn-sm" onclick="openCardReference()">引用工具/航材数据</button></div>
+                <div class="small text-muted" id="referenceSourceHint">不会复制工卡基础信息、确认状态或工卡组绑定。</div>
+            </section>
+
             <section class="form-section">
                 <div class="form-section-heading"><div><h2>工具清单</h2><p class="section-description">填写需准备的工具；没有工具时可勾选确认。</p></div><button type="button" class="btn btn-outline-primary btn-sm" onclick="addRow('tool')">新增工具</button></div>
                 <div id="toolSection">{{ tables.tool_table(tools, usage_types, editable=true, show_delete=true) }}</div>
@@ -107,6 +112,13 @@
             </div>
         </form>
     </div>
+</div>
+
+<div class="modal fade" id="referenceModal" tabindex="-1" aria-labelledby="referenceModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
+        <div class="modal-header"><h2 class="modal-title fs-5" id="referenceModalTitle">引用工具/航材数据</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button></div>
+        <div class="modal-body"><input type="search" class="form-control form-control-sm mb-3" id="referenceQuery" placeholder="搜索工卡号或工卡名称" autocomplete="off"><div class="list-group" id="referenceResults"><div class="text-muted small p-3">请输入工卡号或工卡名称</div></div></div>
+    </div></div>
 </div>
 
 {% endblock %}
@@ -163,6 +175,21 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 var usageTypes = {{ usage_types|tojson }};
+
+function openCardReference() {
+    window.openReferencePicker({
+        modalId: "referenceModal",
+        queryId: "referenceQuery",
+        resultsId: "referenceResults",
+        excludeId: "{{ card.id if card else "" }}",
+        onSelect: function(card) {
+            var counts = window.appendReferenceItems(card, addRow);
+            var hint = document.getElementById("referenceSourceHint");
+            if (hint) hint.textContent = "已追加来源：" + card.task_code + "，工具 " + counts.tools + " 项、航材 " + counts.materials + " 项，请检查后保存。";
+            window.safeToast("引用数据已追加，请检查后保存", "success");
+        }
+    });
+}
 
 function addRow(type) {
     if (type == "tool") {
