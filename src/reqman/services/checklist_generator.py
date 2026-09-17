@@ -1,18 +1,19 @@
 """借用清单生成器 —— 按匹配结果自动生成《零散工具借用清单》与《开封航化借用清单》。
 
 重复判定标准（工具与航化共用）：对两条记录 a、b——
-1. 双方件号均非空：件号相同 → 重复；件号不同 → 再比名称，名称相同 → 重复；
-2. 任一件号为空：直接比名称，名称相同 → 重复。
+1. 双方件号均非空：只比较件号；件号相同 → 重复，件号不同 → 不重复；
+2. 双方件号均为空：比较名称，名称相同 → 重复；
+3. 一方有件号、一方无件号：不因名称相同而重复。
 （名称/件号均先归一化：strip + 压缩空白 + casefold）
 
 填充规则：
 - 工具清单（tools_template.xlsx /「定检工具」）：A 列纵向合并四区——通用 3-18
   （预印 3-15、空白 16-18）、发动机 19-28、机体 29-38、电子 39-48。特检/支援丢弃；
   组内专业数 ≥2 的重复组去重取最大后写通用区空白行；单专业组写对应专业区，
-  组内任一行命中通用预印行（同标准）则整组跳过；区满自动插行扩区。
+  组内任一行命中通用预印行（严格件号优先）则整组跳过；区满自动插行扩区。
 - 航化清单（materials_template.xlsx /「定检航化」）：常用 3-11、外场航化 12-17 预印
   视为已有；remark 含"开封航化"且非"检查有问题领用"的重复组写非例行区 18-24，
-  区满自动插行。
+  重复组使用严格件号优先规则；区满自动插行。
 - 合并组取最大数量（数字解析 max，全不可解析取第一条非空），件号随最大行。
 - 区域定位一律按 A 列区标签实时解析（前区扩行会平移后续区坐标）。
 """
@@ -45,11 +46,13 @@ def _parse_qty(value) -> float:
 
 
 def _same_item(a: dict, b: dict, name_key: str) -> bool:
-    """重复判定：件号均非空且相同 → 重复；件号不同 → 再比名称；任一件号空 → 比名称。"""
+    """重复判定：双方有件号只比件号；双方无件号才比名称；有/无件号不合并。"""
     pn_a, pn_b = _norm(a.get("part_number")), _norm(b.get("part_number"))
-    if pn_a and pn_b and pn_a == pn_b:
-        return True
-    return _norm(a.get(name_key)) == _norm(b.get(name_key))
+    if pn_a and pn_b:
+        return pn_a == pn_b
+    if not pn_a and not pn_b:
+        return _norm(a.get(name_key)) == _norm(b.get(name_key))
+    return False
 
 
 def _group_items(items: list[dict], name_key: str) -> list[list[dict]]:

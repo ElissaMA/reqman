@@ -59,7 +59,24 @@ class TestChecklistApi:
         ws = wb["定检航化"]
         assert ws["B18"].value == "密封胶 MQ-1"    # 非例行区首行
 
-    def test_missing_package_id_400(self, client):
+    def test_chemical_same_name_different_pn_both_downloaded(self, client, store):
+        pkg_id = _make_package(store)
+        pkg = store.get_work_package(pkg_id)
+        pkg["matched"][0]["materials"] = [
+            {"material_name": "清洗剂", "part_number": "PN-A", "quantity": "1",
+             "remark": "优先使用开封航化", "usage_type": "必须使用"},
+            {"material_name": "清洗剂", "part_number": "PN-B", "quantity": "2",
+             "remark": "优先使用开封航化", "usage_type": "必须使用"},
+        ]
+        store.save_work_package(pkg)
+        resp = client.post("/generate/chemical-list", data={"package_id": pkg_id})
+        assert resp.status_code == 200
+        ws = openpyxl.load_workbook(io.BytesIO(resp.data))["定检航化"]
+        assert [(ws["B18"].value, ws["C18"].value),
+                (ws["B19"].value, ws["C19"].value)] == [
+                    ("清洗剂", "PN-A"), ("清洗剂", "PN-B")]
+
+
         resp = client.post("/generate/tool-list", data={})
         assert resp.status_code == 400
 
