@@ -14,7 +14,7 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 from ..config import CATEGORIES, OUTPUT_DIR
 from ..services import amro_sync
 from ..services.connectors.amro import AmroSessionExpired
-from ..services.work_package_matcher import match_work_package_items
+from ..services.work_package_matcher import is_cancelled_item, match_work_package_items
 from ..services.worklist_parser import WorklistError, merge_aircraft_info, parse_worklist
 from ..utils.dates import fmt_date10
 from ..utils.error_handlers import NotFoundError, ValidationError, is_ajax
@@ -93,6 +93,9 @@ def upload():
             store.delete_work_package(wp["package_id"])
             continue
         wp["status"] = _classify_package(wp)
+        wp["cancelled_count"] = sum(
+            1 for item in wp.get("all_items", []) if is_cancelled_item(item)
+        )
         filtered.append(wp)
 
     return render_template("packages/upload.html", work_packages=filtered,

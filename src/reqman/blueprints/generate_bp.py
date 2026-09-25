@@ -12,7 +12,7 @@ from ..services.amro_sync import build_package_label
 from ..services.checklist_generator import generate_chemical_list, generate_tool_list
 from ..services.form_generator import generate_form
 from ..services.reminder_generator import generate_reminder
-from ..services.work_package_matcher import match_work_package_items
+from ..services.work_package_matcher import is_cancelled_item, match_work_package_items
 from ..utils.error_handlers import NotFoundError, TemplateContractError, is_ajax
 from ..utils.response import api_error, api_success
 
@@ -26,9 +26,24 @@ def _get_store():
 
 
 
+def _package_cache_has_cancelled(pkg_data: dict) -> bool:
+    """检查已匹配缓存是否遗漏/复活撤销工卡。"""
+    cancelled_codes = {
+        str(item.get("task_code", "")).strip()
+        for item in pkg_data.get("all_items", [])
+        if is_cancelled_item(item)
+    }
+    if not cancelled_codes:
+        return False
+    for group in (pkg_data.get("matched", []), pkg_data.get("new_cards", [])):
+        if any(str(item.get("task_code", "")).strip() in cancelled_codes for item in group):
+            return True
+    return len(pkg_data.get("cancelled", [])) != len(cancelled_codes)
+
+
 def _ensure_package_matched(pkg_data):
-    """若工作包尚未匹配，执行匹配并保存"""
-    if pkg_data.get("is_matched"):
+    """若工作包尚未匹配或缓存复活撤销项，执行匹配并保存。"""
+    if pkg_data.get("is_matched") and not _package_cache_has_cancelled(pkg_data):
         return pkg_data
 
     store = _get_store()
@@ -141,6 +156,8 @@ def _flatten_matched(matched):
     """
     matched_tools, matched_materials, spare_auto = [], [], []
     for item in _dedup_matched(matched):
+        if is_cancelled_item(item):
+            continue
         category = item.get("category", "")
         task_name = item.get("task_name", "")
         set_name = item.get("set_name", "")
@@ -298,6 +315,8 @@ def reminder_download():
 
     items = []
     for item in _dedup_matched(pkg_data.get("matched", [])):
+        if is_cancelled_item(item):
+            continue
         if item.get("card_ok") and item.get("reminder_confirmed") and item.get("reminder_type"):
             items.append({
                 "task_name": item.get("set_name") or item.get("task_name", ""),

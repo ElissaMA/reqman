@@ -13,6 +13,7 @@ import logging
 
 from ..models.json_store import JsonStore
 from ..utils.validators import clean_text, is_blank
+from .work_package_matcher import is_cancelled_item
 
 logger = logging.getLogger(__name__)
 
@@ -308,6 +309,11 @@ class CardService:
                            cards_by_code: dict | None = None) -> None:
         """将工卡组的共用工具/航材传播给组内所有工卡"""
         for item in matched[:]:
+            if is_cancelled_item(item):
+                item["cancelled"] = True
+                item["status"] = "cancelled"
+                matched.remove(item)
+                continue
             set_id = item.get("set_id")
             if not set_id:
                 card = self._lookup_card(item["task_code"], cards_by_code)
@@ -325,6 +331,12 @@ class CardService:
             self._merge_item_resources(item, shared_tools, shared_materials)
             item["set_name"] = set_name
             for other in all_items:
+                if is_cancelled_item(other):
+                    other["cancelled"] = True
+                    other["status"] = "cancelled"
+                    if other in new_cards:
+                        new_cards.remove(other)
+                    continue
                 if other.get("set_id") == set_id and other is not item:
                     # 检查工卡本身的确认状态，未确认的不移入 matched
                     other_card = self._lookup_card(other.get("task_code", ""), cards_by_code)
@@ -369,6 +381,11 @@ class CardService:
         """识别新工卡中属于既有工卡组的项目，归入已匹配"""
         remove_idx = []
         for i, item in enumerate(new_cards):
+            if is_cancelled_item(item):
+                item["cancelled"] = True
+                item["status"] = "cancelled"
+                remove_idx.append(i)
+                continue
             card = self._lookup_card(item.get("task_code", ""), cards_by_code)
             if card and card.get("set_id"):
                 # 检查工卡本身的确认状态，未确认的不移入 matched

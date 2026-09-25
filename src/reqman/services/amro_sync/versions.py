@@ -28,6 +28,7 @@ from ...config import (
 from ...utils.template_cache import load_template
 from ..connectors import amro
 from ..reminder_generator import COL_MAP
+from ..work_package_matcher import is_cancelled_item
 
 logger = logging.getLogger(__name__)
 
@@ -313,7 +314,8 @@ def start_package_version_check(store, session_store, package_id: str, pkg_data:
 
     def job():
         task_codes = list(dict.fromkeys(
-            it.get("task_code") for it in pkg_data.get("all_items", []) if it.get("task_code")))
+            it.get("task_code") for it in pkg_data.get("all_items", [])
+            if it.get("task_code") and not is_cancelled_item(it)))
 
         async def _inner():
             async with httpx.AsyncClient(verify=True, trust_env=False) as client:
