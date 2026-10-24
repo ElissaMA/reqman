@@ -285,7 +285,7 @@ def test_set_form_selected_persist(page, server_base):
 
 
 # ---------- 10. v3.5.0 T2：表头 AMRO 登录三件套 + 库存页瘦身 ----------
-def test_header_amro_login_trio(page, server_base):
+def test_header_amro_login_trio(page, server_base, e2e_shots):
     """表头状态徽章/一键登录/新建配置就位；点击徽章立即检查；库存页无登录卡（T2）。"""
     js_errors = []
     page.on("pageerror", lambda e: js_errors.append(str(e)))
@@ -304,7 +304,7 @@ def test_header_amro_login_trio(page, server_base):
         f"徽章未渲染状态: {badge!r}"
     # 提示条显示（未登录=P4/P7 文案；登录=P6 常驻小字）
     assert page.locator("#amroAlert").is_visible()
-    page.screenshot(path="output/e2e_t2_header_amro.png")
+    page.screenshot(path=str(e2e_shots / "e2e_t2_header_amro.png"))
 
     # 库存页：登录卡/配置区移除，查询区保留，表头三件套仍在
     page.goto(server_base + "/inventory")
@@ -312,13 +312,13 @@ def test_header_amro_login_trio(page, server_base):
     assert page.locator("#checkConfigBtn").count() == 0, "库存页检查配置未移除"
     assert page.locator("#zoneDemand").count() == 1, "查询区应保留"
     assert page.locator("#amroStatus").count() == 1, "表头徽章应在"
-    page.screenshot(path="output/e2e_t2_inventory_slim.png")
+    page.screenshot(path=str(e2e_shots / "e2e_t2_inventory_slim.png"))
 
     assert not js_errors, f"页面存在JS错误: {js_errors}"
 
 
 # ---------- 11. v3.5.0 T5：工作包页四卡片重排（现有功能全保留） ----------
-def test_packages_page_relayout(page, server_base):
+def test_packages_page_relayout(page, server_base, e2e_shots):
     """Card0 AMRO拉包/Card1上传/Card2工作包清单/Card3版本日志 全部就位，wpTable功能保留。"""
     js_errors = []
     page.on("pageerror", lambda e: js_errors.append(str(e)))
@@ -328,7 +328,7 @@ def test_packages_page_relayout(page, server_base):
     page.wait_for_selector("#amroPackRefresh")
     page.wait_for_selector("#zoneRoutine")        # Card1 上传（保留）
     page.wait_for_selector("#zoneOther")
-    page.screenshot(path="output/e2e_t5_packages_top.png")
+    page.screenshot(path=str(e2e_shots / "e2e_t5_packages_top.png"))
 
     # Card2 工作包清单存在（有包或空态均可）；版本日志卡已移除
     assert page.locator("#wpTable").count() + page.locator(".empty-state-icon").count() >= 0
@@ -342,7 +342,7 @@ def test_packages_page_relayout(page, server_base):
 
 
 # ---------- 12. v3.6.0：预览页按钮排 + 表头登录框共存 ----------
-def test_generate_page_buttons_and_header(page, server_base):
+def test_generate_page_buttons_and_header(page, server_base, e2e_shots):
     """预览页含「下载需求单/下载提醒单/下载工卡改版清单」按钮排；表头三件套与页面共存无JS错误。
 
     提醒单已回退纯同步（无版本检查勾选框）；改版清单独立按钮下载（需先在工作包页查询）。
@@ -357,7 +357,7 @@ def test_generate_page_buttons_and_header(page, server_base):
     # 预览页需 package_id —— 无包时验证上传页即可；按钮排存在性由 form.html 保证
     page.goto(server_base + "/inventory")
     page.wait_for_selector("#amroStatus")
-    page.screenshot(path="output/e2e_t7_session_header.png")
+    page.screenshot(path=str(e2e_shots / "e2e_t7_session_header.png"))
     assert not js_errors, f"页面存在JS错误: {js_errors}"
 
 
@@ -445,7 +445,7 @@ def test_reference_tools_materials_on_all_card_forms(page, server_base):
 
 
 # ---------- 15. v3.6.0 步骤1：左侧竖向导航布局（数据管理折叠组） ----------
-def test_side_nav_layout(page, server_base):
+def test_side_nav_layout(page, server_base, e2e_shots):
     """左侧竖向导航（数据管理与顶级项同级同款，4个子页在折叠组内）+ 顶部登录框，无JS错误。"""
     js_errors = []
     page.on("pageerror", lambda e: js_errors.append(str(e)))
@@ -470,7 +470,7 @@ def test_side_nav_layout(page, server_base):
     page.wait_for_selector(".top-bar #amroQuickLogin")
     page.wait_for_selector(".top-bar a[href='/inventory/setup-package']")
     assert page.locator(".top-bar #amroAlert").count() == 1
-    page.screenshot(path="output/e2e_s1_side_nav.png")
+    page.screenshot(path=str(e2e_shots / "e2e_s1_side_nav.png"))
 
     # 工卡列表页 → 工卡信息高亮，折叠组仍展开
     page.goto(server_base + "/card/list")

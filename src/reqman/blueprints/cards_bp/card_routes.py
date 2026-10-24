@@ -287,7 +287,8 @@ def cancelled_card_delete(card_id):
 @cards_bp.route("/card/cancelled/confirm", methods=["POST"])
 def cancelled_cards_confirm():
     """人工确认作废：批量标记 cancelled=True（版本检查报告确认入口）"""
-    task_codes = request.form.getlist("task_codes[]") or request.form.getlist("task_codes")
+    raw_codes = request.form.getlist("task_codes[]") or request.form.getlist("task_codes")
+    task_codes = [str(c).strip() for c in raw_codes if str(c).strip()]
     source = request.form.get("source", "manual").strip() or "manual"
     if not task_codes:
         if is_ajax():
@@ -297,8 +298,7 @@ def cancelled_cards_confirm():
     service = current_app.extensions['card_service']
     confirmed, missing = [], []
     for code in task_codes:
-        code = str(code).strip()
-        card = service.store.find_by_code(code) if code else None
+        card = service.store.find_by_code(code)
         if card is None:
             missing.append(code)
             continue

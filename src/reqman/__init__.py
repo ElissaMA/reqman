@@ -92,8 +92,13 @@ class RequestLogMiddleware:
                 wsgi_iter.close()
 
 
-def create_app():
-    """应用工厂"""
+def create_app(db_file=None, cookie_file=None):
+    """应用工厂。
+
+    db_file / cookie_file 为可选路径覆写（测试隔离用）；缺省走 config 默认路径。
+    覆写经参数显式传入而非改 config 模块属性——config 常量在包 import 时已绑定，
+    事后改属性对本函数无效（旧集成测试的真实库泄漏即源于此）。
+    """
     app = Flask(__name__, template_folder="templates", static_folder="static", static_url_path="/static")
     app.secret_key = SECRET_KEY
     app.config["MAX_CONTENT_LENGTH"] = MAX_CONTENT_LENGTH
@@ -108,10 +113,11 @@ def create_app():
     from .services.connectors.session import LoginSessionStore
     from .services.inventory_service import InventoryService
 
-    app.extensions["store"] = JsonStore(str(DB_FILE))
-    app.extensions["card_service"] = CardService(app.extensions["store"])
+    store = JsonStore(str(db_file or DB_FILE))
+    app.extensions["store"] = store
+    app.extensions["card_service"] = CardService(store)
     app.extensions["inventory_service"] = InventoryService(
-        LoginSessionStore(str(AMRO_COOKIE_FILE)),
+        LoginSessionStore(str(cookie_file or AMRO_COOKIE_FILE)),
         max_concurrent=AMRO_MAX_CONCURRENT,
     )
     logger.info("依赖注入完成：store + card_service + inventory_service")

@@ -26,6 +26,9 @@ BASE = f"http://127.0.0.1:{PORT}"
 SERVER_SCRIPT = r"""
 import os, sys
 os.environ["DB_FILE"] = r"{db_path}"
+os.environ["AMRO_COOKIE_FILE"] = r"{cookie_path}"
+os.environ["AMRO_AUDIT_FILE"] = r"{audit_path}"
+os.environ["OUTPUT_DIR"] = r"{output_dir}"
 sys.path.insert(0, r"{src}")
 from werkzeug.serving import make_server
 from reqman import create_app
@@ -73,7 +76,11 @@ def page(context, request):
 
 @pytest.fixture(scope="session")
 def flask_server(tmp_path_factory):
-    """会话级：隔离DB副本 → 子进程启动Flask服务器(5123) → 结束校验真实DB未污染。"""
+    """会话级：隔离DB副本 → 子进程启动Flask服务器(5123) → 结束校验真实DB未污染。
+
+    cookie/审计/输出目录一并重定向到 tmp（否则点击 AMRO 状态徽章会读真实
+    cookie、发真实网络探活并回写生产凭证文件，teardown 完全检测不到）。
+    """
     data_dir = tmp_path_factory.mktemp("e2e_db")
     core_src = ROOT / "data" / "reqman_db.json"
     if not core_src.exists():
@@ -88,14 +95,29 @@ def flask_server(tmp_path_factory):
     else:
         rt_tmp.write_text("{}", encoding="utf-8")
 
-    # 记录真实DB基线，用于测试后污染校验
-    baseline = {core_src: _sha256(core_src), rt_src: _sha256(rt_src)}
+    # 记录真实数据文件基线（存在的才纳入），用于测试后污染校验
+    watched = [
+        core_src, rt_src,
+        ROOT / "data" / "cookie" / "amro_cookies.json",
+        ROOT / "data" / "amro_audit.jsonl",
+    ]
+    baseline = {p: _sha256(p) for p in watched if p.exists()}
+
+    # AMRO 凭证/审计/输出全部指向 tmp（config 按环境变量解析，import 前生效）
+    cookie_tmp = data_dir / "cookie" / "amro_cookies.json"
+    cookie_tmp.parent.mkdir(parents=True, exist_ok=True)
+    audit_tmp = data_dir / "amro_audit.jsonl"
+    output_tmp = data_dir / "output"
+    output_tmp.mkdir(parents=True, exist_ok=True)
 
     log_dir = tmp_path_factory.mktemp("e2e_logs")
     log_path = log_dir / "server.log"
     log_f = open(log_path, "a", encoding="utf-8")  # noqa: SIM115 会话级日志句柄需保持打开
 
     script = SERVER_SCRIPT.format(db_path=core_tmp,
+                                  cookie_path=cookie_tmp,
+                                  audit_path=audit_tmp,
+                                  output_dir=output_tmp,
                                   src=SRC, port=PORT)
     proc = subprocess.Popen(
         [sys.executable, "-c", script],
@@ -111,10 +133,16 @@ def flask_server(tmp_path_factory):
         except subprocess.TimeoutExpired:
             proc.kill()
         log_f.close()
-        # 隔离校验：真实DB必须与测试前一致
+        # 隔离校验：真实数据文件必须与测试前一致
         for p, h in baseline.items():
             if p.exists() and _sha256(p) != h:
-                raise RuntimeError(f"e2e测试污染了真实DB: {p}（隔离失败！请 git checkout 恢复）")
+                raise RuntimeError(f"e2e测试污染了真实数据: {p}（隔离失败！请 git checkout 恢复）")
+
+
+@pytest.fixture(scope="session")
+def e2e_shots(tmp_path_factory) -> pathlib.Path:
+    """e2e 截图目录（tmp）——避免截图写入真实 output/ 生产目录。"""
+    return tmp_path_factory.mktemp("e2e_shots")
 
 
 @pytest.fixture()

@@ -1,7 +1,5 @@
 """集成测试配置 — Flask 测试客户端、临时数据库、测试数据工厂"""
 
-from pathlib import Path
-
 import pytest
 from flask.testing import FlaskClient
 
@@ -11,32 +9,23 @@ from flask.testing import FlaskClient
 
 @pytest.fixture(scope="module")
 def app(tmp_path_factory):
-    """创建一个使用临时数据库的 Flask 测试应用（模块级复用）"""
-    tmp_dir = tmp_path_factory.mktemp("reqman_inttest")
-    db_path = str(tmp_dir / "test_reqman.json")
+    """创建一个使用临时数据库/临时凭证的 Flask 测试应用（模块级复用）。
 
-    # 覆写配置后创建应用
-    from reqman import config
-    original_db = config.DB_FILE
-    config.DB_FILE = Path(db_path)
+    路径经 create_app(db_file=..., cookie_file=...) 显式注入——
+    改 config 模块属性对包级 import 绑定的常量无效（旧写法曾导致
+    app 先对真实 data/reqman_db.json 实例化再手工重注入救回）。
+    """
+    tmp_dir = tmp_path_factory.mktemp("reqman_inttest")
 
     from reqman import create_app
-    from reqman.models.json_store import JsonStore
-    from reqman.services.card_service import CardService
 
-    app = create_app()
+    app = create_app(db_file=str(tmp_dir / "test_reqman.json"),
+                     cookie_file=str(tmp_dir / "amro_cookies.json"))
     app.config['TESTING'] = True
     app.config['WTF_CSRF_ENABLED'] = False
     app.config['SERVER_NAME'] = 'localhost'
 
-    # 重建 store + card_service（指向临时文件）
-    store = JsonStore(db_path)
-    app.extensions['store'] = store
-    app.extensions['card_service'] = CardService(store)
-
     yield app
-
-    config.DB_FILE = original_db
 
 
 @pytest.fixture

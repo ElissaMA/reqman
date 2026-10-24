@@ -4,16 +4,15 @@
 - 启动前自动释放 5001 端口（杀掉占用进程）
 - 端口被占用时尝试备用端口
 - 服务就绪后自动打开浏览器
+
+端口/备份等启动助手在 reqman.utils.startup（无应用副作用，可被测试安全导入）；
+本模块保留生产启动副作用（create_app 实例化 + atexit 退出备份），测试勿导入。
 """
 
 import atexit
-import gzip
 import os
-import platform
 import sys
-from datetime import datetime, timedelta
-from pathlib import Path
-from zoneinfo import ZoneInfo
+import threading
 
 
 def _ensure_venv():
@@ -36,140 +35,12 @@ def _ensure_venv():
 
 _ensure_venv()
 
-import socket
-import subprocess
-import threading
-import time
-
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 from reqman import create_app
-
-
-def _decode_windows_output(value):
-    """按 Windows 本地代码页解码命令输出，避免 Git Bash UTF-8 环境误解码。"""
-    if not isinstance(value, bytes):
-        return value or ""
-    try:
-        return value.decode("mbcs", errors="replace")
-    except LookupError:  # 非 Windows 测试环境没有 mbcs 编解码器
-        return value.decode("cp936", errors="replace")
-
-
-def find_pid_by_port(port):
-    """跨平台：根据端口查找占用进程的 PID。"""
-    system = platform.system()
-    try:
-        if system == "Windows":
-            raw = subprocess.check_output(
-                ["netstat", "-ano"], stderr=subprocess.DEVNULL
-            )
-            output = _decode_windows_output(raw)
-            for line in output.splitlines():
-                if f":{port}" in line and "LISTENING" in line:
-                    parts = line.strip().split()
-                    if parts:
-                        return parts[-1]
-        else:
-            result = subprocess.run(
-                ["lsof", "-i", f":{port}", "-t"],
-                capture_output=True, text=True, check=False
-            )
-            if result.stdout.strip():
-                return result.stdout.strip().split("\n")[0]
-    except (OSError, subprocess.CalledProcessError, UnicodeError):
-        pass
-    return None
-
-
-def kill_process(pid):
-    """跨平台：终止指定 PID 的进程。"""
-    system = platform.system()
-    try:
-        if system == "Windows":
-            result = subprocess.run(
-                ["taskkill", "/F", "/PID", str(pid)],
-                capture_output=True, text=True, encoding="mbcs",
-                errors="replace", check=False
-            )
-        else:
-            result = subprocess.run(
-                ["kill", "-9", str(pid)],
-                capture_output=True, text=True, check=False
-            )
-        return result.returncode == 0
-    except (OSError, subprocess.CalledProcessError, UnicodeError):
-        return False
-
-
-def free_port(port):
-    """释放端口并返回最终建议使用的端口。"""
-    pid = find_pid_by_port(port)
-    if pid:
-        print(f"[启动] 端口 {port} 被 PID {pid} 占用，正在释放...")
-        kill_process(pid)
-        time.sleep(1)
-        if find_pid_by_port(port):
-            fallback = port + 1
-            print(f"[警告] 端口 {port} 释放失败，将尝试备用端口 {fallback}")
-            return fallback
-        print(f"[启动] 端口 {port} 已释放")
-    return port
-
-
-def wait_and_open(port):
-    """等待服务就绪。服务端部署时不自动打开浏览器。"""
-    system = platform.system()
-    for _ in range(30):
-        try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(1)
-            if sock.connect_ex(("127.0.0.1", port)) == 0:
-                sock.close()
-                url = f"http://127.0.0.1:{port}"
-                print(f"[启动] 服务已就绪: {url}")
-                # 仅 Windows 桌面环境自动打开浏览器
-                if system == "Windows":
-                    os.startfile(url)
-                return
-            sock.close()
-        except OSError:
-            pass
-        time.sleep(0.5)
-    print(f"[提示] 服务启动超时，请手动访问 http://127.0.0.1:{port}")
-
+from reqman.utils.startup import _backup_on_exit, free_port, wait_and_open
 
 app = create_app()
-
-
-def _backup_on_exit():
-    """应用关闭时自动备份数据库（核心+运行时文件，路径基于项目根，不依赖启动 CWD）"""
-    try:
-        project_root = Path(__file__).resolve().parent.parent.parent
-        data_dir = project_root / "data"
-        backup_dir = data_dir / "backups"
-        backup_dir.mkdir(parents=True, exist_ok=True)
-
-        # 生成带时间戳的备份文件名
-        timestamp = datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d_%H-%M-%S")
-
-        targets = [data_dir / "reqman_db.json", data_dir / "reqman_db_runtime.json"]
-        for db_file in targets:
-            if not db_file.exists():
-                continue
-            backup_file = backup_dir / f"{db_file.stem}_{timestamp}.json.gz"
-            with open(db_file, 'rb') as f_in, gzip.open(backup_file, 'wb') as f_out:
-                f_out.write(f_in.read())
-
-        # 清理28天前的备份（覆盖 core 与 runtime 两种命名）
-        cutoff = datetime.now(ZoneInfo("Asia/Shanghai")) - timedelta(days=28)
-        for f in backup_dir.glob("reqman_db*_*_*.json.gz"):
-            if f.stat().st_mtime < cutoff.timestamp():
-                f.unlink()
-    except OSError as e:
-        import logging
-        logging.getLogger(__name__).warning(f"关闭备份失败: {e}")
-
 
 atexit.register(_backup_on_exit)
 

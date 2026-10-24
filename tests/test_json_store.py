@@ -282,6 +282,29 @@ class TestIndexHeal:
         assert store.find_by_code("C-001")["id"] == 1
 
 
+class TestCancelledMarkRestore:
+    def test_restore_requires_cancelled_card(self, json_store):
+        """restore 只接受已作废卡；在用卡/不存在卡一律 ValueError"""
+        live = json_store.add("LIVE-1", "在用卡", "机体", "", "")
+        with pytest.raises(ValueError):
+            json_store.restore_cancelled(live["id"])
+        with pytest.raises(ValueError):
+            json_store.restore_cancelled(99999)
+        assert json_store.get(live["id"])["cancelled"] is False  # 未被误动
+
+    def test_restore_keeps_id_and_tools(self, json_store):
+        """恢复：同 id、数据原样、写 restore 日志"""
+        card = json_store.add("RC-1", "恢复卡", "机体", "", "")
+        json_store.update(card["id"], tools=[{"device_name": "扳手", "part_number": "",
+                                              "quantity": "1", "remark": "", "usage_type": "借用"}])
+        json_store.mark_cancelled(card["id"], source="full_version", set_name="")
+        restored = json_store.restore_cancelled(card["id"])
+        assert restored["id"] == card["id"]
+        assert restored["cancelled"] is False
+        assert restored["tools"][0]["device_name"] == "扳手"
+        assert any(l["operation"] == "restore" for l in json_store.get_logs())
+
+
 class TestAtomicWriteFailure:
     def test_write_failure_keeps_target(self, json_store, monkeypatch):
         """os.replace 失败时目标文件必须原样保留且抛异常（而非被截断覆盖）"""

@@ -544,3 +544,127 @@ class TestCancelledCardsPage:
                            headers={"X-Requested-With": "XMLHttpRequest"})
         data = resp.get_json()
         assert data["success"] is False
+
+    def test_page_has_edit_and_restore_buttons(self, app, client):
+        """作废页操作列暴露编辑/恢复按钮（编辑/恢复路由 UI 可达）"""
+        store = app.extensions["store"]
+        card = store.add("EOJC-X-2", "编辑按钮卡", "机体", "EO", "")
+        store.mark_cancelled(card["id"], source="full_version", set_name="")
+        try:
+            html = client.get("/card/cancelled").get_data(as_text=True)
+            assert "openEdit(" in html
+            assert "restoreCard(" in html
+            assert f"/card/cancelled/{card['id']}/update" not in html  # JS 提交，不写死表单 action
+        finally:
+            existing = store.find_by_code("EOJC-X-2")
+            if existing:
+                store.delete(existing["id"])
+
+    def test_restore_cancelled_card(self, app, client):
+        """恢复：cancelled=False、card_ok=False 待复核，回到工卡清单"""
+        store = app.extensions["store"]
+        card = store.add("EOJC-X-3", "恢复卡", "机体", "EO", "")
+        store.mark_cancelled(card["id"], source="full_version", set_name="")
+        try:
+            resp = client.post(f"/card/cancelled/{card['id']}/restore",
+                               headers={"X-Requested-With": "XMLHttpRequest"})
+            assert resp.get_json()["success"] is True
+            restored = store.find_by_code("EOJC-X-3")
+            assert restored["cancelled"] is False
+            assert restored["card_ok"] is False   # 恢复后待复核
+            assert restored["id"] == card["id"]   # 同 id 保留
+            assert "EOJC-X-3" not in client.get("/card/cancelled").get_data(as_text=True)
+        finally:
+            existing = store.find_by_code("EOJC-X-3")
+            if existing:
+                store.delete(existing["id"])
+
+    def test_update_cancelled_card(self, app, client):
+        """编辑作废卡：字段更新、作废标记保留、清单允许清空"""
+        store = app.extensions["store"]
+        card = store.add("EOJC-X-4", "编辑卡", "机体", "EO", "")
+        store.mark_cancelled(card["id"], source="full_version", set_name="")
+        try:
+            resp = client.post(f"/card/cancelled/{card['id']}/update",
+                               data={"task_code": "EOJC-X-4", "task_name": "编辑卡改名",
+                                     "category": "电子", "task_type": "EO", "remark": "改",
+                                     "tools_confirmed": "1", "reminder_confirmed": "1"},
+                               headers={"X-Requested-With": "XMLHttpRequest"})
+            assert resp.get_json()["success"] is True
+            updated = store.find_by_code("EOJC-X-4")
+            assert updated["task_name"] == "编辑卡改名"
+            assert updated["category"] == "电子"
+            assert updated["tools"] == []            # 作废卡允许清空清单
+            assert updated["cancelled"] is True      # 仍保持作废
+        finally:
+            existing = store.find_by_code("EOJC-X-4")
+            if existing:
+                store.delete(existing["id"])
+
+    def test_update_rejects_missing_fields(self, app, client):
+        """编辑作废卡：缺工卡号被 400 拒绝，数据不变"""
+        store = app.extensions["store"]
+        card = store.add("EOJC-X-5", "校验卡", "机体", "EO", "")
+        store.mark_cancelled(card["id"], source="full_version", set_name="")
+        try:
+            resp = client.post(f"/card/cancelled/{card['id']}/update",
+                               data={"task_code": "", "task_name": "x", "category": "机体"},
+                               headers={"X-Requested-With": "XMLHttpRequest"})
+            data = resp.get_json()
+            assert resp.status_code == 400
+            assert data["success"] is False
+            assert store.find_by_code("EOJC-X-5")["task_name"] == "校验卡"
+        finally:
+            existing = store.find_by_code("EOJC-X-5")
+            if existing:
+                store.delete(existing["id"])
+
+    def test_confirm_batch_marks_and_reports_missing(self, app, client):
+        """人工确认作废：批量标记 + 缺失汇报 + 来源记录"""
+        store = app.extensions["store"]
+        store.add("EOJC-C-1", "确认卡1", "机体", "EO", "")
+        store.add("EOJC-C-2", "确认卡2", "电子", "EO", "")
+        try:
+            resp = client.post("/card/cancelled/confirm",
+                               data={"task_codes[]": ["EOJC-C-1", "EOJC-C-2", "GHOST-1"],
+                                     "source": "package_version"},
+                               headers={"X-Requested-With": "XMLHttpRequest"})
+            data = resp.get_json()
+            assert data["success"] is True
+            assert data["data"]["confirmed"] == ["EOJC-C-1", "EOJC-C-2"]
+            assert data["data"]["missing"] == ["GHOST-1"]
+            assert data["message"].startswith("已确认作废 2 张")
+            for code in ("EOJC-C-1", "EOJC-C-2"):
+                card = store.find_by_code(code)
+                assert card["cancelled"] is True
+                assert card["cancel_source"] == "package_version"
+        finally:
+            for code in ("EOJC-C-1", "EOJC-C-2"):
+                existing = store.find_by_code(code)
+                if existing:
+                    store.delete(existing["id"])
+
+    def test_confirm_idempotent_skip_cancelled(self, app, client):
+        """人工确认作废：已作废卡幂等跳过（不重复计数、不报缺失）"""
+        store = app.extensions["store"]
+        card = store.add("EOJC-C-3", "幂等卡", "机体", "EO", "")
+        store.mark_cancelled(card["id"], source="full_version", set_name="")
+        try:
+            resp = client.post("/card/cancelled/confirm",
+                               data={"task_codes[]": "EOJC-C-3"},
+                               headers={"X-Requested-With": "XMLHttpRequest"})
+            data = resp.get_json()
+            assert data["data"]["confirmed"] == []
+            assert data["data"]["missing"] == []
+        finally:
+            existing = store.find_by_code("EOJC-C-3")
+            if existing:
+                store.delete(existing["id"])
+
+    def test_confirm_rejects_empty(self, client):
+        """人工确认作废：空清单 400 拒绝"""
+        resp = client.post("/card/cancelled/confirm",
+                           data={"task_codes[]": ""},
+                           headers={"X-Requested-With": "XMLHttpRequest"})
+        assert resp.status_code == 400
+        assert resp.get_json()["success"] is False
