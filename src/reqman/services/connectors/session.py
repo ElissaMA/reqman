@@ -22,13 +22,12 @@ def _now_iso() -> str:
 
 def _atomic_write(path: Path, data: dict) -> None:
     """原子写入，失败时保留原文件并抛出异常。"""
-    tmp = str(path) + ".tmp"
+    tmp = path.with_name(path.name + ".tmp")
     try:
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
         for attempt in range(3):
             try:
-                os.replace(tmp, str(path))
+                os.replace(str(tmp), str(path))
                 break
             except PermissionError:
                 if attempt == 2:

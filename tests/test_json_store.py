@@ -245,13 +245,12 @@ class TestNextIdHeal:
     def test_next_id_lag_does_not_overwrite(self, tmp_path):
         """next_id 落后于现存实体时，新增不得覆盖现有实体（服务器数据实证：1032 vs 1036）"""
         db_path = str(tmp_path / "lag.json")
-        with open(db_path, "w", encoding="utf-8") as f:
-            json.dump({
-                "next_id": 1032,
-                "cards": {str(i): {"id": i, "task_code": f"C-{i}"} for i in range(1028, 1033)},
-                "card_sets": {str(i): {"id": i, "name": f"S-{i}"} for i in range(1033, 1037)},
-                "aircraft": {},
-            }, f)
+        Path(db_path).write_text(json.dumps({
+            "next_id": 1032,
+            "cards": {str(i): {"id": i, "task_code": f"C-{i}"} for i in range(1028, 1033)},
+            "card_sets": {str(i): {"id": i, "name": f"S-{i}"} for i in range(1033, 1037)},
+            "aircraft": {},
+        }), encoding="utf-8")
         store = JsonStore(db_path)
         r = store.add("NEW-001", "新卡", "机体", "", "")
         assert r["id"] == 1037
@@ -264,23 +263,21 @@ class TestIndexHeal:
     def test_dirty_index_heals_on_read(self, tmp_path):
         """悬挂索引（指向 task_code 不匹配的卡）读取即自愈（服务器数据实证）"""
         db_path = str(tmp_path / "dirty.json")
-        with open(db_path, "w", encoding="utf-8") as f:
-            json.dump({
-                "next_id": 2,
-                "cards": {"1": {"id": 1, "task_code": "REAL-CODE"}},
-                "code_index": {"GHOST-CODE": 1, "REAL-CODE": 1},
-            }, f)
+        Path(db_path).write_text(json.dumps({
+            "next_id": 2,
+            "cards": {"1": {"id": 1, "task_code": "REAL-CODE"}},
+            "code_index": {"GHOST-CODE": 1, "REAL-CODE": 1},
+        }), encoding="utf-8")
         store = JsonStore(db_path)
         assert store.find_by_code("GHOST-CODE") is None
         assert store.find_by_code("REAL-CODE")["id"] == 1
         store.update(1, task_name="触发写入")  # 写后索引自愈持久化
-        with open(str(tmp_path / "dirty_runtime.json"), encoding="utf-8") as f:
-            assert "GHOST-CODE" not in json.load(f).get("code_index", {})
+        runtime_after = json.loads(Path(str(tmp_path / "dirty_runtime.json")).read_text(encoding="utf-8"))
+        assert "GHOST-CODE" not in runtime_after.get("code_index", {})
 
     def test_index_missing_rebuilt(self, tmp_path):
         db_path = str(tmp_path / "noidx.json")
-        with open(db_path, "w", encoding="utf-8") as f:
-            json.dump({"cards": {"1": {"id": 1, "task_code": "C-001"}}}, f)
+        Path(db_path).write_text(json.dumps({"cards": {"1": {"id": 1, "task_code": "C-001"}}}), encoding="utf-8")
         store = JsonStore(db_path)
         assert store.find_by_code("C-001")["id"] == 1
 
@@ -291,8 +288,7 @@ class TestAtomicWriteFailure:
         import reqman.models.json_store as jsm
 
         json_store.add("SAFE-001", "卡", "发动机", "A", "")
-        with open(json_store._path, encoding="utf-8") as f:
-            good = json.load(f)
+        good = json.loads(Path(json_store._path).read_text(encoding="utf-8"))
 
         def boom(src, dst):
             raise OSError("simulated replace failure")
@@ -301,8 +297,7 @@ class TestAtomicWriteFailure:
         with pytest.raises(OSError):
             json_store.add("SAFE-002", "卡2", "发动机", "A", "")
         monkeypatch.undo()
-        with open(json_store._path, encoding="utf-8") as f:
-            after = json.load(f)
+        after = json.loads(Path(json_store._path).read_text(encoding="utf-8"))
         assert after["cards"] == good["cards"]  # 好文件未被截断/覆盖
 
 
@@ -339,13 +334,11 @@ class TestCorruptRefuseWrite:
     def test_corrupt_runtime_refuses_write(self, json_store):
         """运行时文件损坏后拒绝一切写入，防止残缺库被合法化持久化"""
         json_store.add("CORR-001", "卡", "机体", "", "")
-        with open(json_store._runtime_path, "w", encoding="utf-8") as f:
-            f.write("{corrupted")
+        Path(json_store._runtime_path).write_text("{corrupted", encoding="utf-8")
         with pytest.raises(RuntimeError):
             json_store.add("CORR-002", "卡2", "机体", "", "")
         # 核心文件未被"半张库"覆盖
-        with open(json_store._path, encoding="utf-8") as f:
-            core = json.load(f)
+        core = json.loads(Path(json_store._path).read_text(encoding="utf-8"))
         assert "CORR-002" not in [c["task_code"] for c in core["cards"].values()]
         assert "CORR-001" in [c["task_code"] for c in core["cards"].values()]
 
@@ -354,8 +347,7 @@ class TestCorruptionSafety:
     @pytest.mark.parametrize("bad_value", [[], None, "bad"])
     def test_invalid_json_root_is_rejected(self, tmp_path, bad_value):
         db_path = str(tmp_path / "invalid-root.json")
-        with open(db_path, "w", encoding="utf-8") as f:
-            json.dump(bad_value, f)
+        Path(db_path).write_text(json.dumps(bad_value), encoding="utf-8")
         with pytest.raises(JsonStoreCorruptionError):
             JsonStore(db_path)
 
@@ -365,17 +357,14 @@ class TestCorruptionSafety:
         store.add("KEEP-001", "保留卡", "机体", "", "")
         runtime_path = str(tmp_path / "protected_runtime.json")
         os.remove(runtime_path + ".bak")
-        with open(runtime_path, "w", encoding="utf-8") as f:
-            f.write("{corrupt")
+        Path(runtime_path).write_text("{corrupt", encoding="utf-8")
         with pytest.raises(JsonStoreCorruptionError):
             JsonStore(db_path)
-        with open(db_path, encoding="utf-8") as f:
-            assert "KEEP-001" in json.dumps(json.load(f), ensure_ascii=False)
+        assert "KEEP-001" in Path(db_path).read_text(encoding="utf-8")
 
     def test_legacy_defaults_are_not_shared(self, tmp_path):
         db_path = str(tmp_path / "legacy.json")
-        with open(db_path, "w", encoding="utf-8") as f:
-            json.dump({"cards": {"1": {"id": 1, "task_code": "LEGACY"}}}, f)
+        Path(db_path).write_text(json.dumps({"cards": {"1": {"id": 1, "task_code": "LEGACY"}}}), encoding="utf-8")
         store = JsonStore(db_path)
         first = store.get(1)
         first["tools"].append({"device_name": "临时"})
@@ -385,8 +374,7 @@ class TestCorruptionSafety:
     def test_get_all_missing_key_safe(self, tmp_path):
         """数据缺 task_code 键时 get_all 不得 500（KeyError 防护）"""
         db_path = str(tmp_path / "missing.json")
-        with open(db_path, "w", encoding="utf-8") as f:
-            json.dump({"cards": {"1": {"id": 1}}}, f)  # 缺 task_code
+        Path(db_path).write_text(json.dumps({"cards": {"1": {"id": 1}}}), encoding="utf-8")  # 缺 task_code
         store = JsonStore(db_path)
         cards = store.get_all()
         assert len(cards) == 1 and cards[0]["id"] == 1

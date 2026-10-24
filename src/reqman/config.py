@@ -20,8 +20,6 @@ PORT: int = int(os.getenv("SERVER_PORT", "5001"))
 DEBUG: bool = os.getenv("FLASK_DEBUG", "0") == "1"
 
 DB_FILE: Path = BASE_DIR / os.getenv("DB_FILE", "data/reqman_db.json")
-# 作废工卡独立存储（与主库分离，降低主库读写体积；gitignore 已忽略 data/）
-CANCELLED_CARDS_FILE: Path = BASE_DIR / os.getenv("CANCELLED_CARDS_FILE", "data/cancelled_cards.json")
 TEMPLATE_FILE: Path = BASE_DIR / os.getenv("TEMPLATE_FILE", "assets/demand_template.xlsx")
 REMINDER_TEMPLATE_FILE: Path = BASE_DIR / os.getenv("REMINDER_TEMPLATE_FILE", "assets/reminder_template.xlsx")
 CHECK_TEMPLATE_FILE: Path = BASE_DIR / os.getenv("CHECK_TEMPLATE_FILE", "assets/check_template.xlsx")

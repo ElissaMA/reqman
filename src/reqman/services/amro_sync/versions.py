@@ -69,21 +69,14 @@ def _is_in_scope(code: str) -> bool:
 
 
 
-def _move_to_cancelled(store, cancelled_store, card: dict, source: str) -> None:
-    """作废工卡移库：整卡入作废库（承接全部原字段）→ 主库删除。
-
-    先入作废库再删主库；作废库按 task_code upsert，中断重跑不会重复。
-    cancelled_store 为 None 时仅报告不移库（保持旧行为）。
-    """
-    if cancelled_store is None:
-        return
+def _mark_cancelled(store, card: dict, source: str) -> None:
+    """人工确认后的作废标记：同 id 保留在主库，单次原子写。"""
     set_name = ""
     set_id = card.get("set_id")
     if set_id:
         set_data = store.get_set(set_id)
         set_name = set_data.get("name", "") if set_data else ""
-    cancelled_store.add(card, source=source, set_name=set_name)
-    store.delete(card["id"])
+    store.mark_cancelled(card["id"], source=source, set_name=set_name)
 
 
 
@@ -265,14 +258,17 @@ def build_version_report_excel(report: dict, title_label: str = "",
 
 
 
-def start_full_version_check(store, session_store, output_dir, cancelled_store=None) -> bool:
-    """启动全量检查工卡版本后台任务。返回 False = 已有查询在跑（全局互斥，不排队）。"""
+def start_full_version_check(store, session_store, output_dir) -> bool:
+    """启动全量检查工卡版本后台任务。返回 False = 已有查询在跑（全局互斥，不排队）。
+
+    检测到 AMRO 查无的工卡只进报告（待人工确认），不自动作废。
+    """
     def job():
         cookies = (session_store.load() or {}).get("cookies", {})
 
         async def _inner():
             async with httpx.AsyncClient(verify=True, trust_env=False) as client:
-                rep = await full_version_check(store, client, cookies, cancelled_store=cancelled_store)
+                rep = await full_version_check(store, client, cookies)
             ts = datetime.now(BJ).strftime("%Y-%m-%d_%H-%M-%S")
             filename = f"amro_full_version_report_{ts}.xlsx"
             (output_dir / filename).write_bytes(
@@ -293,6 +289,7 @@ def start_full_version_check(store, session_store, output_dir, cancelled_store=N
                                output_dir=output_dir, file=rep["filename"])
         return {"revised": len(rep["revised"]), "new_added": len(rep["new_added"]),
                 "cancelled": len(rep["cancelled"]),
+                "cancelled_items": rep["cancelled"],
                 "checked": rep["checked"], "filename": rep["filename"],
                 "skipped_dp": rep["skipped_dp"], "skipped_other": rep["skipped_other"],
                 "skipped_total": rep["skipped_total"], "text": text}
@@ -301,12 +298,12 @@ def start_full_version_check(store, session_store, output_dir, cancelled_store=N
 
 
 
-def start_package_version_check(store, session_store, package_id: str, pkg_data: dict,
-                                cancelled_store=None) -> bool:
+def start_package_version_check(store, session_store, package_id: str, pkg_data: dict) -> bool:
     """启动逐包工卡版本检查后台任务。返回 False = 已有查询在跑（全局互斥，不排队）。
 
     长任务（逐卡直查 EO/NRC 约 2 分钟/50 张）移出请求线程，前端轮询
     get_query_status("package_version") 获取进度，避免 gunicorn 120s 杀请求。
+    检测到 AMRO 查无的工卡只进报告（待人工确认），不自动作废。
     """
     label = build_package_label(pkg_data) or package_id
     cookies = (session_store.load() or {}).get("cookies", {})
@@ -319,8 +316,7 @@ def start_package_version_check(store, session_store, package_id: str, pkg_data:
 
         async def _inner():
             async with httpx.AsyncClient(verify=True, trust_env=False) as client:
-                return await check_cards_against_amro(store, client, cookies, task_codes,
-                                                      cancelled_store=cancelled_store)
+                return await check_cards_against_amro(store, client, cookies, task_codes)
 
         report = asyncio.run(_inner())
         filename = f"amro_pkg_version_report_{package_id}.xlsx"
@@ -335,6 +331,7 @@ def start_package_version_check(store, session_store, package_id: str, pkg_data:
                                                 report["skipped_not_in_store"]))
         summary = {"revised": len(report["revised"]), "new_added": len(report["new_added"]),
                    "cancelled": len(report["cancelled"]),
+                   "cancelled_items": report["cancelled"],
                    "checked": report["checked"], "filename": filename, "text": text,
                    "skipped_total": report["skipped_total"]}
         save_last_query_result(
@@ -484,14 +481,14 @@ async def _collect_card_versions(store, client, cookies, codes, *, fetch=None, q
 
 
 
-async def full_version_check(store, client, cookies, *, fetch=None, query=None,
-                             cancelled_store=None) -> dict:
-    """全库版本检查：库内卡逐一比对 AMRO 编写日期；作废整卡移入作废工卡库（决策#7 修订）。
+async def full_version_check(store, client, cookies, *, fetch=None, query=None) -> dict:
+    """全库版本检查：库内卡逐一比对 AMRO 编写日期。
 
     仅四权威源家族（CSC/FLA/EO/QEC-R）参与比对，其余（含 DP 项目）跳过不比对、不报作废。
-    checked = 参与比对的四家族卡数；cancelled_store=None 时作废仅入报告不删卡。
+    checked = 参与比对的四家族卡数。已作废卡不参与检查。
+    检测到 AMRO 查无 → 仅记入报告 cancelled（待人工确认），不自动作废。
     """
-    all_cards = store.get_all()
+    all_cards = [c for c in store.get_all() if not c.get("cancelled")]
     versions = await _collect_card_versions(store, client, cookies,
                                             [c.get("task_code", "") for c in all_cards],
                                             fetch=fetch, query=query)
@@ -511,10 +508,10 @@ async def full_version_check(store, client, cookies, *, fetch=None, query=None,
         checked += 1
         row = versions.get(code)
         if row is None:
+            # AMRO 查无 → 待人工确认作废（不自动标记）
             cancelled.append({"task_code": code,
                               "task_name": card.get("task_name", ""),
                               "category": card.get("category", "")})
-            _move_to_cancelled(store, cancelled_store, card, "full_version")
             continue
         new_wd = _wd(row)
         old_wd = str(card.get("write_date", "")).strip()
@@ -540,12 +537,11 @@ async def full_version_check(store, client, cookies, *, fetch=None, query=None,
 
 
 
-async def check_cards_against_amro(store, client, cookies, task_codes, *, fetch=None, query=None,
-                                   cancelled_store=None) -> dict:
+async def check_cards_against_amro(store, client, cookies, task_codes, *, fetch=None, query=None) -> dict:
     """包级版本检查：拉清单 → 对指定工卡比对 AMRO 编写日期 → {revised, cancelled, checked, skipped_*}。
 
     仅处理卡库已存在的卡（包内新卡由人工前置入主库，不进版本报告）；
-    作废整卡移入作废工卡库（cancelled_store=None 时仅入报告不删卡）。
+    已作废卡不参与检查。检测到 AMRO 查无 → 仅记入报告 cancelled（待人工确认），不自动作废。
     取数复用 _collect_card_versions（四家族实时取数：CSC 走 SMJC 全量拉、FLA 走 FLA 端点、
     QEC-R 走 EOJC 端点全量拉、EO 按卡号直查）；仅四家族参与比对，其余按原因计入未检查：
     DP 项目 / 其他工卡（前缀不属于四家族）/ 未录入主库（四家族但卡库无记录）。
@@ -556,7 +552,7 @@ async def check_cards_against_amro(store, client, cookies, task_codes, *, fetch=
     skipped_other = len(all_codes) - len(wanted) - skipped_dp
     versions = await _collect_card_versions(store, client, cookies, wanted,
                                             fetch=fetch, query=query)
-    all_cards = {c.get("task_code", ""): c for c in store.get_all()}
+    all_cards = {c.get("task_code", ""): c for c in store.get_all() if not c.get("cancelled")}
     revised, new_added, cancelled = [], [], []
     write_date_updates = {}
     checked = 0
@@ -569,10 +565,10 @@ async def check_cards_against_amro(store, client, cookies, task_codes, *, fetch=
         checked += 1
         row = versions.get(code)
         if row is None:
+            # AMRO 查无 → 待人工确认作废（不自动标记）
             cancelled.append({"task_code": code,
                               "task_name": card.get("task_name", ""),
                               "category": card.get("category", "")})
-            _move_to_cancelled(store, cancelled_store, card, "package_version")
             continue
         new_wd = _wd(row)
         old_wd = str(card.get("write_date", "")).strip()

@@ -139,9 +139,10 @@ class CardService:
         return self.store.get(card_id)
 
     def list_cards(self, search: str = "", category: str = "",
-                   reminder_type: str = "") -> list[dict]:
+                   reminder_type: str = "", include_cancelled: bool = False) -> list[dict]:
         return self.store.get_all(search=search, category=category,
-                                  reminder_type=reminder_type)
+                                  reminder_type=reminder_type,
+                                  include_cancelled=include_cancelled)
 
     # ---------- 工卡组 ----------
 

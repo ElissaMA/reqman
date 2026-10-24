@@ -113,6 +113,7 @@ class JsonStoreCore:
             "tools_confirmed": False, "materials_confirmed": False,
             "set_id": None, "reminder_type": "", "card_ok": False, "reminder_confirmed": False,
             "write_date": "", "log_time": "",
+            "cancelled": False, "cancelled_at": "", "cancel_source": "", "set_name": "",
         },
         "set": {
             "id": None, "name": "", "description": "", "category": "机体",

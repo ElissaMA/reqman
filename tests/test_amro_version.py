@@ -1,4 +1,4 @@
-"""T6/T7 工卡版本域：全库检查、作废移库、改版清单 Excel、提醒单附加区块（全 mock）"""
+"""T6/T7 工卡版本域：全库检查、作废标记、改版清单 Excel、提醒单附加区块（全 mock）"""
 import asyncio
 import io
 import re
@@ -7,7 +7,6 @@ import zipfile
 import openpyxl
 import pytest
 
-from reqman.models.cancelled_card_store import CancelledCardStore
 from reqman.services import amro_sync
 
 
@@ -62,44 +61,48 @@ class TestFullVersionCheck:
 
     def test_cancelled_report_only_without_store(self, json_store, fake_amro_cards,
                                                  fake_entity_query, monkeypatch):
-        """未传作废库时保持旧行为：作废只入报告不删卡（向后兼容）。"""
+        """版本检查检测到查无工卡 → 仅入报告（待人工确认），不自动作废。"""
         monkeypatch.setattr(amro_sync.amro.time, "monotonic", lambda: 1e9)
         monkeypatch.setattr(amro_sync.amro.time, "sleep", lambda s: None)
         r = json_store.add("EOJC-A320-57-2025-002-B", "卡", "机体", "", "")
         rep = _run(amro_sync.full_version_check(json_store, None, {},
                                                 fetch=fake_amro_cards, query=fake_entity_query))
         assert "EOJC-A320-57-2025-002-B" in [c["task_code"] for c in rep["cancelled"]]
-        assert json_store.get(r["id"]) is not None   # 仅报告不删除
+        card = json_store.get(r["id"])
+        assert card is not None                        # 同 id 保留
+        assert card["cancelled"] is False              # 不自动作废，待人工确认
 
     def test_cancelled_moved_to_library(self, json_store, fake_amro_cards, fake_entity_query,
-                                        monkeypatch, tmp_path):
-        """作废整卡自动移入作废工卡库：主库删除、承接全部原字段+作废元数据，报告照旧。"""
+                                        monkeypatch):
+        """人工确认作废（mark_cancelled）→ 同 id 保留主库，承接元数据，报告照旧。"""
         monkeypatch.setattr(amro_sync.amro.time, "monotonic", lambda: 1e9)
         monkeypatch.setattr(amro_sync.amro.time, "sleep", lambda s: None)
-        cancelled_store = CancelledCardStore(str(tmp_path / "cancelled_cards.json"))
         r = json_store.add("EOJC-A320-57-2025-002-B", "旧卡", "机体", "EO", "",
                            reminder_type="重点提醒")
         json_store.update(r["id"], write_date="2026-01-01", tools_confirmed=True)
         rep = _run(amro_sync.full_version_check(json_store, None, {},
-                                                fetch=fake_amro_cards, query=fake_entity_query,
-                                                cancelled_store=cancelled_store))
-        assert json_store.get(r["id"]) is None       # 主库已删除
-        assert json_store.find_by_code("EOJC-A320-57-2025-002-B") is None
-        rec = cancelled_store.find_by_code("EOJC-A320-57-2025-002-B")
-        assert rec["task_name"] == "旧卡" and rec["category"] == "机体"
-        assert rec["orig_id"] == r["id"]
-        assert rec["cancel_source"] == "full_version"
-        assert rec["cancelled_at"]
-        assert rec["reminder_type"] == "重点提醒"     # 承接原卡全部信息
-        assert rec["tools_confirmed"] is True and rec["write_date"] == "2026-01-01"
+                                                fetch=fake_amro_cards, query=fake_entity_query))
+        # 模拟人工确认：在报告中确认第一张待作废卡
+        for item in rep["cancelled"]:
+            card = json_store.find_by_code(item["task_code"])
+            json_store.mark_cancelled(card["id"], source="full_version", set_name="")
+        assert json_store.get(r["id"]) is not None       # 主库同 id 保留
+        card = json_store.find_by_code("EOJC-A320-57-2025-002-B")
+        assert card["cancelled"] is True
+        assert card["task_name"] == "旧卡" and card["category"] == "机体"
+        assert card["id"] == r["id"]
+        assert card["cancel_source"] == "full_version"
+        assert card["cancelled_at"]
+        assert card["reminder_type"] == "重点提醒"     # 承接原卡全部信息
+        assert card["tools_confirmed"] is True and card["write_date"] == "2026-01-01"
+        assert card["card_ok"] is False                  # 恢复后待复核语义：作废卡 card_ok 置 False
         assert rep["cancelled"][0]["task_code"] == "EOJC-A320-57-2025-002-B"   # 报告照旧
 
     def test_checked_count_excludes_dp(self, json_store, fake_amro_cards, fake_entity_query,
-                                       monkeypatch, tmp_path):
+                                       monkeypatch):
         """checked = 参与比对的非 DP 卡数（DP 跳过不计数）；不再调用 EOJC 深分页。"""
         monkeypatch.setattr(amro_sync.amro.time, "monotonic", lambda: 1e9)
         monkeypatch.setattr(amro_sync.amro.time, "sleep", lambda s: None)
-        cancelled_store = CancelledCardStore(str(tmp_path / "cancelled_cards.json"))
         json_store.add("CSCA320-256652-01-1-X", "检查救生衣", "电子", "RST", "")
         json_store.add("EOJC-A320-57-2025-002-B", "旧卡", "机体", "EO", "")
         json_store.add("DP1000000739", "DP项目卡", "机体", "", "")
@@ -110,8 +113,7 @@ class TestFullVersionCheck:
             return await fake_amro_cards(client, cookies, plugin, base_form, **kw)
 
         rep = _run(amro_sync.full_version_check(json_store, None, {}, fetch=fetch,
-                                                query=fake_entity_query,
-                                                cancelled_store=cancelled_store))
+                                                query=fake_entity_query))
         assert rep["checked"] == 2
         assert rep["skipped_dp"] == 1 and rep["skipped_other"] == 0
         assert "TD_JC_ALL_EOJC_LIST" not in plugins   # EOJC 深分页已根除
@@ -330,24 +332,23 @@ class TestCheckCardsAgainstAmro:
         codes = {r["task_code"] for r in rep["revised"] + rep["cancelled"]}
         assert "EOJC-A320-99-2026-999-Z" not in codes
 
-    def test_cancelled_moved_to_library(self, json_store, monkeypatch, tmp_path):
-        """包级检查作废 → 整卡移入作废工卡库；checked = 工作包内去重卡号数（DP 排除）。"""
-        cancelled_store = CancelledCardStore(str(tmp_path / "cancelled_cards.json"))
+    def test_cancelled_marked_in_main_store(self, json_store, monkeypatch):
+        """包级检查作废 → 报告待确认（不自动标记）；checked = 工作包内去重卡号数（DP 排除）。"""
         json_store.add("EOJC-A320-57-2025-002-B", "旧卡", "机体", "EO", "")
 
         async def query(client, cookies, plugin, form, **kw):
-            return {"code": 200, "data": {}}   # 查无 → 作废
+            return {"code": 200, "data": {}}   # 查无 → 待人工确认
 
         rep = _run(amro_sync.check_cards_against_amro(
             json_store, None, {}, ["EOJC-A320-57-2025-002-B", "DP1000000739"],
-            query=query, cancelled_store=cancelled_store))
+            query=query))
         assert [c["task_code"] for c in rep["cancelled"]] == ["EOJC-A320-57-2025-002-B"]
         assert rep["checked"] == 1
         assert rep["skipped_dp"] == 1 and rep["skipped_other"] == 0
         assert rep["skipped_total"] == 1
-        assert json_store.find_by_code("EOJC-A320-57-2025-002-B") is None
-        rec = cancelled_store.find_by_code("EOJC-A320-57-2025-002-B")
-        assert rec["cancel_source"] == "package_version"
+        card = json_store.find_by_code("EOJC-A320-57-2025-002-B")
+        assert card is not None                       # 主库同 id 保留
+        assert card["cancelled"] is False             # 不自动作废，待人工确认
 
 
 class TestVersionSummaryText:
@@ -633,18 +634,16 @@ class TestCollectFourFamilies:
         assert queried == [("TD_JC_ALL_GET_ENTITY_BY_JCNO", {"jcno": "QECJC-A320-1001-1"})]
         assert [r["task_code"] for r in rep["revised"]] == ["QECJC-A320-1001-1"]
 
-    def test_out_of_scope_skipped_not_cancelled(self, json_store, monkeypatch, tmp_path):
+    def test_out_of_scope_skipped_not_cancelled(self, json_store, monkeypatch):
         """非四家族卡（如 NRC/航线）全库检查跳过：不查、不误报作废、保留在主库。"""
         monkeypatch.setattr(amro_sync.amro.time, "monotonic", lambda: 1e9)
         monkeypatch.setattr(amro_sync.amro.time, "sleep", lambda s: None)
-        cancelled_store = CancelledCardStore(str(tmp_path / "cancelled.json"))
         r = json_store.add("NRC12345", "非四家族卡", "机体", "", "")
 
         async def fetch(client, cookies, plugin, base_form, **kw):
             return []
 
-        rep = _run(amro_sync.full_version_check(
-            json_store, None, {}, fetch=fetch, cancelled_store=cancelled_store))
+        rep = _run(amro_sync.full_version_check(json_store, None, {}, fetch=fetch))
         assert rep["checked"] == 0
         assert rep["cancelled"] == []
         assert json_store.get(r["id"]) is not None   # 保留在主库

@@ -1,6 +1,7 @@
 """双文件存储测试"""
 import json
 import os
+from pathlib import Path
 
 from reqman.models.json_store import JsonStore
 
@@ -17,10 +18,8 @@ class TestDualFileStorage:
         assert os.path.exists(db_path)
         assert os.path.exists(runtime_path)
 
-        with open(db_path, encoding="utf-8") as f:
-            core = json.load(f)
-        with open(runtime_path, encoding="utf-8") as f:
-            runtime = json.load(f)
+        core = json.loads(Path(db_path).read_text(encoding="utf-8"))
+        runtime = json.loads(Path(runtime_path).read_text(encoding="utf-8"))
 
         assert "cards" in core
         assert "work_packages" in runtime
@@ -31,10 +30,8 @@ class TestDualFileStorage:
         runtime_path = str(tmp_path / "test_runtime.json")
 
         # 手动写入两个文件
-        with open(db_path, "w", encoding="utf-8") as f:
-            json.dump({"cards": {"1": {"id": 1, "task_code": "C-001"}}}, f)
-        with open(runtime_path, "w", encoding="utf-8") as f:
-            json.dump({"work_packages": [{"package_id": "wp-1"}]}, f)
+        Path(db_path).write_text(json.dumps({"cards": {"1": {"id": 1, "task_code": "C-001"}}}), encoding="utf-8")
+        Path(runtime_path).write_text(json.dumps({"work_packages": [{"package_id": "wp-1"}]}), encoding="utf-8")
 
         store = JsonStore(db_path)
         data = store._read()
@@ -45,12 +42,11 @@ class TestDualFileStorage:
         """旧单文件自动迁移到双文件"""
         db_path = str(tmp_path / "test.json")
         # 写入旧格式（所有数据在一个文件）
-        with open(db_path, "w", encoding="utf-8") as f:
-            json.dump({
-                "cards": {"1": {"id": 1, "task_code": "C-001"}},
-                "work_packages": [{"package_id": "wp-1"}],
-                "next_id": 2
-            }, f)
+        Path(db_path).write_text(json.dumps({
+            "cards": {"1": {"id": 1, "task_code": "C-001"}},
+            "work_packages": [{"package_id": "wp-1"}],
+            "next_id": 2
+        }), encoding="utf-8")
 
         store = JsonStore(db_path)
         data = store._read()

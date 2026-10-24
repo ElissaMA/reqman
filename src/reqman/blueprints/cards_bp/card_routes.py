@@ -254,8 +254,9 @@ def card_reset_confirm(card_id):
 
 @cards_bp.route("/card/cancelled")
 def cancelled_cards_page():
-    """作废工卡清单（数据管理子页，只读归档：查看 + 彻底删除）"""
-    records = current_app.extensions["cancelled_cards"].get_all()
+    """作废工卡清单（数据管理子页：编辑 / 恢复 / 彻底删除）。"""
+    records = [c for c in current_app.extensions['card_service'].list_cards(
+        include_cancelled=True) if c.get("cancelled")]
     return render_template("cards/cancelled.html",
                            cards=records,
                            categories=CATEGORIES, reminder_types=REMINDER_TYPES,
@@ -264,16 +265,145 @@ def cancelled_cards_page():
 
 @cards_bp.route("/card/cancelled/<int:card_id>/delete", methods=["POST"])
 def cancelled_card_delete(card_id):
-    """彻底删除作废工卡"""
-    record = current_app.extensions["cancelled_cards"].remove(card_id)
-    if record is None:
+    """彻底删除作废工卡（仅允许删除已作废的卡）"""
+    card = current_app.extensions['card_service'].get_card(card_id)
+    if card is None or not card.get("cancelled"):
         if is_ajax():
-            return api_error("作废工卡不存在", status_code=200)
+            return api_error("作废工卡不存在", status_code=404)
         flash("作废工卡不存在", "error")
         return redirect("/card/cancelled")
+    current_app.extensions['card_service'].delete_card(card_id)
     if is_ajax():
-        return api_success(message=f"作废工卡 {record.get('task_code', '')} 已彻底删除")
+        return api_success(message=f"作废工卡 {card.get('task_code', '')} 已彻底删除")
     flash("作废工卡已彻底删除", "success")
+    return redirect("/card/cancelled")
+
+
+@cards_bp.route("/card/cancelled/confirm", methods=["POST"])
+def cancelled_cards_confirm():
+    """人工确认作废：批量标记 cancelled=True（版本检查报告确认入口）"""
+    task_codes = request.form.getlist("task_codes[]") or request.form.getlist("task_codes")
+    source = request.form.get("source", "manual").strip() or "manual"
+    if not task_codes:
+        if is_ajax():
+            return api_error("未选择待作废工卡", status_code=400)
+        flash("未选择待作废工卡", "error")
+        return redirect("/card/cancelled")
+    service = current_app.extensions['card_service']
+    confirmed, missing = [], []
+    for code in task_codes:
+        code = str(code).strip()
+        card = service.store.find_by_code(code) if code else None
+        if card is None:
+            missing.append(code)
+            continue
+        if card.get("cancelled"):
+            continue   # 已作废，幂等跳过
+        set_name = ""
+        if card.get("set_id"):
+            set_data = service.store.get_set(card["set_id"])
+            set_name = set_data.get("name", "") if set_data else ""
+        try:
+            service.store.mark_cancelled(
+                card["id"], source=source, set_name=set_name)
+            confirmed.append(code)
+        except ValueError:
+            missing.append(code)
+    message = f"已确认作废 {len(confirmed)} 张工卡"
+    if missing:
+        message += f"；{len(missing)} 张未找到或无法作废"
+    if is_ajax():
+        return api_success(message=message, data={
+            "confirmed": confirmed, "missing": missing})
+    flash(message, "success" if confirmed else "error")
+    return redirect("/card/cancelled")
+
+
+@cards_bp.route("/card/cancelled/<int:card_id>/update", methods=["POST"])
+def cancelled_card_update(card_id):
+    """编辑作废工卡（弹窗内保存，仍保留作废标记）。
+
+    工具/航材解析沿用主库清洗规则，但不强制"至少有内容或确认无"——
+    作废卡允许清空清单；确认状态直接取弹窗勾选。
+    """
+    service = current_app.extensions['card_service']
+    card = service.get_card(card_id)
+    if card is None or not card.get("cancelled"):
+        if is_ajax():
+            return api_error("作废工卡不存在", status_code=404)
+        flash("作废工卡不存在", "error")
+        return redirect("/card/cancelled")
+    if not request.form.get("task_code", "").strip():
+        if is_ajax():
+            return api_error("工卡号不能为空", status_code=400)
+        flash("工卡号不能为空", "error")
+        return redirect("/card/cancelled")
+    if not request.form.get("task_name", "").strip():
+        if is_ajax():
+            return api_error("工卡名称不能为空", status_code=400)
+        flash("工卡名称不能为空", "error")
+        return redirect("/card/cancelled")
+    if not request.form.get("category", "").strip():
+        if is_ajax():
+            return api_error("专业不能为空", status_code=400)
+        flash("专业不能为空", "error")
+        return redirect("/card/cancelled")
+    tools, materials = service.parse_tools_mats(request.form)
+    fields = {
+        "task_code": request.form.get("task_code", "").strip(),
+        "task_name": request.form.get("task_name", "").strip(),
+        "category": request.form.get("category", ""),
+        "task_type": request.form.get("task_type", ""),
+        "remark": request.form.get("remark", ""),
+        "tools": tools,
+        "materials": materials,
+        "tools_confirmed": bool(request.form.get("tools_confirmed")),
+        "materials_confirmed": bool(request.form.get("materials_confirmed")),
+        "reminder_type": request.form.get("reminder_type", "").strip(),
+        "reminder_confirmed": bool(request.form.get("reminder_confirmed")),
+        "write_date": request.form.get("write_date", "").strip(),
+    }
+    try:
+        record = service.update_card(card_id, **fields)
+    except ServiceError as e:
+        if is_ajax():
+            return api_error(e.message, status_code=400)
+        flash(e.message, "error")
+        return redirect("/card/cancelled")
+    except Exception:
+        logger.exception("编辑作废工卡失败")
+        if is_ajax():
+            return api_error("服务器错误", "SERVER_ERROR", 500)
+        flash("服务器错误", "error")
+        return redirect("/card/cancelled")
+    if is_ajax():
+        return api_success(message="作废工卡已更新", data={
+            "id": record["id"], "task_code": record.get("task_code", "")})
+    flash("作废工卡已更新", "success")
+    return redirect("/card/cancelled")
+
+
+@cards_bp.route("/card/cancelled/<int:card_id>/restore", methods=["POST"])
+def cancelled_card_restore(card_id):
+    """恢复作废工卡：同 id 保留，cancelled=False，card_ok=False 待复核。"""
+    service = current_app.extensions['card_service']
+    try:
+        restored = service.store.restore_cancelled(card_id)
+    except ValueError as e:
+        if is_ajax():
+            return api_error(str(e), status_code=404)
+        flash(str(e), "error")
+        return redirect("/card/cancelled")
+    except Exception:
+        logger.exception("恢复作废工卡失败")
+        if is_ajax():
+            return api_error("服务器错误", "SERVER_ERROR", 500)
+        flash("服务器错误", "error")
+        return redirect("/card/cancelled")
+    message = f"工卡 {restored.get('task_code', '')} 已恢复，请复核确认状态"
+    if is_ajax():
+        return api_success(message=message, data={"card_id": restored["id"]})
+    flash(message, "success")
     return redirect("/card/cancelled")
 
 

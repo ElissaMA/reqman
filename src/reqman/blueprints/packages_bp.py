@@ -328,8 +328,7 @@ def package_amro_version_check(package_id):
     if not pkg_data:
         raise NotFoundError("工作包不存在")
     session_store = current_app.extensions["inventory_service"].session_store
-    if not amro_sync.start_package_version_check(store, session_store, package_id, pkg_data,
-                                                 current_app.extensions["cancelled_cards"]):
+    if not amro_sync.start_package_version_check(store, session_store, package_id, pkg_data):
         return _amro_err("busy")
     return api_success(data={"started": True})
 

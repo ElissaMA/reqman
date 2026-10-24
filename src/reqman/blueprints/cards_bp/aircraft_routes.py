@@ -49,8 +49,7 @@ def amro_version_check():
         return api_error(MESSAGES["P8"], "LOGIN_EXPIRED", 401)
     store = current_app.extensions["store"]
     session_store = current_app.extensions["inventory_service"].session_store
-    if not amro_sync.start_full_version_check(store, session_store, cards_bp_pkg.OUTPUT_DIR,
-                                              current_app.extensions["cancelled_cards"]):
+    if not amro_sync.start_full_version_check(store, session_store, cards_bp_pkg.OUTPUT_DIR):
         return api_error(amro_sync.query_busy_message()
                          or "已有查询任务进行中，请等待完成后再查询", "QUERY_BUSY", 409)
     return api_success(data={"started": True})

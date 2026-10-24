@@ -259,9 +259,33 @@ function pollPkgVersionCheck(packageId, card) {
         intervalMs: 2000,
         buttonSelector: 'button[data-package-id="' + packageId + '"]',
         onDone: function(status, card) {
-            var msg = buildVersionSummary(status.label || packageId, status.summary);
+            var s = status.summary || {};
+            var msg = buildVersionSummary(status.label || packageId, s);
             card.done(msg);
             window.safeToast(msg, 'success', 8000);
+            // 检测到待作废工卡 → 弹人工确认（确认后才真正标记作废）
+            var pending = s.cancelled_items || [];
+            if (pending.length) {
+                var lines = pending.map(function(c) {
+                    return '<div class="small">' + escapeHtml(c.task_code) + ' ' + escapeHtml(c.task_name || '') + '</div>';
+                }).join('');
+                window.confirmModal({
+                    title: '检测到待作废工卡（' + pending.length + ' 张）',
+                    body: '以下工卡在 AMRO 中已查无，确认作废后将从工卡清单移入作废工卡页：<div class="border rounded p-2 my-2" style="max-height:200px;overflow:auto">' + lines + '</div>确认作废后可在「作废工卡」页恢复。',
+                    okText: '确认作废'
+                }).then(function(ok) {
+                    if (!ok) { window.location.reload(); return; }
+                    var fd2 = new FormData();
+                    pending.forEach(function(c) { fd2.append('task_codes[]', c.task_code); });
+                    fd2.append('source', 'package_version');
+                    fetch('/card/cancelled/confirm', {
+                        method: 'POST', body: fd2,
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    }).then(function(r) { return r.json(); }).then(function(d) {
+                        window.safeToast((d && d.message) || '已确认作废', d && d.success ? 'success' : 'error');
+                    }).catch(function() { window.safeToast('确认作废请求失败', 'error'); });
+                });
+            }
         },
         onError: function(err, card) {
             card.fail(err || '未知错误');

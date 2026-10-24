@@ -8,9 +8,11 @@ class CardStore(JsonStoreCore):
     # ---------- 工卡 CRUD ----------
 
     def get_all(self, search: str = "", category: str = "",
-                reminder_type: str = "") -> list[dict]:
+                reminder_type: str = "", include_cancelled: bool = False) -> list[dict]:
         db = self._read()
         cards = list(db.get("cards", {}).values())
+        if not include_cancelled:
+            cards = [card for card in cards if not card.get("cancelled")]
 
         if search:
             keyword = search.lower()
@@ -46,6 +48,7 @@ class CardStore(JsonStoreCore):
     def find_by_codes(self, codes: list[str]) -> dict[str, dict]:
         """批量按工卡号查卡：单次读取，返回 {code: card}（查无的 code 不出现）。
 
+        已作废工卡不参与工作包匹配，默认排除。
         消除逐卡 find_by_code 的 N+1 整库重读。
         """
         if not codes:
@@ -64,7 +67,7 @@ class CardStore(JsonStoreCore):
             if card_id is None:
                 continue
             card = cards.get(str(card_id))
-            if card:
+            if card and not card.get("cancelled"):
                 result[code] = self._norm(card, "card")
         return result
 
@@ -198,6 +201,40 @@ class CardStore(JsonStoreCore):
             self._write(db)
             return True
 
+    # ---------- 作废标记/恢复（同 id 保留，专用方法不入表单白名单） ----------
+
+    def mark_cancelled(self, card_id: int, *, source: str, set_name: str = "") -> dict:
+        """作废标记：同 id 保留在主库，单次原子写。"""
+        from datetime import datetime as _dt
+        from zoneinfo import ZoneInfo as _ZI
+        with self._lock:
+            db = self._read()
+            card = db.get("cards", {}).get(str(card_id))
+            if card is None:
+                raise ValueError("工卡不存在")
+            card["cancelled"] = True
+            card["cancelled_at"] = _dt.now(_ZI("Asia/Shanghai")).strftime("%Y-%m-%d %H:%M:%S")
+            card["cancel_source"] = source
+            card["set_name"] = set_name
+            self._add_log(db, "cancel", "card", card_id,
+                          card.get("task_code", ""), card.get("task_name", ""), [])
+            self._write(db)
+            return self._norm(card, "card")
+
+    def restore_cancelled(self, card_id: int) -> dict:
+        """恢复作废工卡：同 id 保留，cancelled=False，card_ok=False 待复核。"""
+        with self._lock:
+            db = self._read()
+            card = db.get("cards", {}).get(str(card_id))
+            if card is None or not card.get("cancelled"):
+                raise ValueError("作废工卡不存在")
+            card["cancelled"] = False
+            card["card_ok"] = False
+            self._add_log(db, "restore", "card", card_id,
+                          card.get("task_code", ""), card.get("task_name", ""), [])
+            self._write(db)
+            return self._norm(card, "card")
+
     # ---------- 工卡组 CRUD ----------
 
     def get_all_sets(self) -> list[dict]:
@@ -280,13 +317,14 @@ class CardStore(JsonStoreCore):
         db = self._read()
         return [
             self._norm(card, "card") for card in db.get("cards", {}).values()
-            if card.get("set_id") == set_id
+            if card.get("set_id") == set_id and not card.get("cancelled")
         ]
 
     def get_card_sets_with_cards(self) -> list[dict]:
         """单次读取返回所有工卡组及其组内工卡（含 cards 字段）。
 
         替代按组逐次 get_cards_in_set 的 N+1 整库重读。
+        已作废工卡不计入组内工卡列表。
         """
         db = self._read()
         sets = [self._norm(s, "set") for s in db.get("card_sets", {}).values()]
@@ -294,7 +332,7 @@ class CardStore(JsonStoreCore):
         cards_by_set: dict[str, list] = {}
         for card in db.get("cards", {}).values():
             sid = card.get("set_id")
-            if sid is None:
+            if sid is None or card.get("cancelled"):
                 continue
             cards_by_set.setdefault(str(sid), []).append(self._norm(card, "card"))
         result = []

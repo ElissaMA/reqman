@@ -521,25 +521,23 @@ class TestCancelledCardsPage:
 
     def test_lists_cancelled_and_delete(self, app, client):
         """作废记录整卡展示（含原工卡组），删除后从列表消失；不展示作废来源列。"""
-        cstore = app.extensions["cancelled_cards"]
-        cstore.add({"id": 1, "task_code": "EOJC-X-1", "task_name": "旧卡", "category": "机体",
-                    "task_type": "EO", "remark": "", "tools": [], "materials": [],
-                    "reminder_type": "重点提醒", "write_date": "2026-01-01"},
-                   source="full_version", set_name="组A")
+        store = app.extensions["store"]
+        card = store.add("EOJC-X-1", "旧卡", "机体", "EO", "", reminder_type="重点提醒")
+        store.update(card["id"], write_date="2026-01-01")
+        store.mark_cancelled(card["id"], source="full_version", set_name="组A")
         try:
             html = client.get("/card/cancelled").get_data(as_text=True)
             assert "EOJC-X-1" in html
             assert "组A" in html
             assert "作废来源" not in html   # 清单不再展示作废来源列
-            rec = cstore.find_by_code("EOJC-X-1")
-            resp = client.post(f"/card/cancelled/{rec['id']}/delete",
+            resp = client.post(f"/card/cancelled/{card['id']}/delete",
                                headers={"X-Requested-With": "XMLHttpRequest"})
             assert resp.get_json()["success"] is True
-            assert cstore.find_by_code("EOJC-X-1") is None
+            assert store.find_by_code("EOJC-X-1") is None
             assert "EOJC-X-1" not in client.get("/card/cancelled").get_data(as_text=True)
         finally:
-            if cstore.find_by_code("EOJC-X-1"):
-                cstore.remove(cstore.find_by_code("EOJC-X-1")["id"])
+            if store.find_by_code("EOJC-X-1"):
+                store.delete(store.find_by_code("EOJC-X-1")["id"])
 
     def test_delete_nonexistent(self, client):
         resp = client.post("/card/cancelled/999/delete",
