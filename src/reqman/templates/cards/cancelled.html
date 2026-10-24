@@ -7,14 +7,14 @@
     <div class="page-heading">
         <div class="context-kicker">DATA MANAGEMENT / ARCHIVE</div>
         <h1>作废工卡</h1>
-        <p>只读查看已作废工卡；彻底删除后不可恢复。</p>
+        <p>查看、编辑和恢复已作废工卡；彻底删除后不可恢复。</p>
     </div>
     <div class="page-actions"><span class="page-count">共 {{ cards|length }} 条</span></div>
 </header>
 
 <div class="card">
     <div class="card-header">
-        <div><h2>作废工卡清单</h2><p class="section-description">删除前请确认该记录不再需要留存。</p></div>
+        <div><h2>作废工卡清单</h2><p class="section-description">支持编辑、恢复和彻底删除；恢复后工卡回到清单并标记待复核。</p></div>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -55,7 +55,7 @@
                         <th>所属工卡组</th>
                         <th>编写日期</th>
                         <th style="width:120px" class="sortable text-center" data-col="7" onclick="AppFilter.sort(document.getElementById('cardTable'),7)">作废日期 <span class="sort-arrow" data-dir="desc">▼</span></th>
-                        <th style="width:120px" class="text-center">操作</th>
+                        <th style="width:200px" class="text-center">操作</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -71,6 +71,8 @@
                         <td>{{ (card.write_date or '')[:10] or '—' }}</td>
                         <td class="text-center">{{ (card.cancelled_at or '')[:10] or '—' }}</td>
                         <td class="text-center text-nowrap" onclick="event.stopPropagation()">
+                            <button type="button" class="btn btn-outline-secondary btn-sm py-0" onclick="event.stopPropagation();openEdit({{ card.id }})">编辑</button>
+                            <button type="button" class="btn btn-outline-success btn-sm py-0" onclick="event.stopPropagation();restoreCard({{ card.id }})">恢复</button>
                             <button type="button" data-url="/card/cancelled/{{ card.id }}/delete" data-id="{{ card.id }}" data-confirm="确认彻底删除作废工卡 {{ card.task_code }}？删除后不可恢复。" onclick="event.stopPropagation();ListUI.delFrom(this)" class="btn btn-outline-danger btn-sm py-0">彻底删除</button>
                         </td>
                     </tr>
@@ -94,6 +96,93 @@
         <div class="modal-footer">
             <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">关闭</button>
         </div>
+    </div></div>
+</div>
+
+<div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="cancelledEditModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
+        <form id="editForm">
+            <div class="modal-header">
+                <h2 class="modal-title" id="cancelledEditModalTitle">编辑作废工卡</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label small">工卡号 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-control-sm" name="task_code" id="editTaskCode" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small">工卡描述 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-control-sm" name="task_name" id="editTaskName" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small">专业 <span class="text-danger">*</span></label>
+                        <select class="form-select form-select-sm" name="category" id="editCategory">
+                            <option value="">请选择专业</option>
+                            {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label small">类型</label>
+                        <select class="form-select form-select-sm" name="task_type" id="editTaskType">
+                            <option value="">无</option>
+                            {% for t in task_types %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small">编写日期</label>
+                        <input type="date" class="form-control form-control-sm" name="write_date" id="editWriteDate">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small">提醒类型</label>
+                        <select class="form-select form-select-sm" name="reminder_type" id="editReminderType">
+                            <option value="">无</option>
+                            {% for rt in reminder_types %}<option value="{{ rt }}">{{ rt }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="reminder_confirmed" id="editReminderConfirmed" value="1"><label class="form-check-label small" for="editReminderConfirmed">提醒已确认</label></div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                        <label class="form-label small fw-bold mb-0">工具清单</label>
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="form-check mb-0"><input class="form-check-input" type="checkbox" name="tools_confirmed" id="editToolsConfirmed" value="1"><label class="form-check-label small" for="editToolsConfirmed">工具已确认</label></div>
+                            <button type="button" class="btn btn-outline-primary btn-sm py-0" onclick="addEditRow('tool')">新增工具</button>
+                        </div>
+                    </div>
+                    <table class="table table-bordered table-sm mb-0" id="editToolTable">
+                        <thead><tr><th>设备名称</th><th>件号</th><th>数量</th><th>备注</th><th>使用类型</th><th></th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                        <label class="form-label small fw-bold mb-0">航材清单</label>
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="form-check mb-0"><input class="form-check-input" type="checkbox" name="materials_confirmed" id="editMatsConfirmed" value="1"><label class="form-check-label small" for="editMatsConfirmed">航材已确认</label></div>
+                            <button type="button" class="btn btn-outline-primary btn-sm py-0" onclick="addEditRow('mat')">新增航材</button>
+                        </div>
+                    </div>
+                    <table class="table table-bordered table-sm mb-0" id="editMatTable">
+                        <thead><tr><th>航材名称</th><th>件号</th><th>数量</th><th>备注</th><th>使用类型</th><th></th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div>
+                    <label class="form-label small">备注</label>
+                    <textarea class="form-control form-control-sm" name="remark" id="editRemark" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary btn-sm px-4" onclick="saveEdit()">保存修改</button>
+            </div>
+        </form>
     </div></div>
 </div>
 
@@ -166,5 +255,100 @@ function showDetail(id) {
     var el = document.getElementById(id);
     if (el) el.setAttribute('data-col', col);
 });
+
+// ===== 编辑作废工卡 =====
+var usageTypes = {{ usage_types|tojson }};
+
+function findCard(id) {
+    return cards.find(function(card) { return card.id === id; });
+}
+
+function addEditRow(type, v) {
+    v = v || {};
+    var tbody = document.querySelector(type === 'tool' ? '#editToolTable tbody' : '#editMatTable tbody');
+    var tr = document.createElement('tr');
+    var nameField = type === 'tool' ? 'tool_name[]' : 'mat_name[]';
+    var pnField = type === 'tool' ? 'tool_pn[]' : 'mat_pn[]';
+    var qtyField = type === 'tool' ? 'tool_qty[]' : 'mat_qty[]';
+    var remField = type === 'tool' ? 'tool_remark[]' : 'mat_remark[]';
+    var typeField = type === 'tool' ? 'tool_type[]' : 'mat_type[]';
+    var nameKey = type === 'tool' ? 'device_name' : 'material_name';
+    var usage = usageTypes.map(function(u) {
+        return '<option value="' + escapeHtml(u) + '"' + (v.usage_type === u ? ' selected' : '') + '>' + escapeHtml(u) + '</option>';
+    }).join('');
+    tr.innerHTML = '<td><input type="text" class="form-control form-control-sm" name="' + nameField + '" value="' + (escapeHtml(v[nameKey]) || '') + '"></td>' +
+        '<td><input type="text" class="form-control form-control-sm" name="' + pnField + '" value="' + (escapeHtml(v.part_number) || '') + '"></td>' +
+        '<td><input type="text" class="form-control form-control-sm" name="' + qtyField + '" value="' + (escapeHtml(v.quantity) || '') + '"></td>' +
+        '<td><input type="text" class="form-control form-control-sm" name="' + remField + '" value="' + (escapeHtml(v.remark) || '') + '"></td>' +
+        '<td><select class="form-select form-select-sm" name="' + typeField + '">' + usage + '</select></td>' +
+        '<td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm" aria-label="删除此行" onclick="this.closest(\'tr\').remove()">&times;</button></td>';
+    tbody.appendChild(tr);
+}
+
+function openEdit(id) {
+    var d = findCard(id);
+    if (!d) return;
+    window._editingCancelledId = id;
+    document.getElementById('editTaskCode').value = d.task_code || '';
+    document.getElementById('editTaskName').value = d.task_name || '';
+    document.getElementById('editCategory').value = d.category || '';
+    document.getElementById('editTaskType').value = d.task_type || '';
+    document.getElementById('editWriteDate').value = (d.write_date || '').slice(0, 10);
+    document.getElementById('editReminderType').value = d.reminder_type || '';
+    document.getElementById('editReminderConfirmed').checked = !!d.reminder_confirmed;
+    document.getElementById('editToolsConfirmed').checked = !!d.tools_confirmed;
+    document.getElementById('editMatsConfirmed').checked = !!d.materials_confirmed;
+    document.getElementById('editRemark').value = d.remark || '';
+    var toolBody = document.querySelector('#editToolTable tbody');
+    var matBody = document.querySelector('#editMatTable tbody');
+    toolBody.innerHTML = '';
+    matBody.innerHTML = '';
+    (d.tools || []).forEach(function(t) { addEditRow('tool', t); });
+    (d.materials || []).forEach(function(m) { addEditRow('mat', m); });
+    new bootstrap.Modal(document.getElementById('editModal')).show();
+}
+
+function saveEdit() {
+    var id = window._editingCancelledId;
+    if (!id) return;
+    if (isBlank(document.getElementById('editTaskCode').value)) { window.safeToast('工卡号不能为空', 'warning'); return; }
+    if (isBlank(document.getElementById('editTaskName').value)) { window.safeToast('工卡名称不能为空', 'warning'); return; }
+    if (isBlank(document.getElementById('editCategory').value)) { window.safeToast('专业不能为空', 'warning'); return; }
+    var fd = new FormData(document.getElementById('editForm'));
+    fetch('/card/cancelled/' + id + '/update', {
+        method: 'POST', body: fd,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    }).then(function(r) { return r.json(); }).then(function(d) {
+        if (d && d.success) {
+            window.safeToast('作废工卡已更新', 'success');
+            window.setTimeout(function() { window.location.reload(); }, 800);
+        } else {
+            window.safeToast((d && d.message) || '保存失败', 'error');
+        }
+    }).catch(function() { window.safeToast('保存失败', 'error'); });
+}
+
+function restoreCard(id) {
+    var d = findCard(id);
+    var label = d ? d.task_code : '';
+    window.confirmModal({
+        title: '恢复作废工卡',
+        body: '确认恢复工卡 ' + escapeHtml(label) + '？恢复后将回到工卡清单并标记待复核。',
+        okText: '恢复'
+    }).then(function(ok) {
+        if (!ok) return;
+        fetch('/card/cancelled/' + id + '/restore', {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            if (d && d.success) {
+                window.safeToast(d.message || '已恢复', 'success');
+                window.setTimeout(function() { window.location.reload(); }, 800);
+            } else {
+                window.safeToast((d && d.message) || '恢复失败', 'error');
+            }
+        }).catch(function() { window.safeToast('恢复失败', 'error'); });
+    });
+}
 </script>
 {% endblock %}

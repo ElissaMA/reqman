@@ -7,7 +7,7 @@ from flask import current_app, flash, redirect, request
 
 from ...config import CATEGORIES, REMINDER_TYPES, TASK_TYPES, USAGE_TYPES
 from ...services.card_service import ServiceError
-from ...utils.error_handlers import ValidationError, is_ajax
+from ...utils.error_handlers import ValidationError, is_ajax, safe_referrer
 from ...utils.response import api_error
 
 logger = logging.getLogger(__name__)
@@ -44,7 +44,7 @@ def _parse_reminder():
         if is_ajax():
             return None, None, api_error(msg, status_code=200)
         flash(msg, "error")
-        return None, None, redirect(request.referrer or "/card/list")
+        return None, None, redirect(safe_referrer("/card/list"))
     return reminder_type, reminder_confirmed, None
 
 

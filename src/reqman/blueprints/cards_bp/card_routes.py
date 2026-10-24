@@ -32,19 +32,24 @@ def card_list():
         for card in cards:
             set_id = card.get("set_id")
             card["set_name"] = set_map.get(set_id, "") if set_id else ""
+        # 版本检查待人工确认作废清单（仍在用的卡才显示，确认后自动消失）
+        active_codes = {c.get("task_code", "") for c in cards}
+        pending_cancelled = amro_sync.pending_cancel_confirmations("full_version", active_codes)
         return render_template("cards/list.html",
                                cards=cards,
                                categories=CATEGORIES, task_types=TASK_TYPES,
                                reminder_types=REMINDER_TYPES,
                                amro_status=amro_sync.get_query_status("full_version"),
-                               amro_last_query=amro_sync.get_last_query_result("full_version"))
+                               amro_last_query=amro_sync.get_last_query_result("full_version"),
+                               pending_cancelled=pending_cancelled)
     except Exception:
         logger.exception("获取工卡列表失败")
         flash("加载工卡列表失败，请稍后重试", "error")
         return render_template("cards/list.html", cards=[],
                                categories=CATEGORIES, task_types=TASK_TYPES,
                                reminder_types=REMINDER_TYPES, amro_status={},
-                               amro_last_query=amro_sync.get_last_query_result("full_version"))
+                               amro_last_query=amro_sync.get_last_query_result("full_version"),
+                               pending_cancelled=[])
 
 
 @cards_bp.route("/card/new", methods=["GET", "POST"])
@@ -260,7 +265,7 @@ def cancelled_cards_page():
     return render_template("cards/cancelled.html",
                            cards=records,
                            categories=CATEGORIES, reminder_types=REMINDER_TYPES,
-                           task_types=TASK_TYPES)
+                           task_types=TASK_TYPES, usage_types=USAGE_TYPES)
 
 
 @cards_bp.route("/card/cancelled/<int:card_id>/delete", methods=["POST"])

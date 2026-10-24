@@ -51,6 +51,29 @@ class TestSyncAircraft:
         assert rep["total_amro"] == 1
         assert [a["reg"] for a in json_store.get_all_aircraft()] == ["B-1662"]
 
+    def test_empty_fleet_aborts_without_changes(self, json_store):
+        """护栏：AMRO 在册为空（账号权限/接口异常）中止同步，本地数据不动"""
+        json_store.add_aircraft("B-1662", "A320-232", "", "", "", "")
+
+        async def fetch(client, cookies, plugin, base_form, **kw):
+            return [_acrow("B-1662", mp="A330")]  # 全部被在册过滤 → 空集
+
+        with pytest.raises(RuntimeError, match="在册机队为空"):
+            _run(amro_sync.sync_aircraft(json_store, None, {}, fetch=fetch))
+        assert [a["reg"] for a in json_store.get_all_aircraft()] == ["B-1662"]
+
+    def test_mass_delete_aborts_without_changes(self, json_store):
+        """护栏：清理量超过现存一半（骤减）中止同步，本地数据不动"""
+        for i in (1662, 1663, 1664):
+            json_store.add_aircraft(f"B-{i}", "A320-232", "", "", "", "")
+
+        async def fetch(client, cookies, plugin, base_form, **kw):
+            return [_acrow("B-1662")]  # 存 3 收 1 → 删 2 > 1.5
+
+        with pytest.raises(RuntimeError, match="骤减"):
+            _run(amro_sync.sync_aircraft(json_store, None, {}, fetch=fetch))
+        assert len(json_store.get_all_aircraft()) == 3
+
 
 @pytest.fixture
 def routine_row():

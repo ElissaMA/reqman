@@ -37,7 +37,7 @@ BJ = ZoneInfo("Asia/Shanghai")
 AMRO_FLA_PLUGIN = "TD_JC_NRCJC_LIST"
 
 from .packages import build_package_label
-from .query_runner import run_query, save_last_query_result
+from .query_runner import get_last_query_result, get_query_status, run_query, save_last_query_result
 
 
 def _wd(row: dict | None) -> str:
@@ -286,7 +286,8 @@ def start_full_version_check(store, session_store, output_dir) -> bool:
                                 _unchecked_note(rep["skipped_dp"], rep["skipped_other"]))
         save_last_query_result("full_version", "全量检查工卡版本", text,
                                download_url=f"/card/amro-version-report?file={rep['filename']}",
-                               output_dir=output_dir, file=rep["filename"])
+                               output_dir=output_dir, file=rep["filename"],
+                               data={"cancelled_items": rep["cancelled"]})
         return {"revised": len(rep["revised"]), "new_added": len(rep["new_added"]),
                 "cancelled": len(rep["cancelled"]),
                 "cancelled_items": rep["cancelled"],
@@ -338,11 +339,26 @@ def start_package_version_check(store, session_store, package_id: str, pkg_data:
             "package_version", "检查工作包工卡版本",
             f"版本检查完成（{label}）：{text}（预览页可下载改版清单）",
             download_url=f"/generate/package-version-report?package_id={package_id}",
-            output_dir=amro_sync.OUTPUT_DIR, file=filename)
+            output_dir=amro_sync.OUTPUT_DIR, file=filename,
+            data={"cancelled_items": report["cancelled"]})
         return summary
 
     return run_query("package_version", "检查工作包工卡版本", job,
                      extra={"package_id": package_id, "label": label})
+
+
+
+def pending_cancel_confirmations(key: str, active_codes: set[str]) -> list[dict]:
+    """待人工确认作废清单（页面常驻确认入口用）。
+
+    内存态（QUERY_STATUS，同进程刷新可恢复）优先，服务重启后回退持久化文件
+    （last_query_<key>.json 的 data.cancelled_items）；只保留仍是在用工卡的条目——
+    已确认作废的卡不在 active_codes 中，自然从清单消失，无需清理状态。
+    """
+    items = (get_query_status(key).get("summary") or {}).get("cancelled_items")
+    if items is None:
+        items = ((get_last_query_result(key).get("data") or {}).get("cancelled_items"))
+    return [i for i in (items or []) if i.get("task_code") in active_codes]
 
 
 

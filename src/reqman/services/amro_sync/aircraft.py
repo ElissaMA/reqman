@@ -79,6 +79,15 @@ async def sync_aircraft(store, client, cookies, *, fetch=None) -> dict:
             deletes.append(old["id"])
             removed.append(old.get("reg", ""))
 
+    # 空集/骤减护栏：AMRO 返回异常（窄权限账号、接口语义变更）时中止同步，
+    # 不做任何变更，防整队误清（与版本检查"查无仅报告"同一保护哲学）
+    if existing_by_key and not amro_by_key:
+        raise RuntimeError("AMRO 在册机队为空，同步已中止（疑似账号权限或接口异常），本地数据未变")
+    if existing_by_key and len(deletes) > len(existing_by_key) / 2:
+        raise RuntimeError(
+            f"AMRO 在册机队骤减（将清理 {len(deletes)}/{len(existing_by_key)} 架），"
+            "同步已中止，请核对账号权限或 AMRO 数据后再试")
+
     store.bulk_aircraft_sync(updates, deletes, adds)
     return {"added": len(adds), "updated": len(updates), "removed": removed,
             "total_amro": len(amro_by_key)}

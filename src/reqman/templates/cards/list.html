@@ -34,6 +34,12 @@
             {% if amro_last_query.download_url %}<a class="btn-download ms-2" href="{{ amro_last_query.download_url }}" data-download title="⬇下载改版清单（全量）">下载改版清单（全量）</a>{% endif %}
         </div>
         {% endif %}
+        {% if pending_cancelled %}
+        <div class="alert alert-warning m-3 mb-0 small d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <span>检测到 {{ pending_cancelled|length }} 张工卡在 AMRO 已查无，待人工确认作废（确认后移入作废工卡页，可恢复）。</span>
+            <button type="button" class="btn btn-outline-danger btn-sm py-0" onclick="confirmCancelledCards({{ pending_cancelled|tojson }}, 'full_version')">确认作废</button>
+        </div>
+        {% endif %}
         <div class="q-card" id="qCardVersion" style="display:none"></div>
         <div class="table-responsive">
             <table class="table table-hover mb-0" id="cardTable">
@@ -222,6 +228,36 @@ function amroVerCheck() {
         });
 }
 
+// 待作废工卡人工确认（版本检查轮询完成与页面常驻入口共用）
+function confirmCancelledCards(pending, source, reloadOnCancel) {
+    var lines = pending.map(function(c) {
+        return '<div class="small">' + escapeHtml(c.task_code) + ' ' + escapeHtml(c.task_name || '') + '</div>';
+    }).join('');
+    window.confirmModal({
+        title: '检测到待作废工卡（' + pending.length + ' 张）',
+        body: '以下工卡在 AMRO 中已查无，确认作废后将从工卡清单移入作废工卡页：<div class="border rounded p-2 my-2" style="max-height:200px;overflow:auto">' + lines + '</div>确认作废后可在「作废工卡」页恢复。',
+        okText: '确认作废'
+    }).then(function(ok) {
+        if (!ok) {
+            if (reloadOnCancel) { window.location.reload(); }
+            return;
+        }
+        var fd = new FormData();
+        pending.forEach(function(c) { fd.append('task_codes[]', c.task_code); });
+        fd.append('source', source);
+        fetch('/card/cancelled/confirm', {
+            method: 'POST', body: fd,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            window.safeToast((d && d.message) || '已确认作废', d && d.success ? 'success' : 'error');
+            window.setTimeout(function() { window.location.reload(); }, 800);
+        }).catch(function() {
+            window.safeToast('确认作废请求失败', 'error');
+            window.location.reload();
+        });
+    });
+}
+
 function pollVersionCheck(card) {
     window.Poller.poll({
         statusUrl: '/card/amro-version-status',
@@ -235,31 +271,8 @@ function pollVersionCheck(card) {
             card.done(msg);
             window.safeToast(msg, 'success', 8000);
             // 检测到待作废工卡 → 弹人工确认（确认后才真正标记作废）
-            var pending = s.cancelled_items || [];
-            if (pending.length) {
-                var lines = pending.map(function(c) {
-                    return '<div class="small">' + escapeHtml(c.task_code) + ' ' + escapeHtml(c.task_name || '') + '</div>';
-                }).join('');
-                window.confirmModal({
-                    title: '检测到待作废工卡（' + pending.length + ' 张）',
-                    body: '以下工卡在 AMRO 中已查无，确认作废后将从工卡清单移入作废工卡页：<div class="border rounded p-2 my-2" style="max-height:200px;overflow:auto">' + lines + '</div>确认作废后可在「作废工卡」页恢复。',
-                    okText: '确认作废'
-                }).then(function(ok) {
-                    if (!ok) { window.location.reload(); return; }
-                    var fd = new FormData();
-                    pending.forEach(function(c) { fd.append('task_codes[]', c.task_code); });
-                    fd.append('source', 'full_version');
-                    fetch('/card/cancelled/confirm', {
-                        method: 'POST', body: fd,
-                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                    }).then(function(r) { return r.json(); }).then(function(d) {
-                        window.safeToast((d && d.message) || '已确认作废', d && d.success ? 'success' : 'error');
-                        window.setTimeout(function() { window.location.reload(); }, 800);
-                    }).catch(function() {
-                        window.safeToast('确认作废请求失败', 'error');
-                        window.location.reload();
-                    });
-                });
+            if ((s.cancelled_items || []).length) {
+                confirmCancelledCards(s.cancelled_items, 'full_version', true);
                 return;
             }
             setTimeout(function() { window.location.reload(); }, 1500);

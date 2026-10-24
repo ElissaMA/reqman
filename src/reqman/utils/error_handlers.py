@@ -2,6 +2,7 @@
 
 import logging
 import traceback
+from urllib.parse import urlparse
 
 from flask import flash, redirect, render_template, request
 from werkzeug.exceptions import HTTPException
@@ -46,6 +47,16 @@ def is_ajax():
     return request.headers.get("X-Requested-With") == "XMLHttpRequest"
 
 
+def safe_referrer(default: str = "/") -> str:
+    """Referer 同源才回跳（防开放重定向）；缺失或外源回退默认页。"""
+    ref = request.headers.get("Referer", "")
+    if ref:
+        parsed = urlparse(ref)
+        if parsed.netloc and parsed.netloc == request.host:
+            return ref
+    return default
+
+
 # ===================== 注册函数 =====================
 
 
@@ -82,8 +93,7 @@ def register_error_handlers(app):
             return error.to_response()
         # 非 AJAX 请求：flash 消息后重定向
         flash(error.message, "error")
-        referrer = request.headers.get("Referer", "/")
-        return redirect(referrer)
+        return redirect(safe_referrer())
 
     # ---------- 通用 500（未捕获异常兜底） ----------
     @app.errorhandler(Exception)

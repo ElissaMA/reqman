@@ -286,8 +286,8 @@ function renderSelectedCards() {
     var html = "";
     selectedCards.forEach(function(card, idx) {
         html += '<tr>' +
-            '<td><code>' + card.code + '</code></td>' +
-            '<td>' + (card.name || '-') + '</td>' +
+            '<td><code>' + escapeHtml(card.code) + '</code></td>' +
+            '<td>' + escapeHtml(card.name || '-') + '</td>' +
             '<td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm py-0" aria-label="删除此行" onclick="removeSelectedCard(' + idx + ')">&times;</button></td>' +
             '</tr>';
     });
@@ -297,7 +297,7 @@ function renderSelectedCards() {
 function removeSelectedCard(idx) {
     var code = selectedCards[idx].code;
     selectedCards.splice(idx, 1);
-    var cb = document.querySelector("#cardTableBody input[value=\"" + code + "\"]");
+    var cb = document.querySelector("#cardTableBody input[value=\"" + CSS.escape(code) + "\"]");
     if (cb) cb.checked = false;
     renderSelectedCards();
 }

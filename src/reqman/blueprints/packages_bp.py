@@ -98,10 +98,15 @@ def upload():
         )
         filtered.append(wp)
 
+    # 工作包版本检查待人工确认作废清单（仍在用的卡才显示，确认后自动消失）
+    active_codes = {c.get("task_code", "") for c in store.get_all()}
+    pending_cancelled = amro_sync.pending_cancel_confirmations("package_version", active_codes)
+
     return render_template("packages/upload.html", work_packages=filtered,
                            amro_pkg_query=amro_sync.get_last_package_query(),
                            amro_last_pkg_query=amro_sync.get_last_query_result("package"),
-                           amro_last_pkg_ver=amro_sync.get_last_query_result("package_version"))
+                           amro_last_pkg_ver=amro_sync.get_last_query_result("package_version"),
+                           pending_cancelled=pending_cancelled)
 
 
 def _version_log_rows(store, limit: int = 50) -> list[dict]:

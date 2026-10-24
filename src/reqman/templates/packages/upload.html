@@ -57,6 +57,12 @@
     <div class="card-header"><div><h2>已导入工作包</h2><p class="section-description">点击工作包行进入需求单预览；状态标记表示匹配数据完整度。</p></div><span class="page-count">共 {{ work_packages|length }} 条</span></div>
     <div class="card-body p-0">
         {% if amro_last_pkg_ver %}<div class="alert alert-success m-3 mb-0 py-2 px-3 small">上次检查（{{ amro_last_pkg_ver.finished_at }}）：{{ amro_last_pkg_ver.summary }}{% if amro_last_pkg_ver.download_url %}<a class="btn-download ms-2" href="{{ amro_last_pkg_ver.download_url }}" data-download title="⬇下载逐包改版清单">下载逐包改版清单</a>{% endif %}</div>{% endif %}
+        {% if pending_cancelled %}
+        <div class="alert alert-warning m-3 mb-0 py-2 px-3 small d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <span>检测到 {{ pending_cancelled|length }} 张工卡在 AMRO 已查无，待人工确认作废（确认后移入作废工卡页，可恢复）。</span>
+            <button type="button" class="btn btn-outline-danger btn-sm py-0" onclick="confirmCancelledCards({{ pending_cancelled|tojson }}, 'package_version')">确认作废</button>
+        </div>
+        {% endif %}
         <div class="q-card" id="qCardPkgVerCheck" style="display:none"></div>
         <div class="filter-toolbar" data-filter-toolbar="wpTable">
             <div class="filter-field"><label for="wpReg">搜索机号</label><input class="form-control form-control-sm" id="wpReg" data-table="wpTable" data-col="0" placeholder="输入机号..." onkeyup="AppFilter.filter('wpReg')"></div>
@@ -167,10 +173,10 @@ function renderAmroPacks(rows) {
         return;
     }
     tbody.innerHTML = window._amroPacks.map(function(p, i) {
-        return '<tr><td><strong>' + (p.ACNO || '') + '</strong></td>' +
-            '<td>' + (p.REVTITLE || '') + '</td><td>' + (p.ACTYPE || '') + '</td>' +
-            '<td>' + (p.ENGTYPE || '') + '</td><td>' + mainSquadron(p.ZRFD) + '</td>' +
-            '<td>' + ((p.PLANSTD || '').slice(0, 10)) + '</td><td>' + (p.LIMH || '') + '</td>' +
+        return '<tr><td><strong>' + escapeHtml(p.ACNO || '') + '</strong></td>' +
+            '<td>' + escapeHtml(p.REVTITLE || '') + '</td><td>' + escapeHtml(p.ACTYPE || '') + '</td>' +
+            '<td>' + escapeHtml(p.ENGTYPE || '') + '</td><td>' + escapeHtml(mainSquadron(p.ZRFD)) + '</td>' +
+            '<td>' + escapeHtml((p.PLANSTD || '').slice(0, 10)) + '</td><td>' + escapeHtml(p.LIMH || '') + '</td>' +
             '<td class="text-center"><button class="btn btn-outline-primary btn-sm" ' +
             'onclick="importPack(this, ' + i + ')">导入</button></td></tr>';
     }).join('');
@@ -251,6 +257,32 @@ function buildVersionSummary(label, s) {
             + '（预览页可下载改版清单）';
 }
 
+// 待作废工卡人工确认（检查轮询完成与页面常驻入口共用）
+function confirmCancelledCards(pending, source) {
+    var lines = pending.map(function(c) {
+        return '<div class="small">' + escapeHtml(c.task_code) + ' ' + escapeHtml(c.task_name || '') + '</div>';
+    }).join('');
+    window.confirmModal({
+        title: '检测到待作废工卡（' + pending.length + ' 张）',
+        body: '以下工卡在 AMRO 中已查无，确认作废后将从工卡清单移入作废工卡页：<div class="border rounded p-2 my-2" style="max-height:200px;overflow:auto">' + lines + '</div>确认作废后可在「作废工卡」页恢复。',
+        okText: '确认作废'
+    }).then(function(ok) {
+        if (!ok) return;
+        var fd = new FormData();
+        pending.forEach(function(c) { fd.append('task_codes[]', c.task_code); });
+        fd.append('source', source);
+        fetch('/card/cancelled/confirm', {
+            method: 'POST', body: fd,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            window.safeToast((d && d.message) || '已确认作废', d && d.success ? 'success' : 'error');
+            window.setTimeout(function() { window.location.reload(); }, 800);
+        }).catch(function() {
+            window.safeToast('确认作废请求失败', 'error');
+        });
+    });
+}
+
 function pollPkgVersionCheck(packageId, card) {
     window.Poller.poll({
         statusUrl: '/packages/amro-version-status',
@@ -264,27 +296,8 @@ function pollPkgVersionCheck(packageId, card) {
             card.done(msg);
             window.safeToast(msg, 'success', 8000);
             // 检测到待作废工卡 → 弹人工确认（确认后才真正标记作废）
-            var pending = s.cancelled_items || [];
-            if (pending.length) {
-                var lines = pending.map(function(c) {
-                    return '<div class="small">' + escapeHtml(c.task_code) + ' ' + escapeHtml(c.task_name || '') + '</div>';
-                }).join('');
-                window.confirmModal({
-                    title: '检测到待作废工卡（' + pending.length + ' 张）',
-                    body: '以下工卡在 AMRO 中已查无，确认作废后将从工卡清单移入作废工卡页：<div class="border rounded p-2 my-2" style="max-height:200px;overflow:auto">' + lines + '</div>确认作废后可在「作废工卡」页恢复。',
-                    okText: '确认作废'
-                }).then(function(ok) {
-                    if (!ok) { window.location.reload(); return; }
-                    var fd2 = new FormData();
-                    pending.forEach(function(c) { fd2.append('task_codes[]', c.task_code); });
-                    fd2.append('source', 'package_version');
-                    fetch('/card/cancelled/confirm', {
-                        method: 'POST', body: fd2,
-                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                    }).then(function(r) { return r.json(); }).then(function(d) {
-                        window.safeToast((d && d.message) || '已确认作废', d && d.success ? 'success' : 'error');
-                    }).catch(function() { window.safeToast('确认作废请求失败', 'error'); });
-                });
+            if ((s.cancelled_items || []).length) {
+                confirmCancelledCards(s.cancelled_items, 'package_version');
             }
         },
         onError: function(err, card) {
