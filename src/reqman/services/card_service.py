@@ -307,8 +307,13 @@ class CardService:
         return self.store.find_by_code(code)
 
     def propagate_set_data(self, matched: list, all_items: list, new_cards: list,
-                           cards_by_code: dict | None = None) -> None:
-        """将工卡组的共用工具/航材传播给组内所有工卡"""
+                           cards_by_code: dict | None = None,
+                           cancelled: list | None = None) -> None:
+        """将工卡组的共用工具/航材传播给组内所有工卡
+
+        cancelled 为撤销项收纳桶（匹配器传入）：防御分支在此发现漏网撤销项时
+        移入该桶而非静默丢弃（匹配器正常已路由，此处兜底）。
+        """
         # 组数据单次读库建索引（替代逐卡 get_set 的 N 次整库读盘）
         sets_by_id = {s["id"]: s for s in self.store.get_all_sets()}
         for item in matched[:]:
@@ -339,6 +344,8 @@ class CardService:
                     other["status"] = "cancelled"
                     if other in new_cards:
                         new_cards.remove(other)
+                    if cancelled is not None and not any(x is other for x in cancelled):
+                        cancelled.append(other)
                     continue
                 if other.get("set_id") == set_id and other is not item:
                     # 检查工卡本身的确认状态，未确认的不移入 matched
@@ -380,13 +387,20 @@ class CardService:
         item["materials"] = merged_mats
 
     def dedup_by_set(self, matched: list, new_cards: list,
-                     cards_by_code: dict | None = None) -> None:
-        """识别新工卡中属于既有工卡组的项目，归入已匹配"""
+                     cards_by_code: dict | None = None,
+                     cancelled: list | None = None) -> None:
+        """识别新工卡中属于既有工卡组的项目，归入已匹配。
+
+        cancelled 为撤销项收纳桶（匹配器传入）：防御分支发现的漏网撤销项
+        移入该桶而非静默丢弃。
+        """
         remove_idx = []
         for i, item in enumerate(new_cards):
             if is_cancelled_item(item):
                 item["cancelled"] = True
                 item["status"] = "cancelled"
+                if cancelled is not None and not any(x is item for x in cancelled):
+                    cancelled.append(item)
                 remove_idx.append(i)
                 continue
             card = self._lookup_card(item.get("task_code", ""), cards_by_code)

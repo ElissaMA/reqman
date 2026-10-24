@@ -496,6 +496,8 @@ class CardStore(JsonStoreCore):
 
         属人工操作链（工卡组保存触发）：成员卡刷新 log_time，并记 1 条汇总日志；
         组内无卡（N=0）时跳过刷时间与日志。
+        已作废成员冻结不参与同步（与 get_cards_in_set/_assign_cards_to_set 同口径），
+        恢复后随 set_id 重新纳入同步。
         """
         with self._lock:
             db = self._read()
@@ -503,7 +505,7 @@ class CardStore(JsonStoreCore):
             if not set:
                 return
             members = [card for card in db.get("cards", {}).values()
-                       if card.get("set_id") == set_id]
+                       if card.get("set_id") == set_id and not card.get("cancelled")]
             if not members:
                 return
             synced_fields = []

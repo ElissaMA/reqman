@@ -126,6 +126,13 @@ def card_edit(card_id):
         flash("工卡不存在", "error")
         return redirect("/card/list")
 
+    if card.get("cancelled"):
+        # 作废卡冻结：编辑走作废页专用路由（允许清空清单等特殊语义）
+        if is_ajax():
+            return api_error("该工卡已作废，请在「作废工卡」页编辑或先恢复", status_code=400)
+        flash("该工卡已作废，请在「作废工卡」页编辑或先恢复", "error")
+        return redirect("/card/list")
+
     if request.method == "POST":
         try:
             task_name = validate_required(request.form, "task_name", "工卡名称")

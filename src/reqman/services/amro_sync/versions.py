@@ -116,9 +116,10 @@ def _version_summary(revised: list[dict], new_added: list[dict], cancelled: list
 
 
 
-def _unchecked_note(skipped_dp: int, skipped_other: int, skipped_not_in_store: int = 0) -> str:
-    """未检查项的原因说明（DP 项目 / 其他工卡 / 未录入主库），无跳过返回空串。"""
-    total = skipped_dp + skipped_other + skipped_not_in_store
+def _unchecked_note(skipped_dp: int, skipped_other: int, skipped_not_in_store: int = 0,
+                    skipped_cancelled: int = 0) -> str:
+    """未检查项的原因说明（DP 项目 / 其他工卡 / 未录入主库 / 已作废），无跳过返回空串。"""
+    total = skipped_dp + skipped_other + skipped_not_in_store + skipped_cancelled
     if not total:
         return ""
     parts = []
@@ -128,6 +129,8 @@ def _unchecked_note(skipped_dp: int, skipped_other: int, skipped_not_in_store: i
         parts.append(f"其他工卡 {skipped_other} 张")
     if skipped_not_in_store:
         parts.append(f"未录入主库 {skipped_not_in_store} 张")
+    if skipped_cancelled:
+        parts.append(f"已作废 {skipped_cancelled} 张")
     return f"未检查 {total} 张（{'、'.join(parts)}）"
 
 
@@ -329,11 +332,13 @@ def start_package_version_check(store, session_store, package_id: str, pkg_data:
         text = _version_summary(report["revised"], report["new_added"], report["cancelled"],
                                 report["checked"],
                                 _unchecked_note(report["skipped_dp"], report["skipped_other"],
-                                                report["skipped_not_in_store"]))
+                                                report["skipped_not_in_store"],
+                                                report["skipped_cancelled"]))
         summary = {"revised": len(report["revised"]), "new_added": len(report["new_added"]),
                    "cancelled": len(report["cancelled"]),
                    "cancelled_items": report["cancelled"],
                    "checked": report["checked"], "filename": filename, "text": text,
+                   "skipped_cancelled": report["skipped_cancelled"],
                    "skipped_total": report["skipped_total"]}
         save_last_query_result(
             "package_version", "检查工作包工卡版本",
@@ -557,10 +562,11 @@ async def check_cards_against_amro(store, client, cookies, task_codes, *, fetch=
     """包级版本检查：拉清单 → 对指定工卡比对 AMRO 编写日期 → {revised, cancelled, checked, skipped_*}。
 
     仅处理卡库已存在的卡（包内新卡由人工前置入主库，不进版本报告）；
-    已作废卡不参与检查。检测到 AMRO 查无 → 仅记入报告 cancelled（待人工确认），不自动作废。
+    已作废卡不参与检查（独立计入"已作废"，不与"未录入主库"混淆）。
+    检测到 AMRO 查无 → 仅记入报告 cancelled（待人工确认），不自动作废。
     取数复用 _collect_card_versions（四家族实时取数：CSC 走 SMJC 全量拉、FLA 走 FLA 端点、
     QEC-R 走 EOJC 端点全量拉、EO 按卡号直查）；仅四家族参与比对，其余按原因计入未检查：
-    DP 项目 / 其他工卡（前缀不属于四家族）/ 未录入主库（四家族但卡库无记录）。
+    DP 项目 / 其他工卡（前缀不属于四家族）/ 未录入主库（四家族但卡库无记录）/ 已作废。
     """
     all_codes = list(dict.fromkeys(str(c).strip() for c in task_codes if str(c).strip()))
     wanted = {c for c in all_codes if _is_in_scope(c)}
@@ -568,12 +574,18 @@ async def check_cards_against_amro(store, client, cookies, task_codes, *, fetch=
     skipped_other = len(all_codes) - len(wanted) - skipped_dp
     versions = await _collect_card_versions(store, client, cookies, wanted,
                                             fetch=fetch, query=query)
-    all_cards = {c.get("task_code", ""): c for c in store.get_all() if not c.get("cancelled")}
+    every_card = store.get_all(include_cancelled=True)
+    all_cards = {c.get("task_code", ""): c for c in every_card if not c.get("cancelled")}
+    cancelled_in_store = {c.get("task_code", "") for c in every_card if c.get("cancelled")}
     revised, new_added, cancelled = [], [], []
     write_date_updates = {}
     checked = 0
     skipped_not_in_store = 0
+    skipped_cancelled = 0
     for code in sorted(wanted):
+        if code in cancelled_in_store:
+            skipped_cancelled += 1   # 库级已作废：无需比对，独立归类
+            continue
         card = all_cards.get(code)
         if card is None:
             skipped_not_in_store += 1
@@ -607,4 +619,5 @@ async def check_cards_against_amro(store, client, cookies, task_codes, *, fetch=
     return {"revised": revised, "new_added": new_added, "cancelled": cancelled, "checked": checked,
             "skipped_dp": skipped_dp, "skipped_other": skipped_other,
             "skipped_not_in_store": skipped_not_in_store,
-            "skipped_total": skipped_dp + skipped_other + skipped_not_in_store}
+            "skipped_cancelled": skipped_cancelled,
+            "skipped_total": skipped_dp + skipped_other + skipped_not_in_store + skipped_cancelled}

@@ -577,3 +577,27 @@ class TestSyncSetToCardsLog:
         json_store.sync_set_to_cards(s["id"])
 
         assert len(json_store._read()["card_logs"]) == logs_before
+
+    def test_sync_skips_cancelled_members(self, json_store: JsonStore):
+        """作废成员冻结：同步不覆盖其字段、不刷 log_time、不计入汇总条数。"""
+        alive = json_store.add("SL-100", "在用成员", "发动机", "A", "")
+        dead = json_store.add("SL-101", "作废成员", "发动机", "A", "")
+        s = json_store.add_set(name="含作废成员组", description="", category="特检")
+        json_store.update_set(s["id"], tools=[{"device_name": "组工具"}])
+        json_store.update(alive["id"], set_id=s["id"])
+        json_store.update(dead["id"], set_id=s["id"],
+                          tools=[{"device_name": "冻结现场工具"}])
+        json_store.mark_cancelled(dead["id"], source="full_version", set_name="")
+        dead_before = json_store.get(dead["id"])
+
+        json_store.sync_set_to_cards(s["id"])
+
+        alive_after = json_store.get(alive["id"])
+        dead_after = json_store.get(dead["id"])
+        assert alive_after["category"] == "特检"                       # 在用成员照常同步
+        assert alive_after["tools"][0]["device_name"] == "组工具"
+        assert dead_after["category"] == "发动机"                      # 作废成员原样冻结
+        assert dead_after["tools"][0]["device_name"] == "冻结现场工具"
+        assert dead_after["log_time"] == dead_before["log_time"]
+        summary = json_store._read()["card_logs"][-1]
+        assert "等1张" in summary["target_identifier"]                 # 只计在用 1 张

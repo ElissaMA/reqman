@@ -668,3 +668,22 @@ class TestCancelledCardsPage:
                            headers={"X-Requested-With": "XMLHttpRequest"})
         assert resp.status_code == 400
         assert resp.get_json()["success"] is False
+
+    def test_edit_route_rejects_cancelled_card(self, app, client):
+        """普通编辑路由拒绝作废卡（编辑须走作废页专用路由），字段不被改动"""
+        store = app.extensions["store"]
+        card = store.add("EOJC-E-1", "冻结卡", "机体", "EO", "")
+        store.mark_cancelled(card["id"], source="full_version", set_name="")
+        try:
+            resp = client.post(f"/card/{card['id']}/edit",
+                               data={"task_name": "越权改名", "category": "机体"},
+                               headers={"X-Requested-With": "XMLHttpRequest"})
+            data = resp.get_json()
+            assert resp.status_code == 400
+            assert data["success"] is False
+            assert "作废" in data["message"]
+            assert store.find_by_code("EOJC-E-1")["task_name"] == "冻结卡"
+        finally:
+            existing = store.find_by_code("EOJC-E-1")
+            if existing:
+                store.delete(existing["id"])

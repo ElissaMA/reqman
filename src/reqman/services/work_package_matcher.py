@@ -85,6 +85,8 @@ def match_work_package_items(all_items, store, service):
             item["status"] = "new"
             new_cards.append(item)
 
-    service.propagate_set_data(matched, all_items, new_cards, cards_by_code=cards_by_code)
-    service.dedup_by_set(matched, new_cards, cards_by_code=cards_by_code)
+    service.propagate_set_data(matched, all_items, new_cards,
+                               cards_by_code=cards_by_code, cancelled=cancelled)
+    service.dedup_by_set(matched, new_cards,
+                         cards_by_code=cards_by_code, cancelled=cancelled)
     return matched, new_cards, cancelled

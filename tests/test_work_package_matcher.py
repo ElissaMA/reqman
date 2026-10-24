@@ -42,6 +42,47 @@ class TestMatcherDbCancelled:
         assert any(i["task_code"] == "DB-A-1" for i in matched)
 
 
+class TestDefensiveCancelledBucket:
+    """propagate/dedup 防御分支：漏网撤销项须移入 cancelled 桶而非静默丢弃。
+
+    匹配器正常路径已路由全部撤销项，此分支当前不可达——测试直接调服务方法
+    模拟"未来调用顺序变化"的兜底行为。
+    """
+
+    def _leaked_item(self):
+        return [{"task_code": "LEAK-1", "task_name": "漏网撤销", "category": "电子",
+                 "task_type": "", "remark": "此卡撤销", "source": "例行"}]
+
+    def test_dedup_by_set_routes_leak_to_cancelled(self, card_service):
+        leak = self._leaked_item()
+        cancelled = []
+        card_service.dedup_by_set(matched=[], new_cards=leak, cancelled=cancelled)
+        assert leak == []                       # 移出 new_cards
+        assert cancelled and cancelled[0]["task_code"] == "LEAK-1"
+        assert cancelled[0]["status"] == "cancelled"
+
+    def test_propagate_routes_leak_to_cancelled(self, json_store, card_service):
+        """传播扫描（需至少一个带组 matched 项触发）发现的漏网撤销项 → cancelled 桶"""
+        s = json_store.add_set(name="防御组", description="", category="电子")
+        carrier = {"task_code": "CARRY-1", "task_name": "带组项", "category": "电子",
+                   "task_type": "", "remark": "", "source": "例行", "set_id": s["id"]}
+        leak = self._leaked_item()[0]
+        cancelled = []
+        card_service.propagate_set_data(matched=[carrier],
+                                        all_items=[carrier, leak],
+                                        new_cards=[leak], cancelled=cancelled)
+        assert leak not in [carrier] and leak["status"] == "cancelled"
+        assert cancelled and cancelled[0]["task_code"] == "LEAK-1"
+
+    def test_propagate_no_double_append(self, card_service):
+        """已在桶内的撤销项不重复追加（身份判断）"""
+        item = self._leaked_item()[0]
+        cancelled = [item]
+        card_service.propagate_set_data(matched=[], all_items=[item],
+                                        new_cards=[], cancelled=cancelled)
+        assert len(cancelled) == 1
+
+
 class TestMatcherReminderStatus:
     def test_matched_item_carries_reminder(self, json_store, card_service):
         store = json_store

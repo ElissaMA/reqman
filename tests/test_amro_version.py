@@ -382,6 +382,7 @@ class TestVersionSummaryText:
         assert amro_sync._unchecked_note(0, 3) == "未检查 3 张（其他工卡 3 张）"
         assert amro_sync._unchecked_note(1, 3, 2) == \
             "未检查 6 张（DP 项目 1 张、其他工卡 3 张、未录入主库 2 张）"
+        assert amro_sync._unchecked_note(0, 0, 0, 2) == "未检查 2 张（已作废 2 张）"
 
     def test_full_check_skipped_classification(self, json_store, fake_amro_cards,
                                                 fake_entity_query, monkeypatch):
@@ -400,18 +401,22 @@ class TestVersionSummaryText:
 
     def test_package_check_skipped_classification(self, json_store, fake_amro_cards,
                                                    fake_entity_query, monkeypatch):
-        """逐包未检查三分类：DP 项目 / 其他工卡 / 未录入主库；checked=实际比对数。"""
+        """逐包未检查四分类：DP / 其他 / 未录入主库 / 已作废；checked=实际比对数。"""
         monkeypatch.setattr(amro_sync.amro.time, "monotonic", lambda: 1e9)
         monkeypatch.setattr(amro_sync.amro.time, "sleep", lambda s: None)
         json_store.add("CSCA320-256652-01-1-X", "检查救生衣", "电子", "RST", "")
+        dead = json_store.add("CSCA320-777777-01-1-X", "库内已作废卡", "机体", "", "")
+        json_store.mark_cancelled(dead["id"], source="full_version", set_name="")
         codes = ["CSCA320-256652-01-1-X", "DP1000000739",
-                 "NRC-A320-001", "EOJC-A320-31-2026-007-A"]   # EO 在库外 → 未录入主库
+                 "NRC-A320-001", "EOJC-A320-31-2026-007-A",   # EO 在库外 → 未录入主库
+                 "CSCA320-777777-01-1-X"]                      # 库内已作废 → 已作废
         rep = _run(amro_sync.check_cards_against_amro(
             json_store, None, {}, codes, fetch=fake_amro_cards, query=fake_entity_query))
         assert rep["checked"] == 1
         assert rep["skipped_dp"] == 1 and rep["skipped_other"] == 1
         assert rep["skipped_not_in_store"] == 1
-        assert rep["skipped_total"] == 3
+        assert rep["skipped_cancelled"] == 1
+        assert rep["skipped_total"] == 4
 
 
 class TestVersionPullSplit:
