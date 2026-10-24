@@ -144,6 +144,9 @@ class JsonStoreCore:
     # ---------- 初始化 ----------
 
     def __init__(self, db_path: str):
+        # 单实例锁：存储正确性依赖进程内 RLock，多进程共写会静默丢更新（详见 utils/instance_lock）
+        from ...utils.instance_lock import acquire as _acquire_instance_lock
+        _acquire_instance_lock(db_path)
         self._path = str(db_path)
         base, ext = os.path.splitext(self._path)
         self._runtime_path = base + "_runtime" + ext

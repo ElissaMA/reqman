@@ -235,6 +235,39 @@ class CardStore(JsonStoreCore):
             self._write(db)
             return self._norm(card, "card")
 
+    def bulk_mark_cancelled(self, card_ids: list, *, source: str) -> list[dict]:
+        """批量作废标记：单次读改写落盘。
+
+        替代循环 mark_cancelled（每次全量读写 ×4 文件）；每张仍各留一条
+        cancel 日志，审计等价。跳过不存在/已作废的 id，返回实际标记的卡。
+        """
+        from datetime import datetime as _dt
+        from zoneinfo import ZoneInfo as _ZI
+        if not card_ids:
+            return []
+        with self._lock:
+            db = self._read()
+            cards = db.get("cards", {})
+            sets = db.get("card_sets", {})
+            now = _dt.now(_ZI("Asia/Shanghai")).strftime("%Y-%m-%d %H:%M:%S")
+            marked = []
+            for card_id in card_ids:
+                card = cards.get(str(card_id))
+                if card is None or card.get("cancelled"):
+                    continue
+                set_id = card.get("set_id")
+                set_data = sets.get(str(set_id)) if set_id else None
+                card["cancelled"] = True
+                card["cancelled_at"] = now
+                card["cancel_source"] = source
+                card["set_name"] = set_data.get("name", "") if set_data else ""
+                self._add_log(db, "cancel", "card", card["id"],
+                              card.get("task_code", ""), card.get("task_name", ""), [])
+                marked.append(self._norm(card, "card"))
+            if marked:
+                self._write(db)
+            return marked
+
     # ---------- 工卡组 CRUD ----------
 
     def get_all_sets(self) -> list[dict]:

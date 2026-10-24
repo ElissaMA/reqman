@@ -302,7 +302,37 @@ class TestCancelledMarkRestore:
         assert restored["id"] == card["id"]
         assert restored["cancelled"] is False
         assert restored["tools"][0]["device_name"] == "扳手"
+        assert restored["tools"][0]["device_name"] == "扳手"
         assert any(l["operation"] == "restore" for l in json_store.get_logs())
+
+    def test_bulk_mark_cancelled_single_write(self, json_store):
+        """批量作废：单次落盘标记全部，每张留 cancel 日志，跳过已作废/不存在"""
+        a = json_store.add("BK-1", "批1", "机体", "", "")
+        b = json_store.add("BK-2", "批2", "机体", "", "")
+        c = json_store.add("BK-3", "批3", "机体", "", "")
+        json_store.mark_cancelled(c["id"], source="full_version", set_name="")
+        writes = []
+        real_write = json_store._write
+
+        def counting_write(data):
+            writes.append(1)
+            return real_write(data)
+
+        json_store._write = counting_write
+        try:
+            marked = json_store.bulk_mark_cancelled(
+                [a["id"], b["id"], c["id"], 99999], source="package_version")
+        finally:
+            json_store._write = real_write
+        assert [m["task_code"] for m in marked] == ["BK-1", "BK-2"]  # 跳过已作废 BK-3 与幽灵 id
+        assert len(writes) == 1                                        # 单次落盘
+        for code in ("BK-1", "BK-2"):
+            card = json_store.find_by_code(code)
+            assert card["cancelled"] is True
+            assert card["cancel_source"] == "package_version"
+        logs = [l for l in json_store.get_logs()
+                if l["operation"] == "cancel" and l["target_identifier"] in ("BK-1", "BK-2")]
+        assert len(logs) == 2                                           # 审计等价
 
 
 class TestAtomicWriteFailure:

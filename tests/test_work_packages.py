@@ -1,4 +1,6 @@
 """工作包功能测试"""
+import pytest
+
 from reqman.models.json_store import JsonStore
 
 
@@ -8,6 +10,16 @@ class TestWorkPackages:
         data = {"reg": "B-1234", "description": "A320定检", "date": "2026.07.22", "all_items": []}
         result = json_store.save_work_package(data)
         assert "package_id" in result
+        assert len(json_store.get_work_packages()) == 1
+
+    def test_save_empty_meta_rejected(self, json_store: JsonStore):
+        """空键护栏：机号+描述均缺失拒绝入库，防止同空键包互相覆盖丢清单"""
+        with pytest.raises(ValueError, match="机号与描述均缺失"):
+            json_store.save_work_package({"reg": "", "description": "", "date": "2026.07.22"})
+        # 空白串同样拒绝；已有正常包不受影响
+        with pytest.raises(ValueError):
+            json_store.save_work_package({"reg": "  ", "description": "", "date": "2026.07.22"})
+        json_store.save_work_package({"reg": "B-1234", "description": "包1", "date": "2026.07.22"})
         assert len(json_store.get_work_packages()) == 1
 
     def test_save_work_package_update(self, json_store: JsonStore):

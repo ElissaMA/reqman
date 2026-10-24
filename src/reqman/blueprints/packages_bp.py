@@ -173,7 +173,11 @@ def _handle_upload_post():
         "aircraft_info": aircraft_info,
         "all_items": all_items,
     }
-    package_data = _persist_package(store, package_data)
+    try:
+        package_data = _persist_package(store, package_data)
+    except ValueError as e:
+        # 空键护栏：机号+描述均缺失拒绝入库（沿用上传校验错误通道）
+        raise ValidationError(str(e), "PKG_META_MISSING") from e
 
     if is_ajax():
         return api_success(data={"package_id": package_data.get("package_id")},
@@ -303,6 +307,9 @@ def amro_package_fetch():
             summary = asyncio.run(_inner())
     except amro_sync.QueryBusyError:
         return _amro_err("busy")
+    except ValueError as e:
+        # 空键护栏：AMRO 包头缺机号与描述，拒绝入库
+        return api_error(str(e), "PKG_META_MISSING", 400)
     except AmroSessionExpired as e:
         return api_error(str(e), "LOGIN_EXPIRED", 401)
     except (httpx.HTTPError, RuntimeError) as e:

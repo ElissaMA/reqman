@@ -151,6 +151,25 @@ def create_app(db_file=None, cookie_file=None):
     from .utils.error_handlers import register_error_handlers
     register_error_handlers(app)
 
+    # 跨站写防护：浏览器跨站表单/fetch POST 必带 Origin（或 Referer），
+    # 非同源一律 403；无 Origin/Referer 的非浏览器客户端（curl/脚本/测试）不受影响。
+    from urllib.parse import urlparse
+
+    from .utils.response import api_error
+
+    @app.before_request
+    def reject_cross_origin_writes():
+        if request.method not in ("POST", "PUT", "PATCH", "DELETE"):
+            return None
+        origin = request.headers.get("Origin")
+        source = urlparse(origin) if origin else None
+        if source is None:
+            referer = request.headers.get("Referer", "")
+            source = urlparse(referer) if referer else None
+        if source is not None and source.netloc and source.netloc != request.host:
+            return api_error("跨站写入请求已拦截（来源非本站）", "CSRF_BLOCKED", 403)
+        return None
+
     # 请求日志中间（增强版）
     app.wsgi_app = RequestLogMiddleware(app.wsgi_app)
 

@@ -296,24 +296,18 @@ def cancelled_cards_confirm():
         flash("未选择待作废工卡", "error")
         return redirect("/card/cancelled")
     service = current_app.extensions['card_service']
-    confirmed, missing = [], []
+    # 单次读库解析工卡号 → 批量标记单次落盘（替代逐卡 find_by_code + mark_cancelled）
+    by_code = {c.get("task_code", ""): c
+               for c in service.store.get_all(include_cancelled=True)}
+    confirmed_ids, missing = [], []
     for code in task_codes:
-        card = service.store.find_by_code(code)
+        card = by_code.get(code)
         if card is None:
             missing.append(code)
-            continue
-        if card.get("cancelled"):
-            continue   # 已作废，幂等跳过
-        set_name = ""
-        if card.get("set_id"):
-            set_data = service.store.get_set(card["set_id"])
-            set_name = set_data.get("name", "") if set_data else ""
-        try:
-            service.store.mark_cancelled(
-                card["id"], source=source, set_name=set_name)
-            confirmed.append(code)
-        except ValueError:
-            missing.append(code)
+        elif not card.get("cancelled"):
+            confirmed_ids.append(card["id"])
+    marked = service.store.bulk_mark_cancelled(confirmed_ids, source=source)
+    confirmed = [c.get("task_code", "") for c in marked]
     message = f"已确认作废 {len(confirmed)} 张工卡"
     if missing:
         message += f"；{len(missing)} 张未找到或无法作废"

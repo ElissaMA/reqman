@@ -10,6 +10,10 @@ class WorkPackageStore(CardStore):
 
     def save_work_package(self, data):
         with self._lock:
+            # 空键护栏：机号+描述均为空的包以 ("","") 为覆盖键，会静默顶掉
+            # 前一个同空键包的清单——拒绝入库（上传解析失败的信号，非有效数据）
+            if not str(data.get("reg", "")).strip() and not str(data.get("description", "")).strip():
+                raise ValueError("工作包机号与描述均缺失，拒绝入库（请检查清单文件格式）")
             db = self._read()
             wps = db.setdefault("work_packages", [])
             if "package_id" not in data:

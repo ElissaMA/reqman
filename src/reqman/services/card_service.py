@@ -309,6 +309,8 @@ class CardService:
     def propagate_set_data(self, matched: list, all_items: list, new_cards: list,
                            cards_by_code: dict | None = None) -> None:
         """将工卡组的共用工具/航材传播给组内所有工卡"""
+        # 组数据单次读库建索引（替代逐卡 get_set 的 N 次整库读盘）
+        sets_by_id = {s["id"]: s for s in self.store.get_all_sets()}
         for item in matched[:]:
             if is_cancelled_item(item):
                 item["cancelled"] = True
@@ -323,7 +325,7 @@ class CardService:
             if not set_id:
                 continue
             item["set_id"] = set_id
-            set = self.store.get_set(set_id)
+            set = sets_by_id.get(set_id)
             if not set:
                 continue
             shared_tools = set.get("tools", [])
