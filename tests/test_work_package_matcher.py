@@ -15,6 +15,33 @@ def _items():
     ]
 
 
+class TestMatcherDbCancelled:
+    """库级作废卡：命中数据库已作废记录 → cancelled 分组，不落入 new_cards"""
+
+    def _item(self, code):
+        return [{"task_code": code, "task_name": "卡", "category": "电子",
+                 "task_type": "", "remark": "", "source": "例行"}]
+
+    def test_db_cancelled_goes_cancelled_not_new(self, json_store, card_service):
+        card = json_store.add(task_code="DB-C-1", task_name="已作废卡", category="电子")
+        json_store.mark_cancelled(card["id"], source="full_version", set_name="")
+        matched, new_cards, cancelled = match_work_package_items(
+            self._item("DB-C-1"), json_store, card_service)
+        assert not matched
+        assert not any(i["task_code"] == "DB-C-1" for i in new_cards)  # 不提示新增
+        entry = next(i for i in cancelled if i["task_code"] == "DB-C-1")
+        assert entry["db_cancelled"] is True and entry["status"] == "cancelled"
+
+    def test_active_card_still_matches(self, json_store, card_service):
+        """回归：在用卡匹配行为不受作废分支影响"""
+        json_store.add(task_code="DB-A-1", task_name="在用卡", category="电子")
+        json_store.update(1, tools_confirmed=True, materials_confirmed=True,
+                          reminder_confirmed=True, card_ok=True)
+        matched, _, _ = match_work_package_items(
+            self._item("DB-A-1"), json_store, card_service)
+        assert any(i["task_code"] == "DB-A-1" for i in matched)
+
+
 class TestMatcherReminderStatus:
     def test_matched_item_carries_reminder(self, json_store, card_service):
         store = json_store

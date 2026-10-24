@@ -365,6 +365,9 @@ class JsonStoreCore:
         db["code_index"] = {}
         coded = 0
         for card_id, card in db.get("cards", {}).items():
+            if not str(card_id).isdigit():
+                logger.warning("跳过非数字主键 %r（手工编辑残留？），请人工核查该记录", card_id)
+                continue
             code = card.get("task_code")
             if code:
                 db["code_index"][code] = int(card_id)
@@ -375,11 +378,14 @@ class JsonStoreCore:
     @staticmethod
     def _index_ok(db: dict) -> bool:
         """索引双向校验：每个键指向的卡存在且 task_code 匹配、有码卡数量一致。
-        能查出条数比较查不出的悬挂/错映射（如卡删除后索引残留）"""
+        能查出条数比较查不出的悬挂/错映射（如卡删除后索引残留）。
+        非数字主键的卡不参与索引（读取即重建时跳过并告警），此处同口径防 ValueError。"""
         cards = db["cards"]
         ci = db.get("code_index", {})
         cards_with_code = 0
         for cid, card in cards.items():
+            if not str(cid).isdigit():
+                continue
             code = card.get("task_code")
             if not code:
                 continue

@@ -1,10 +1,10 @@
 # ReqMan 定检准备系统 — 服务器运维手册
 
-> V3.6.0 | 目标环境：Ubuntu 22.04 LTS（阿里云）| 公网 80 端口
+> V3.7.1 | 目标环境：Ubuntu 22.04 LTS（阿里云）| 公网 80 端口
 
 ## 架构与优势
 
-- **稳定单进程**：Gunicorn 1 worker × 4 threads，JSON 存储用进程内锁，无多进程竞态。
+- **稳定单进程**：Gunicorn 1 worker × 4 threads，JSON 存储用进程内锁；`data/reqman_db.json.lock` 实例锁拒绝第二个进程启动，防多进程并发写丢数据（误配多 worker / 双开服务会被明确拦下）。
 - **反向代理**：Nginx 80 → 127.0.0.1:5001；systemd 托管，开机自启。
 - **数据安全**：核心 / 运行时双文件分层；每日自动备份（保留 7 天）；AMRO 调用全程审计留痕。
 - **只读合规**：对接川航 AMRO 仅读不写，限速 + JSONL 审计，无绕过开关。
@@ -77,15 +77,28 @@ curl -s -o /dev/null -w "%{http_code}" http://localhost:5001/   # 验证
 
 > dev 分支仅本地不推送；只有 main 发布到 GitHub。合并 main 前须完成全量测试；数据文件始终按 scp 同步。
 
+**升级到 V3.7（作废工卡并入主库）一次性迁移**
+
+旧版独立的 `data/cancelled_cards.json` 已并入主库（作废 = 主库 `cancelled` 标记）。服务器首次升级到 V3.7+ 时，**停服后**用 venv 解释器跑迁移（幂等，可重复执行；同号同名自动合并、不同名跳过并报告）：
+
+```bash
+systemctl stop reqman
+./venv/bin/python3 scripts/migrate_cancelled_cards.py --dry-run   # 先看数量
+./venv/bin/python3 scripts/migrate_cancelled_cards.py            # 执行并归档原文件
+systemctl start reqman
+```
+
+> 也可跳过服务器迁移：用本地已迁移好的 `reqman_db.json` 直接 scp 覆盖（见上），再把服务器旧 `cancelled_cards.json` 改名留档即可。二选一，不要都做。
+
 ## 目录结构（要点）
 
 ```
 src/reqman/           应用源码
 assets/              需求单 / 提醒单 Excel 模板
-data/                reqman_db.json(核心) · reqman_db_runtime.json(运行时) · cancelled_cards.json · cookie/ · amro_audit.jsonl · backups/
+data/                reqman_db.json(核心，含作废标记) · reqman_db_runtime.json(运行时) · reqman_db.json.lock(实例锁) · cookie/ · amro_audit.jsonl · backups/
 output/             生成的需求单 / 改版清单
 config/             reqman.service · nginx-reqman.conf
-scripts/            deploy.sh · db.sh · amro_login.py · start_login.bat · import_vba_config.py
+scripts/            deploy.sh · db.sh · migrate_cancelled_cards.py · amro_login.py · start_login.bat · import_vba_config.py
 .env                环境变量
 ```
 
@@ -117,6 +130,7 @@ scripts/            deploy.sh · db.sh · amro_login.py · start_login.bat · im
 ## 常见问题
 
 - **端口占用**：`lsof -i :80` / `:5001` → `kill -9 <PID>`。
+- **启动报"数据库已被进程 X 使用"**：实例锁检测到另一存活进程持有 `data/reqman_db.json.lock`。确认无第二实例后删除该锁文件重启；排查命令 `./venv/bin/python3 -m reqman.utils.instance_lock data/reqman_db.json`。
 - **启动慢 / 超时**：`ps aux | grep gunicorn` → `systemctl restart reqman`。
 - **库损坏**：`bash scripts/db.sh restore`。
 - **上传失败**：查 `config/nginx-reqman.conf` 的 `client_max_body_size` 与磁盘 `df -h`。
@@ -127,5 +141,6 @@ scripts/            deploy.sh · db.sh · amro_login.py · start_login.bat · im
 - [ ] `systemctl status reqman` 运行中
 - [ ] `curl ... localhost:5001/` 返回 2xx/3xx
 - [ ] 重启后数据不丢失
+- [ ] 「作废工卡」页可见历史作废记录（升级 V3.7 后验证迁移生效）
 - [ ] `bash scripts/db.sh backup` 成功
 - [ ] `crontab -l | grep auto_backup` 自动备份已配置

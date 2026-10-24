@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import NamedTuple
@@ -15,6 +16,11 @@ from .connectors.session import LoginSessionStore
 from .xlsx_workbook import read_demand, write_inventory_copy
 
 logger = logging.getLogger(__name__)
+
+# 探活结果短 TTL 缓存：页面加载/窗口聚焦会频繁触发 /inventory/session，
+# 每次同步探活 5~30s 在 AMRO 不可达时会耗尽 4 线程；缓存内直接复用上次结论。
+PROBE_CACHE_TTL = 60
+PROBE_TIMEOUT = 5
 
 
 class QueryResult(NamedTuple):
@@ -51,6 +57,7 @@ class InventoryService:
         self.session_store = session_store
         self.max_concurrent = max_concurrent
         self._last_probe_state = "none"
+        self._probe_cache: tuple[float, str, str] | None = None  # (过期时间, login_at, state)
 
     @staticmethod
     def _duration_seconds(login_at: str | None) -> int:
@@ -66,11 +73,15 @@ class InventoryService:
             return 0
 
     async def _probe_cached_session(self, data: dict) -> str:
-        """严格探活：valid / expired / probe_error，不把网络异常当成有效。"""
+        """严格探活：valid / expired / probe_error，不把网络异常当成有效。
+
+        探活用短超时（真实查询仍走默认 30s）：只判断会话死活，不陪 AMRO 慢响应耗线程。
+        """
         async with httpx.AsyncClient(verify=True, trust_env=False) as client:
             pn = data["cookies"].get("I_MFRPN") or "ST1946-107"
             try:
-                await amro.query_single_pn(client, data["cookies"], pn, "01")
+                await amro.query_single_pn(client, data["cookies"], pn, "01",
+                                           timeout=PROBE_TIMEOUT)
                 return "valid"
             except amro.AmroSessionExpired:
                 return "expired"
@@ -81,12 +92,21 @@ class InventoryService:
         data = self.session_store.load()
         if not data:
             self._last_probe_state = "none"
+            self._probe_cache = None
             return "none"
+        # TTL 内复用上次结论（新登录 login_at 变化自动失效）
+        now = time.monotonic()
+        if (self._probe_cache is not None
+                and now < self._probe_cache[0]
+                and self._probe_cache[1] == (data.get("login_at") or data.get("created_at"))):
+            return self._probe_cache[2]
         try:
             state = asyncio.run(self._probe_cached_session(data))
         except (httpx.HTTPError, OSError, ValueError, RuntimeError):
             state = "probe_error"
         self._last_probe_state = state
+        self._probe_cache = (now + PROBE_CACHE_TTL,
+                             data.get("login_at") or data.get("created_at"), state)
         if state == "expired":
             self.session_store.clear()
         elif state in {"valid", "probe_error"}:

@@ -12,44 +12,40 @@ ENDPOINTS = {
         "description": "工卡管理 API",
         "endpoints": [
             {
-                "path": "/card/api/list",
-                "method": "GET",
-                "summary": "工具列表（分页+搜索+分类过滤）",
+                "path": "/card/cancelled/confirm",
+                "method": "POST",
+                "summary": "人工确认作废（版本检查报告待确认清单的确认入口；批量单次落盘）",
                 "parameters": [
-                    {"name": "search", "in": "query", "required": False, "schema": {"type": "string"}, "description": "搜索关键词（工卡号/名称）"},
-                    {"name": "category", "in": "query", "required": False, "schema": {"type": "string"}, "description": "专业分类"},
-                    {"name": "page", "in": "query", "required": False, "schema": {"type": "integer", "default": 1}},
-                    {"name": "per_page", "in": "query", "required": False, "schema": {"type": "integer", "default": 20, "maximum": 100}},
+                    {"name": "task_codes[]", "in": "formData", "required": True,
+                     "schema": {"type": "array", "items": {"type": "string"}},
+                     "description": "待作废工卡号列表（已作废的幂等跳过）"},
+                    {"name": "source", "in": "formData", "required": False,
+                     "schema": {"type": "string", "default": "manual"},
+                     "description": "作废来源标记（full_version / package_version / manual）"},
                 ],
                 "responses": {
                     "200": {
-                        "description": "成功返回工卡列表",
+                        "description": "成功返回确认结果",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "type": "object",
                                     "properties": {
                                         "success": {"type": "boolean", "example": True},
+                                        "message": {"type": "string", "example": "已确认作废 2 张工卡"},
                                         "data": {
                                             "type": "object",
                                             "properties": {
-                                                "items": {"type": "array", "items": {"$ref": "#/components/schemas/Card"}},
-                                                "pagination": {
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "page": {"type": "integer"},
-                                                        "per_page": {"type": "integer"},
-                                                        "total": {"type": "integer"},
-                                                        "total_pages": {"type": "integer"},
-                                                    }
-                                                }
+                                                "confirmed": {"type": "array", "items": {"type": "string"}},
+                                                "missing": {"type": "array", "items": {"type": "string"}},
                                             }
                                         }
                                     }
                                 }
                             }
                         }
-                    }
+                    },
+                    "400": {"description": "未选择待作废工卡"},
                 }
             },
             {

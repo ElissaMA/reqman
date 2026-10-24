@@ -63,8 +63,13 @@ async def query_single_pn(
     cookies: dict[str, str],
     pn: str,
     inv_type: str,
+    *,
+    timeout: int = 30,
 ) -> list[dict]:
-    """单件号库存查询 — 经通用只读调用器，自动获得白名单校验/限速/审计。"""
+    """单件号库存查询 — 经通用只读调用器，自动获得白名单校验/限速/审计。
+
+    探活调用方可传更短 timeout（库存查询编排用默认 30s）。
+    """
     body = await query_plugin(
         client,
         cookies,
@@ -75,7 +80,7 @@ async def query_single_pn(
             "I_MFRPN": pn,
             "I_MATER_NO_FLEET": "",
         },
-        timeout=30,
+        timeout=timeout,
     )
     return body.get("data", [])
 

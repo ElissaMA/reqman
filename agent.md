@@ -20,11 +20,10 @@
 
 ## 二、分支工作流（dev → 本地 main 试用 → 推送 main）
 
-- **所有代码改动一律在 `dev` 分支进行**（小步提交，禁止直接在 main 上改代码）
-- dev 验证通过（pytest 全量 + ruff + 冒烟）→ 合并进本地 `main` **试用**（本地启动实际使用验证）
-- 试用通过 → `git push origin main` → 服务器 `git pull origin main` 部署
-- feature 分支流程已废除；数据更新（scp data/）不走分支，仍按 SERVER_README §5 流程
-- 开始工作前先 `git branch` 确认当前在 dev；dev 落后 main 时先 `git merge main` 同步
+- **当前直接在 `main` 分支开发**（2026-10 起用户决定，dev 分支停用）；提交前必须过全量门禁（pytest 全量 + ruff + 冒烟/e2e）
+- 门禁通过 → 本地 `main` 试用（本地启动实际使用验证）→ 用户确认后 `git push origin main` → 服务器 `git pull origin main` 部署
+- 数据更新（scp data/）不走分支，仍按 SERVER_README §5 流程；服务器升级到 V3.7+ 首次需跑作废库迁移（见 SERVER_README）
+- 分支工作流如需恢复 dev 流程，须经项目负责人确认后修改本条
 
 ## 三、团队协作流程（所有任务统一执行）
 
@@ -37,6 +36,7 @@
 ## 四、提交/合并/推送（三项分开，各自需用户确认）
 
 - 提交前必查：CHANGELOG 必改；README/SERVER_README/agent.md 按改动类型同步更新
+- 文档生命周期：计划类文档（docs/**/plans、修复计划）执行完成即删除；设计类文档（specs）长期保留；文档必须描述现状而非历史
 - **提交**：汇报结果，等待用户确认后执行 `git commit`
 - **合并**：等待用户确认后执行分支合并
 - **推送**：等待用户确认后执行 `git push`

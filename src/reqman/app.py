@@ -38,6 +38,7 @@ _ensure_venv()
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 from reqman import create_app
+from reqman.config import VERSION
 from reqman.utils.startup import _backup_on_exit, free_port, wait_and_open
 
 app = create_app()
@@ -48,7 +49,7 @@ if __name__ == "__main__":
     port = 5001
 
     print("=" * 50)
-    print("  ReqMan定检准备系统 V3.6.0")
+    print(f"  ReqMan定检准备系统 V{VERSION}")
     print("  架构: 工厂模式 + 蓝图 + 服务层")
     print("=" * 50)
 

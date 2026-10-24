@@ -41,6 +41,51 @@ class TestGetLoginStatus:
         assert status["state"] == "probe_error"
 
 
+class TestProbeCache:
+    """探活短 TTL 缓存：TTL 内重复探活复用结论，不再真实外呼耗线程"""
+
+    def _svc_with_cookie(self, tmp_path: Path):
+        store = _store(tmp_path)
+        store.save([{"name": "JSESSIONID", "value": "abc"}], account="021219")
+        return InventoryService(store)
+
+    def test_ttl_window_reuses_probe(self, tmp_path: Path, monkeypatch):
+        svc = self._svc_with_cookie(tmp_path)
+        calls = []
+
+        async def fake_probe(data):
+            calls.append(1)
+            return "valid"
+
+        monkeypatch.setattr(svc, "_probe_cached_session", fake_probe)
+        assert svc.check_login_state() == "valid"
+        assert svc.check_login_state() == "valid"   # TTL 内复用
+        assert svc.check_login_state() == "valid"
+        assert len(calls) == 1                       # 只真实探活一次
+
+    def test_new_login_invalidates_cache(self, tmp_path: Path, monkeypatch):
+        svc = self._svc_with_cookie(tmp_path)
+        calls = []
+
+        async def fake_probe(data):
+            calls.append(1)
+            return "valid"
+
+        monkeypatch.setattr(svc, "_probe_cached_session", fake_probe)
+        svc.check_login_state()
+        # 重新登录（login_at 变化）→ 缓存失效，需重新探活
+        svc.session_store.save([{"name": "JSESSIONID", "value": "new"}], account="021219")
+        assert svc.check_login_state() == "valid"
+        assert len(calls) == 2
+
+    def test_no_cookie_skips_probe(self, tmp_path: Path, monkeypatch):
+        svc = InventoryService(_store(tmp_path))
+        async def fail_probe(data):  # pragma: no cover - 不应被调用
+            raise AssertionError("无凭证不应探活")
+        monkeypatch.setattr(svc, "_probe_cached_session", fail_probe)
+        assert svc.check_login_state() == "none"
+
+
 class TestSaveLogin:
     def test_saves_and_ready(self, tmp_path: Path):
         store = _store(tmp_path)

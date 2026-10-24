@@ -433,6 +433,20 @@ class TestCorruptionSafety:
         assert len(cards) == 1 and cards[0]["id"] == 1
         assert len(store.get_all(search="任意")) == 0
 
+    def test_non_numeric_card_key_does_not_crash(self, tmp_path):
+        """手工编辑产生非数字卡主键：读取/写索引跳过并告警，不再 ValueError 致启动失败"""
+        db_path = str(tmp_path / "badkey.json")
+        Path(db_path).write_text(json.dumps({
+            "cards": {"1": {"id": 1, "task_code": "OK-1"},
+                      "x9": {"id": 9, "task_code": "BAD-9"}},
+            "code_index": {"OK-1": 1},
+        }), encoding="utf-8")
+        store = JsonStore(db_path)
+        assert store.find_by_code("OK-1")["id"] == 1
+        assert store.find_by_code("BAD-9") is None   # 非数字键的卡不进索引
+        result = store.add("NEW-1", "新卡", "机体", "", "")   # 写路径索引校验不抛
+        assert result["id"] == 2
+
     def test_aircraft_reg_dup_and_required(self, json_store):
         """机号必填且不得重复（find_aircraft_by_reg 依赖唯一性）"""
         from reqman.services.card_service import CardService, ServiceError
