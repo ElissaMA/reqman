@@ -58,6 +58,7 @@ htmlcov/
 
 # ===== 项目特定 =====
 *.bak
+data/*.migrated.bak.*
 *.log
 *.tmp
 ~$*
