@@ -244,15 +244,6 @@ class JsonStoreCore:
         """通过原子写恢复文件，保留损坏文件现场。"""
         _atomic_write(path, data)
 
-    def _is_legacy_single_file(self) -> bool:
-        """判断核心文件是否包含旧版单文件运行时键。"""
-        try:
-            with open(self._path, encoding="utf-8") as f:
-                data = json.load(f)
-            return isinstance(data, dict) and any(k in data for k in _RUNTIME_KEYS)
-        except (OSError, json.JSONDecodeError, TypeError, ValueError):
-            return False
-
     # ---------- 内部分方法 ----------
 
     def _read(self) -> dict:

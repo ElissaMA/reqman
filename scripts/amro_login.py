@@ -3,6 +3,7 @@ import argparse
 import asyncio
 import json
 import os
+import re
 import time
 import tkinter as tk
 from tkinter import messagebox
@@ -33,10 +34,31 @@ ACCOUNT_SELECTORS = (
 )
 
 
+ALLOWED_SERVER_HOSTS = []   # 打包时注入允许的服务器主机名（空=仅允许内置地址）
+
+
+def _server_host(url: str) -> str:
+    m = re.fullmatch(r"https?://([^/]+)", str(url or "").strip())
+    return m.group(1).split(":")[0].lower() if m else ""
+
+
 def upload_url_for(server_arg: str | None) -> str:
-    """解析 Cookie 上传地址：有 --server 则以其为源拼 /inventory/login/upload，否则回退内置常量。"""
+    """解析 Cookie 上传地址；--server 必须通过 scheme 与主机白名单校验。
+
+    上传内容含 JSESSIONID，若接受任意 ReqManLogin:// 参数，
+    一个被诱导点击的链接即可把凭证 POST 到攻击者地址。
+    """
     if server_arg:
-        return str(server_arg).rstrip("/") + "/inventory/login/upload"
+        raw = str(server_arg).strip()
+        if not re.fullmatch(r"https?://[A-Za-z0-9.\-:\[\]]+(/.*)?", raw):
+            raise ValueError(f"--server 地址格式非法：{raw}")
+        host = _server_host(raw)
+        allowed = {h.lower() for h in ALLOWED_SERVER_HOSTS} | {_server_host(UPLOAD_URL)}
+        if host and host not in allowed:
+            raise ValueError(
+                f"--server 主机 {host} 不在允许列表内，已拒绝上传凭证。"
+                f"允许：{sorted(allowed)}")
+        return raw.rstrip("/") + "/inventory/login/upload"
     return UPLOAD_URL
 
 
@@ -221,17 +243,25 @@ async def main() -> int:
                 ) as client:
                     account, cookies = await _wait_for_login(ctx, page, client)
                     upload_url = upload_url_for(args.server)
-                    response = await client.post(
-                        upload_url,
-                        data={
-                            "account": account,
-                            "cookies": json.dumps(cookies, ensure_ascii=False),
-                        },
-                        headers={"X-Requested-With": "XMLHttpRequest"},
-                        timeout=15,
-                    )
-                    response.raise_for_status()
-                    body = response.json()
+                    print(f"[上传凭证] {upload_url}")
+                    try:
+                        response = await client.post(
+                            upload_url,
+                            data={
+                                "account": account,
+                                "cookies": json.dumps(cookies, ensure_ascii=False),
+                            },
+                            headers={"X-Requested-With": "XMLHttpRequest"},
+                            timeout=15,
+                        )
+                        response.raise_for_status()
+                        body = response.json()
+                    except (httpx.HTTPError, ValueError) as exc:
+                        raise RuntimeError(
+                            f"无法连接 ReqMan 服务器：{upload_url}（{exc}）。\n"
+                            "请确认该地址可从本机访问；若配置包由其他服务器生成，"
+                            "请从当前 ReqMan 页面重新下载配置包，并重新运行 register_protocol.bat 注册协议。"
+                        ) from exc
                     if not isinstance(body, dict) or body.get("success") is not True:
                         raise RuntimeError("ReqMan 未确认凭证保存")
                 print(MSG_P3)

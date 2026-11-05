@@ -5,6 +5,10 @@ import uuid
 from .card_store import CardStore
 
 
+class WorkPackageLimitError(ValueError):
+    """工作包数量已达上限且本次保存的包会被淘汰：拒绝而非静默丢数据。"""
+
+
 class WorkPackageStore(CardStore):
     # ---------- 工作包数据库 ----------
 
@@ -18,8 +22,12 @@ class WorkPackageStore(CardStore):
             wps = db.setdefault("work_packages", [])
             if "package_id" not in data:
                 data["package_id"] = str(uuid.uuid4())
+            # 覆盖键含 date：同一架飞机同一级别可能在不同日期多次定检，
+            # 仅 (reg, description) 会让后一次静默覆盖前一次并复用旧 package_id。
             for i, wp in enumerate(wps):
-                if wp.get("reg") == data["reg"] and wp.get("description") == data["description"]:
+                if (wp.get("reg") == data["reg"]
+                        and wp.get("description") == data["description"]
+                        and wp.get("date") == data.get("date")):
                     data["package_id"] = wp.get("package_id", data["package_id"])
                     wps[i] = data
                     self._write(db)
@@ -27,7 +35,15 @@ class WorkPackageStore(CardStore):
             wps.append(data)
             if len(wps) > 10:
                 wps.sort(key=lambda x: x.get("date", ""), reverse=True)
-                wps[:] = wps[:10]
+                kept = wps[:10]
+                # 淘汰前确认本次保存的包仍在保留集内，避免「返回成功但数据已被丢弃」
+                if not any(w.get("package_id") == data["package_id"] for w in kept):
+                    raise WorkPackageLimitError(
+                        f"工作包数量已达上限（保留最近 10 个），本次工作包"
+                        f"（{data.get('reg', '')} {data.get('description', '')} "
+                        f"{data.get('date', '')}）日期过旧未能保留；"
+                        "请先清理旧工作包后重试")
+                wps[:] = kept
             self._write(db)
             return data
 

@@ -68,18 +68,6 @@ def _is_in_scope(code: str) -> bool:
     return bool(_family_of(code))
 
 
-
-def _mark_cancelled(store, card: dict, source: str) -> None:
-    """人工确认后的作废标记：同 id 保留在主库，单次原子写。"""
-    set_name = ""
-    set_id = card.get("set_id")
-    if set_id:
-        set_data = store.get_set(set_id)
-        set_name = set_data.get("name", "") if set_data else ""
-    store.mark_cancelled(card["id"], source=source, set_name=set_name)
-
-
-
 def _bucket_text(items: list[dict], label: str) -> str:
     """摘要桶文案：`改版 5 张（发动机 2、机体 3）`；桶为空返回空串（零值省略）。
 
@@ -173,24 +161,29 @@ def build_version_report_excel(report: dict, title_label: str = "",
     def _date_span(wd: str) -> str:
         return (wd or "").strip()[:10]
 
-    def _next_row(ws, col: int, start: int = 3) -> int:
-        """找到该列数据区下一个空行（从 start 起）；超出模板预置容量报错。"""
-        row = start
-        while ws.cell(row=row, column=col).value not in (None, ""):
-            row += 1
-        # 模板数据区预置样式到 4996 行；超出后无绿底可继承，明确报错（M5）
-        if row > ws.max_row:
-            raise RuntimeError(
-                f"改版清单容量超限：第 {col} 列数据已超出模板预置 {ws.max_row} 行，"
-                "请清理历史输出或扩大模板预置范围。")
-        return row
-
     label_part = f"（{title_label}）" if title_label else ""
     title = f"工卡改版清单{label_part}检查日期{finished_date}"
 
     wb = load_template(CHECK_TEMPLATE_FILE)
     ws = wb["改版清单"]
     ws["A1"] = title
+
+    # 模板预置容量必须在写入前记录：ws.cell(row=..., column=...) 即使只读取也会
+    # 把 max_row 抬高到该行，若拿 ws.max_row 当上限，`row > ws.max_row` 恒假（护栏失效）。
+    TEMPLATE_MAX_ROW = ws.max_row
+    _next_row_cursor: dict[int, int] = {}
+
+    def _next_row(ws, col: int, start: int = 3) -> int:
+        """找到该列数据区下一个空行（从 start 起）；超出模板预置容量报错。"""
+        row = max(start, _next_row_cursor.get(col, start))
+        while ws.cell(row=row, column=col).value not in (None, ""):
+            row += 1
+        if row > TEMPLATE_MAX_ROW:
+            raise RuntimeError(
+                f"改版清单容量超限：第 {col} 列数据已超出模板预置 {TEMPLATE_MAX_ROW} 行，"
+                "请清理历史输出或扩大模板预置范围。")
+        _next_row_cursor[col] = row
+        return row
 
     # 单元格三行：工卡号 / 工卡名称（黑）/ 标记（分类型色）。仅第三行着色。
     # 第三行标记配色：新增=红、改版=蓝、作废=黑。

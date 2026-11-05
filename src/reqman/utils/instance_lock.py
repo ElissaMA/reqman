@@ -70,6 +70,27 @@ def _read_holder(lock_file: Path):
         return None
 
 
+def _write_lock_exclusive(lock_file: Path, pid: int) -> bool:
+    """排他创建锁文件；已存在返回 False（不覆盖）。
+
+    用 O_CREAT|O_EXCL 让「创建」本身成为原子竞争点：并发启动时只有一方能成功，
+    避免 exists→read→write 三步之间的 TOCTOU 窗口让两个进程都认为自己抢到锁。
+    """
+    payload = json.dumps(
+        {"pid": pid, "started_at": datetime.now(ZoneInfo("Asia/Shanghai")).isoformat()},
+        ensure_ascii=False,
+    ).encode("utf-8")
+    try:
+        fd = os.open(str(lock_file), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
+    except FileExistsError:
+        return False
+    try:
+        os.write(fd, payload)
+    finally:
+        os.close(fd)
+    return True
+
+
 def acquire(db_path: str) -> None:
     """对数据库路径加单实例锁；异进程持锁且存活时抛 InstanceLockError。"""
     global _release_registered
@@ -80,17 +101,29 @@ def acquire(db_path: str) -> None:
         lock_file = Path(db_path + ".lock")
         lock_file.parent.mkdir(parents=True, exist_ok=True)
         current = os.getpid()
-        holder = _read_holder(lock_file) if lock_file.exists() else None
-        if holder is not None and holder != current:
-            reloader_child = bool(os.environ.get("WERKZEUG_RUN_MAIN"))
-            if not reloader_child and _pid_alive(holder):
+        reloader_child = bool(os.environ.get("WERKZEUG_RUN_MAIN"))
+
+        # 最多重试 3 次：仅当旧锁持有者已死（可安全接管）时才删锁重抢。
+        for _ in range(3):
+            if _write_lock_exclusive(lock_file, current):
+                break
+            holder = _read_holder(lock_file)
+            if (holder is not None and holder != current
+                    and not reloader_child and _pid_alive(holder)):
                 raise InstanceLockError(
                     f"数据库 {db_path} 已被进程 {holder} 使用。存储依赖单进程锁，"
                     f"请先停止另一实例；确认无实例运行时可删除 {lock_file} 后重启")
-        lock_file.write_text(json.dumps(
-            {"pid": current,
-             "started_at": datetime.now(ZoneInfo("Asia/Shanghai")).isoformat()},
-            ensure_ascii=False), encoding="utf-8")
+            # 同进程重入（holder == current）或僵尸锁：清掉后重试
+            try:
+                lock_file.unlink()
+            except OSError:
+                pass
+        else:
+            # 三轮都被他人抢占（且对方非存活进程，如反复创建失败）
+            raise InstanceLockError(
+                f"无法取得数据库 {db_path} 的单实例锁（{lock_file}）。"
+                "请确认无其他实例运行后删除该文件再重启")
+
         _refs[db_path] = 1
         if not _release_registered:
             atexit.register(_release_all)

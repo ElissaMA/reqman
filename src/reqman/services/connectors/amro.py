@@ -52,14 +52,6 @@ def amro_client(**kwargs) -> httpx.AsyncClient:
 # 库存类型 — 开封航化代码待内网验证后启用
 INVENTORY_TYPES: dict[str, str] = {"available": "01"}
 
-# SWERK 前 2 位 → 基地中文名
-amro_base_map: dict[str, str] = {
-    "KM": "昆明", "CD": "成都双流", "CQ": "重庆", "HB": "哈尔滨",
-    "TF": "成都天府", "BJ": "北京", "HZ": "杭州",
-    "NN": "南宁", "SY": "三亚", "TJ": "天津",
-    "WQ": "乌鲁木齐", "XA": "西安",
-}
-
 KUNMING_PREFIXES = ("KM",)
 
 
@@ -97,7 +89,10 @@ async def query_single_pn(
         },
         timeout=timeout,
     )
-    return body.get("data", [])
+    # AMRO 可能返回 "data": null（键存在值为 null）——直接迭代会抛 TypeError，
+    # 而 TypeError 不在库存查询的 except 范围内，会让整批查询失败而非单件号失败。
+    rows = body.get("data") or []
+    return [row for row in rows if isinstance(row, dict)]
 
 
 async def query_kunming_stock(
@@ -130,21 +125,6 @@ async def query_kunming_stock(
     if not any_success:
         return None
     return KunmingStock(total, unit, desc)
-
-
-async def check_session(
-    client: httpx.AsyncClient,
-    cookies: dict[str, str],
-    pn: str,
-) -> bool:
-    """会话探活：调用一次 API，code=100 视为登录失效返回 False。"""
-    try:
-        await query_single_pn(client, cookies, pn, "01")
-        return True
-    except RuntimeError as e:
-        return not ("登录已失效" in str(e) or "会话过期" in str(e))
-    except (httpx.HTTPError, ValueError):
-        return False
 
 
 # ---------- 通用只读调用器（v3.5.0 三域同步基座） ----------

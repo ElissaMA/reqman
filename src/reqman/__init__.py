@@ -66,11 +66,8 @@ class RequestLogMiddleware:
             response_size[0] += len(data)
             return data
 
-        original_write = None
-
         # 包装 start_response 以拦截 Content-Length
         def _start_response_with_size(status, headers, *args):
-            nonlocal original_write
             for h_name, h_val in headers or []:
                 if h_name.lower() == "content-length":
                     try:
@@ -78,10 +75,7 @@ class RequestLogMiddleware:
                     except (ValueError, TypeError):
                         pass
                     break
-            result = _start_response(status, headers, *args)
-            if result and hasattr(result, '__iter__'):
-                original_write = result
-            return result
+            return _start_response(status, headers, *args)
 
         wsgi_iter = self.app(environ, _start_response_with_size)
         try:

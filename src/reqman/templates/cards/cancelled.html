@@ -220,7 +220,7 @@ function showDetail(id) {
     if (d.tools && d.tools.length) {
         h += '<table class="table table-bordered table-sm mb-2"><thead><tr><th>设备名称</th><th>件号</th><th>数量</th><th>备注</th><th>使用类型</th></tr></thead><tbody>';
         d.tools.forEach(function(t) {
-            h += '<tr><td>' + (escapeHtml(t.device_name)||'') + '</td><td>' + (escapeHtml(t.part_number)||'') + '</td><td>' + (t.quantity||'') + '</td><td>' + (escapeHtml(t.remark)||'') + '</td><td>' + (escapeHtml(t.usage_type)||'') + '</td></tr>';
+            h += '<tr><td>' + (escapeHtml(t.device_name)||'') + '</td><td>' + (escapeHtml(t.part_number)||'') + '</td><td>' + (escapeHtml(t.quantity)||'') + '</td><td>' + (escapeHtml(t.remark)||'') + '</td><td>' + (escapeHtml(t.usage_type)||'') + '</td></tr>';
         });
         h += '</tbody></table>';
     } else {
@@ -234,7 +234,7 @@ function showDetail(id) {
     if (d.materials && d.materials.length) {
         h += '<table class="table table-bordered table-sm mb-2"><thead><tr><th>航材名称</th><th>件号</th><th>数量</th><th>备注</th><th>使用类型</th></tr></thead><tbody>';
         d.materials.forEach(function(m) {
-            h += '<tr><td>' + (escapeHtml(m.material_name)||'') + '</td><td>' + (escapeHtml(m.part_number)||'') + '</td><td>' + (m.quantity||'') + '</td><td>' + (escapeHtml(m.remark)||'') + '</td><td>' + (escapeHtml(m.usage_type)||'') + '</td></tr>';
+            h += '<tr><td>' + (escapeHtml(m.material_name)||'') + '</td><td>' + (escapeHtml(m.part_number)||'') + '</td><td>' + (escapeHtml(m.quantity)||'') + '</td><td>' + (escapeHtml(m.remark)||'') + '</td><td>' + (escapeHtml(m.usage_type)||'') + '</td></tr>';
         });
         h += '</tbody></table>';
     } else {

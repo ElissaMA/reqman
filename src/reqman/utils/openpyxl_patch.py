@@ -43,11 +43,11 @@ def apply_patches(base_dir: Path) -> None:
             try:
                 _orig_cleanup(self)
             except (PermissionError, OSError):
+                _path = getattr(self.out, "name", None)
                 try:
                     self.out.close()
                 except OSError:
-                    logger.debug("Failed to close temp writer: %s", getattr(self.out, "name", "?"))
-                    _path = getattr(self.out, "name", None)
+                    logger.debug("Failed to close temp writer: %s", _path or "?")
                 if _path and os.path.exists(_path):
                     try:
                         os.remove(_path)

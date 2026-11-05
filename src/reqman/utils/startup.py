@@ -38,11 +38,19 @@ def find_pid_by_port(port):
                 ["netstat", "-ano"], stderr=subprocess.DEVNULL
             )
             output = _decode_windows_output(raw)
+            target = str(port)
             for line in output.splitlines():
-                if f":{port}" in line and "LISTENING" in line:
-                    parts = line.strip().split()
-                    if parts:
-                        return parts[-1]
+                if "LISTENING" not in line:
+                    continue
+                parts = line.strip().split()
+                if len(parts) < 5:
+                    continue
+                # 精确匹配本地地址端口：避免 :5001 误命中 :50011。
+                # 兼容 IPv6 形式 [::]:5001 —— rsplit 后取最后一段即为端口。
+                local_addr = parts[1]
+                if local_addr.rsplit(":", 1)[-1] != target:
+                    continue
+                return parts[-1]
         else:
             result = subprocess.run(
                 ["lsof", "-i", f":{port}", "-t"],

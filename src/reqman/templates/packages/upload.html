@@ -60,7 +60,7 @@
         {% if pending_cancelled %}
         <div class="alert alert-warning m-3 mb-0 py-2 px-3 small d-flex align-items-center justify-content-between flex-wrap gap-2">
             <span>检测到 {{ pending_cancelled|length }} 张工卡在 AMRO 已查无，待人工确认作废（确认后移入作废工卡页，可恢复）。</span>
-            <button type="button" class="btn btn-outline-danger btn-sm py-0" onclick="confirmCancelledCards({{ pending_cancelled|tojson }}, 'package_version')">确认作废</button>
+            <button type="button" class="btn btn-outline-danger btn-sm py-0" data-pending="{{ pending_cancelled|tojson|forceescape }}" data-source="package_version" onclick="confirmCancelledFromBtn(this)">确认作废</button>
         </div>
         {% endif %}
         <div class="q-card" id="qCardPkgVerCheck" style="display:none"></div>
@@ -255,6 +255,13 @@ function buildVersionSummary(label, s) {
     s = s || {};
     return '版本检查完成（' + (label || '') + '）：' + (s.text || '')
             + '（预览页可下载改版清单）';
+}
+
+// 从按钮 data-* 读取待作废清单（避免 tojson 直接注入 onclick 属性导致截断/注入）
+function confirmCancelledFromBtn(btn) {
+    var pending = [];
+    try { pending = JSON.parse(btn.dataset.pending || '[]'); } catch (e) { pending = []; }
+    confirmCancelledCards(pending, btn.dataset.source || 'package_version');
 }
 
 // 待作废工卡人工确认（检查轮询完成与页面常驻入口共用）

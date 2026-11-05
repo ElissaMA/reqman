@@ -102,7 +102,7 @@ def package_items(rows_routine: list[dict], rows_other: list[dict], header_row: 
 
 
 
-def persist_amro_package(store, service, package_data: dict) -> dict:
+def persist_amro_package(store, package_data: dict) -> dict:
     """AMRO 直读入库：只保存原始工卡行，不做匹配、不算派生统计。
 
     匹配与 cancelled_count/routine_count/other_count 等派生字段一律由
@@ -158,7 +158,7 @@ async def import_amro_package(store, client, cookies, revnr, service=None, *, fe
         "all_items": out["all_items"],
         "source": "AMRO",
     }
-    return persist_amro_package(store, service, package_data)
+    return persist_amro_package(store, package_data)
 
 
 

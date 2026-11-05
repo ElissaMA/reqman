@@ -23,14 +23,30 @@ class TestWorkPackages:
         assert len(json_store.get_work_packages()) == 1
 
     def test_save_work_package_update(self, json_store: JsonStore):
-        """更新已存在的工作包（相同reg+description）"""
+        """更新已存在的工作包（相同 reg+description+date 才视为同日重传覆盖）。
+
+        不同日期是同一架飞机的另一次定检，必须保留为独立工作包
+        （历史行为按 reg+description 覆盖会静默丢失前一次数据）。
+        """
         data1 = {"reg": "B-1234", "description": "A320定检", "date": "2026.07.22", "all_items": []}
         json_store.save_work_package(data1)
         data2 = {"reg": "B-1234", "description": "A320定检", "date": "2026.07.23", "all_items": [{"code": "NEW"}]}
-        json_store.save_work_package(data2)  # 覆盖保存
+        json_store.save_work_package(data2)
+        wps = json_store.get_work_packages()
+        assert len(wps) == 2
+        assert {w["date"] for w in wps} == {"2026.07.22", "2026.07.23"}
+
+    def test_save_work_package_same_date_overwrites(self, json_store: JsonStore):
+        """同 reg+description+date → 保留同日重传覆盖语义，复用 package_id。"""
+        first = json_store.save_work_package(
+            {"reg": "B-1234", "description": "A320定检", "date": "2026.07.22", "all_items": []})
+        again = json_store.save_work_package(
+            {"reg": "B-1234", "description": "A320定检", "date": "2026.07.22",
+             "all_items": [{"code": "NEW"}]})
         wps = json_store.get_work_packages()
         assert len(wps) == 1
-        assert wps[0]["date"] == "2026.07.23"
+        assert again["package_id"] == first["package_id"]
+        assert wps[0]["all_items"] == [{"code": "NEW"}]
 
     def test_get_work_packages(self, json_store: JsonStore):
         """获取所有工作包（按日期升序）"""

@@ -9,6 +9,7 @@ from __future__ import annotations
 import datetime
 import io
 import logging
+import math
 import re
 from pathlib import Path
 from typing import NamedTuple
@@ -29,6 +30,9 @@ COL_NAME = 2   # B
 COL_QTY = 5    # E
 COL_STOCK = 7  # G
 
+# 区段标题（「三、备用航材需求」等）：用于界定数据区边界
+_SECTION_TITLE_RE = re.compile(r"^[一二三四五六七八九十]、")
+
 
 class DemandRow(NamedTuple):
     part_number: str
@@ -43,31 +47,46 @@ class DemandSectionNotFoundError(ValueError):
 
 
 def _find_data_start(ws: openpyxl.Worksheet, header_keyword: str) -> int | None:
+    """定位区段首个数据行；遇到下一个区标题（如「三、备用航材需求」）即中止。
+
+    不加边界时，若本区标题下有空行/纯文字说明，内层循环会一路扫到表尾，
+    可能把下一个区（甚至备用区）的行当成该区数据起点，导致库存回填到错误的行。
+    """
     for row in ws.iter_rows(min_row=1, max_row=ws.max_row, max_col=1):
         cell = row[0]
-        if cell.value and header_keyword in str(cell.value):
-            for r in range(cell.row + 1, ws.max_row + 1):
-                val = ws.cell(r, COL_PN).value
-                if val and str(val).strip() not in ("", "件号"):
-                    return r
+        if not (cell.value and header_keyword in str(cell.value)):
+            continue
+        for r in range(cell.row + 1, ws.max_row + 1):
+            section = ws.cell(r, 1).value
+            if section and _SECTION_TITLE_RE.match(str(section).strip()):
+                return None   # 先碰到下一个区标题 → 本区无数据
+            val = ws.cell(r, COL_PN).value
+            if val and str(val).strip() not in ("", "件号"):
+                return r
     return None
 
 
 def _next_section_row(ws: openpyxl.Worksheet, start: int) -> int | None:
     for r in range(start, ws.max_row + 1):
         val = ws.cell(r, 1).value
-        if val and re.match(r"^[三四五六七八九十]、", str(val).strip()):
+        if val and _SECTION_TITLE_RE.match(str(val).strip()):
             return r
     return None
 
 
 def _parse_qty(raw: str | float | None) -> float:
+    """解析数量单元格：脏值（如 "1.2.3"、"3.4.5 套"）退化为 0，保留负号。"""
     if raw is None:
         return 0.0
     if isinstance(raw, (int, float)):
         return float(raw)
-    m = re.search(r"[\d.]+", str(raw))
-    return float(m.group()) if m else 0.0
+    m = re.search(r"-?\d+(?:\.\d+)?", str(raw))
+    if not m:
+        return 0.0
+    try:
+        return float(m.group())
+    except ValueError:
+        return 0.0
 
 
 def read_demand(path: str | Path) -> list[DemandRow]:
@@ -152,11 +171,13 @@ def write_inventory_copy(
 
     for pn, cells in pn_cells.items():
         stock_val = results.get(pn, 0.0)
+        if not isinstance(stock_val, (int, float)) or not math.isfinite(stock_val):
+            stock_val = 0.0
         qtys = pn_qty.get(pn, [0.0])
 
         for cell_addr, qty in zip(cells, qtys):
             cell = ws[cell_addr]
-            cell.value = int(stock_val) if stock_val == int(stock_val) else stock_val
+            cell.value = int(stock_val) if float(stock_val).is_integer() else stock_val
 
             if stock_val < qty:
                 fill = RED_FILL

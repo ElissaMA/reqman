@@ -112,7 +112,8 @@ scripts/            deploy.sh · db.sh · migrate_cancelled_cards.py · amro_log
 | `AMRO_AC_FLEET` | A320 | 飞机同步机队过滤 |
 | `AMRO_BASE_DEFAULT` | KM01 | 工作包默认基地（昆明） |
 | `AMRO_MAX_CONCURRENT` | 10 | 库存查询最大并发 |
-| `AMRO_PUBLIC_URL` | 空 | 登录 ZIP 注入公网地址（建议配服务器 IP） |
+| `AMRO_PUBLIC_URL` | 空 | 登录 ZIP 注入的服务器地址。**当前部署已在 `config/reqman.service` 固定为 `http://8.137.15.167`**——配置后 Host 头被改写也不会把凭证导向错误主机；未配置时回退当前访问 Host |
+| `AMRO_ALLOWED_HOSTS` | 空 | 允许注入登录脚本的访问域名（逗号分隔）。**留空即信任当前 Host**（内网/反代场景，默认不阻断）；已配 `AMRO_PUBLIC_URL` 时本项不参与判定 |
 | `AMRO_COOKIE_FILE` | data/cookie/amro_cookies.json | 登录凭证缓存路径 |
 | `AMRO_AUDIT_FILE` | data/amro_audit.jsonl | 只读调用审计路径 |
 
@@ -136,6 +137,8 @@ scripts/            deploy.sh · db.sh · migrate_cancelled_cards.py · amro_log
 - **上传失败**：查 `config/nginx-reqman.conf` 的 `client_max_body_size` 与磁盘 `df -h`。
 - **AMRO 请求返回 403（网关拦截）**：AMRO 网关按 User-Agent 拦截非浏览器指纹，代码已统一使用 `ReqMan/3.7.1 (AMRO read-only)`（`connectors/amro.py` 的 `AMRO_USER_AGENT`）。若仍 403，说明该主机网络出口不可达 AMRO，需确认公司网络/VPN；排查 `python scripts/amro_diag.py`（只读，打印 DNS/TLS/带与不带 UA 的探活结果）。服务器与用户本机对该策略的差异只在网络出口，与登录配置无关。
 - **登录配置包版本过旧**：登录脚本 `LOGIN_VERSION` 与 `AMRO_LOGIN_VERSION`（默认 5）不一致时 `check-config` 会拒绝，重新下载配置包即可。
+- **登录脚本报 `All connection attempts failed`**：脚本上传凭证时连不上 ReqMan 服务器（httpx 异步客户端连 `127.0.0.1:5001` 的典型报错），即上传地址被回退成本机地址。常见原因：① 换服务器或重新下载配置包后**没重跑 `register_protocol.bat`**，`ReqManLogin://` 仍指向旧配置包目录；② 双击 `start_login.bat` 时配置包内 `UPLOAD_URL` 未注入正确地址。处理：从当前 ReqMan 页面重下配置包 → 解压 → **运行 `register_protocol.bat`（会覆盖旧指向）** → 再点「登录 AMRO」。脚本窗口会打印 `[目标服务器] <地址>` 与 `[上传凭证] <URL>`，据此确认。
+- **一键协议指向旧目录**：注册表 `HKCU\Software\Classes\ReqManLogin\shell\open\command` 记录某个 `start_login.bat` 的绝对路径；每换一次配置包目录都需重跑 `register_protocol.bat`。
 - **磁盘不足**：`bash scripts/db.sh clean 14`。
 
 ## 验证清单

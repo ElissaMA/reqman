@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 >nul
-setlocal
+setlocal enabledelayedexpansion
 cd /d "%~dp0"
 set NO_PROXY=*
 set HTTP_PROXY=
@@ -65,17 +65,22 @@ if errorlevel 1 (
 echo [安装完成] 运行环境就绪
 
 :run
-rem 一键登录协议（ReqManLogin://host:port）传入来源时，按来源动态定址上传，配置包通用
+rem 一键登录协议（ReqManLogin://host:port）传入来源时，按来源动态定址上传，配置包通用。
+rem 注意：括号块内必须用延迟展开 !VAR!；用 %%VAR%% 读到的是块开始前的旧值（此处为空），
+rem 会导致协议参数丢失、回退到配置包内置地址（曾因此使服务器端上传跑到 127.0.0.1）。
+set "SERVER_ARG="
 if not "%~1"=="" (
     set "ARG=%~1"
-    set "HOST=%ARG:ReqManLogin://=%"
-    if not "%HOST%"=="%ARG%" (
-        .runtime\venv\Scripts\python amro_login.py --server http://%HOST%
-        goto :after_login
-    )
+    set "HOST=!ARG:ReqManLogin://=!"
+    if not "!HOST!"=="!ARG!" set "SERVER_ARG=http://!HOST!"
 )
-.runtime\venv\Scripts\python amro_login.py
-:after_login
+if defined SERVER_ARG (
+    echo [目标服务器] !SERVER_ARG!
+    .runtime\venv\Scripts\python amro_login.py --server "!SERVER_ARG!"
+) else (
+    echo [目标服务器] 配置包内置地址
+    .runtime\venv\Scripts\python amro_login.py
+)
 set "LOGIN_EXIT=%errorlevel%"
 if not "%LOGIN_EXIT%"=="0" (
     echo [登录未完成] 请查看上方错误信息，本窗口将在 5 秒后关闭

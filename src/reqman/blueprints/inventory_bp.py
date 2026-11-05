@@ -11,7 +11,12 @@ from urllib.parse import quote, unquote
 
 from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request, send_file
 
-from ..config import AMRO_LOGIN_VERSION, AMRO_PUBLIC_URL, OUTPUT_DIR
+from ..config import (
+    AMRO_ALLOWED_HOSTS,
+    AMRO_LOGIN_VERSION,
+    AMRO_PUBLIC_URL,
+    OUTPUT_DIR,
+)
 from ..services import amro_sync
 from ..utils.error_handlers import ValidationError, is_ajax
 from ..utils.messages import MESSAGES
@@ -101,12 +106,32 @@ def session_status():
     return api_success(data=data)
 
 
+def _resolve_server_url() -> str:
+    """解析注入登录脚本的服务器地址。
+
+    优先 AMRO_PUBLIC_URL；否则用 request.host_url，若配置了 AMRO_ALLOWED_HOSTS
+    则要求 request.host 在名单内——避免 Host 头注入把含 JSESSIONID 的凭证导向外部。
+    未配置白名单时按部署约定信任当前 Host（内网/反代场景，不阻断多人使用）。
+    """
+    if AMRO_PUBLIC_URL:
+        return AMRO_PUBLIC_URL
+    host = (request.host or "").split(":")[0]
+    if AMRO_ALLOWED_HOSTS and host not in AMRO_ALLOWED_HOSTS:
+        raise ValidationError(
+            "当前访问域名不在 AMRO_ALLOWED_HOSTS 白名单内，无法生成登录配置包；"
+            "请配置 AMRO_PUBLIC_URL 或把该域名加入白名单")
+    url = request.host_url.rstrip("/")
+    if not re.fullmatch(r"https?://[A-Za-z0-9.\-:\[\]]+", url):
+        raise ValidationError("服务器地址格式不合法，已拒绝生成登录配置包")
+    return url
+
+
 @inventory_bp.route("/inventory/setup-package", methods=["GET"])
 def setup_package():
     """动态生成登录脚本配置包 ZIP（注入配置的公网地址，未配置回退当前访问地址）。"""
-    server_url = AMRO_PUBLIC_URL or request.host_url.rstrip("/")
+    server_url = _resolve_server_url()
     py_source = _login_py_template(server_url)
-    bat_source = _login_bat_template(server_url)
+    bat_source = _login_bat_template()
     protocol_source = _protocol_bat_template()
     readme_source = (
         "川航 AMRO 登录脚本配置包\n"
@@ -144,6 +169,7 @@ def _protocol_bat_template() -> str:
         "reg add \"HKCU\\Software\\Classes\\ReqManLogin\\shell\\open\\command\" /ve /d \"\\\"%~dp0start_login.bat\\\" \\\"%%1\\\"\" /f\r\n"
         "echo.\r\n"
         "echo 已注册一键登录协议，指向: %~dp0start_login.bat\r\n"
+        "echo（若此前已注册过，本次会覆盖旧指向；换服务器或重新下载配置包后必须重跑本文件）\r\n"
         "echo 如杀毒软件拦截，请允许本次操作\r\n"
         "echo.\r\n"
         "echo 注册完成，正在启动登录脚本...\r\n"
@@ -184,7 +210,12 @@ def check_config():
 
 @inventory_bp.route("/inventory/login/upload", methods=["POST"])
 def login_upload():
-    """登录凭证上传（登录脚本自动调用）。"""
+    """登录凭证上传（登录脚本自动调用）。
+
+    鉴权说明：本系统部署在公司内网/反代之后，凭证上传不设令牌（否则需同时改造
+    ProxyFix 与多人令牌分发，收益不抵复杂度）。防外带由「配置包地址白名单」
+    （_resolve_server_url）承担：登录脚本只会把凭证发到打包时注入的可信地址。
+    """
     raw = (request.form.get("cookies") or "").strip()
     if not raw:
         raise ValidationError("缺少登录凭证")
@@ -276,7 +307,7 @@ def download():
     file = request.args.get("file", "")
     if not file or os.path.basename(file) != file:
         raise ValidationError("文件名不合法")
-    if OUTPUT_PATTERN[0] == "*" and not file.endswith(".xlsx"):
+    if not file.endswith(".xlsx"):
         raise ValidationError("文件名不合法")
     target = OUTPUT_DIR / file
     if not target.is_file() or not (OUTPUT_DIR.resolve() in target.resolve().parents):
@@ -408,10 +439,23 @@ def _login_py_template(server_url: str) -> str:
         'LOGIN_VERSION = "5"',
         f'LOGIN_VERSION = "{AMRO_LOGIN_VERSION}"',
     )
+    # 注入允许主机白名单：脚本据此校验 --server，避免凭证被导向未知地址
+    allowed_hosts = sorted({*AMRO_ALLOWED_HOSTS, _server_host(server_url)} - {""})
+    source = _replace_once(
+        source,
+        "ALLOWED_SERVER_HOSTS = []",
+        f"ALLOWED_SERVER_HOSTS = {allowed_hosts!r}",
+    )
     return source
 
 
-def _login_bat_template(server_url: str) -> str:
+def _server_host(url: str) -> str:
+    """从 http(s)://host:port/... 提取小写主机名。"""
+    m = re.fullmatch(r"https?://([^/]+)", str(url or "").strip())
+    return m.group(1).split(":")[0].lower() if m else ""
+
+
+def _login_bat_template() -> str:
     """读取仓库静态 BAT，保证配置包与固定脚本行为一致。"""
     source_path = Path(__file__).resolve().parents[3] / "scripts" / "start_login.bat"
     return source_path.read_bytes().decode("utf-8")

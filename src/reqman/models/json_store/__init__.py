@@ -9,5 +9,7 @@ import os
 
 from .core import _RUNTIME_KEYS, JsonStoreCorruptionError, _atomic_write
 from .log_store import LogStore as JsonStore
+from .work_package_store import WorkPackageLimitError
 
-__all__ = ["_RUNTIME_KEYS", "JsonStore", "JsonStoreCorruptionError", "_atomic_write", "os"]
+__all__ = ["_RUNTIME_KEYS", "JsonStore", "JsonStoreCorruptionError", "WorkPackageLimitError",
+           "_atomic_write", "os"]

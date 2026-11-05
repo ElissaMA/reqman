@@ -102,15 +102,23 @@ class InventoryService:
         if (self._probe_cache is not None
                 and now < self._probe_cache[0]
                 and self._probe_cache[1] == (data.get("login_at") or data.get("created_at"))):
+            # 缓存命中也要回写状态：否则 get_login_status 会拿到 ready=False
+            # 却带着上一次（可能已变）的 _last_probe_state。
+            self._last_probe_state = self._probe_cache[2]
             return self._probe_cache[2]
+        probed_at = data.get("login_at") or data.get("created_at")
         try:
             state = asyncio.run(self._probe_cached_session(data))
         except (httpx.HTTPError, OSError, ValueError, RuntimeError):
             state = "probe_error"
         self._last_probe_state = state
-        self._probe_cache = (now + PROBE_CACHE_TTL,
-                             data.get("login_at") or data.get("created_at"), state)
+        self._probe_cache = (now + PROBE_CACHE_TTL, probed_at, state)
         if state == "expired":
+            # CAS：探活用的是旧快照，期间用户可能已重新登录并写入新凭证。
+            # 仅在磁盘上的凭证仍是本次探活的那份时才清除，避免误删刚写入的有效凭证。
+            latest = self.session_store.load()
+            if latest and (latest.get("login_at") or latest.get("created_at")) != probed_at:
+                return state
             self.session_store.clear()
         elif state in {"valid", "probe_error"}:
             self.session_store.mark_probe(state)

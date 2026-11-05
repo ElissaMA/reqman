@@ -7,8 +7,6 @@
 from __future__ import annotations
 
 import asyncio
-import logging
-from zoneinfo import ZoneInfo
 
 # sync_aircraft 经包级属性运行时取值，以便测试 monkeypatch amro_sync.sync_aircraft 生效
 from reqman.services import amro_sync
@@ -17,11 +15,6 @@ from ...config import (
     AMRO_AC_FLEET,
 )
 from ..connectors import amro
-
-logger = logging.getLogger(__name__)
-
-BJ = ZoneInfo("Asia/Shanghai")
-
 from .query_runner import run_query, save_last_query_result
 
 

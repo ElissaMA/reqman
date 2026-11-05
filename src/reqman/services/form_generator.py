@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import io
-import logging
 import os
 import re
 from datetime import datetime
@@ -15,19 +14,10 @@ from openpyxl.utils import get_column_letter
 from ..config import TEMPLATE_FILE
 from ..utils.template_cache import load_template
 
-logger = logging.getLogger(__name__)
-
-
-
-
 THIN = Side(style="thin")
-MEDIUM = Side(style="medium")
 FULL_THIN = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
-FULL_MEDIUM = Border(left=MEDIUM, right=MEDIUM, top=MEDIUM, bottom=MEDIUM)
-NO_BORDER = Border()
 WRAP_CENTER = Alignment(horizontal="center", vertical="center", wrap_text=True)
 WRAP_VERTICAL = Alignment(vertical="center", wrap_text=True)
-LEFT_CENTER = Alignment(horizontal="left", vertical="center")
 COLS = 8
 ROW_HEIGHT_DATA = 34
 SHEET_NAME = "需求单"
@@ -46,10 +36,6 @@ PLACEHOLDER_EMPTY = "（暂无）"
 # 条件区数据行范围（模板 A3 表头之下、A13 区标题之前）
 CONDITION_FIRST_ROW = 4
 CONDITION_LAST_ROW = 12
-
-
-def set_border(ws, row, col, border=FULL_THIN):
-    ws.cell(row=row, column=col).border = border
 
 
 def set_cell(ws, row, col, value="", border=FULL_THIN, alignment=WRAP_VERTICAL, font=None):
@@ -81,15 +67,6 @@ def _find_row_by_text(ws, text, col=1, start=1, end=None) -> int | None:
 def _first_data_row_in_section(ws, anchor_row, col=1):
     """区标题行的下一行即第一个数据行（表头行本身由模板保留）。"""
     return anchor_row + 1
-
-
-def write_placeholder(ws, row, cat, text=PLACEHOLDER_EMPTY):
-    set_cell(ws, row, 1, cat)
-    set_cell(ws, row, 2, text)
-    for col in range(3, COLS + 1):
-        ws.cell(row=row, column=col).border = FULL_THIN
-    ws.row_dimensions[row].height = ROW_HEIGHT_DATA
-
 
 
 def _pad_empty_rows(ws, row, cat_start, min_rows, style_ref=None):
@@ -338,16 +315,6 @@ def _fill_conditions(ws, conditions):
         ws.cell(row=row, column=3, value=cond.get("requirement", ""))
         ws.cell(row=row, column=4, value=cond.get("remark", ""))
         ws.cell(row=row, column=7, value=cond.get("responsible", ""))
-
-
-def _clear_dynamic_cells(ws, row_start: int, row_end: int):
-    """只清动态数据单元格的值，保留模板样式/合并。"""
-    for row in ws.iter_rows(min_row=row_start, max_row=row_end, max_col=COLS):
-        for cell in row:
-            try:
-                cell.value = None
-            except AttributeError:
-                pass
 
 
 def _clear_dynamic_area(ws):

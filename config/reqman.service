@@ -7,6 +7,9 @@ Type=simple
 User=root
 WorkingDirectory=/root/workspace/reqman
 Environment="PATH=/root/workspace/reqman/venv/bin"
+# 登录配置包注入的服务器地址：固定为对外访问地址，避免反代改写 Host 时把
+# 含 AMRO 凭证的上传目标指向错误主机（与 AMRO_ALLOWED_HOSTS 二选一，配此项即可）
+Environment="AMRO_PUBLIC_URL=http://8.137.15.167"
 ExecStart=/root/workspace/reqman/venv/bin/gunicorn --bind 0.0.0.0:5001 --workers 1 --threads 4 --timeout 120 --access-logfile - --error-logfile - --log-level info reqman:create_app()
 Restart=always
 RestartSec=5

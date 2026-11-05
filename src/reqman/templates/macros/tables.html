@@ -16,7 +16,7 @@
         <tbody>
             {% if tools %}
             {% for t in tools %}
-            {{ tool_row(t.device_name, t.part_number, t.quantity, t.remark, t.usage_type, usage_types, editable, show_delete, loop.index0) }}
+            {{ tool_row(t.device_name, t.part_number, t.quantity, t.remark, t.usage_type, usage_types, editable, show_delete) }}
             {% endfor %}
             {% elif not editable %}
             <tr><td colspan="6" class="text-muted text-center py-2">无</td></tr>
@@ -27,7 +27,7 @@
 {% endmacro %}
 
 
-{% macro tool_row(device_name, part_number, quantity, remark, usage_type, usage_types, editable=true, show_delete=true, index=0) %}
+{% macro tool_row(device_name, part_number, quantity, remark, usage_type, usage_types, editable=true, show_delete=true) %}
 <tr>
     <td>
         {% if editable %}

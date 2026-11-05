@@ -158,23 +158,6 @@ class TestQueryKunmingStock:
         assert stock is None
 
 
-class TestCheckSession:
-    def test_ok_session(self):
-        client, _ = _make_client({"code": 200, "data": []})
-        assert _run(amro.check_session(client, {}, "PN-1")) is True
-
-    def test_expired_session(self):
-        client, _ = _make_client({"code": 100, "msg": "会话过期"})
-        assert _run(amro.check_session(client, {}, "PN-1")) is False
-
-    def test_network_error_not_ready(self):
-        class _FailClient:
-            async def post(self, url, data=None, cookies=None, timeout=None):
-                raise httpx.ConnectError("no net")
-
-        assert _run(amro.check_session(_FailClient(), {}, "PN-1")) is False
-
-
 class TestQueryPlugin:
     """v3.5.0 通用只读调用器：白名单/限速/审计/会话异常"""
 

@@ -86,6 +86,9 @@ AMRO_MAX_CONCURRENT: int = int(os.getenv("AMRO_MAX_CONCURRENT", "10"))
 AMRO_LOGIN_VERSION: str = os.getenv("AMRO_LOGIN_VERSION", "5")
 # 登录脚本 ZIP 注入的公网地址（服务器部署建议配置，保证多用户下载的 ZIP 注入地址一致可达；未配置回退当前访问地址）
 AMRO_PUBLIC_URL: str = os.getenv("AMRO_PUBLIC_URL", "").rstrip("/")
+# 允许注入到登录脚本的 Host 白名单（逗号分隔，如 "8.137.15.167,reqman.example.com"）。
+# 未配置 AMRO_PUBLIC_URL 时用于校验 request.host，避免 Host 头注入把凭证导向外部地址。
+AMRO_ALLOWED_HOSTS: list[str] = [h.strip() for h in os.getenv("AMRO_ALLOWED_HOSTS", "").split(",") if h.strip()]
 
 # ---------- AMRO 三域同步（v3.5.0） ----------
 AMRO_RATE_SECONDS: float = float(os.getenv("AMRO_RATE_SECONDS", "1"))  # 两次 AMRO 请求最小间隔（秒，2026-09-03 由 2 放宽至 1）

@@ -4,7 +4,7 @@ import logging
 
 from flask import Blueprint, current_app, flash, redirect, render_template, request
 
-from ..utils.error_handlers import _wants_json
+from ..utils.error_handlers import _wants_json, safe_referrer
 from ..utils.response import api_error, api_success
 
 logger = logging.getLogger(__name__)
@@ -185,14 +185,14 @@ def delete_logs():
         if _wants_json():
             return api_error("请选择要删除的日志", "NO_LOGS_SELECTED")
         flash("请选择要删除的日志", "error")
-        return redirect(request.headers.get("Referer", "/"))
+        return redirect(safe_referrer("/card/logs"))
 
     service = _get_service()
     if not service:
         if _wants_json():
             return api_error("服务不可用", "SERVICE_UNAVAILABLE", 500)
         flash("服务不可用", "error")
-        return redirect(request.headers.get("Referer", "/"))
+        return redirect(safe_referrer("/card/logs"))
 
     try:
         count = service.delete_logs([int(log_id) for log_id in log_ids if log_id.isdigit()])
@@ -201,7 +201,7 @@ def delete_logs():
         if _wants_json():
             return api_error(f"删除日志失败: {e}", "DELETE_FAILED", 500)
         flash(f"删除日志失败: {e}", "error")
-        return redirect(request.headers.get("Referer", "/"))
+        return redirect(safe_referrer("/card/logs"))
 
     if _wants_json():
         return api_success({"deleted_count": count}, f"成功删除 {count} 条日志")

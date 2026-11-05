@@ -12,6 +12,7 @@ import httpx
 from flask import Blueprint, current_app, flash, redirect, render_template, request
 
 from ..config import CATEGORIES, OUTPUT_DIR
+from ..models.json_store import WorkPackageLimitError
 from ..services import amro_sync
 from ..services.connectors import amro
 from ..services.connectors.amro import AmroSessionExpired
@@ -44,20 +45,20 @@ def _parse_wp_date(date_str):
 
 
 def _classify_package(wp):
-    """判断工作包状态：expired(过期>2天删除) / warning(过期≤2天灰色) / danger(未来4天内红色) / normal"""
+    """判断工作包列表行状态：warning(过期≤2天灰色) / danger(未来4天内红色) / normal。
+
+    过期 >2 天的工作包在调用前已被删除，故此处不再有 expired 分支。
+    """
     wp_date = _parse_wp_date(wp.get("date", ""))
     if not wp_date:
         return "normal"
     today = datetime.now(ZoneInfo("Asia/Shanghai")).date()
     diff = (wp_date - today).days
-    if diff < -2:
-        return "expired"
-    elif diff < 0:
+    if diff < 0:
         return "warning"
-    elif diff <= 4:
+    if diff <= 4:
         return "danger"
-    else:
-        return "normal"
+    return "normal"
 
 
 def _parse_and_save_file(f, label):
@@ -176,6 +177,9 @@ def _handle_upload_post():
     }
     try:
         package_data = _persist_package(store, package_data)
+    except WorkPackageLimitError as e:
+        # 工作包数量上限：拒绝而非静默丢弃（否则前端报成功、预览 404）
+        raise ValidationError(str(e), "PKG_LIMIT_REACHED") from e
     except ValueError as e:
         # 空键护栏：机号+描述均缺失拒绝入库（沿用上传校验错误通道）
         raise ValidationError(str(e), "PKG_META_MISSING") from e
@@ -211,7 +215,10 @@ def package_rematch(package_id):
 
     service = current_app.extensions['card_service']
     pkg_data = apply_match(pkg_data, store, service)
-    store.save_work_package(pkg_data)
+    try:
+        store.save_work_package(pkg_data)
+    except WorkPackageLimitError as e:
+        return api_error(str(e), "PKG_LIMIT_REACHED", 409)
 
     message = "重新匹配完成"
     if is_ajax():
@@ -300,6 +307,8 @@ def amro_package_fetch():
         return _amro_err("busy")
     except amro_sync.AmroConditionMissing as e:
         return api_error(str(e), "AMRO_CONDITION_MISSING", 409)
+    except WorkPackageLimitError as e:
+        return api_error(str(e), "PKG_LIMIT_REACHED", 409)
     except ValueError as e:
         # 空键护栏：AMRO 包头缺机号与描述，拒绝入库
         return api_error(str(e), "PKG_META_MISSING", 400)

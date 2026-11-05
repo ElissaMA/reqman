@@ -108,7 +108,17 @@ def run_query(key: str, label: str, job, extra: dict | None = None) -> bool:
             end_query(token)
 
     QUERY_STATUS[key] = {"status": "running", "label": label, "started_at": _now(), **extra}
-    threading.Thread(target=runner, daemon=True, name=f"amro-{key}").start()
+    try:
+        thread = threading.Thread(target=runner, daemon=True, name=f"amro-{key}")
+        thread.start()
+    except Exception as exc:
+        # 线程启动失败（资源耗尽等）：必须回滚已占用的全局锁与假运行态，
+        # 否则此后所有 AMRO 查询都会永久返回 busy。
+        logger.exception("AMRO 查询线程启动失败: %s", label)
+        QUERY_STATUS[key] = {"status": "error", "label": label,
+                             "finished_at": _now(), "error": f"任务启动失败：{exc}", **extra}
+        end_query(token)
+        return False
     return True
 
 
