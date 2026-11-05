@@ -202,10 +202,9 @@ class TestMatchAndGenerate:
         assert data["success"] is False
 
     def test_generate_preview_with_package(self, prefilled_app, prefilled_client, store):
-        """上���后生成需求单预览"""
-        # 上传 -> 获取包ID
+        """上传后未匹配：预览被拦截并提示；「重新匹配」后预览正常。"""
         excel_data = _make_mock_excel([
-            {"task_code": "ENG-001", "task_name": "发动机��查",
+            {"task_code": "ENG-001", "task_name": "发动机检查",
              "category": "发动机", "task_type": "A"},
         ])
         prefilled_client.post("/upload", data={
@@ -214,22 +213,27 @@ class TestMatchAndGenerate:
         pkgs = store.get_work_packages()
         if not pkgs:
             return  # 无工作包则跳过
-        pkg_id = str(pkgs[0].get("id", len(pkgs)))
+        pkg_id = str(pkgs[0]["package_id"])
+        ajax = {"X-Requested-With": "XMLHttpRequest"}
 
-        # 先���成预览��触发匹配）
-        resp = prefilled_client.get(f"/generate?package_id={pkg_id}",
-                                     headers={"X-Requested-With": "XMLHttpRequest"})
-        if resp.status_code == 200:
-            data = resp.get_json()
-            assert data["success"] is True
+        # 上传只存原始清单：预览不触发匹配，返回 409
+        assert store.get_work_package(pkg_id).get("is_matched") is False
+        blocked = prefilled_client.get(f"/generate?package_id={pkg_id}", headers=ajax)
+        assert blocked.status_code == 409
+        assert blocked.get_json()["error_code"] == "PACKAGE_NOT_MATCHED"
+        assert store.get_work_package(pkg_id).get("is_matched") is False
 
-        # 非AJAX预览
-        resp_html = prefilled_client.get(f"/generate?package_id={pkg_id}")
-        assert resp_html.status_code in (200, 302)
+        # 点击「重新匹配」后才匹配成功
+        rematch = prefilled_client.post(f"/packages/{pkg_id}/rematch", headers=ajax)
+        assert rematch.status_code == 200
+        assert store.get_work_package(pkg_id)["is_matched"] is True
+
+        ok = prefilled_client.get(f"/generate?package_id={pkg_id}", headers=ajax)
+        assert ok.status_code == 200 and ok.get_json()["success"] is True
+        assert prefilled_client.get(f"/generate?package_id={pkg_id}").status_code == 200
 
     def test_generate_post_excel(self, prefilled_app, prefilled_client, store):
-        """提交生成表单，下载xlsx文件"""
-        # 上传
+        """提交生成表单，下载xlsx文件（需先重新匹配）"""
         excel_data = _make_mock_excel([
             {"task_code": "ENG-001", "task_name": "发动机检查",
              "category": "发动机", "task_type": "A"},
@@ -240,12 +244,16 @@ class TestMatchAndGenerate:
         pkgs = store.get_work_packages()
         if not pkgs:
             return
-        pkg_id = str(pkgs[0].get("id", len(pkgs)))
+        pkg_id = str(pkgs[0]["package_id"])
 
-        # 生成（先预览让系统匹配）
-        prefilled_client.get(f"/generate?package_id={pkg_id}")
+        # 未匹配时下载被拦截
+        unready = prefilled_client.post("/generate", data={"package_id": pkg_id},
+                                        headers={"X-Requested-With": "XMLHttpRequest"})
+        assert unready.status_code == 409
 
-        # POST 生成Excel
+        # 匹配后生成 Excel
+        prefilled_client.post(f"/packages/{pkg_id}/rematch",
+                              headers={"X-Requested-With": "XMLHttpRequest"})
         resp = prefilled_client.post("/generate", data={
             "package_id": pkg_id,
             "date": "2026.07.22",

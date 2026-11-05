@@ -119,7 +119,7 @@ def _parse_aircraft_info(ws) -> dict:
 def _parse_items(ws, file_type: str) -> list[dict]:
     """从 Row 7+ 提取工卡列表"""
     items = []
-    seen_codes = set()
+    code_positions = {}
     error_rows = []
 
     for row_idx, row in enumerate(ws.iter_rows(min_row=7, max_row=ws.max_row, values_only=False), start=7):
@@ -135,9 +135,7 @@ def _parse_items(ws, file_type: str) -> list[dict]:
             task_code = str(code_cell.value).strip()
             if not task_code:
                 continue
-            if task_code in seen_codes:
-                continue
-            seen_codes.add(task_code)
+            # 同号重复项在解析完备注后再去重：撤销行优先于普通行。
 
             # 列 F (index 5) = 专业
             category = ""
@@ -172,7 +170,11 @@ def _parse_items(ws, file_type: str) -> list[dict]:
                 "source": file_type,
             }
             item["cancelled"] = is_cancelled_item(item)
-            items.append(item)
+            if task_code not in code_positions:
+                code_positions[task_code] = len(items)
+                items.append(item)
+            elif item["cancelled"] and not is_cancelled_item(items[code_positions[task_code]]):
+                items[code_positions[task_code]] = item
 
         except (ValueError, AttributeError, TypeError) as e:
             error_rows.append(f"Row {row_idx}: {e}")

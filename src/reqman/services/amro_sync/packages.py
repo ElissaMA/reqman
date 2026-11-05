@@ -20,6 +20,11 @@ BJ = ZoneInfo("Asia/Shanghai")
 
 _last_package_query: dict = {}
 
+
+class AmroConditionMissing(ValueError):
+    """AMRO 详情未提供工卡状态 CONDITION：导入/刷新一律拒绝，避免误判撤销卡。"""
+
+
 def _main_squadron(zrfd: str) -> str:
     """ZRFD 责任分队串（逗号分隔，主责带“(主)”）→ 主分队名（剥掉“(主)”，无标记取首项）。"""
     parts = [p.strip() for p in str(zrfd or "").replace("，", ",").split(",") if p.strip()]
@@ -60,15 +65,18 @@ def _item_from_row(row: dict, source: str) -> dict:
     if category == "机身":
         category = "机体"
     remark = str(row.get("PPCBZSM", "")).strip()
-    return {
+    condition = str(row.get("CONDITION", "")).strip()
+    item = {
         "task_code": str(row.get("JCNO", "")).strip(),
         "task_name": str(row.get("JCTITLE", "")).strip(),
         "category": category,
         "task_type": str(row.get("TASK", "")).strip(),
         "remark": remark,
+        "condition": condition,
         "source": source,
-        "cancelled": is_cancelled_item({"remark": remark}),
     }
+    item["cancelled"] = is_cancelled_item(item)
+    return item
 
 
 
@@ -81,50 +89,66 @@ def package_items(rows_routine: list[dict], rows_other: list[dict], header_row: 
     all_items = [_item_from_row(r, "例行") for r in rows_routine]
     all_items += [_item_from_row(r, "其他") for r in rows_other]
     all_items = [it for it in all_items if it["task_code"]]
-    seen, uniq = set(), []
+    by_code, uniq = {}, []
     for it in all_items:
-        if it["task_code"] in seen:
-            continue
-        seen.add(it["task_code"])
-        uniq.append(it)
+        code = it["task_code"]
+        if code not in by_code:
+            by_code[code] = len(uniq)
+            uniq.append(it)
+        elif is_cancelled_item(it) and not is_cancelled_item(uniq[by_code[code]]):
+            # 同号多行有撤销备注时，不能让先出现的正常行掩盖撤销。
+            uniq[by_code[code]] = it
     return {"all_items": uniq, "aircraft_info": _package_header(header_row)}
 
 
 
 def persist_amro_package(store, service, package_data: dict) -> dict:
-    """AMRO 直读入库：仅入库不匹配（与 Excel 导入一致），生成日期留空待匹配时再记。
+    """AMRO 直读入库：只保存原始工卡行，不做匹配、不算派生统计。
 
-    匹配动作由「重新匹配」或打开生成页触发；摘要返回 routine/other 计数（不再有 new_cards）。
+    匹配与 cancelled_count/routine_count/other_count 等派生字段一律由
+    「重新匹配」触发（work_package_matcher.apply_match），导入不超前执行工作。
     """
     all_items = package_data.get("all_items", [])
-    package_data.update({
-        "matched": [], "new_cards": [], "cancelled": [],
-        "cancelled_count": sum(1 for i in all_items if is_cancelled_item(i)),
-        "is_matched": False, "generated_at": None,
-        "routine_count": sum(1 for i in all_items if i.get("source") == "例行"),
-        "other_count": sum(1 for i in all_items if i.get("source") == "其他"),
-    })
+    package_data.pop("matched", None)
+    package_data.pop("new_cards", None)
+    package_data.pop("cancelled", None)
+    package_data.pop("cancelled_count", None)
+    package_data.pop("routine_count", None)
+    package_data.pop("other_count", None)
+    package_data["is_matched"] = False
+    package_data["generated_at"] = None
     store.save_work_package(package_data)
-    return {"package_id": package_data.get("package_id"),
-            "routine": package_data["routine_count"], "other": package_data["other_count"]}
+    return {"package_id": package_data.get("package_id"), "items": len(all_items)}
 
 
 
-async def import_amro_package(store, client, cookies, revnr, service=None, *, fetch=None,
-                              header_row: dict | None = None) -> dict:
-    """拉 BM_TSK_002_LIST + BM_TSK_002_LIST_QT → package_items → 入库 → 摘要。
-
-    header_row 为前端选中的 BM_TSK_LIST 行（含 ACNO/REVTITLE/PLANSTD 等包头字段）；
-    未传时兜底调 list_amro_packages 按 REVNR 匹配。
-    """
+async def fetch_amro_package_items(client, cookies, revnr, *, fetch=None,
+                                   header_row=None, require_condition=False) -> dict:
+    """只读获取工作包详情，校验状态后返回解析结果；不写本地数据库。"""
     fetch = fetch or amro.fetch_all_pages
     base = {"revnr": str(revnr), "rows": 50}
     rows_routine = await fetch(client, cookies, "BM_TSK_002_LIST", dict(base), timeout=60)
     rows_other = await fetch(client, cookies, "BM_TSK_002_LIST_QT", dict(base), timeout=60)
+    if require_condition and any(
+        row.get("JCNO") and not str(row.get("CONDITION") or "").strip()
+        for row in rows_routine + rows_other
+    ):
+        raise AmroConditionMissing("AMRO 详情未提供完整工卡状态 CONDITION，已保留原工作包数据")
     if not header_row:
         listing = await list_amro_packages(client, cookies)
         header_row = next((r for r in listing if str(r.get("REVNR", "")) == str(revnr)), None)
-    out = package_items(rows_routine, rows_other, header_row)
+    return package_items(rows_routine, rows_other, header_row)
+
+
+async def import_amro_package(store, client, cookies, revnr, service=None, *, fetch=None,
+                              header_row: dict | None = None) -> dict:
+    """拉两份 AMRO 工作包详情 → 入库 → 摘要；匹配延后到预览或重新匹配。
+
+    导入即校验并标注工卡状态 CONDITION：AMRO 详情缺状态时拒绝入库（ValueError），
+    避免生成无法识别撤销卡的工作包。
+    """
+    out = await fetch_amro_package_items(client, cookies, revnr, fetch=fetch,
+                                         header_row=header_row, require_condition=True)
     info = out["aircraft_info"]
     package_data = {
         "reg": info.get("reg", ""),

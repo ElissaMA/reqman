@@ -16,3 +16,10 @@ def test_non_cancelled_remark_is_kept():
 def test_cancelled_field_does_not_override_remark():
     assert is_cancelled_item({"remark": "撤销", "cancelled": False}) is True
     assert is_cancelled_item({"remark": "正常", "cancelled": True}) is False
+
+
+def test_amro_condition_status_marks_revoked():
+    assert is_cancelled_item({"remark": "", "condition": "D"}) is True
+    assert is_cancelled_item({"remark": "", "CONDITION": "cx"}) is True
+    assert is_cancelled_item({"remark": "", "condition": "N"}) is False
+    assert is_cancelled_item({"remark": "", "condition": "XZ"}) is False

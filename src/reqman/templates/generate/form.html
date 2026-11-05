@@ -5,10 +5,17 @@
 {% block content %}
 
 {% if not has_data %}
+{% if not_matched %}
 <div class="state-panel state-info error-page">
     <span class="state-mark" aria-hidden="true">i</span>
-    <div><h1>请先上传工作清单</h1><p>上传例行清单和其他清单后，系统将匹配数据库并生成需求单预览。</p><a href="/upload" class="btn btn-primary btn-sm mt-3">去上传工作清单</a></div>
+    <div><h1>工作包尚未匹配</h1><p>需求单预览在匹配完成后生成。请返回工作包页，点击该工作包的「重新匹配」，再打开预览。</p><a href="/upload" class="btn btn-primary btn-sm mt-3">返回工作包</a></div>
 </div>
+{% else %}
+<div class="state-panel state-info error-page">
+    <span class="state-mark" aria-hidden="true">i</span>
+    <div><h1>请先上传工作清单</h1><p>上传例行清单和其他清单后，点击「重新匹配」完成匹配，再生成需求单预览。</p><a href="/upload" class="btn btn-primary btn-sm mt-3">去上传工作清单</a></div>
+</div>
+{% endif %}
 {% else %}
 <header class="page-header">
     <div class="page-heading">
@@ -31,7 +38,12 @@
 
 <div class="card">
     <div class="card-header"><div><h2>新工卡</h2><p class="section-description">未匹配数据库或尚未完善确认的数据。</p></div><span class="page-count">{{ new_cards|length }} 条</span></div>
-    <div class="card-body p-0"><div class="table-responsive"><table class="table table-bordered table-sm mb-0"><thead><tr><th>工卡号</th><th>工卡名称</th><th>专业</th><th>类别</th><th>操作</th></tr></thead><tbody>{% if new_cards %}{% for card in new_cards %}<tr><td><code>{{ card.task_code }}</code></td><td>{{ card.task_name }}{% if card.card_ok is defined and not card.card_ok %}<span class="badge bg-warning text-dark ms-1">未确认</span>{% endif %}</td><td>{{ card.category }}</td><td>{{ card.task_type or '-' }}</td><td>{% if card.unconfirmed %}<button type="button" onclick="ListUI.openEditor('/card/{{ card.db_id }}/edit')" class="btn btn-outline-warning btn-sm py-0">编辑工卡</button>{% else %}<button type="button" onclick="ListUI.openEditor('/card/new?task_code={{ card.task_code | urlencode }}&task_name={{ card.task_name | urlencode }}&category={{ card.category | urlencode }}&task_type={{ card.task_type | urlencode }}')" class="btn btn-outline-primary btn-sm py-0">新增工卡</button>{% endif %}</td></tr>{% endfor %}{% else %}<tr class="empty-state-row"><td colspan="5" class="text-center">无新工卡或未完善数据。</td></tr>{% endif %}</tbody></table></div></div>
+    <div class="card-body p-0"><div class="table-responsive"><table class="table table-bordered table-sm mb-0 preview-card-table"><colgroup><col class="col-card-code"><col class="col-card-name"><col class="col-card-category"><col class="col-card-type"><col class="col-card-action"></colgroup><thead><tr><th>工卡号</th><th>工卡名称</th><th>专业</th><th>类别</th><th>操作</th></tr></thead><tbody>{% if new_cards %}{% for card in new_cards %}<tr><td><code>{{ card.task_code }}</code></td><td>{{ card.task_name }}{% if card.card_ok is defined and not card.card_ok %}<span class="badge bg-warning text-dark ms-1">未确认</span>{% endif %}</td><td>{{ card.category }}</td><td>{{ card.task_type or '-' }}</td><td>{% if card.unconfirmed %}<button type="button" onclick="ListUI.openEditor('/card/{{ card.db_id }}/edit')" class="btn btn-outline-warning btn-sm py-0">编辑工卡</button>{% else %}<button type="button" onclick="ListUI.openEditor('/card/new?task_code={{ card.task_code | urlencode }}&task_name={{ card.task_name | urlencode }}&category={{ card.category | urlencode }}&task_type={{ card.task_type | urlencode }}')" class="btn btn-outline-primary btn-sm py-0">新增工卡</button>{% endif %}</td></tr>{% endfor %}{% else %}<tr class="empty-state-row"><td colspan="5" class="text-center">无新工卡或未完善数据。</td></tr>{% endif %}</tbody></table></div></div>
+</div>
+
+<div class="card">
+    <div class="card-header"><div><h2>撤销工卡</h2><p class="section-description">仅显示工作清单明确标记撤销的工卡；不参与匹配，也不导出需求单、提醒单及工具/航化借用清单。</p></div><span class="page-count">{{ cancelled_cards|length }} 条</span></div>
+    <div class="card-body p-0"><div class="table-responsive"><table class="table table-bordered table-sm mb-0 preview-card-table"><colgroup><col class="col-card-code"><col class="col-card-name"><col class="col-card-category"></colgroup><thead><tr><th>工卡号</th><th>工卡名称</th><th>专业</th></tr></thead><tbody>{% if cancelled_cards %}{% for card in cancelled_cards %}<tr><td><code>{{ card.task_code }}</code></td><td>{{ card.task_name }}</td><td>{{ card.category }}</td></tr>{% endfor %}{% else %}<tr class="empty-state-row"><td colspan="3" class="text-center">工作清单中无撤销工卡。</td></tr>{% endif %}</tbody></table></div></div>
 </div>
 
 <div class="card">

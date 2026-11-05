@@ -444,6 +444,82 @@ def test_reference_tools_materials_on_all_card_forms(page, server_base):
     assert page.locator("button[onclick='openCardReference()']").count() == 1
 
 
+# ---------- 16. 工作包预览：清单撤销与主库作废分开显示 ----------
+def test_cancelled_worklist_preview(page, server_base):
+    """隔离服务器中构造工作包：预览只读显示清单撤销，正常项留在新工卡区。"""
+    import io
+
+    from openpyxl import Workbook
+
+    suffix = uuid.uuid4().hex[:8]
+    cancelled_code = f"E2E-CANCEL-{suffix}"
+    active_code = f"E2E-ACTIVE-{suffix}"
+    db_code = f"E2E-DB-CANCEL-{suffix}"
+    wb = Workbook()
+    ws = wb.active
+    ws["B2"] = "B-8162"
+    ws["H2"] = f"撤销预览-{suffix}"
+    ws["C4"] = "2026.11.05"
+    for row, code, name, remark in (
+        (7, cancelled_code, "清单撤销卡", "此项已撤销"),
+        (8, active_code, "普通新工卡", ""),
+        (9, db_code, "仅数据库作废卡", ""),
+    ):
+        ws.cell(row, 2, code)
+        ws.cell(row, 5, "RST")
+        ws.cell(row, 6, "机体")
+        ws.cell(row, 8, name)
+        ws.cell(row, 12, remark)
+    content = io.BytesIO()
+    wb.save(content)
+    headers = {"X-Requested-With": "XMLHttpRequest"}
+    card_form = {"task_code": db_code, "task_name": "仅数据库作废卡",
+                 "category": "机体", "confirm_no_tools": "1", "confirm_no_mats": "1",
+                 "confirm_no_reminder": "1"}
+    created = page.request.post(server_base + "/card/new", form=card_form, headers=headers)
+    assert created.status == 200 and created.json()["success"]
+    cards = page.request.get(server_base + "/card/list-json").json()["data"]
+    card_id = next(item["id"] for item in cards if item["task_code"] == db_code)
+    marked = page.request.post(server_base + "/card/cancelled/confirm",
+                               form={"task_codes[]": db_code}, headers=headers)
+    assert marked.status == 200 and marked.json()["success"]
+    upload = page.request.post(server_base + "/upload", multipart={
+        "routine_file": {"name": "routine.xlsx", "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                         "buffer": content.getvalue()},
+    }, headers=headers)
+    assert upload.status == 200 and upload.json()["success"]
+    package_id = upload.json()["data"]["package_id"]
+
+    # 上传只存原始清单：预览先提示尚未匹配
+    page.goto(server_base + "/generate?package_id=" + package_id)
+    assert page.get_by_role("heading", name="工作包尚未匹配").count() == 1
+
+    # 点击「重新匹配」后才匹配成功
+    rematch = page.request.post(server_base + f"/packages/{package_id}/rematch", headers=headers)
+    assert rematch.status == 200 and rematch.json()["success"]
+
+    page.goto(server_base + "/generate?package_id=" + package_id)
+    page.wait_for_selector(".preview-summary")
+    section = page.locator(".card", has=page.get_by_role("heading", name="撤销工卡"))
+    assert section.count() == 1
+    assert section.locator("tbody tr", has_text=cancelled_code).count() == 1
+    assert section.locator("tbody tr", has_text=db_code).count() == 0
+    # 撤销区仅三列（工卡号/工卡名称/专业），不再显示类别与撤销依据/备注
+    headers = section.locator("thead th").all_inner_texts()
+    assert headers == ["工卡号", "工卡名称", "专业"]
+    # 与新工卡区前三列宽度一致（固定列宽）
+    new_section = page.locator(".card", has=page.get_by_role("heading", name="新工卡"))
+    cancelled_widths = [section.locator("thead th").nth(i).bounding_box()["width"]
+                        for i in range(3)]
+    new_widths = [new_section.locator("thead th").nth(i).bounding_box()["width"]
+                  for i in range(3)]
+    assert cancelled_widths == new_widths
+    assert new_section.locator("tbody tr", has_text=active_code).count() == 1
+    assert new_section.locator("tbody tr", has_text=cancelled_code).count() == 0
+    assert not section.locator("button", has_text="新增工卡").count()
+    assert card_id > 0
+
+
 # ---------- 15. v3.6.0 步骤1：左侧竖向导航布局（数据管理折叠组） ----------
 def test_side_nav_layout(page, server_base, e2e_shots):
     """左侧竖向导航（数据管理与顶级项同级同款，4个子页在折叠组内）+ 顶部登录框，无JS错误。"""

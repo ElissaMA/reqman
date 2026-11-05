@@ -28,9 +28,15 @@ NO_BORDER = Border()
 WRAP_CENTER = Alignment(horizontal="center", vertical="center", wrap_text=True)
 WRAP_VERTICAL = Alignment(vertical="center", wrap_text=True)
 LEFT_CENTER = Alignment(horizontal="left", vertical="center")
-COLS = 9
+COLS = 8
 ROW_HEIGHT_DATA = 34
 SHEET_NAME = "需求单"
+# 字体规范（与 assets/demand_template.xlsx 一致，改模板必须同步改这里）：
+# 总表头 22 加粗 / 区域表头 16 加粗 / 内容 14 不加粗，全表统一 SimSun。
+FONT_NAME = "SimSun"
+FONT_SIZE_TITLE = 22
+FONT_SIZE_SECTION = 16
+FONT_SIZE_BODY = 14
 # 模板固定锚点（契约见 tests/test_template_contract.py）
 ANCHOR_TOOL_HEADER = "定检专业\n（工具）"
 ANCHOR_MAT_HEADER = "定检专业\n（航材）"
@@ -50,8 +56,7 @@ def set_cell(ws, row, col, value="", border=FULL_THIN, alignment=WRAP_VERTICAL, 
     cell = ws.cell(row=row, column=col, value=value)
     cell.border = border
     cell.alignment = alignment
-    if font:
-        cell.font = font
+    cell.font = font or Font(name=FONT_NAME, size=FONT_SIZE_BODY)
     return cell
 
 
@@ -93,7 +98,8 @@ def _pad_empty_rows(ws, row, cat_start, min_rows, style_ref=None):
             if style_ref is not None:
                 _copy_style(style_ref, ws.cell(row=row, column=bc))
             else:
-                set_cell(ws, row, bc, font=None, alignment=DATA_ALIGN_CENTER_DEFAULT())
+                set_cell(ws, row, bc, font=Font(name=FONT_NAME, size=FONT_SIZE_BODY),
+                         alignment=DATA_ALIGN_CENTER_DEFAULT())
         ws.row_dimensions[row].height = ROW_HEIGHT_DATA
         row += 1
     return row
@@ -157,7 +163,7 @@ def _category_row_count(items: list[dict], min_rows: int) -> int:
 
 def _write_category_block_min_rows(ws, start_row, items, min_rows,
                                    name_key, task_key,
-                                   merge_h_col=True, style_ref=None,
+                                   merge_h_col=False, style_ref=None,
                                    cat_labels=None, next_anchor_text=None,
                                    style_ref_row=None):
     """Write data rows grouped by category, padded to min_rows.
@@ -179,10 +185,13 @@ def _write_category_block_min_rows(ws, start_row, items, min_rows,
         a_label = (cat_labels or {}).get(cat, cat)
 
         if not cat_items:
-            set_cell(ws, row, 1, a_label)
+            set_cell(ws, row, 1, a_label,
+                     font=Font(name=FONT_NAME, size=FONT_SIZE_SECTION, bold=True))
             set_cell(ws, row, 2, PLACEHOLDER_EMPTY)
             for bc in range(3, COLS + 1):
-                set_border(ws, row, bc)
+                cell = ws.cell(row=row, column=bc)
+                cell.border = FULL_THIN
+                cell.font = Font(name=FONT_NAME, size=FONT_SIZE_BODY)
             ws.row_dimensions[row].height = ROW_HEIGHT_DATA
             row += 1
             row = _pad_empty_rows(ws, row, cat_start, min_rows, style_ref)
@@ -197,11 +206,17 @@ def _write_category_block_min_rows(ws, start_row, items, min_rows,
                           item.get("quantity", ""), remark]
                 for col, value in enumerate(values, start=1):
                     cell = ws.cell(row=row, column=col, value=value)
-                    if style_ref is not None:
+                    if col == 1:
+                        # A 列是区域表头标签，不继承内容行字体
+                        cell.font = Font(name=FONT_NAME, size=FONT_SIZE_SECTION, bold=True)
+                        cell.border = FULL_THIN
+                        cell.alignment = WRAP_CENTER
+                    elif style_ref is not None:
                         _copy_style(style_ref, cell)
                     else:
                         cell.border = FULL_THIN
                         cell.alignment = WRAP_CENTER
+                        cell.font = Font(name=FONT_NAME, size=FONT_SIZE_BODY)
                 for bc in range(7, COLS + 1):
                     cell = ws.cell(row=row, column=bc)
                     if style_ref is not None:
@@ -209,6 +224,7 @@ def _write_category_block_min_rows(ws, start_row, items, min_rows,
                     else:
                         cell.border = FULL_THIN
                         cell.alignment = WRAP_CENTER
+                        cell.font = Font(name=FONT_NAME, size=FONT_SIZE_BODY)
                 ws.row_dimensions[row].height = ROW_HEIGHT_DATA
                 row += 1
             row = _pad_empty_rows(ws, row, cat_start, min_rows, style_ref)
@@ -425,7 +441,8 @@ def _write_new_work_row(ws, start_row, new_cards, sub_cards=None):
             texts.append(f'{card.get("task_code","")} {card.get("task_name","")}（未匹配）')
     if texts:
         ws.cell(row=row, column=2, value="; ".join(texts))
-        ws.cell(row=row, column=2).font = Font(name="SimSun", size=16, bold=True, color="FF0000")
+        ws.cell(row=row, column=2).font = Font(
+            name=FONT_NAME, size=FONT_SIZE_BODY, color="FF0000")
     else:
         ws.cell(row=row, column=2, value="无")
     return row + 1

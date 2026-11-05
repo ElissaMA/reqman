@@ -7,7 +7,7 @@
 - **稳定单进程**：Gunicorn 1 worker × 4 threads，JSON 存储用进程内锁；`data/reqman_db.json.lock` 实例锁拒绝第二个进程启动，防多进程并发写丢数据（误配多 worker / 双开服务会被明确拦下）。
 - **反向代理**：Nginx 80 → 127.0.0.1:5001；systemd 托管，开机自启。
 - **数据安全**：核心 / 运行时双文件分层；每日自动备份（保留 7 天）；AMRO 调用全程审计留痕。
-- **只读合规**：对接川航 AMRO 仅读不写，限速 + JSONL 审计，无绕过开关。
+- **只读合规**：对接川航 AMRO 仅读不写，限速 + JSONL 审计，无绕过开关。工作包导入（AMRO/Excel）只保存原始工卡行，匹配与派生统计仅在点击「重新匹配」时执行；预览与下载要求已匹配。导入时即校验并标注每张工卡的 `CONDITION`，详情缺状态则拒绝导入并保留原数据；按详情 `PPCBZSM` 备注含“撤销”及 `CONDITION=D/CX` 识别撤销，`BM_CONDITION` 字典给出 `D/CX=撤销`、`N/XZ=新增`，`REVST/PGZT` 不用于工卡撤销判定。
 
 ```
 用户 → Nginx:80 → Gunicorn:5001 → Flask → data/reqman_db.json
@@ -134,6 +134,8 @@ scripts/            deploy.sh · db.sh · migrate_cancelled_cards.py · amro_log
 - **启动慢 / 超时**：`ps aux | grep gunicorn` → `systemctl restart reqman`。
 - **库损坏**：`bash scripts/db.sh restore`。
 - **上传失败**：查 `config/nginx-reqman.conf` 的 `client_max_body_size` 与磁盘 `df -h`。
+- **AMRO 请求返回 403（网关拦截）**：AMRO 网关按 User-Agent 拦截非浏览器指纹，代码已统一使用 `ReqMan/3.7.1 (AMRO read-only)`（`connectors/amro.py` 的 `AMRO_USER_AGENT`）。若仍 403，说明该主机网络出口不可达 AMRO，需确认公司网络/VPN；排查 `python scripts/amro_diag.py`（只读，打印 DNS/TLS/带与不带 UA 的探活结果）。服务器与用户本机对该策略的差异只在网络出口，与登录配置无关。
+- **登录配置包版本过旧**：登录脚本 `LOGIN_VERSION` 与 `AMRO_LOGIN_VERSION`（默认 5）不一致时 `check-config` 会拒绝，重新下载配置包即可。
 - **磁盘不足**：`bash scripts/db.sh clean 14`。
 
 ## 验证清单

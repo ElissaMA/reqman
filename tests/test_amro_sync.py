@@ -115,10 +115,49 @@ class TestPackageItems:
         it = amro_sync.package_items([routine_row], [])["all_items"][0]
         assert it["cancelled"] is True and "撤销" in it["remark"]
 
+    def test_cancelled_by_condition(self, routine_row):
+        """AMRO 详情 BM_CONDITION 字典：D/CX 为撤销，N/XZ 为新增。"""
+        routine_row["CONDITION"] = "D"
+        revoked = amro_sync.package_items([routine_row], [])["all_items"][0]
+        assert revoked["cancelled"] is True and revoked["condition"] == "D"
+        routine_row["CONDITION"] = "N"
+        normal = amro_sync.package_items([routine_row], [])["all_items"][0]
+        assert normal["cancelled"] is False
+
     def test_qt_rows_other_source_and_dedup(self, routine_row):
         other = dict(routine_row, JCNO="EOJC-A320-31-2026-007-A")
         out = amro_sync.package_items([routine_row, dict(routine_row)], [other])
         assert [i["source"] for i in out["all_items"]] == ["例行", "其他"]  # 重复行去重+来源标注
+
+    def test_duplicate_code_preserves_cancelled_row(self, routine_row):
+        """AMRO 两清单同号且先正常后撤销时，保留撤销行作为唯一清单项。"""
+        revoked = dict(routine_row, PPCBZSM="该工卡已撤销|计划变更")
+        out = amro_sync.package_items([routine_row], [revoked])
+        assert len(out["all_items"]) == 1
+        assert out["all_items"][0]["source"] == "其他"
+        assert out["all_items"][0]["cancelled"] is True
+        assert "撤销" in out["all_items"][0]["remark"]
+
+    def test_duplicate_code_condition_revoked_takes_priority(self, routine_row):
+        normal = dict(routine_row, CONDITION="N", PPCBZSM="")
+        revoked = dict(routine_row, CONDITION="CX", PPCBZSM="")
+        out = amro_sync.package_items([normal], [revoked])
+        assert len(out["all_items"]) == 1
+        assert out["all_items"][0]["condition"] == "CX"
+        assert out["all_items"][0]["cancelled"] is True
+
+    def test_refresh_missing_condition_rejected_without_writing(self, json_store, routine_row):
+        """旧包刷新取到没有 CONDITION 的行时拒绝覆盖，主库保持不变。"""
+        async def fetch(client, cookies, plugin, base_form, **kw):
+            if plugin == "BM_TSK_002_LIST":
+                return [routine_row]
+            return []
+
+        with pytest.raises(ValueError, match="未提供完整工卡状态"):
+            _run(amro_sync.fetch_amro_package_items(
+                None, {}, "66A", fetch=fetch, header_row=routine_row,
+                require_condition=True))
+        assert json_store.get_work_packages() == []
 
     def test_empty_rows(self):
         out = amro_sync.package_items([], [])

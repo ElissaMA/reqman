@@ -7,6 +7,23 @@ class TestReminderDownload:
                            headers={"X-Requested-With": "XMLHttpRequest"})
         assert resp.status_code == 400
 
+    def test_download_requires_matched_package(self, client, store):
+        """未匹配工作包下载提醒单被拦截，不触发匹配。"""
+        pkg_id = store.save_work_package({
+            "reg": "B-9999", "description": "未匹配包", "date": "2020.01.01",
+            "aircraft_info": {"reg": "B-9999", "description": "未匹配包"},
+            "all_items": [{"task_code": "E-900", "task_name": "卡", "source": "例行"}],
+            "is_matched": False,
+        })["package_id"]
+        try:
+            resp = client.post("/generate/reminder", data={"package_id": pkg_id},
+                               headers={"X-Requested-With": "XMLHttpRequest"})
+            assert resp.status_code == 409
+            assert resp.get_json()["error_code"] == "PACKAGE_NOT_MATCHED"
+            assert store.get_work_package(pkg_id)["is_matched"] is False
+        finally:
+            store.delete_work_package(pkg_id)
+
     def test_download_returns_xlsx(self, client, store):
         # 预置已确认提醒工卡
         store.add(task_code="E-001", task_name="电子例行卡", category="电子")

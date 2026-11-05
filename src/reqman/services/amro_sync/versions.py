@@ -270,7 +270,7 @@ def start_full_version_check(store, session_store, output_dir) -> bool:
         cookies = (session_store.load() or {}).get("cookies", {})
 
         async def _inner():
-            async with httpx.AsyncClient(verify=True, trust_env=False) as client:
+            async with amro.amro_client() as client:
                 rep = await full_version_check(store, client, cookies)
             ts = datetime.now(BJ).strftime("%Y-%m-%d_%H-%M-%S")
             filename = f"amro_full_version_report_{ts}.xlsx"
@@ -319,7 +319,7 @@ def start_package_version_check(store, session_store, package_id: str, pkg_data:
             if it.get("task_code") and not is_cancelled_item(it)))
 
         async def _inner():
-            async with httpx.AsyncClient(verify=True, trust_env=False) as client:
+            async with amro.amro_client() as client:
                 return await check_cards_against_amro(store, client, cookies, task_codes)
 
         report = asyncio.run(_inner())

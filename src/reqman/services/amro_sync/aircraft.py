@@ -10,8 +10,6 @@ import asyncio
 import logging
 from zoneinfo import ZoneInfo
 
-import httpx
-
 # sync_aircraft 经包级属性运行时取值，以便测试 monkeypatch amro_sync.sync_aircraft 生效
 from reqman.services import amro_sync
 
@@ -100,7 +98,7 @@ def start_aircraft_sync(store, session_store) -> bool:
         cookies = (session_store.load() or {}).get("cookies", {})
 
         async def _inner():
-            async with httpx.AsyncClient(verify=True, trust_env=False) as client:
+            async with amro.amro_client() as client:
                 rep = await amro_sync.sync_aircraft(store, client, cookies)
             return {"added": rep["added"], "updated": rep["updated"],
                     "removed": len(rep["removed"]), "total_amro": rep["total_amro"]}

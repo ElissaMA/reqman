@@ -283,6 +283,17 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .sort-arrow { color: var(--rm-blue-600); font-size: 10px; }
 .table-action { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 5px; }
 
+/* 预览页工卡表：新工卡区与撤销区共用固定列宽，前三列像素级对齐。
+   width:auto + table-layout:fixed → 各列严格按指定像素，不因列数不同被拉伸；
+   撤销区少两列，故整表更窄，但工卡号/工卡名称/专业宽度与新工卡区完全一致。 */
+.preview-card-table { width: auto; table-layout: fixed; }
+.preview-card-table td { overflow-wrap: anywhere; }
+.preview-card-table .col-card-code { width: 200px; }
+.preview-card-table .col-card-name { width: 420px; }
+.preview-card-table .col-card-category { width: 96px; }
+.preview-card-table .col-card-type { width: 96px; }
+.preview-card-table .col-card-action { width: 132px; }
+
 /* 状态 / 反馈 */
 .badge { font-weight: 700; }
 .badge.bg-secondary { color: #fff; background: var(--rm-navy-700) !important; }

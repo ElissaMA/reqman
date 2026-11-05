@@ -77,12 +77,15 @@ class InventoryService:
 
         探活用短超时（真实查询仍走默认 30s）：只判断会话死活，不陪 AMRO 慢响应耗线程。
         """
-        async with httpx.AsyncClient(verify=True, trust_env=False) as client:
+        async with amro.amro_client() as client:
             pn = data["cookies"].get("I_MFRPN") or "ST1946-107"
             try:
                 await amro.query_single_pn(client, data["cookies"], pn, "01",
                                            timeout=PROBE_TIMEOUT)
                 return "valid"
+            except amro.AmroBlocked as exc:
+                self.session_store.mark_probe("probe_error", str(exc))
+                return "probe_error"
             except amro.AmroSessionExpired:
                 return "expired"
             except (httpx.HTTPError, OSError, ValueError, RuntimeError):
@@ -136,6 +139,7 @@ class InventoryService:
             "account": latest.get("account"),
             "login_at": latest.get("login_at"),
             "last_checked_at": latest.get("last_checked_at"),
+            "last_check_error": latest.get("last_check_error"),
             "login_duration_seconds": self._duration_seconds(latest.get("login_at")),
         }
 
@@ -171,7 +175,7 @@ class InventoryService:
             results: dict[str, float] = {}
             success = fail = 0
             sem = asyncio.Semaphore(self.max_concurrent)
-            async with httpx.AsyncClient(verify=True, trust_env=False) as client:
+            async with amro.amro_client() as client:
                 async def query_one(pn: str) -> None:
                     nonlocal success, fail
                     async with sem:

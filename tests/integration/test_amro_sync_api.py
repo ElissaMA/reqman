@@ -128,21 +128,24 @@ class TestAmroPackageApi:
         async def fake_fetch(client_, cookies, plugin, base_form, **kw):
             if plugin == "BM_TSK_002_LIST":
                 return [dict(base_row, JCNO="CSCA320-256652-01-1-X", TASK="RST",
-                             ZY="机身", JCTITLE="检查救生衣", PPCBZSM="")]
+                             ZY="机身", JCTITLE="检查救生衣", PPCBZSM="", CONDITION="N")]
             return [dict(base_row, JCNO="EOJC-A320-31-2026-007-A", TASK="EO",
-                         ZY="电子", JCTITLE="实时数据改装", PPCBZSM="")]
+                         ZY="电子", JCTITLE="实时数据改装", PPCBZSM="", CONDITION="N")]
         monkeypatch.setattr(amro_mod, "fetch_all_pages", fake_fetch)
 
         form = {"revnr": "66A", "header": json.dumps(base_row)}
         resp = client.post("/packages/amro-fetch", data=form, headers=ajax_headers)
         assert resp.status_code == 200
         summary = resp.get_json()["data"]
-        assert summary["routine"] == 1 and summary["other"] == 1
+        assert summary["items"] == 2
 
         pkg = app.extensions["store"].get_work_package(summary["package_id"])
-        assert pkg["is_matched"] is False          # 导入仅入库，不匹配（与 Excel 一致）
-        assert pkg["generated_at"] is None         # 生成日期匹配后才记
-        assert pkg["routine_count"] == 1 and pkg["other_count"] == 1
+        # 导入只存原始行：不匹配、不算派生统计（匹配仅由「重新匹配」触发）
+        assert pkg["is_matched"] is False
+        assert pkg["generated_at"] is None
+        for derived in ("matched", "new_cards", "cancelled",
+                        "cancelled_count", "routine_count", "other_count"):
+            assert derived not in pkg, derived
         # 包头字段来自前端选中的列表行（机号/描述/日期/分队/工时）
         assert pkg["reg"] == "B-1662"
         assert pkg["description"] == "A320 4C检"
@@ -155,9 +158,35 @@ class TestAmroPackageApi:
         codes = {i["task_code"]: i for i in pkg["all_items"]}
         assert codes["CSCA320-256652-01-1-X"]["category"] == "机体"
         assert codes["EOJC-A320-31-2026-007-A"]["source"] == "其他"
+        # 导入即标注工卡状态
+        assert all("condition" in i for i in pkg["all_items"])
         # 同 reg+description 重复导入覆盖（沿用现有幂等语义）
         resp2 = client.post("/packages/amro-fetch", data=form, headers=ajax_headers)
         assert resp2.get_json()["data"]["package_id"] == summary["package_id"]
+
+    def test_fetch_rejects_missing_condition(self, client, app, ajax_headers, monkeypatch):
+        """导入即校验工卡状态：AMRO 详情缺 CONDITION 时拒绝入库。"""
+        import reqman.services.connectors.amro as amro_mod
+        from reqman.services import amro_sync
+        monkeypatch.setattr(amro_sync, "require_amro_session", lambda: True)
+
+        base_row = {"REVNR": "66C", "ACNO": "B-1662", "ACTYPE": "A320-232",
+                    "REVTITLE": "缺状态工作包", "PLANSTD": "2026-09-01"}
+
+        async def fake_fetch(client_, cookies, plugin, base_form, **kw):
+            if plugin == "BM_TSK_002_LIST":
+                return [dict(base_row, JCNO="NO-COND-1", TASK="RST", ZY="机身",
+                             JCTITLE="无状态卡", PPCBZSM="")]
+            return []
+
+        monkeypatch.setattr(amro_mod, "fetch_all_pages", fake_fetch)
+        before = len(app.extensions["store"].get_work_packages())
+        resp = client.post("/packages/amro-fetch",
+                           data={"revnr": "66C", "header": json.dumps(base_row)},
+                           headers=ajax_headers)
+        assert resp.status_code == 409
+        assert resp.get_json()["error_code"] == "AMRO_CONDITION_MISSING"
+        assert len(app.extensions["store"].get_work_packages()) == before
 
     def test_fetch_requires_session(self, client, ajax_headers, monkeypatch):
         from reqman.services import amro_sync

@@ -22,6 +22,10 @@ logger = logging.getLogger(__name__)
 
 AMRO_API_BASE = "https://me.sichuanair.com/api/v1/plugins"
 
+# AMRO 网关按 User-Agent 拦截非浏览器指纹（httpx 默认 python-httpx/x 与 requests 均被 403）；
+# 所有 AMRO 调用必须经 amro_client() 携带此标识，勿在调用点各自建 AsyncClient。
+AMRO_USER_AGENT = "ReqMan/3.7.1 (AMRO read-only)"
+
 # 只读白名单：仅允许调用以下已实测验证的查询端点（写/导出/生成类端点一律拒绝）
 READONLY_PLUGINS: frozenset[str] = frozenset({
     "DA_ACREG_LIST", "DA_MPACTYPE_HELP",
@@ -33,6 +37,17 @@ READONLY_PLUGINS: frozenset[str] = frozenset({
 
 class AmroSessionExpired(RuntimeError):
     """AMRO 会话失效（业务 code=100）。"""
+
+
+class AmroBlocked(RuntimeError):
+    """AMRO 网关拦截（HTTP 403）：网络不可达或被防火墙判定为威胁。"""
+
+
+def amro_client(**kwargs) -> httpx.AsyncClient:
+    """创建统一 AMRO 客户端：固定 UA + 校验证书 + 忽略系统代理环境变量。"""
+    headers = dict(kwargs.pop("headers", None) or {})
+    headers.setdefault("User-Agent", AMRO_USER_AGENT)
+    return httpx.AsyncClient(verify=True, trust_env=False, headers=headers, **kwargs)
 
 # 库存类型 — 开封航化代码待内网验证后启用
 INVENTORY_TYPES: dict[str, str] = {"available": "01"}
@@ -185,7 +200,7 @@ _RETRY_ATTEMPTS = 2  # 瞬态失败（超时/传输错误/5xx）总尝试次数�
 
 
 def _retryable(exc: Exception) -> bool:
-    """瞬态失败判定：超时/传输错误/5xx 可重试；4xx 与业务码错误不重试。"""
+    """瞬态失败判定：超时/传输错误/5xx 可重试；403/4xx 与业务码错误不重试。"""
     if isinstance(exc, httpx.HTTPStatusError):
         return exc.response.status_code >= 500
     return isinstance(exc, (httpx.TimeoutException, httpx.TransportError))
@@ -201,9 +216,9 @@ async def query_plugin(
 ) -> dict:
     """通用只读查询：白名单校验 → 限速 → POST（瞬态失败重试，每次尝试均限速）→ 审计 → 业务码校验。
 
-    code==200 返回完整 body；code==100 抛 AmroSessionExpired；其余业务码抛 RuntimeError。
+    code==200 返回完整 body；code==100 抛 AmroSessionExpired；HTTP 403 抛 AmroBlocked；其余业务码抛 RuntimeError。
     超时/传输错误/5xx 按 _RETRY_ATTEMPTS 总次数重试（限速对每次尝试生效，红线不绕过）；
-    最终失败写审计留痕（code=-1），避免静默无痕（2026-09-03 全量版本查询超时排查教训）。
+    最终失败写审计留痕（code=-1，403 记 403），避免静默无痕（2026-09-03 全量版本查询超时排查教训）。
     """
     if plugin not in READONLY_PLUGINS:
         raise ValueError(f"端点 {plugin} 不在只读白名单，禁止调用")
@@ -216,6 +231,11 @@ async def query_plugin(
         try:
             resp = await client.post(url, data=form, cookies=cookies, timeout=timeout)
             seconds = time.monotonic() - start
+            if resp.status_code == 403:
+                _audit(plugin, url, form, 403, seconds)
+                raise AmroBlocked(
+                    "AMRO 网关拦截 HTTP 403：请确认可访问 AMRO（公司网络/VPN）后重试"
+                )
             resp.raise_for_status()
             body = resp.json()
         except (httpx.TimeoutException, httpx.TransportError, httpx.HTTPStatusError) as exc:

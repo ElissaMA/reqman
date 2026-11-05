@@ -75,7 +75,7 @@
                 <tbody>
                 {% for wp in work_packages %}
                 <tr onclick="window.open('/generate?package_id={{ wp.package_id }}', '_blank')" style="cursor:pointer" class="{% if wp.status == 'warning' %}wp-warning{% elif wp.status == 'danger' %}wp-danger{% endif %}">
-                    <td><strong>{{ wp.aircraft_info.reg if wp.aircraft_info else wp.reg }}</strong></td><td>{{ (wp.aircraft_info.description if wp.aircraft_info else wp.description) or '' }}</td><td>{{ (wp.aircraft_info.type if wp.aircraft_info else '') or '' }}</td><td>{{ (wp.aircraft_info.engine if wp.aircraft_info else '') or '' }}</td><td>{{ (wp.aircraft_info.squadron if wp.aircraft_info else '') or '' }}</td><td>{{ wp.date }}</td><td>{{ wp.routine_count }}+{{ wp.other_count }}</td><td>{% if wp.cancelled_count %}<span class="badge bg-warning text-dark">撤销 {{ wp.cancelled_count }} 张</span>{% else %}—{% endif %}</td><td>{{ wp.generated_at or '—' }}</td>
+                    <td><strong>{{ wp.aircraft_info.reg if wp.aircraft_info else wp.reg }}</strong></td><td>{{ (wp.aircraft_info.description if wp.aircraft_info else wp.description) or '' }}</td><td>{{ (wp.aircraft_info.type if wp.aircraft_info else '') or '' }}</td><td>{{ (wp.aircraft_info.engine if wp.aircraft_info else '') or '' }}</td><td>{{ (wp.aircraft_info.squadron if wp.aircraft_info else '') or '' }}</td><td>{{ wp.date }}</td><td>{% if wp.is_matched %}{{ wp.routine_count }}+{{ wp.other_count }}{% else %}—{% endif %}</td><td>{% if wp.is_matched and wp.cancelled_count %}<span class="badge bg-warning text-dark">撤销 {{ wp.cancelled_count }} 张</span>{% else %}—{% endif %}</td><td>{{ wp.generated_at or '—' }}</td>
                     <td onclick="event.stopPropagation()"><div class="table-action"><form method="POST" action="/packages/{{ wp.package_id }}/rematch"><button type="submit" class="btn btn-outline-primary btn-sm" onclick="return rematchPack(event, '{{ wp.package_id }}')">重新匹配</button></form><button type="button" class="btn-amro btn-sm" data-package-id="{{ wp.package_id }}" onclick="pkgVersionCheck('{{ wp.package_id }}', this)">检查版本</button></div></td>
                 </tr>
                 {% endfor %}
@@ -103,7 +103,7 @@ function fileSelected(input, zoneId) {
 }
 function rematchPack(e, packageId) {
     e.preventDefault();
-    window.confirmModal({ title: '重新匹配', body: '重新匹配将使用当前数据库刷新匹配状态，确认？', okText: '重新匹配' }).then(function(ok) {
+    window.confirmModal({ title: '重新匹配', body: '重新匹配使用当前数据库与已保存的工卡状态，确认继续？', okText: '重新匹配' }).then(function(ok) {
         if (!ok) return;
         var fd = new FormData();
         fetch('/packages/' + packageId + '/rematch', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })

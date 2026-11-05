@@ -217,6 +217,7 @@ class TestSetupPackage:
         assert 'SERVER_URL = "http://localhost"' in src
         assert 'UPLOAD_URL = "http://localhost/inventory/login/upload"' in src
         assert "trust_env=False" in src
+        assert 'headers={"User-Agent": AMRO_USER_AGENT}' in src  # 否则被 AMRO 网关 403
 
     def test_py_uses_system_browser_chrome_to_msedge(self, client):
         """amro_login.py 三级回退：Chrome → Edge → 显式 Edge 路径，弃用 chromium 下载。"""
@@ -232,11 +233,11 @@ class TestSetupPackage:
         assert "未检测到 Chrome/Edge，请安装浏览器后重试" in src
 
     def test_py_login_version_and_auto_probe(self, client):
-        """amro_login.py 注入 LOGIN_VERSION=4，且为自动探活上传（无回车/无完成按钮）。"""
+        """amro_login.py 注入 LOGIN_VERSION=5，且为自动探活上传（无回车/无完成按钮）。"""
         resp = client.get("/inventory/setup-package")
         assert resp.status_code == 200
         src = self._py_source(resp)
-        assert 'LOGIN_VERSION = "4"' in src
+        assert 'LOGIN_VERSION = "5"' in src
         assert "input(" not in src                      # 不再窗口回车
         assert "_wait_confirm" not in src
         assert "__reqman_done_btn" not in src           # 不再注入完成按钮

@@ -19,6 +19,20 @@ def _cell(ws, coord):
     return str(ws[coord].value or "").strip()
 
 
+def _visible_cells(ws):
+    """返回未被合并隐藏的单元格（合并区只保留左上角，Excel 渲染同此语义）。"""
+    ranges = list(ws.merged_cells.ranges)
+    for row in range(1, ws.max_row + 1):
+        for col in range(1, ws.max_column + 1):
+            hidden = any(
+                r.min_row <= row <= r.max_row and r.min_col <= col <= r.max_col
+                and (r.min_row, r.min_col) != (row, col)
+                for r in ranges
+            )
+            if not hidden:
+                yield ws.cell(row=row, column=col)
+
+
 # ---------- 需求单 ----------
 class TestDemandContract:
     def test_fixed_cells(self):
@@ -39,18 +53,40 @@ class TestDemandContract:
     def test_merges_and_print_area(self):
         ws = openpyxl.load_workbook(TEMPLATE_FILE)["需求单"]
         merges = {str(r) for r in ws.merged_cells.ranges}
-        for m in ("A1:I1", "A2:I2", "A13:I13", "A35:I35", "B24:I24"):
+        # 模板已收敛为 8 列（删除「区域放行确认」列，备用区删除「调配数量」列）
+        for m in ("A1:H1", "A2:H2", "A13:H13", "A35:H35", "B24:H24"):
             assert m in merges, m
-        # 已知缺陷（修复计划阶段1）：模板 max_row=42 但打印区只到 I41。
-        # 此处锁定现状，阶段 1 修复生成器动态 print_area 后由阶段1用例验证覆盖 42 行。
+        assert ws.max_column == 8
         pa = str(ws.print_area or "").replace("$", "")
-        assert pa.endswith("I41") or "I42" in pa
+        assert pa.endswith("H42"), pa
 
-    def test_data_row_styles(self):
-        """数据区参考行样式（动态行应继承而非重设）。"""
+    def test_font_rules(self):
+        """全表字体统一 SimSun；总表头22加粗 / 区域表头16加粗 / 内容14不加粗。"""
+        from reqman.services.form_generator import (
+            FONT_NAME,
+            FONT_SIZE_BODY,
+            FONT_SIZE_SECTION,
+            FONT_SIZE_TITLE,
+        )
+
         ws = openpyxl.load_workbook(TEMPLATE_FILE)["需求单"]
-        assert ws["B15"].font.size == 10.0
-        assert ws["B37"].font.size == 14.0
+        visible = _visible_cells(ws)
+        names = {c.font.name for c in visible}
+        assert names == {FONT_NAME}, names
+        assert FONT_SIZE_TITLE == 22 and FONT_SIZE_SECTION == 16 and FONT_SIZE_BODY == 14
+
+        assert ws["A1"].font.sz == FONT_SIZE_TITLE and ws["A1"].font.bold
+        for coord in ("A2", "A3", "A13", "A14", "A24", "A25", "A35", "A36"):
+            assert ws[coord].font.sz == FONT_SIZE_SECTION and ws[coord].font.bold, coord
+
+        # 内容行：14 号且不加粗（B 列在条件区属 A:B 合并的隐藏部分，A26 等为专业标签）
+        for coord in ("A4", "C4", "D4", "G4", "B15", "C15", "B26", "H42"):
+            assert ws[coord].font.sz == FONT_SIZE_BODY, coord
+            assert not ws[coord].font.bold, coord
+        # 专业区标签属区域表头：16 加粗
+        for coord in ("A15", "A18", "A21", "A29", "A37", "A39", "A41"):
+            assert ws[coord].font.sz == FONT_SIZE_SECTION, coord
+            assert ws[coord].font.bold, coord
 
 
 # ---------- 提醒单 ----------

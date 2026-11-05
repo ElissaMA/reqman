@@ -11,15 +11,21 @@ import httpx
 
 SERVER_URL = "http://127.0.0.1:5001"
 UPLOAD_URL = "http://127.0.0.1:5001/inventory/login/upload"
-LOGIN_VERSION = "4"
+LOGIN_VERSION = "5"
+# AMRO 网关按 User-Agent 拦截非浏览器指纹（httpx 默认 python-httpx/x 与 requests 均被 403）；
+# 与 src/reqman/services/connectors/amro.py 的 AMRO_USER_AGENT 保持一致。
+AMRO_USER_AGENT = "ReqMan/3.7.1 (AMRO read-only)"
 AMRO_HOME_URL = "https://me.sichuanair.com/views/home.shtml"
 AMRO_API_URL = "https://me.sichuanair.com/api/v1/plugins/MM_PARTNUMBERCHAXUN_LIST"
 LOGIN_TIMEOUT_SECONDS = 300
 LOGIN_POLL_SECONDS = 2
 PROBE_PART_NUMBER = "ST1946-107"
+BLOCKED_TOLERANCE = 3
 MSG_P1 = "⚠️ 使用前请先关闭浏览器中已登录的川航 AMRO 页面，否则会导致登录获取失败。"
 MSG_P2 = "已打开登录页面，请在浏览器中完成手机验证码和账号登录；登录成功后脚本会自动检查页面、获取账号与凭证并上传，无需点击按钮或回车。"
 MSG_P3 = "✅ 登录成功，本页面即将就绪。"
+MSG_BLOCKED = ("AMRO 网关拦截请求（HTTP 403）：请确认本机在公司网络或 VPN 内、可正常访问 "
+               "https://me.sichuanair.com ，然后重新登录。")
 ACCOUNT_SELECTORS = (
     '[data-account]', '[data-username]', '[data-user]',
     '[id*="account" i]', '[id*="username" i]', '[id*="user" i]',
@@ -70,7 +76,11 @@ async def _launch_browser(p):
 
 
 async def _read_account(page) -> str:
-    """从登录后页面的可见账号区域读取账号，不从 Cookie 猜测。"""
+    """从登录后页面的可见账号区域读取账号，不从 Cookie 猜测。
+
+    AMRO 首页账号固定渲染在 ``#uaccount``；页面 JS 未渲染完成时该节点为空，
+    此时视为未就绪（返回空串），不再回退到宽松选择器误取其他文本。
+    """
     try:
         value = await page.evaluate(
             """(selectors) => {
@@ -79,6 +89,14 @@ async def _read_account(page) -> str:
                     const labeled = text.match(/(?:账号|用户名|工号|用户|account|username|user)\\s*[:：]?\\s*([A-Za-z0-9_-]{2,32})/i);
                     return labeled ? labeled[1] : '';
                 };
+                const primary = document.querySelector('#uaccount');
+                if (primary) {
+                    const raw = primary.getAttribute('data-account') || primary.getAttribute('data-username')
+                        || primary.innerText || primary.textContent || '';
+                    const account = fromText(raw) || String(raw).trim();
+                    if (/^[A-Za-z0-9_-]{2,32}$/.test(account)) return account;
+                    return '';
+                }
                 for (const selector of selectors) {
                     const el = document.querySelector(selector);
                     if (!el) continue;
@@ -103,7 +121,7 @@ async def _amro_cookies(ctx) -> list[dict]:
 
 
 async def _probe_login(client: httpx.AsyncClient, cookies: list[dict]) -> str:
-    """使用已知只读库存接口严格探活：valid / pending / retry。"""
+    """使用已知只读库存接口严格探活：valid / pending / blocked / retry。"""
     cookie_map = {c["name"]: c["value"] for c in cookies}
     try:
         resp = await client.post(
@@ -117,6 +135,8 @@ async def _probe_login(client: httpx.AsyncClient, cookies: list[dict]) -> str:
             cookies=cookie_map,
             timeout=15,
         )
+        if resp.status_code == 403:
+            return "blocked"
         resp.raise_for_status()
         body = resp.json()
     except (httpx.HTTPError, ValueError, TypeError):
@@ -136,6 +156,8 @@ async def _wait_for_login(ctx, page, client: httpx.AsyncClient) -> tuple[str, li
     last_account = ""
     stable_reads = 0
     last_notice = 0.0
+    blocked_reads = 0
+    last_state = "waiting"
     while time.monotonic() < deadline:
         if page.is_closed():
             raise RuntimeError("AMRO 登录页面已关闭")
@@ -147,17 +169,28 @@ async def _wait_for_login(ctx, page, client: httpx.AsyncClient) -> tuple[str, li
             last_account = account
             if stable_reads >= 2:
                 state = await _probe_login(client, cookies)
+                last_state = state
                 if state == "valid":
                     return account, await _amro_cookies(ctx)
+                if state == "blocked":
+                    blocked_reads += 1
+                    if blocked_reads >= BLOCKED_TOLERANCE:
+                        raise RuntimeError(MSG_BLOCKED)
+                else:
+                    blocked_reads = 0
         else:
             stable_reads = 0
             last_account = ""
+            blocked_reads = 0
         now = time.monotonic()
         if now - last_notice >= 15:
             print("等待 AMRO 登录完成，脚本将自动检查账号与会话…")
             last_notice = now
         await asyncio.sleep(LOGIN_POLL_SECONDS)
-    raise TimeoutError("等待 AMRO 登录完成超时，请确认已完成手机验证码和账号登录")
+    raise TimeoutError(
+        f"等待 AMRO 登录完成超时（最后探活状态：{last_state}"
+        f"，账号：{last_account or '未读取到'}），请确认已完成手机验证码和账号登录"
+    )
 
 
 async def main() -> int:
@@ -181,7 +214,11 @@ async def main() -> int:
                 page = await ctx.new_page()
                 print(MSG_P2)
                 await page.goto(AMRO_HOME_URL, wait_until="domcontentloaded")
-                async with httpx.AsyncClient(verify=True, trust_env=False) as client:
+                async with httpx.AsyncClient(
+                    verify=True,
+                    trust_env=False,
+                    headers={"User-Agent": AMRO_USER_AGENT},
+                ) as client:
                     account, cookies = await _wait_for_login(ctx, page, client)
                     upload_url = upload_url_for(args.server)
                     response = await client.post(

@@ -90,6 +90,10 @@ def session_status():
         data["message"] = MESSAGES["P5"].format(account=account)
     elif state == "probe_error":
         data["message"] = "⚠️ AMRO 状态暂不可用，请稍后重试。"
+        detail = status.get("last_check_error") or ""
+        if "403" in detail:
+            data["message"] = MESSAGES["P13"]
+            data["detail"] = detail
     elif state == "expired":
         data["message"] = MESSAGES["P7"]
     else:
@@ -401,7 +405,7 @@ def _login_py_template(server_url: str) -> str:
     )
     source = _replace_once(
         source,
-        'LOGIN_VERSION = "4"',
+        'LOGIN_VERSION = "5"',
         f'LOGIN_VERSION = "{AMRO_LOGIN_VERSION}"',
     )
     return source

@@ -422,6 +422,20 @@ class TestParseItems:
         if card_001:
             assert card_001[0].get("remark") == "工具: 扳手"
 
+    def test_duplicate_code_revoked_row_takes_priority(self):
+        """Excel 同号先普通后撤销时，撤销备注不能被先到行遮蔽。"""
+        from openpyxl import Workbook
+
+        ws = Workbook().active
+        for row, name, remark in ((7, "普通行", ""), (8, "撤销行", "已撤销")):
+            ws.cell(row=row, column=2, value="CSC-CANCEL-001")
+            ws.cell(row=row, column=8, value=name)
+            ws.cell(row=row, column=12, value=remark)
+        items = _parse_items(ws, "例行")
+        assert len(items) == 1
+        assert items[0]["cancelled"] is True
+        assert items[0]["task_name"] == "撤销行"
+
     def test_parse_items_empty_row_skipped(self):
         """空行（无工卡号）应跳过"""
         ws = MagicMock()

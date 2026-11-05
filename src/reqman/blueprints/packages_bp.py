@@ -13,8 +13,9 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 
 from ..config import CATEGORIES, OUTPUT_DIR
 from ..services import amro_sync
+from ..services.connectors import amro
 from ..services.connectors.amro import AmroSessionExpired
-from ..services.work_package_matcher import is_cancelled_item, match_work_package_items
+from ..services.work_package_matcher import apply_match, is_cancelled_item, needs_amro_reimport
 from ..services.worklist_parser import WorklistError, merge_aircraft_info, parse_worklist
 from ..utils.dates import fmt_date10
 from ..utils.error_handlers import NotFoundError, ValidationError, is_ajax
@@ -187,13 +188,13 @@ def _handle_upload_post():
 
 
 def _persist_package(store, package_data: dict) -> dict:
-    """工作包入库（upload 兜底路径）：保存原始清单，匹配延后到生成页打开时。"""
-    package_data["matched"] = []
-    package_data["new_cards"] = []
-    package_data["cancelled"] = []
-    package_data["cancelled_count"] = sum(1 for i in package_data.get("all_items", []) if i.get("cancelled"))
-    package_data["routine_count"] = sum(1 for i in package_data.get("all_items", []) if i.get("source") == "例行")
-    package_data["other_count"] = sum(1 for i in package_data.get("all_items", []) if i.get("source") == "其他")
+    """工作包入库：只保存原始清单行，匹配与派生统计延后到「重新匹配」。"""
+    package_data.pop("matched", None)
+    package_data.pop("new_cards", None)
+    package_data.pop("cancelled", None)
+    package_data.pop("cancelled_count", None)
+    package_data.pop("routine_count", None)
+    package_data.pop("other_count", None)
     package_data["is_matched"] = False
     package_data["generated_at"] = None
     store.save_work_package(package_data)
@@ -208,24 +209,14 @@ def package_rematch(package_id):
     if not pkg_data:
         raise NotFoundError("工作包不存在")
 
-    all_items = pkg_data.get("all_items", [])
     service = current_app.extensions['card_service']
-    matched, new_cards, cancelled = match_work_package_items(all_items, store, service)
-
-    now_str = datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d %H:%M")
-    pkg_data["matched"] = matched
-    pkg_data["new_cards"] = new_cards
-    pkg_data["cancelled"] = cancelled
-    pkg_data["cancelled_count"] = len(cancelled)
-    pkg_data["routine_count"] = sum(1 for i in all_items if i.get("source") == "例行")
-    pkg_data["other_count"] = sum(1 for i in all_items if i.get("source") == "其他")
-    pkg_data["is_matched"] = True
-    pkg_data["generated_at"] = now_str
+    pkg_data = apply_match(pkg_data, store, service)
     store.save_work_package(pkg_data)
 
+    message = "重新匹配完成"
     if is_ajax():
-        return api_success(message="重新匹配完成")
-    flash("重新匹配完成", "success")
+        return api_success(message=message)
+    flash(message, "success")
     return redirect("/upload")
 
 
@@ -257,7 +248,7 @@ def amro_package_list():
     cookies = (svc.session_store.load() or {}).get("cookies", {})
 
     async def _inner():
-        async with httpx.AsyncClient(verify=True, trust_env=False) as client:
+        async with amro.amro_client() as client:
             return await amro_sync.list_amro_packages(client, cookies)
 
     try:
@@ -298,7 +289,7 @@ def amro_package_fetch():
     cookies = (svc.session_store.load() or {}).get("cookies", {})
 
     async def _inner():
-        async with httpx.AsyncClient(verify=True, trust_env=False) as client:
+        async with amro.amro_client() as client:
             return await amro_sync.import_amro_package(store, client, cookies, revnr, service,
                                                        header_row=header_row)
 
@@ -307,6 +298,8 @@ def amro_package_fetch():
             summary = asyncio.run(_inner())
     except amro_sync.QueryBusyError:
         return _amro_err("busy")
+    except amro_sync.AmroConditionMissing as e:
+        return api_error(str(e), "AMRO_CONDITION_MISSING", 409)
     except ValueError as e:
         # 空键护栏：AMRO 包头缺机号与描述，拒绝入库
         return api_error(str(e), "PKG_META_MISSING", 400)
@@ -315,8 +308,8 @@ def amro_package_fetch():
     except (httpx.HTTPError, RuntimeError) as e:
         logger.exception("AMRO 工作包 %s 导入失败", revnr)
         return _amro_err("amro", e)
-    message = (f"工作包 {revnr} 已导入：例行 {summary['routine']} 项，其他 {summary['other']} 项"
-               "（请在表格中重新匹配或打开预览页完成匹配）")
+    message = (f"工作包 {revnr} 已导入：共 {summary['items']} 张工卡"
+               "（请点击「重新匹配」后查看预览）")
     return api_success(data=summary, message=message)
 
 
@@ -339,6 +332,9 @@ def package_amro_version_check(package_id):
     pkg_data = store.get_work_package(package_id)
     if not pkg_data:
         raise NotFoundError("工作包不存在")
+    if needs_amro_reimport(pkg_data):
+        return api_error("此工作包由旧版 AMRO 导入，缺少工卡状态 CONDITION；请重新从 AMRO 导入后检查版本",
+                         "AMRO_REIMPORT_REQUIRED", 409)
     session_store = current_app.extensions["inventory_service"].session_store
     if not amro_sync.start_package_version_check(store, session_store, package_id, pkg_data):
         return _amro_err("busy")

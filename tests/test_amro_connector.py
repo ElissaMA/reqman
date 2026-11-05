@@ -58,6 +58,69 @@ class TestIsKunming:
         assert amro.is_kunming("") is False
 
 
+class TestAmroClient:
+    """统一客户端：AMRO 网关按 UA 拦截非浏览器指纹，所有调用必须带 AMRO_USER_AGENT"""
+
+    def test_client_carries_user_agent_and_strict_tls(self):
+        client = amro.amro_client()
+        try:
+            assert client.headers["User-Agent"] == amro.AMRO_USER_AGENT
+            assert "python-httpx" not in amro.AMRO_USER_AGENT
+        finally:
+            _run(client.aclose())
+
+    def test_client_keeps_extra_headers(self):
+        client = amro.amro_client(headers={"X-Test": "1"})
+        try:
+            assert client.headers["X-Test"] == "1"
+            assert client.headers["User-Agent"] == amro.AMRO_USER_AGENT
+        finally:
+            _run(client.aclose())
+
+    def test_403_raises_blocked_and_audits(self, tmp_path, monkeypatch):
+        class _BlockedResp:
+            status_code = 403
+
+            def raise_for_status(self):
+                raise AssertionError("403 应在 raise_for_status 前被拦截")
+
+            def json(self):
+                raise AssertionError("403 不应解析 body")
+
+        class _BlockedClient:
+            async def post(self, url, data=None, cookies=None, timeout=None):
+                return _BlockedResp()
+
+        audit = tmp_path / "audit.jsonl"
+        monkeypatch.setattr(amro, "_audit_path", lambda: audit)
+        with pytest.raises(amro.AmroBlocked, match="403"):
+            _run(amro.query_plugin(_BlockedClient(), {}, "DA_ACREG_LIST", {"page": "1"}))
+        line = json.loads(audit.read_text(encoding="utf-8").splitlines()[-1])
+        assert line["code"] == 403
+
+    def test_403_not_retried(self, tmp_path, monkeypatch):
+        calls = []
+
+        class _BlockedResp:
+            status_code = 403
+
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return {}
+
+        class _BlockedClient:
+            async def post(self, url, data=None, cookies=None, timeout=None):
+                calls.append(url)
+                return _BlockedResp()
+
+        monkeypatch.setattr(amro, "_audit_path", lambda: tmp_path / "audit.jsonl")
+        with pytest.raises(amro.AmroBlocked):
+            _run(amro.query_plugin(_BlockedClient(), {}, "DA_ACREG_LIST", {"page": "1"}))
+        assert len(calls) == 1
+
+
 class TestQueryKunmingStock:
     def test_sums_kunming_only(self):
         body = {"code": 200, "data": [
@@ -79,6 +142,8 @@ class TestQueryKunmingStock:
 
     def test_all_requests_fail_returns_none(self):
         class _FailResp:
+            status_code = 200
+
             def raise_for_status(self):
                 raise httpx.ConnectError("no net")
 
@@ -142,6 +207,8 @@ class TestQueryPlugin:
         pages = {1: [{"i": i} for i in range(10)], 2: [{"i": 10}], 3: []}
 
         class _Resp:
+            status_code = 200
+
             def __init__(self, body):
                 self._body = body
 
@@ -171,6 +238,8 @@ class TestQueryPluginRetry:
         calls = []
 
         class _Resp:
+            status_code = 200
+
             def raise_for_status(self):
                 pass
 
@@ -211,6 +280,8 @@ class TestQueryPluginRetry:
         calls = []
 
         class _Resp:
+            status_code = 200
+
             def raise_for_status(self):
                 pass
 

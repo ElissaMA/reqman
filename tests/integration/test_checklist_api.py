@@ -36,6 +36,22 @@ def _make_package(store):
 
 
 class TestChecklistApi:
+    def test_requires_matched_package(self, client, store):
+        """未匹配工作包下载借用清单被拦截，不触发匹配。"""
+        pkg_id = store.save_work_package({
+            "reg": "B-9999", "description": "未匹配清单包", "date": "2020.01.01",
+            "aircraft_info": {"reg": "B-9999", "description": "未匹配清单包"},
+            "all_items": [{"task_code": "X-1", "task_name": "卡", "source": "例行"}],
+            "is_matched": False,
+        })["package_id"]
+        try:
+            for path in ("/generate/tool-list", "/generate/chemical-list"):
+                resp = client.post(path, data={"package_id": pkg_id})
+                assert resp.status_code == 409, path
+            assert store.get_work_package(pkg_id)["is_matched"] is False
+        finally:
+            store.delete_work_package(pkg_id)
+
     def test_tool_list_download(self, client, store):
         pkg_id = _make_package(store)
         resp = client.post("/generate/tool-list", data={"package_id": pkg_id})

@@ -12,7 +12,7 @@ from ..services.amro_sync import build_package_label
 from ..services.checklist_generator import generate_chemical_list, generate_tool_list
 from ..services.form_generator import generate_form
 from ..services.reminder_generator import generate_reminder
-from ..services.work_package_matcher import is_cancelled_item, match_work_package_items
+from ..services.work_package_matcher import is_cancelled_item, needs_amro_reimport
 from ..utils.error_handlers import NotFoundError, TemplateContractError, is_ajax
 from ..utils.response import api_error, api_success
 
@@ -26,68 +26,10 @@ def _get_store():
 
 
 
-def _package_cache_has_cancelled(pkg_data: dict) -> bool:
-    """检查已匹配缓存是否遗漏/复活撤销工卡。"""
-    cancelled_codes = {
-        str(item.get("task_code", "")).strip()
-        for item in pkg_data.get("all_items", [])
-        if is_cancelled_item(item)
-    }
-    if not cancelled_codes:
-        return False
-    for group in (pkg_data.get("matched", []), pkg_data.get("new_cards", [])):
-        if any(str(item.get("task_code", "")).strip() in cancelled_codes for item in group):
-            return True
-    return len(pkg_data.get("cancelled", [])) != len(cancelled_codes)
-
-
-def _ensure_package_matched(pkg_data):
-    """若工作包尚未匹配或缓存复活撤销项，执行匹配并保存。"""
-    if pkg_data.get("is_matched") and not _package_cache_has_cancelled(pkg_data):
-        return pkg_data
-
-    store = _get_store()
-    service = current_app.extensions['card_service']
-
-    all_items = pkg_data.get("all_items", [])
-    matched, new_cards, cancelled = match_work_package_items(all_items, store, service)
-
-    # 后处理：三块（工具/航材/提醒）任一未确认的工卡从已匹配移入新工卡区域
-    # 一次性批量查卡，避免循环内逐条 find_by_code 的 N+1 整库重读
-    codes = [item["task_code"] for item in matched if item.get("task_code")]
-    cards_by_code = store.find_by_codes(codes)
-    unconfirmed = []
-    still_matched = []
-    for item in matched:
-        card = cards_by_code.get(item.get("task_code", ""))
-        if card:
-            tools_ok = card.get("tools_confirmed", False)
-            materials_ok = card.get("materials_confirmed", False)
-            reminder_ok = card.get("reminder_confirmed", False)
-            if not (tools_ok and materials_ok and reminder_ok):
-                item["status"] = "new"
-                item["unconfirmed"] = True
-                item["reason"] = "工具/航材/提醒未完善"
-                unconfirmed.append(item)
-            else:
-                still_matched.append(item)
-        else:
-            still_matched.append(item)
-    matched[:] = still_matched
-    new_cards = unconfirmed + new_cards
-
-    now_str = datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d %H:%M")
-    pkg_data["matched"] = matched
-    pkg_data["new_cards"] = new_cards
-    pkg_data["cancelled"] = cancelled
-    pkg_data["cancelled_count"] = len(cancelled)
-    pkg_data["routine_count"] = sum(1 for i in all_items if i.get("source") == "例行")
-    pkg_data["other_count"] = sum(1 for i in all_items if i.get("source") == "其他")
-    pkg_data["is_matched"] = True
-    pkg_data["generated_at"] = now_str
-    store.save_work_package(pkg_data)
-
-    return pkg_data
+def _package_not_matched_response():
+    """未匹配工作包在预览/下载侧的统一拦截：不自动匹配，提示先去「重新匹配」。"""
+    return api_error("该工作包尚未匹配，请返回工作包页点击「重新匹配」后再操作",
+                     "PACKAGE_NOT_MATCHED", 409)
 
 
 @generate_bp.route("/generate", methods=["GET", "POST"])
@@ -103,9 +45,19 @@ def generate():
     pkg_data = _get_store().get_work_package(package_id)
     if not pkg_data:
         raise NotFoundError("数据已过期，请重新上传工作清单")
+    if needs_amro_reimport(pkg_data):
+        message = "此工作包由旧版 AMRO 导入，缺少工卡状态 CONDITION；请重新从 AMRO 导入该工作包后再预览或下载"
+        if is_ajax():
+            return api_error(message, "AMRO_REIMPORT_REQUIRED", 409)
+        flash(message, "error")
+        return redirect("/upload")
 
-    # 延迟匹配：首次访问时匹配数据库并生成预览
-    pkg_data = _ensure_package_matched(pkg_data)
+    # 匹配只在「重新匹配」时发生；预览不自动匹配，未匹配则提示
+    if not pkg_data.get("is_matched"):
+        if is_ajax():
+            return _package_not_matched_response()
+        return render_template("generate/form.html", has_data=False,
+                               not_matched=True, package_id=package_id)
 
     if request.method == "POST":
         try:
@@ -249,7 +201,7 @@ def _handle_generate_json_preview(pkg_data: dict, package_id: str):
     aircraft_info = pkg_data.get("aircraft_info", {})
     matched = pkg_data.get("matched", [])
     new_cards = pkg_data.get("new_cards", [])
-    cancelled = pkg_data.get("cancelled", [])
+    cancelled = [item for item in pkg_data.get("cancelled", []) if is_cancelled_item(item)]
 
     return api_success(data={
         "package_id": package_id,
@@ -269,6 +221,8 @@ def _handle_generate_preview(pkg_data: dict, package_id: str):
     aircraft_info = pkg_data.get("aircraft_info", {})
     matched = pkg_data.get("matched", [])
     new_cards = pkg_data.get("new_cards", [])
+    cancelled_cards = [item for item in pkg_data.get("cancelled", [])
+                       if is_cancelled_item(item)]  # 仅清单撤销；主库已作废不在此展示
 
     # 分类排序权重（统一来源 config.CATEGORY_ORDER）
     cat_order = CATEGORY_ORDER
@@ -293,6 +247,7 @@ def _handle_generate_preview(pkg_data: dict, package_id: str):
                            package_id=package_id,
                            aircraft_info=aircraft_info,
                            new_cards=new_cards,
+                           cancelled_cards=cancelled_cards,
                            conditions=CONDITIONS,
                            condition_defaults=CONDITION_DEFAULTS,
                            tool_groups=_group_by_category(tool_preview),
@@ -311,7 +266,11 @@ def reminder_download():
     pkg_data = _get_store().get_work_package(package_id)
     if not pkg_data:
         raise NotFoundError("数据已过期，请重新上传工作清单")
-    pkg_data = _ensure_package_matched(pkg_data)
+    if needs_amro_reimport(pkg_data):
+        return api_error("此工作包由旧版 AMRO 导入，缺少工卡状态 CONDITION；请重新从 AMRO 导入后下载提醒单",
+                         "AMRO_REIMPORT_REQUIRED", 409)
+    if not pkg_data.get("is_matched"):
+        return _package_not_matched_response()
 
     items = []
     for item in _dedup_matched(pkg_data.get("matched", [])):
@@ -368,14 +327,19 @@ def reminder_download():
 
 
 def _checklist_package():
-    """借用清单共用：解析 package_id → 取包 → 确保已匹配。"""
+    """借用清单共用：解析 package_id → 取包 → 要求已匹配（不自动匹配）。"""
     package_id = request.form.get("package_id", "")
     if not package_id:
         return api_error("缺少工作包参数", "MISSING_PACKAGE_ID", 400)
     pkg_data = _get_store().get_work_package(package_id)
     if not pkg_data:
         raise NotFoundError("数据已过期，请重新上传工作清单")
-    return _ensure_package_matched(pkg_data)
+    if needs_amro_reimport(pkg_data):
+        return api_error("此工作包由旧版 AMRO 导入，缺少工卡状态 CONDITION；请重新从 AMRO 导入后下载借用清单",
+                         "AMRO_REIMPORT_REQUIRED", 409)
+    if not pkg_data.get("is_matched"):
+        return _package_not_matched_response()
+    return pkg_data
 
 
 def _checklist_form_data(pkg_data: dict) -> dict:
